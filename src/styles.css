@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Optionnel: petit reset sympa */
+html,
+body {
+  height: 100%;
+}

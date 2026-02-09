@@ -1,0 +1,171 @@
+/* ============================================
+   FIX URGENT - TIME PICKERS PERSONNALISÉS
+   ============================================ */
+
+/* Forcer la visibilité du texte dans tous les inputs time/number */
+input[type="time"],
+input[type="number"],
+input[type="text"][inputmode="numeric"] {
+  /* FORCER le texte visible */
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+
+  /* FORCER le background sombre transparent */
+  background-color: rgba(0, 0, 0, 0.3) !important;
+
+  /* Border visible */
+  border: 2px solid rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Tous les divs qui ressemblent à des time pickers */
+div[class*="time"],
+div[class*="picker"],
+div[class*="selector"],
+button[class*="time"],
+button[class*="hour"],
+button[class*="minute"] {
+  color: #ffffff !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Fix spécifique pour les listes déroulantes blanches */
+.react-datepicker,
+.time-picker-dropdown,
+div[class*="dropdown"],
+div[class*="list"],
+ul[class*="time"],
+ul[class*="hour"],
+ul[class*="minute"] {
+  background-color: rgba(30, 27, 75, 0.95) !important;
+  color: #ffffff !important;
+  border: 2px solid rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Items dans les listes */
+.react-datepicker__time-list-item,
+li[class*="time"],
+li[class*="hour"],
+li[class*="minute"],
+div[role="option"] {
+  color: #ffffff !important;
+  background-color: transparent !important;
+}
+
+/* Items hover */
+.react-datepicker__time-list-item:hover,
+li[class*="time"]:hover,
+li[class*="hour"]:hover,
+li[class*="minute"]:hover,
+div[role="option"]:hover {
+  background-color: rgba(139, 92, 246, 0.4) !important;
+  color: #ffffff !important;
+}
+
+/* Items sélectionnés */
+.react-datepicker__time-list-item--selected,
+li[class*="selected"],
+div[aria-selected="true"] {
+  background-color: rgba(139, 92, 246, 0.7) !important;
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
+
+/* Fix pour les scrollbars dans les listes */
+.react-datepicker__time-list::-webkit-scrollbar {
+  width: 8px !important;
+}
+
+.react-datepicker__time-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2) !important;
+}
+
+.react-datepicker__time-list::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.5) !important;
+  border-radius: 4px !important;
+}
+
+.react-datepicker__time-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.8) !important;
+}
+
+/* Fix pour react-datepicker spécifiquement */
+.react-datepicker__header {
+  background-color: rgba(139, 92, 246, 0.3) !important;
+  border-bottom: 2px solid rgba(139, 92, 246, 0.5) !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header {
+  color: #ffffff !important;
+  font-weight: bold !important;
+}
+
+/* Fix pour les inputs dans les modals/overlays */
+.modal input[type="time"],
+.overlay input[type="time"],
+div[role="dialog"] input[type="time"] {
+  background-color: rgba(0, 0, 0, 0.4) !important;
+  color: #ffffff !important;
+  border: 2px solid rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Si vous utilisez une bibliothèque type rc-time-picker */
+.rc-time-picker-panel,
+.rc-time-picker-panel-inner {
+  background-color: rgba(30, 27, 75, 0.95) !important;
+  border: 2px solid rgba(139, 92, 246, 0.5) !important;
+}
+
+.rc-time-picker-panel-select {
+  border-left: 1px solid rgba(139, 92, 246, 0.3) !important;
+}
+
+.rc-time-picker-panel-select li {
+  color: #ffffff !important;
+}
+
+.rc-time-picker-panel-select li:hover {
+  background-color: rgba(139, 92, 246, 0.4) !important;
+}
+
+.rc-time-picker-panel-select li.rc-time-picker-panel-select-option-selected {
+  background-color: rgba(139, 92, 246, 0.7) !important;
+  font-weight: bold !important;
+}
+
+/* Fix pour Material-UI TimePicker si utilisé */
+.MuiTimePicker-root,
+.MuiPickersToolbar-root {
+  background-color: rgba(30, 27, 75, 0.95) !important;
+}
+
+.MuiPickersToolbar-toolbar {
+  background-color: rgba(139, 92, 246, 0.5) !important;
+}
+
+.MuiPickersClock-pin,
+.MuiPickersClockPointer-pointer,
+.MuiPickersClockPointer-thumb {
+  background-color: #8b5cf6 !important;
+}
+
+.MuiPickersBasePicker-pickerView {
+  background-color: rgba(30, 27, 75, 0.95) !important;
+}
+
+/* Fix GLOBAL - appliqué à TOUT */
+* {
+  /* Éviter le texte blanc sur fond blanc */
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Fix pour les popover/popper */
+.MuiPopover-paper,
+.MuiPopper-root,
+div[class*="popper"],
+div[class*="popover"] {
+  background-color: rgba(30, 27, 75, 0.95) !important;
+  color: #ffffff !important;
+  border: 2px solid rgba(139, 92, 246, 0.5) !important;
+}
