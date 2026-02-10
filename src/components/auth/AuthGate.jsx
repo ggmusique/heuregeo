@@ -25,7 +25,9 @@ export default function AuthGate({ children }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const handleAuth = async () => {
+  // ✅ MODIFIÉ : Ajout de e.preventDefault() pour Safari
+  const handleAuth = async (e) => {
+    e.preventDefault(); // ← IMPORTANT pour que Safari détecte le formulaire
     setMsg("");
     try {
       setLoading(true);
@@ -69,36 +71,51 @@ export default function AuthGate({ children }) {
             (RLS actif: il faut être connecté)
           </p>
 
-          <input
-            className="w-full mb-3 p-3 rounded-xl bg-black/30 border border-white/10"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-          />
-          <input
-            className="w-full mb-4 p-3 rounded-xl bg-black/30 border border-white/10"
-            placeholder="Mot de passe"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete={
-              mode === "signup" ? "new-password" : "current-password"
-            }
-          />
+          {/* ✅ MODIFIÉ : Ajout de <form> avec onSubmit */}
+          <form onSubmit={handleAuth}>
+            <input
+              className="w-full mb-3 p-3 rounded-xl bg-black/30 border border-white/10 text-white"
+              placeholder="Email"
+              type="email"        // ← AJOUTÉ type="email"
+              name="email"        // ← AJOUTÉ name="email"
+              id="email"          // ← AJOUTÉ id="email"
+              required            // ← AJOUTÉ required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"  // ← MODIFIÉ : "email" → "username"
+            />
+            
+            <input
+              className="w-full mb-4 p-3 rounded-xl bg-black/30 border border-white/10 text-white"
+              placeholder="Mot de passe"
+              type="password"
+              name="password"     // ← AJOUTÉ name="password"
+              id="password"       // ← AJOUTÉ id="password"
+              required            // ← AJOUTÉ required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete={
+                mode === "signup" ? "new-password" : "current-password"
+              }
+            />
 
-          <button
-            onClick={handleAuth}
-            className="w-full py-3 rounded-2xl bg-indigo-600 font-black uppercase text-sm active:scale-95 transition-all"
-          >
-            {mode === "signup" ? "Créer un compte" : "Se connecter"}
-          </button>
+            {/* ✅ MODIFIÉ : Changé onClick en type="submit" */}
+            <button
+              type="submit"      // ← MODIFIÉ : onClick → type="submit"
+              disabled={loading} // ← AJOUTÉ disabled pendant chargement
+              className="w-full py-3 rounded-2xl bg-indigo-600 font-black uppercase text-sm active:scale-95 transition-all disabled:opacity-50"
+            >
+              {mode === "signup" ? "Créer un compte" : "Se connecter"}
+            </button>
+          </form>
 
+          {/* Bouton changement de mode en dehors du form */}
           <button
+            type="button"  // ← AJOUTÉ pour éviter la soumission
             onClick={() => setMode(mode === "login" ? "signup" : "login")}
             className="w-full mt-3 py-3 rounded-2xl bg-white/10 font-black uppercase text-xs active:scale-95 transition-all"
           >
-            {mode === "login" ? "Créer un compte" : "J’ai déjà un compte"}
+            {mode === "login" ? "Créer un compte" : "J'ai déjà un compte"}
           </button>
 
           {msg && <p className="mt-4 text-sm">{msg}</p>}
