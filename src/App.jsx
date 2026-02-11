@@ -131,6 +131,7 @@ export default function App() {
     createAcompte,
     getSoldeAvant,
     getAcomptesDansPeriode,
+    getTotalAcomptesJusqua, // ✅
   } = useAcomptes(missions, fraisDivers, triggerAlert);
 
   const {
@@ -170,6 +171,7 @@ export default function App() {
     getTotalFrais,
     getSoldeAvant,
     getAcomptesDansPeriode,
+    getTotalAcomptesJusqua, // ✅
     triggerAlert,
   });
 

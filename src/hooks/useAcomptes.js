@@ -94,6 +94,37 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
   );
 
   /**
+   * ✅ NOUVEAU : total des acomptes cumulés jusqu'à une date (incluse)
+   * Sert au calcul comptable du bilan (déduire les impayés + la semaine en cours)
+   *
+   * @param {string} dateFin - "YYYY-MM-DD"
+   * @param {string|null} patronId
+   * @returns {number}
+   */
+  const getTotalAcomptesJusqua = useCallback(
+    (dateFin, patronId = null) => {
+      if (!dateFin) return 0;
+
+      const acomptesArray = Array.isArray(listeAcomptes) ? listeAcomptes : [];
+
+      let filtered = acomptesArray.filter((ac) => {
+        if (!ac?.date_acompte) return false;
+        return ac.date_acompte <= dateFin; // cumul jusqu'à date incluse
+      });
+
+      if (patronId) {
+        filtered = filtered.filter((ac) => ac?.patron_id === patronId);
+      }
+
+      return filtered.reduce((sum, ac) => {
+        const montant = parseFloat(ac?.montant) || 0;
+        return sum + montant;
+      }, 0);
+    },
+    [listeAcomptes]
+  );
+
+  /**
    * Calcule le solde des acomptes avant une date donnée
    * @param {string} dateRef - Date de référence (format ISO)
    * @param {string|null} patronId - ID du patron pour filtrage (optionnel)
@@ -233,6 +264,11 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
     fetchAcomptes,
     createAcompte,
     deleteAcompte,
+
+    // ✅ Ajout
+    getTotalAcomptesJusqua,
+
+    // Existants
     getSoldeAvant,
     getAcomptesDansPeriode,
     getSoldeTotal,
