@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { BUILD_INFO } from "./buildInfo";
+
 
 // Hooks
 import { useClients } from "./hooks/useClients";
@@ -557,6 +559,7 @@ export default function App() {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
+      
       <div
         className={`rounded-[30px] border-2 overflow-hidden ${
           darkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200"
@@ -596,6 +599,7 @@ export default function App() {
       </div>
     );
   };
+  
 
   return (
     <div
@@ -605,6 +609,13 @@ export default function App() {
           : "bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900"
       }`}
     >
+      {/* Badge version / branche */}
+<div className="fixed top-4 right-4 z-[9999]">
+  <div className="px-3 py-2 rounded-xl bg-black/40 backdrop-blur-md border border-white/10 text-white text-xs font-black">
+    {BUILD_INFO.version} • {BUILD_INFO.channel}
+  </div>
+</div>
+
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/30 via-transparent to-indigo-900/30" />
         <div className="absolute inset-0 backdrop-blur-3xl" />
