@@ -35,6 +35,9 @@ import { exportToExcel, exportToCSV } from "./utils/exportUtils";
 import { exportToPDFPro } from "./utils/exportPDF_Pro";
 
 export default function App() {
+    const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
+  const APP_VERSION = import.meta.env.VITE_APP_VERSION || "";
+
   // ========== STATE GÉNÉRAL ==========
   const [activeTab, setActiveTab] = useState("saisie");
   const [darkMode, setDarkMode] = useState(true);
@@ -1490,6 +1493,31 @@ export default function App() {
           </button>
         </div>
       </nav>
+
+      {/* ✅ Badge version / branche */}
+      <div
+        style={{
+          position: "fixed",
+          top: 10,
+          right: 10,
+          zIndex: 999999,
+          padding: "6px 10px",
+          borderRadius: 999,
+          fontSize: 12,
+          fontWeight: 800,
+          letterSpacing: 0.5,
+          background: "rgba(0,0,0,0.55)",
+          color: "white",
+          border: "1px solid rgba(255,255,255,0.15)",
+          backdropFilter: "blur(8px)",
+        }}
+        title="Canal + version affichés depuis .env.local"
+      >
+        {APP_CHANNEL} {APP_VERSION ? `• ${APP_VERSION}` : ""}
+      </div>
+
     </div>
   );
+
+  
 }
