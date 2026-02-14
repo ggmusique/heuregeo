@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 
+/* ============================================================
+   ✅ IMPORTS = briques utilisées par App
+   - Hooks : logique (charger, créer, supprimer, calculer...)
+   - Components : interface (formulaires, cartes, modales)
+   - Styles : correctifs d’UI
+   - Utils : fonctions pratiques (format €, export, dates...)
+   ============================================================ */
+
 // Hooks
 import { useClients } from "./hooks/useClients";
 import { useMissions } from "./hooks/useMissions";
@@ -35,38 +43,58 @@ import { exportToExcel, exportToCSV } from "./utils/exportUtils";
 import { exportToPDFPro } from "./utils/exportPDF_Pro";
 
 export default function App() {
-  // ========== STATE GÉNÉRAL ==========
-  const [activeTab, setActiveTab] = useState("saisie");
-  const [darkMode, setDarkMode] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [customAlert, setCustomAlert] = useState({ show: false, message: "" });
-  const [isIOS, setIsIOS] = useState(false);
-  const [liveTime, setLiveTime] = useState("");
+  /* ============================================================
+     ✅ Badge "version / canal"
+     - APP_CHANNEL : WORK / MAIN / LOCAL (selon ton .env.local)
+     - APP_VERSION : v6.0 etc.
+     ============================================================ */
+  const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
+  const APP_VERSION = import.meta.env.VITE_APP_VERSION || "";
 
-  // ✅ Historique bilans (payés / impayés)
+  // ============================================================
+  // ✅ STATE GÉNÉRAL (contrôle global de l’app)
+  // ============================================================
+  const [activeTab, setActiveTab] = useState("saisie"); // onglet actuel
+  const [darkMode, setDarkMode] = useState(true); // thème sombre/clair
+  const [loading, setLoading] = useState(false); // loading manuel pendant actions
+  const [customAlert, setCustomAlert] = useState({ show: false, message: "" }); // alert toast
+  const [isIOS, setIsIOS] = useState(false); // détecte iPhone/iPad
+  const [liveTime, setLiveTime] = useState(""); // horloge temps réel
+
+  // ============================================================
+  // ✅ HISTORIQUE bilans (liste payés / impayés)
+  // ============================================================
   const [historique, setHistorique] = useState({
     impayes: [],
     payes: [],
     all: [],
   });
   const [loadingHistorique, setLoadingHistorique] = useState(false);
-  const [historiquePatronId, setHistoriquePatronId] = useState(null);
-  const [historiqueTab, setHistoriqueTab] = useState("impayes"); // "impayes" | "payes"
+  const [historiquePatronId, setHistoriquePatronId] = useState(null); // filtre patron (historique)
+  const [historiqueTab, setHistoriqueTab] = useState("impayes"); // impayes | payes
 
-  // Clients
+  // ============================================================
+  // ✅ CLIENTS (modale + édition)
+  // ============================================================
   const [showClientModal, setShowClientModal] = useState(false);
   const [editingClientId, setEditingClientId] = useState(null);
   const [editingClientData, setEditingClientData] = useState(null);
-  const [selectedClientId, setSelectedClientId] = useState(null);
+  const [selectedClientId, setSelectedClientId] = useState(null); // sélection client dans MissionForm
 
-  // Patrons pour le bilan
+  // ============================================================
+  // ✅ Patron sélectionné pour le BILAN (filtre)
+  // ============================================================
   const [bilanPatronId, setBilanPatronId] = useState(null);
 
-  // Missions
+  // ============================================================
+  // ✅ MISSIONS (édition)
+  // ============================================================
   const [editingMissionId, setEditingMissionId] = useState(null);
   const [editingMissionData, setEditingMissionData] = useState(null);
 
-  // Frais
+  // ============================================================
+  // ✅ FRAIS (modale + édition)
+  // ============================================================
   const [showFraisModal, setShowFraisModal] = useState(false);
   const [fraisDescription, setFraisDescription] = useState("");
   const [fraisMontant, setFraisMontant] = useState("");
@@ -76,7 +104,9 @@ export default function App() {
   const [editingFraisId, setEditingFraisId] = useState(null);
   const [fraisPatronId, setFraisPatronId] = useState(null);
 
-  // Acompte
+  // ============================================================
+  // ✅ ACOMPTE (modale)
+  // ============================================================
   const [showAcompteModal, setShowAcompteModal] = useState(false);
   const [acompteMontant, setAcompteMontant] = useState("");
   const [acompteDate, setAcompteDate] = useState(
@@ -84,12 +114,16 @@ export default function App() {
   );
   const [acomptePatronId, setAcomptePatronId] = useState(null);
 
-  // Patron
+  // ============================================================
+  // ✅ PATRON (modale + édition)
+  // ============================================================
   const [showPatronModal, setShowPatronModal] = useState(false);
   const [editingPatronId, setEditingPatronId] = useState(null);
   const [editingPatronData, setEditingPatronData] = useState(null);
 
-  // ========== HOOKS MÉTIER ==========
+  // ============================================================
+  // ✅ triggerAlert = la petite notif qui pop (CustomAlert)
+  // ============================================================
   const triggerAlert = useCallback((msg) => {
     setCustomAlert((prev) => ({ ...prev, show: true, message: msg }));
     setTimeout(
@@ -98,8 +132,14 @@ export default function App() {
     );
   }, []);
 
+  // ============================================================
+  // ✅ Confirm Modal (pour valider suppression etc.)
+  // ============================================================
   const { confirmState, showConfirm, hideConfirm } = useConfirm();
 
+  // ============================================================
+  // ✅ Hook MISSIONS (CRUD + filtres période)
+  // ============================================================
   const {
     missions,
     loading: missionsLoading,
@@ -113,6 +153,9 @@ export default function App() {
     getMissionsByPeriod,
   } = useMissions(triggerAlert);
 
+  // ============================================================
+  // ✅ Hook FRAIS (CRUD + filtres semaine)
+  // ============================================================
   const {
     fraisDivers,
     loading: fraisLoading,
@@ -124,6 +167,12 @@ export default function App() {
     getTotalFrais,
   } = useFrais(triggerAlert);
 
+  // ============================================================
+  // ✅ Hook ACOMPTES (CRUD + calculs solde)
+  // - getSoldeAvant : solde avant une date
+  // - getAcomptesDansPeriode : total acompte entre 2 dates
+  // - getTotalAcomptesJusqua : cumul jusqu'à une date (important bilan)
+  // ============================================================
   const {
     listeAcomptes,
     loading: acomptesLoading,
@@ -134,6 +183,9 @@ export default function App() {
     getTotalAcomptesJusqua, // ✅
   } = useAcomptes(missions, fraisDivers, triggerAlert);
 
+  // ============================================================
+  // ✅ Hook PATRONS (CRUD + affichage nom/couleur)
+  // ============================================================
   const {
     patrons,
     loading: patronsLoading,
@@ -144,6 +196,9 @@ export default function App() {
     getPatronColor,
   } = usePatrons(triggerAlert);
 
+  // ============================================================
+  // ✅ Hook CLIENTS (CRUD + recherche)
+  // ============================================================
   const {
     clients,
     loading: clientsLoading,
@@ -154,13 +209,18 @@ export default function App() {
     searchClients,
   } = useClients(triggerAlert);
 
+  // ============================================================
+  // ✅ Hook GEOLOCATION (récupère une adresse)
+  // ============================================================
   const { loading: gpsLoading } = useGeolocation(
     (address) =>
       triggerAlert(`Position chargée : ${address.substring(0, 45)}...`),
     (error) => triggerAlert(error)
   );
 
-  // ✅ IMPORTANT : plus de alert() ici (ça cassait tout)
+  // ============================================================
+  // ✅ Hook BILAN (calcule + sauvegarde l'état payé)
+  // ============================================================
   const bilan = useBilan({
     missions,
     fraisDivers,
@@ -175,7 +235,11 @@ export default function App() {
     triggerAlert,
   });
 
-  // ========== EFFECTS ==========
+  // ============================================================
+  // ✅ EFFECTS (automatiques)
+  // ============================================================
+
+  // Au démarrage : titre + détection iOS + chargement data
   useEffect(() => {
     document.title = "Heures de Geo";
 
@@ -189,6 +253,7 @@ export default function App() {
     fetchAcomptes();
   }, [fetchMissions, fetchFrais, fetchAcomptes]);
 
+  // Horloge live
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
@@ -199,11 +264,14 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // Quand le modal "période" s'ouvre, on calcule les périodes possibles
   useEffect(() => {
     if (bilan.showPeriodModal) bilan.calculerPeriodesDisponibles();
   }, [bilan.showPeriodModal, bilan.bilanPeriodType, missions]);
 
-  // ✅ Charger historique (si useBilan expose fetchHistoriqueBilans)
+  // ============================================================
+  // ✅ Charger historique bilans (depuis useBilan)
+  // ============================================================
   const chargerHistorique = async (patronId = null) => {
     if (typeof bilan.fetchHistoriqueBilans !== "function") {
       triggerAlert(
@@ -223,12 +291,15 @@ export default function App() {
     }
   };
 
-  // ========== HANDLERS ==========
+  // ============================================================
+  // ✅ HANDLERS MISSIONS
+  // ============================================================
   const handleMissionSubmit = async (missionData) => {
     try {
       setLoading(true);
       if (editingMissionId) await updateMission(editingMissionId, missionData);
       else await createMission(missionData);
+
       triggerAlert(
         editingMissionId ? "Mission mise à jour !" : "Mission enregistrée !"
       );
@@ -279,6 +350,7 @@ export default function App() {
     setEditingMissionData(null);
   };
 
+  // Copie la dernière mission (pour gagner du temps)
   const copierDerniereMission = () => {
     if (!missions.length) return triggerAlert("Aucune mission précédente.");
     const derniere = [...missions].sort((a, b) =>
@@ -298,7 +370,9 @@ export default function App() {
     setSelectedClientId(derniere.client_id || null);
   };
 
-  // Handlers Frais
+  // ============================================================
+  // ✅ HANDLERS FRAIS
+  // ============================================================
   const handleFraisSubmit = async () => {
     const montant = parseFloat(fraisMontant);
     if (!fraisDescription.trim() || isNaN(montant) || montant <= 0)
@@ -375,7 +449,9 @@ export default function App() {
     setFraisPatronId(null);
   };
 
-  // ========== HANDLERS ACOMPTE ==========
+  // ============================================================
+  // ✅ HANDLERS ACOMPTE
+  // ============================================================
   const handleAcompteSubmit = async () => {
     const montantNet = parseFloat(acompteMontant?.toString().replace(",", "."));
     if (!acompteMontant || isNaN(montantNet) || montantNet <= 0) {
@@ -411,7 +487,9 @@ export default function App() {
     setAcomptePatronId(null);
   };
 
-  // ========== HANDLERS PATRON ==========
+  // ============================================================
+  // ✅ HANDLERS PATRON
+  // ============================================================
   const handlePatronSubmit = async (patronData) => {
     try {
       setLoading(true);
@@ -464,7 +542,9 @@ export default function App() {
     setEditingPatronData(null);
   };
 
-  // ========== HANDLERS CLIENTS ==========
+  // ============================================================
+  // ✅ HANDLERS CLIENTS
+  // ============================================================
   const handleClientSubmit = async (clientData) => {
     try {
       setLoading(true);
@@ -517,7 +597,9 @@ export default function App() {
     setEditingClientData(null);
   };
 
-  // HANDLER paiement bilan
+  // ============================================================
+  // ✅ HANDLER : marquer bilan comme payé
+  // ============================================================
   const handleMarquerCommePaye = async () => {
     const titre = bilan?.bilanContent?.titre || "ce bilan";
     const reste = bilan?.bilanContent?.resteAPercevoir || 0;
@@ -538,12 +620,18 @@ export default function App() {
     // ✅ ne pas regénérer direct après
   };
 
-  // ========== RENDER ==========
+  // ============================================================
+  // ✅ RENDER: données calculées pour l'affichage
+  // ============================================================
   const currentWeek = getWeekNumber(new Date());
   const missionsThisWeek = getMissionsByWeek(currentWeek).filter(
     (m) => m && m.date_iso
   );
 
+  /* ============================================================
+     ✅ AccordionSection = un mini composant pour l’onglet "Données"
+     - ça fait les blocs repliables (Patrons / Clients)
+     ============================================================ */
   const AccordionSection = ({
     title,
     count,
@@ -593,7 +681,6 @@ export default function App() {
       </div>
     );
   };
-
   return (
     <div
       className={`min-h-screen relative overflow-hidden transition-all duration-700 ${
@@ -602,18 +689,20 @@ export default function App() {
           : "bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900"
       }`}
     >
+      {/* Fond décoratif */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/30 via-transparent to-indigo-900/30" />
         <div className="absolute inset-0 backdrop-blur-3xl" />
       </div>
 
+      {/* Toast alert (petites notifications) */}
       <CustomAlert
         show={customAlert.show}
         message={customAlert.message || ""}
         onDismiss={() => setCustomAlert((prev) => ({ ...prev, show: false }))}
       />
 
-      {/* Overlay loading */}
+      {/* Overlay loading global */}
       {(loading ||
         missionsLoading ||
         fraisLoading ||
@@ -627,6 +716,7 @@ export default function App() {
         </div>
       )}
 
+      {/* Header haut (titre + horloge + bouton dark mode) */}
       <header className="relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-800/95 via-purple-900/95 to-indigo-950/95 backdrop-blur-xl" />
         <div className="relative z-10 text-center">
@@ -654,6 +744,7 @@ export default function App() {
         </div>
       </header>
 
+      {/* Main = contenu selon l’onglet actif */}
       <main className="relative px-5 -mt-10 pb-32 z-10">
         {/* ========= ONGLET SAISIE ========= */}
         {activeTab === "saisie" ? (
@@ -687,6 +778,7 @@ export default function App() {
               }}
             />
 
+            {/* Boutons rapides */}
             <div className="grid grid-cols-2 gap-4 mt-6">
               <button
                 onClick={() => setShowFraisModal(true)}
@@ -775,7 +867,8 @@ export default function App() {
                 {loadingHistorique ? "Chargement..." : "Charger l’historique"}
               </button>
             </div>
-            {/* ✅ Onglets (Impayés / Payés) */}
+
+            {/* Onglets impayés / payés */}
             <div className="flex gap-2">
               <button
                 onClick={() => setHistoriqueTab("impayes")}
@@ -800,7 +893,7 @@ export default function App() {
               </button>
             </div>
 
-            {/* ✅ Contenu selon l’onglet */}
+            {/* Contenu selon onglet */}
             {historiqueTab === "impayes" ? (
               <div className="p-5 rounded-[25px] border border-orange-500/20 bg-orange-500/10 backdrop-blur-md">
                 <p className="text-[10px] font-black uppercase text-orange-300 tracking-widest mb-4">
@@ -980,7 +1073,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* === SUIVI FRAIS / ACOMPTES === */}
+                {/* SUIVI FRAIS / ACOMPTES */}
                 {bilan.bilanPeriodType === "semaine" &&
                   (bilan.bilanContent.fraisDivers.length > 0 ||
                     bilan.bilanContent.impayePrecedent !== 0 ||
@@ -1108,7 +1201,7 @@ export default function App() {
                     </div>
                   )}
 
-                {/* === PAIEMENT (semaine) === */}
+                {/* PAIEMENT */}
                 {bilan.bilanPeriodType === "semaine" &&
                   (!bilan.bilanPaye ? (
                     <div className="mb-8 mt-2 p-5 bg-gradient-to-r from-orange-600 to-red-700 rounded-2xl shadow-lg">
@@ -1149,7 +1242,7 @@ export default function App() {
                     </div>
                   ))}
 
-                {/* Exports */}
+                {/* EXPORTS */}
                 <div className="flex flex-wrap gap-3 mb-8">
                   <button
                     onClick={() =>
@@ -1212,7 +1305,7 @@ export default function App() {
                     )}
                 </div>
 
-                {/* Détail / Group */}
+                {/* Détail missions (semaine) OU Regroupement (mois/année) */}
                 {bilan.bilanPeriodType === "semaine" ? (
                   <div className="space-y-3">
                     <p className="text-[10px] font-black uppercase opacity-40 tracking-widest px-2">
@@ -1344,6 +1437,7 @@ export default function App() {
         )}
       </main>
 
+      {/* Modals (popups) */}
       <ConfirmModal
         show={confirmState.show}
         title={confirmState.title}
@@ -1437,6 +1531,7 @@ export default function App() {
         onPatronChange={setBilanPatronId}
       />
 
+      {/* Navigation en bas */}
       <nav className="fixed bottom-6 left-6 right-6 z-[100]">
         <div className="bg-[#0f111a]/80 backdrop-blur-3xl border border-white/10 p-2 rounded-[35px] shadow-2xl flex gap-1">
           <button
@@ -1490,6 +1585,28 @@ export default function App() {
           </button>
         </div>
       </nav>
+
+      {/* Badge version / branche (visible dans l’app) */}
+      <div
+        style={{
+          position: "fixed",
+          top: 10,
+          right: 10,
+          zIndex: 999999,
+          padding: "6px 10px",
+          borderRadius: 999,
+          fontSize: 12,
+          fontWeight: 800,
+          letterSpacing: 0.5,
+          background: "rgba(0,0,0,0.55)",
+          color: "white",
+          border: "1px solid rgba(255,255,255,0.15)",
+          backdropFilter: "blur(8px)",
+        }}
+        title="Canal + version affichés depuis .env.local"
+      >
+        {APP_CHANNEL} {APP_VERSION ? `• ${APP_VERSION}` : ""}
+      </div>
     </div>
   );
 }
