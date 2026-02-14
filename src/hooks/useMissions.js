@@ -4,30 +4,49 @@ import { getWeekNumber } from "../utils/dateUtils";
 
 /**
  * Hook complet pour gérer les missions - Multi-Patrons
- * @param {Function} onError - Callback en cas d'erreur
+ *
+ * Rôle dans l’app :
+ * - Stocker la liste des missions en mémoire (state React)
+ * - Aller chercher / modifier les missions dans la base (via missionsApi)
+ * - Donner des outils de tri/filtre : par semaine, par mois/année, par patron
+ * - Fournir des listes “autocomplete” : clients uniques, lieux uniques
+ *
+ * @param {Function} onError - fonction pour afficher une alerte (ex: triggerAlert)
  */
 export const useMissions = (onError) => {
+  // ------------------------------------------------------------
+  // 1) STATES PRINCIPAUX
+  // ------------------------------------------------------------
+  // missions = toutes les missions chargées depuis la DB
   const [missions, setMissions] = useState([]);
+  // loading = pour afficher le spinner pendant une action
   const [loading, setLoading] = useState(false);
 
-  // Ref pour éviter les appels multiples
+  // Ref = "verrou" anti double-clic : empêche fetchMissions d’être lancé 2 fois
   const isFetching = useRef(false);
 
+  // ------------------------------------------------------------
+  // 2) CHARGEMENT (READ)
+  // ------------------------------------------------------------
   /**
-   * Récupère toutes les missions depuis l'API
+   * fetchMissions()
+   * => appelle l'API, récupère toutes les missions, les met dans le state
    */
   const fetchMissions = useCallback(async () => {
-    // Éviter les appels multiples
+    // Si une requête est déjà en cours, on ne relance pas
     if (isFetching.current) return;
 
     try {
       isFetching.current = true;
       setLoading(true);
-      const data = await missionsApi.fetchMissions();
-      setMissions(data || []);
+
+      const data = await missionsApi.fetchMissions(); // 🔌 DB → récupère missions
+      setMissions(data || []); // 🧠 stocke dans React
+
       return data || [];
     } catch (err) {
       console.error("Erreur fetch missions:", err);
+      // onError = ton triggerAlert dans App.jsx
       onError?.("Erreur connexion. Vérifie internet.");
       throw err;
     } finally {
@@ -36,9 +55,12 @@ export const useMissions = (onError) => {
     }
   }, [onError]);
 
+  // ------------------------------------------------------------
+  // 3) CRÉATION (CREATE)
+  // ------------------------------------------------------------
   /**
-   * Crée une nouvelle mission
-   * @param {Object} missionData - Données de la mission
+   * createMission(missionData)
+   * => enregistre une mission en DB puis l'ajoute au state
    */
   const createMission = useCallback(
     async (missionData) => {
@@ -48,9 +70,11 @@ export const useMissions = (onError) => {
 
       try {
         setLoading(true);
-        const newMission = await missionsApi.createMission(missionData);
+
+        const newMission = await missionsApi.createMission(missionData); // 🔌 DB insert
 
         if (newMission) {
+          // on la met tout en haut (comme “dernière ajoutée”)
           setMissions((prev) => [newMission, ...prev]);
         }
 
@@ -66,26 +90,25 @@ export const useMissions = (onError) => {
     [onError]
   );
 
+  // ------------------------------------------------------------
+  // 4) MISE À JOUR (UPDATE)
+  // ------------------------------------------------------------
   /**
-   * Met à jour une mission existante
-   * @param {string} id - ID de la mission
-   * @param {Object} missionData - Nouvelles données
+   * updateMission(id, missionData)
+   * => met à jour en DB puis remplace dans le state
    */
   const updateMission = useCallback(
     async (id, missionData) => {
-      if (!id) {
-        throw new Error("ID de la mission manquant");
-      }
-
-      if (!missionData) {
-        throw new Error("Données de la mission manquantes");
-      }
+      if (!id) throw new Error("ID de la mission manquant");
+      if (!missionData) throw new Error("Données de la mission manquantes");
 
       try {
         setLoading(true);
-        const updated = await missionsApi.updateMission(id, missionData);
+
+        const updated = await missionsApi.updateMission(id, missionData); // 🔌 DB update
 
         if (updated) {
+          // Remplace uniquement la mission concernée
           setMissions((prev) => prev.map((m) => (m.id === id ? updated : m)));
         }
 
@@ -101,20 +124,22 @@ export const useMissions = (onError) => {
     [onError]
   );
 
+  // ------------------------------------------------------------
+  // 5) SUPPRESSION (DELETE)
+  // ------------------------------------------------------------
   /**
-   * Supprime une mission
-   * @param {string} id - ID de la mission à supprimer
+   * deleteMission(id)
+   * => supprime en DB puis enlève du state
    */
   const deleteMission = useCallback(
     async (id) => {
-      if (!id) {
-        throw new Error("ID de la mission manquant");
-      }
+      if (!id) throw new Error("ID de la mission manquant");
 
       try {
         setLoading(true);
-        await missionsApi.deleteMission(id);
-        setMissions((prev) => prev.filter((m) => m.id !== id));
+
+        await missionsApi.deleteMission(id); // 🔌 DB delete
+        setMissions((prev) => prev.filter((m) => m.id !== id)); // 🧠 retire du state
       } catch (err) {
         console.error("Erreur suppression mission:", err);
         onError?.("Erreur suppression");
@@ -126,27 +151,29 @@ export const useMissions = (onError) => {
     [onError]
   );
 
+  // ------------------------------------------------------------
+  // 6) LISTES UTILES (AUTOCOMPLETE)
+  // ------------------------------------------------------------
   /**
-   * Calcule les clients et lieux uniques
+   * clientsUniques / lieuxUniques
+   * => sert à remplir des dropdowns / suggestions dans le formulaire MissionForm
+   * useMemo = recalculé seulement quand missions change
    */
   const { clientsUniques, lieuxUniques } = useMemo(() => {
     const missionsArray = Array.isArray(missions) ? missions : [];
 
     return {
-      clientsUniques: [...new Set(missionsArray.map((m) => m?.client))].filter(
-        Boolean
-      ),
-      lieuxUniques: [...new Set(missionsArray.map((m) => m?.lieu))].filter(
-        Boolean
-      ),
+      clientsUniques: [...new Set(missionsArray.map((m) => m?.client))].filter(Boolean),
+      lieuxUniques: [...new Set(missionsArray.map((m) => m?.lieu))].filter(Boolean),
     };
   }, [missions]);
 
+  // ------------------------------------------------------------
+  // 7) FILTRES “BUSINESS” POUR L’APP
+  // ------------------------------------------------------------
   /**
-   * Filtre les missions par numéro de semaine
-   * @param {number} weekNumber - Numéro de semaine
-   * @param {string|null} patronId - ID du patron (optionnel)
-   * @returns {Array} - Missions de la semaine
+   * getMissionsByWeek(weekNumber, patronId)
+   * => utilisé dans App.jsx : "Semaine en cours"
    */
   const getMissionsByWeek = useCallback(
     (weekNumber, patronId = null) => {
@@ -154,6 +181,7 @@ export const useMissions = (onError) => {
 
       const missionsArray = Array.isArray(missions) ? missions : [];
 
+      // Filtre semaine ISO
       let filtered = missionsArray.filter((m) => {
         if (!m?.date_iso) return false;
         try {
@@ -163,7 +191,7 @@ export const useMissions = (onError) => {
         }
       });
 
-      // Filtrer par patron si spécifié
+      // Filtre patron (si demandé)
       if (patronId) {
         filtered = filtered.filter((m) => m?.patron_id === patronId);
       }
@@ -174,11 +202,11 @@ export const useMissions = (onError) => {
   );
 
   /**
-   * Filtre les missions par période
-   * @param {string} periodType - Type de période (semaine, mois, annee)
-   * @param {string} periodValue - Valeur de la période
-   * @param {string|null} patronId - ID du patron (optionnel)
-   * @returns {Array} - Missions de la période
+   * getMissionsByPeriod(periodType, periodValue, patronId)
+   * => utilisé dans useBilan : bilan semaine/mois/année
+   *
+   * - semaine : compare getWeekNumber(date) avec periodValue
+   * - mois/année : utilise startsWith() sur date_iso ("YYYY-MM" ou "YYYY")
    */
   const getMissionsByPeriod = useCallback(
     (periodType, periodValue, patronId = null) => {
@@ -191,17 +219,15 @@ export const useMissions = (onError) => {
 
         try {
           if (periodType === "semaine") {
-            return (
-              getWeekNumber(new Date(m.date_iso)) === parseInt(periodValue)
-            );
+            return getWeekNumber(new Date(m.date_iso)) === parseInt(periodValue);
           }
+          // mois "YYYY-MM" ou année "YYYY"
           return m.date_iso.startsWith(periodValue);
         } catch {
           return false;
         }
       });
 
-      // Filtrer par patron si spécifié
       if (patronId) {
         filtered = filtered.filter((m) => m?.patron_id === patronId);
       }
@@ -212,30 +238,35 @@ export const useMissions = (onError) => {
   );
 
   /**
-   * Récupère les missions filtrées par patron
-   * @param {string|null} patronId - ID du patron (null = tous)
-   * @returns {Array} - Liste des missions filtrées
+   * getMissionsByPatron(patronId)
+   * => renvoie toutes les missions d’un patron (utile pour pages / stats)
    */
   const getMissionsByPatron = useCallback(
     (patronId = null) => {
       if (!patronId) return missions;
-
       return missions.filter((m) => m?.patron_id === patronId);
     },
     [missions]
   );
 
+  // ------------------------------------------------------------
+  // 8) CE QUE useMissions “DONNE” À App.jsx
+  // ------------------------------------------------------------
   return {
     missions,
     loading,
     clientsUniques,
     lieuxUniques,
+
+    // CRUD
     fetchMissions,
     createMission,
     updateMission,
     deleteMission,
+
+    // Filtres / helpers
     getMissionsByWeek,
     getMissionsByPeriod,
-    getMissionsByPatron, // Nouvelle fonction utile
+    getMissionsByPatron,
   };
 };

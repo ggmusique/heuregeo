@@ -3,30 +3,48 @@ import * as acomptesApi from "../services/api/acomptesApi";
 import { calculerSoldeAcomptesAvant } from "../utils/calculators";
 
 /**
- * Hook complet pour gérer les acomptes - Multi-Patrons
- * @param {Array} missions - Liste des missions
- * @param {Array} fraisDivers - Liste des frais divers
- * @param {Function} onError - Callback en cas d'erreur
+ * ==========================================
+ * HOOK useAcomptes
+ * ==========================================
+ * Rôle :
+ * - Charger / créer / supprimer des acomptes (via l’API Supabase)
+ * - Donner des calculs utiles au bilan :
+ *   - total acomptes dans une période
+ *   - solde acompte avant une date
+ *   - cumul d’acomptes jusqu’à une date (le fameux fix “semaine impayée”)
+ *
+ * Où ça sert dans l’app (App.jsx) :
+ * - Quand tu ouvres la modal “+ Acompte” => createAcompte()
+ * - Quand le bilan se calcule => getSoldeAvant(), getAcomptesDansPeriode(), getTotalAcomptesJusqua()
  */
 export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
+  // ==========================================
+  // STATE : données et état de chargement
+  // ==========================================
   const [listeAcomptes, setListeAcomptes] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Ref pour éviter les appels multiples
+  // Ref : évite de relancer fetchAcomptes 2 fois en même temps
   const isFetching = useRef(false);
 
   /**
-   * Récupère tous les acomptes depuis l'API
+   * ==========================================
+   * 1) Charger tous les acomptes (API)
+   * ==========================================
+   * Appelé au démarrage dans App.jsx (useEffect)
    */
   const fetchAcomptes = useCallback(async () => {
-    // Éviter les appels multiples
     if (isFetching.current) return;
 
     try {
       isFetching.current = true;
       setLoading(true);
+
       const data = await acomptesApi.fetchAcomptes();
+
+      // On stocke en local dans le state
       setListeAcomptes(data || []);
+
       return data || [];
     } catch (err) {
       console.error("Erreur fetch acomptes:", err);
@@ -39,8 +57,11 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
   }, [onError]);
 
   /**
-   * Crée un nouvel acompte
-   * @param {Object} acompteData - Données de l'acompte
+   * ==========================================
+   * 2) Créer un acompte (API)
+   * ==========================================
+   * Utilisé quand tu valides la modal “+ Acompte”
+   * => On ajoute direct l’acompte dans la liste (optimiste)
    */
   const createAcompte = useCallback(
     async (acompteData) => {
@@ -50,8 +71,10 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
 
       try {
         setLoading(true);
+
         const newAcompte = await acomptesApi.createAcompte(acompteData);
 
+        // On le met au début de la liste (le plus récent en premier)
         if (newAcompte) {
           setListeAcomptes((prev) => [newAcompte, ...prev]);
         }
@@ -69,8 +92,11 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
   );
 
   /**
-   * Supprime un acompte
-   * @param {string} id - ID de l'acompte à supprimer
+   * ==========================================
+   * 3) Supprimer un acompte (API)
+   * ==========================================
+   * Si un jour tu ajoutes un bouton “supprimer acompte”
+   * => ça le retire aussi du state local
    */
   const deleteAcompte = useCallback(
     async (id) => {
@@ -81,6 +107,8 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
       try {
         setLoading(true);
         await acomptesApi.deleteAcompte(id);
+
+        // On enlève du state
         setListeAcomptes((prev) => prev.filter((a) => a.id !== id));
       } catch (err) {
         console.error("Erreur suppression acompte:", err);
@@ -94,12 +122,15 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
   );
 
   /**
-   * ✅ NOUVEAU : total des acomptes cumulés jusqu'à une date (incluse)
-   * Sert au calcul comptable du bilan (déduire les impayés + la semaine en cours)
+   * ==========================================
+   * 4) ✅ CUMUL acomptes JUSQU’À une date
+   * ==========================================
+   * C’est LA fonction du “fix impayés” :
+   * Exemple : fin de semaine => on sait combien d’acomptes existent au total jusque-là.
    *
-   * @param {string} dateFin - "YYYY-MM-DD"
-   * @param {string|null} patronId
-   * @returns {number}
+   * Utilisé par useBilan pour :
+   * - couvrir les semaines impayées d’abord
+   * - puis couvrir la semaine en cours
    */
   const getTotalAcomptesJusqua = useCallback(
     (dateFin, patronId = null) => {
@@ -107,15 +138,18 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
 
       const acomptesArray = Array.isArray(listeAcomptes) ? listeAcomptes : [];
 
+      // 1) on garde seulement ceux <= dateFin
       let filtered = acomptesArray.filter((ac) => {
         if (!ac?.date_acompte) return false;
-        return ac.date_acompte <= dateFin; // cumul jusqu'à date incluse
+        return ac.date_acompte <= dateFin;
       });
 
+      // 2) filtre patron si demandé
       if (patronId) {
         filtered = filtered.filter((ac) => ac?.patron_id === patronId);
       }
 
+      // 3) somme des montants
       return filtered.reduce((sum, ac) => {
         const montant = parseFloat(ac?.montant) || 0;
         return sum + montant;
@@ -125,21 +159,22 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
   );
 
   /**
-   * Calcule le solde des acomptes avant une date donnée
-   * @param {string} dateRef - Date de référence (format ISO)
-   * @param {string|null} patronId - ID du patron pour filtrage (optionnel)
-   * @returns {number} - Solde calculé
+   * ==========================================
+   * 5) Solde acompte AVANT une date
+   * ==========================================
+   * Appelé dans useBilan (et affiché “solde avant période”)
+   *
+   * calculerSoldeAcomptesAvant() (dans utils/calculators) fait :
+   * solde = acomptes_avant - (missions_avant + frais_avant)
    */
   const getSoldeAvant = useCallback(
     (dateRef, patronId = null) => {
       if (!dateRef) return 0;
 
-      // Sécuriser les tableaux
       const acomptesArray = Array.isArray(listeAcomptes) ? listeAcomptes : [];
       const missionsArray = Array.isArray(missions) ? missions : [];
       const fraisArray = Array.isArray(fraisDivers) ? fraisDivers : [];
 
-      // Filtrer par patron si spécifié
       const acomptesFiltres = patronId
         ? acomptesArray.filter((a) => a?.patron_id === patronId)
         : acomptesArray;
@@ -163,31 +198,27 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
   );
 
   /**
-   * Calcule le total des acomptes dans une période donnée
-   * @param {string} dateDebut - Date de début (format ISO)
-   * @param {string} dateFin - Date de fin (format ISO)
-   * @param {string|null} patronId - ID du patron pour filtrage (optionnel)
-   * @returns {number} - Total des acomptes dans la période
+   * ==========================================
+   * 6) Total acomptes DANS une période
+   * ==========================================
+   * Utilisé surtout pour l’affichage “reçus cette période”
+   * dans le bilan semaine.
    */
   const getAcomptesDansPeriode = useCallback(
     (dateDebut, dateFin, patronId = null) => {
       if (!dateDebut || !dateFin) return 0;
 
-      // Sécuriser le tableau
       const acomptesArray = Array.isArray(listeAcomptes) ? listeAcomptes : [];
 
-      // Filtrer par période
       let filtered = acomptesArray.filter((ac) => {
         if (!ac?.date_acompte) return false;
         return ac.date_acompte >= dateDebut && ac.date_acompte <= dateFin;
       });
 
-      // Filtrer par patron si spécifié
       if (patronId) {
         filtered = filtered.filter((ac) => ac?.patron_id === patronId);
       }
 
-      // Calculer le total
       return filtered.reduce((sum, ac) => {
         const montant = parseFloat(ac?.montant) || 0;
         return sum + montant;
@@ -197,18 +228,18 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
   );
 
   /**
-   * Calcule le solde total actuel des acomptes
-   * @param {string|null} patronId - ID du patron pour filtrage (optionnel)
-   * @returns {number} - Solde total
+   * ==========================================
+   * 7) Solde total actuel
+   * ==========================================
+   * solde = total acomptes - (total missions + total frais)
+   * (utile si un jour tu veux afficher un “solde actuel” général)
    */
   const getSoldeTotal = useCallback(
     (patronId = null) => {
-      // Sécuriser les tableaux
       const acomptesArray = Array.isArray(listeAcomptes) ? listeAcomptes : [];
       const missionsArray = Array.isArray(missions) ? missions : [];
       const fraisArray = Array.isArray(fraisDivers) ? fraisDivers : [];
 
-      // Filtrer par patron si spécifié
       const acomptesFiltres = patronId
         ? acomptesArray.filter((a) => a?.patron_id === patronId)
         : acomptesArray;
@@ -221,13 +252,11 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
         ? fraisArray.filter((f) => f?.patron_id === patronId)
         : fraisArray;
 
-      // Calculer le total des acomptes
       const totalAcomptes = acomptesFiltres.reduce((sum, ac) => {
         const montant = parseFloat(ac?.montant) || 0;
         return sum + montant;
       }, 0);
 
-      // Calculer le total des dépenses (missions + frais)
       const totalMissions = missionsFiltrees.reduce((sum, m) => {
         return sum + (m?.montant || 0);
       }, 0);
@@ -245,19 +274,23 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
   );
 
   /**
-   * Récupère les acomptes filtrés par patron
-   * @param {string|null} patronId - ID du patron (null = tous)
-   * @returns {Array} - Liste des acomptes filtrés
+   * ==========================================
+   * 8) Liste des acomptes par patron
+   * ==========================================
+   * Utilisé dans l’UI “gestion patrons” (et potentiellement ailleurs)
    */
   const getAcomptesByPatron = useCallback(
     (patronId = null) => {
       if (!patronId) return listeAcomptes;
-
       return listeAcomptes.filter((a) => a?.patron_id === patronId);
     },
     [listeAcomptes]
   );
 
+  // ==========================================
+  // Ce que App.jsx reçoit quand il fait:
+  // const { ... } = useAcomptes(...)
+  // ==========================================
   return {
     listeAcomptes,
     loading,
@@ -265,10 +298,10 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
     createAcompte,
     deleteAcompte,
 
-    // ✅ Ajout
+    // ✅ utilisé par useBilan (important)
     getTotalAcomptesJusqua,
 
-    // Existants
+    // existants
     getSoldeAvant,
     getAcomptesDansPeriode,
     getSoldeTotal,

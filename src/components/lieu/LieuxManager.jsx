@@ -1,8 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { formatEuro, formatHeures } from "../../utils/formatters";
 
 /**
- * Gestionnaire complet des lieux avec liste et stats
+ * ✅ Gestionnaire complet des lieux avec liste et stats
+ * - Liste + recherche
+ * - Stats globales + stats par lieu
+ * - Boutons edit/delete/add
+ *
+ * ✅ Améliorations "safe" :
+ * - Calcul stats en useMemo (pas de Promise inutile)
+ * - Filtres robustes (strings / numbers)
+ * - GPS affiché seulement si lat/lon valides
  */
 export const LieuxManager = ({
   lieux = [],
@@ -10,48 +18,87 @@ export const LieuxManager = ({
   onDelete = () => {},
   onAdd = () => {},
   darkMode = true,
-  missions = [], // Pour calculer les stats
+  missions = [],
 }) => {
-  const [lieuxWithStats, setLieuxWithStats] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Calculer les stats pour chaque lieu
-  useEffect(() => {
-    const statsPromises = lieux.map(async (lieu) => {
-      // Filtrer les missions de ce lieu (lieu_id OU lieu TEXT)
-      const lieuMissions = missions.filter(
-        (m) => m.lieu_id === lieu.id || m.lieu === lieu.nom
-      );
+  /**
+   * ✅ Calculer les stats par lieu (synchrone)
+   * - mission match si lieu_id === lieu.id OU lieu TEXT === lieu.nom
+   * - ajoute : nombreMissions, totalHeures, totalCA, derniereMission
+   */
+  const lieuxWithStats = useMemo(() => {
+    const lieuxArray = Array.isArray(lieux) ? lieux : [];
+    const missionsArray = Array.isArray(missions) ? missions : [];
 
-      const stats = {
+    return lieuxArray.map((lieu) => {
+      const lieuId = lieu?.id;
+      const lieuNom = (lieu?.nom || "").toString();
+
+      const lieuMissions = missionsArray.filter((m) => {
+        const matchId = m?.lieu_id && lieuId && m.lieu_id === lieuId;
+        const matchNom = m?.lieu && lieuNom && m.lieu === lieuNom;
+        return matchId || matchNom;
+      });
+
+      const totalHeures = lieuMissions.reduce((sum, m) => sum + (Number(m?.duree) || 0), 0);
+      const totalCA = lieuMissions.reduce((sum, m) => sum + (Number(m?.montant) || 0), 0);
+
+      const derniereMission =
+        lieuMissions.length > 0
+          ? [...lieuMissions]
+              .sort((a, b) => new Date(b?.date_iso) - new Date(a?.date_iso))[0]
+              ?.date_iso || null
+          : null;
+
+      return {
+        ...lieu,
         nombreMissions: lieuMissions.length,
-        totalHeures: lieuMissions.reduce((sum, m) => sum + (m.duree || 0), 0),
-        totalCA: lieuMissions.reduce((sum, m) => sum + (m.montant || 0), 0),
-        derniereMission:
-          lieuMissions.length > 0
-            ? lieuMissions.sort(
-                (a, b) => new Date(b.date_iso) - new Date(a.date_iso)
-              )[0].date_iso
-            : null,
+        totalHeures,
+        totalCA,
+        derniereMission,
       };
-
-      return { ...lieu, ...stats };
     });
-
-    Promise.all(statsPromises).then(setLieuxWithStats);
   }, [lieux, missions]);
 
-  // Filtrer les lieux selon la recherche
-  const filteredLieux = lieuxWithStats.filter(
-    (lieu) =>
-      lieu.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lieu.adresse_complete?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  /**
+   * ✅ Filtrer les lieux selon la recherche (safe)
+   */
+  const filteredLieux = useMemo(() => {
+    const term = (searchTerm || "").toLowerCase().trim();
+    if (!term) return lieuxWithStats;
 
-  // Trier par nombre de missions (les plus fréquentés en premier)
-  const sortedLieux = [...filteredLieux].sort(
-    (a, b) => b.nombreMissions - a.nombreMissions
-  );
+    return lieuxWithStats.filter((lieu) => {
+      const nom = (lieu?.nom || "").toString().toLowerCase();
+      const adresse = (lieu?.adresse_complete || "").toString().toLowerCase();
+      return nom.includes(term) || adresse.includes(term);
+    });
+  }, [lieuxWithStats, searchTerm]);
+
+  /**
+   * ✅ Trier par nombre de missions (les plus fréquentés en premier)
+   */
+  const sortedLieux = useMemo(() => {
+    return [...filteredLieux].sort(
+      (a, b) => (Number(b?.nombreMissions) || 0) - (Number(a?.nombreMissions) || 0)
+    );
+  }, [filteredLieux]);
+
+  /**
+   * ✅ Stats globales (calculées une seule fois)
+   */
+  const globalStats = useMemo(() => {
+    const totalMissions = lieuxWithStats.reduce((sum, l) => sum + (Number(l?.nombreMissions) || 0), 0);
+    const totalHeures = lieuxWithStats.reduce((sum, l) => sum + (Number(l?.totalHeures) || 0), 0);
+    const totalCA = lieuxWithStats.reduce((sum, l) => sum + (Number(l?.totalCA) || 0), 0);
+
+    return { totalMissions, totalHeures, totalCA };
+  }, [lieuxWithStats]);
+
+  /**
+   * ✅ Helper : vérifier GPS valide
+   */
+  const isValidNumber = (v) => typeof v === "number" && !Number.isNaN(v);
 
   return (
     <div className="space-y-6">
@@ -92,7 +139,7 @@ export const LieuxManager = ({
             Total Lieux
           </div>
           <div className="text-2xl font-black text-white mt-1">
-            {lieux.length}
+            {Array.isArray(lieux) ? lieux.length : 0}
           </div>
         </div>
 
@@ -107,7 +154,7 @@ export const LieuxManager = ({
             Total Missions
           </div>
           <div className="text-2xl font-black text-white mt-1">
-            {lieuxWithStats.reduce((sum, l) => sum + l.nombreMissions, 0)}
+            {globalStats.totalMissions}
           </div>
         </div>
 
@@ -122,9 +169,7 @@ export const LieuxManager = ({
             Total Heures
           </div>
           <div className="text-2xl font-black text-white mt-1">
-            {formatHeures(
-              lieuxWithStats.reduce((sum, l) => sum + l.totalHeures, 0)
-            )}
+            {formatHeures(globalStats.totalHeures)}
           </div>
         </div>
 
@@ -139,7 +184,7 @@ export const LieuxManager = ({
             CA Total
           </div>
           <div className="text-2xl font-black text-white mt-1">
-            {formatEuro(lieuxWithStats.reduce((sum, l) => sum + l.totalCA, 0))}
+            {formatEuro(globalStats.totalCA)}
           </div>
         </div>
       </div>
@@ -162,123 +207,141 @@ export const LieuxManager = ({
             )}
           </div>
         ) : (
-          sortedLieux.map((lieu) => (
-            <div
-              key={lieu.id}
-              className={`p-5 rounded-[25px] backdrop-blur-md border-2 ${
-                darkMode
-                  ? "bg-white/5 border-white/10 hover:border-purple-500/40"
-                  : "bg-white border-slate-200 hover:border-purple-300"
-              } transition-all`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                {/* Infos lieu */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-black text-white truncate">
-                      {lieu.nom}
-                    </h3>
-                    {lieu.nombreMissions === 0 && (
-                      <span className="px-2 py-1 bg-yellow-600/20 border border-yellow-500/30 rounded-lg text-[9px] font-black text-yellow-400 uppercase">
-                        Nouveau
-                      </span>
-                    )}
-                  </div>
+          sortedLieux.map((lieu) => {
+            const hasGps =
+              isValidNumber(lieu?.latitude) && isValidNumber(lieu?.longitude);
 
-                  {/* Adresse & GPS */}
-                  <div className="space-y-1 mb-3">
-                    {lieu.adresse_complete && (
-                      <div className="text-xs text-white/60 flex items-start gap-2">
-                        <span className="shrink-0">📍</span>
-                        <span className="line-clamp-2">
-                          {lieu.adresse_complete}
+            return (
+              <div
+                key={lieu.id}
+                className={`p-5 rounded-[25px] backdrop-blur-md border-2 ${
+                  darkMode
+                    ? "bg-white/5 border-white/10 hover:border-purple-500/40"
+                    : "bg-white border-slate-200 hover:border-purple-300"
+                } transition-all`}
+              >
+                <div className="flex items-start justify-between gap-4">
+                  {/* Infos lieu */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-black text-white truncate">
+                        {lieu?.nom || "Lieu"}
+                      </h3>
+
+                      {Number(lieu?.nombreMissions) === 0 && (
+                        <span className="px-2 py-1 bg-yellow-600/20 border border-yellow-500/30 rounded-lg text-[9px] font-black text-yellow-400 uppercase">
+                          Nouveau
                         </span>
-                      </div>
-                    )}
-                    {lieu.latitude && lieu.longitude && (
-                      <div className="text-xs text-white/60 flex items-center gap-2">
-                        <span>🌐</span>
-                        <span>
-                          GPS: {lieu.latitude.toFixed(6)},{" "}
-                          {lieu.longitude.toFixed(6)}
+                      )}
+
+                      {/* ✅ Badge GPS OK */}
+                      {hasGps && (
+                        <span className="px-2 py-1 bg-emerald-600/20 border border-emerald-500/30 rounded-lg text-[9px] font-black text-emerald-300 uppercase">
+                          GPS OK ✓
                         </span>
-                      </div>
-                    )}
-                    {lieu.notes && (
-                      <div className="text-xs text-white/60 flex items-start gap-2">
-                        <span className="shrink-0">📝</span>
-                        <span className="line-clamp-2">{lieu.notes}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-black/20 px-3 py-2 rounded-xl">
-                      <div className="text-[9px] font-black uppercase opacity-40">
-                        Missions
-                      </div>
-                      <div className="text-base font-black text-purple-400">
-                        {lieu.nombreMissions}
-                      </div>
-                    </div>
-                    <div className="bg-black/20 px-3 py-2 rounded-xl">
-                      <div className="text-[9px] font-black uppercase opacity-40">
-                        Heures
-                      </div>
-                      <div className="text-base font-black text-cyan-400">
-                        {formatHeures(lieu.totalHeures)}
-                      </div>
-                    </div>
-                    <div className="bg-black/20 px-3 py-2 rounded-xl">
-                      <div className="text-[9px] font-black uppercase opacity-40">
-                        CA
-                      </div>
-                      <div className="text-base font-black text-green-400">
-                        {formatEuro(lieu.totalCA)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dernière mission */}
-                  {lieu.derniereMission && (
-                    <div className="mt-2 text-[10px] text-white/40">
-                      Dernière mission :{" "}
-                      {new Date(lieu.derniereMission).toLocaleDateString(
-                        "fr-FR"
                       )}
                     </div>
-                  )}
-                </div>
 
-                {/* Boutons d'action */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => onEdit(lieu)}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-                      darkMode
-                        ? "bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30"
-                        : "bg-blue-100 text-blue-600 border border-blue-300 hover:bg-blue-200"
-                    }`}
-                    title="Modifier"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => onDelete(lieu)}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-                      darkMode
-                        ? "bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30"
-                        : "bg-red-100 text-red-600 border border-red-300 hover:bg-red-200"
-                    }`}
-                    title="Supprimer"
-                  >
-                    🗑️
-                  </button>
+                    {/* Adresse & GPS */}
+                    <div className="space-y-1 mb-3">
+                      {lieu?.adresse_complete && (
+                        <div className="text-xs text-white/60 flex items-start gap-2">
+                          <span className="shrink-0">📍</span>
+                          <span className="line-clamp-2">
+                            {lieu.adresse_complete}
+                          </span>
+                        </div>
+                      )}
+
+                      {hasGps && (
+                        <div className="text-xs text-white/60 flex items-center gap-2">
+                          <span>🌐</span>
+                          <span>
+                            GPS: {lieu.latitude.toFixed(6)},{" "}
+                            {lieu.longitude.toFixed(6)}
+                          </span>
+                        </div>
+                      )}
+
+                      {lieu?.notes && (
+                        <div className="text-xs text-white/60 flex items-start gap-2">
+                          <span className="shrink-0">📝</span>
+                          <span className="line-clamp-2">{lieu.notes}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-black/20 px-3 py-2 rounded-xl">
+                        <div className="text-[9px] font-black uppercase opacity-40">
+                          Missions
+                        </div>
+                        <div className="text-base font-black text-purple-400">
+                          {Number(lieu?.nombreMissions) || 0}
+                        </div>
+                      </div>
+
+                      <div className="bg-black/20 px-3 py-2 rounded-xl">
+                        <div className="text-[9px] font-black uppercase opacity-40">
+                          Heures
+                        </div>
+                        <div className="text-base font-black text-cyan-400">
+                          {formatHeures(Number(lieu?.totalHeures) || 0)}
+                        </div>
+                      </div>
+
+                      <div className="bg-black/20 px-3 py-2 rounded-xl">
+                        <div className="text-[9px] font-black uppercase opacity-40">
+                          CA
+                        </div>
+                        <div className="text-base font-black text-green-400">
+                          {formatEuro(Number(lieu?.totalCA) || 0)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Dernière mission */}
+                    {lieu?.derniereMission && (
+                      <div className="mt-2 text-[10px] text-white/40">
+                        Dernière mission :{" "}
+                        {new Date(lieu.derniereMission).toLocaleDateString(
+                          "fr-FR"
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Boutons d'action */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onEdit(lieu)}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
+                        darkMode
+                          ? "bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30"
+                          : "bg-blue-100 text-blue-600 border border-blue-300 hover:bg-blue-200"
+                      }`}
+                      title="Modifier"
+                    >
+                      ✏️
+                    </button>
+
+                    <button
+                      onClick={() => onDelete(lieu)}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
+                        darkMode
+                          ? "bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30"
+                          : "bg-red-100 text-red-600 border border-red-300 hover:bg-red-200"
+                      }`}
+                      title="Supprimer"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

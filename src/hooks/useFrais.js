@@ -4,31 +4,48 @@ import { getWeekNumber } from "../utils/dateUtils";
 
 /**
  * Hook complet pour gérer les frais divers - Multi-Patrons
- * @param {Function} onError - Callback en cas d'erreur
+ *
+ * 👉 Son boulot :
+ * - Charger les frais depuis Supabase (via fraisApi)
+ * - Ajouter / modifier / supprimer des frais
+ * - Donner des "outils" à App.jsx pour filtrer et calculer (semaine, total, patron)
+ *
+ * App.jsx -> useFrais -> fraisApi -> Supabase
  */
 export const useFrais = (onError) => {
-  const [fraisDivers, setFraisDivers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // ------------------------------------------------------------
+  // 1) ÉTAT LOCAL DU HOOK (ce que ce hook "stocke" en mémoire)
+  // ------------------------------------------------------------
+  const [fraisDivers, setFraisDivers] = useState([]); // la liste des frais (table frais_divers)
+  const [loading, setLoading] = useState(false);      // indicateur "chargement en cours"
 
-  // Ref pour éviter les appels multiples
+  // Ref pour éviter les appels multiples (ex: double clic ou double useEffect)
   const isFetching = useRef(false);
 
-  /**
-   * Récupère tous les frais depuis l'API
-   */
+  // ------------------------------------------------------------
+  // 2) LIRE : Charger TOUS les frais depuis Supabase
+  // ------------------------------------------------------------
   const fetchFrais = useCallback(async () => {
-    // Éviter les appels multiples
+    // ✅ anti-double appel (sinon tu peux spam l'API)
     if (isFetching.current) return;
 
     try {
       isFetching.current = true;
       setLoading(true);
+
+      // Appel à l’API (qui elle appelle Supabase)
       const data = await fraisApi.fetchFrais();
+
+      // Stockage en mémoire dans le state
       setFraisDivers(data || []);
+
       return data || [];
     } catch (err) {
       console.error("Erreur fetch frais:", err);
+
+      // Message pour l’utilisateur (via triggerAlert dans App.jsx)
       onError?.("Erreur chargement frais");
+
       throw err;
     } finally {
       setLoading(false);
@@ -36,21 +53,25 @@ export const useFrais = (onError) => {
     }
   }, [onError]);
 
-  /**
-   * Crée un nouveau frais
-   * @param {Object} fraisData - Données du frais
-   */
+  // ------------------------------------------------------------
+  // 3) CRÉER : Ajouter un nouveau frais
+  // ------------------------------------------------------------
   const createFrais = useCallback(
     async (fraisData) => {
+      // ✅ sécurité : si on appelle sans data
       if (!fraisData) {
         throw new Error("Données du frais manquantes");
       }
 
       try {
         setLoading(true);
+
+        // Appel Supabase via l’API
         const newFrais = await fraisApi.createFrais(fraisData);
 
         if (newFrais) {
+          // On ajoute le nouveau frais dans la liste locale
+          // + on trie par date (ordre chronologique)
           setFraisDivers((prev) =>
             [...prev, newFrais].sort((a, b) =>
               (a.date_frais || "").localeCompare(b.date_frais || "")
@@ -70,26 +91,24 @@ export const useFrais = (onError) => {
     [onError]
   );
 
-  /**
-   * Met à jour un frais existant
-   * @param {string} id - ID du frais
-   * @param {Object} fraisData - Nouvelles données
-   */
+  // ------------------------------------------------------------
+  // 4) MODIFIER : Mettre à jour un frais existant
+  // ------------------------------------------------------------
   const updateFrais = useCallback(
     async (id, fraisData) => {
-      if (!id) {
-        throw new Error("ID du frais manquant");
-      }
-
-      if (!fraisData) {
-        throw new Error("Données du frais manquantes");
-      }
+      // ✅ sécurités
+      if (!id) throw new Error("ID du frais manquant");
+      if (!fraisData) throw new Error("Données du frais manquantes");
 
       try {
         setLoading(true);
+
+        // Appel Supabase via l’API
         const updated = await fraisApi.updateFrais(id, fraisData);
 
         if (updated) {
+          // On remplace l'ancien frais par le nouveau dans la liste
+          // puis on re-trie par date
           setFraisDivers((prev) =>
             prev
               .map((f) => (f.id === id ? updated : f))
@@ -111,19 +130,20 @@ export const useFrais = (onError) => {
     [onError]
   );
 
-  /**
-   * Supprime un frais
-   * @param {string} id - ID du frais à supprimer
-   */
+  // ------------------------------------------------------------
+  // 5) SUPPRIMER : Enlever un frais
+  // ------------------------------------------------------------
   const deleteFrais = useCallback(
     async (id) => {
-      if (!id) {
-        throw new Error("ID du frais manquant");
-      }
+      if (!id) throw new Error("ID du frais manquant");
 
       try {
         setLoading(true);
+
+        // Supprime côté DB
         await fraisApi.deleteFrais(id);
+
+        // Supprime côté mémoire (UI)
         setFraisDivers((prev) => prev.filter((f) => f.id !== id));
       } catch (err) {
         console.error("Erreur suppression frais:", err);
@@ -136,19 +156,16 @@ export const useFrais = (onError) => {
     [onError]
   );
 
-  /**
-   * Filtre les frais par semaine
-   * @param {number} weekNumber - Numéro de semaine
-   * @param {string|null} patronId - ID du patron (optionnel)
-   * @returns {Array} - Frais de la semaine
-   */
+  // ------------------------------------------------------------
+  // 6) OUTIL : Récupérer les frais d'une semaine donnée
+  // ------------------------------------------------------------
   const getFraisByWeek = useCallback(
     (weekNumber, patronId = null) => {
       if (!weekNumber) return [];
 
-      // Sécuriser le tableau
       const fraisArray = Array.isArray(fraisDivers) ? fraisDivers : [];
 
+      // On garde uniquement les frais dont la date tombe dans la bonne semaine ISO
       let filtered = fraisArray.filter((f) => {
         if (!f?.date_frais) return false;
         try {
@@ -158,7 +175,7 @@ export const useFrais = (onError) => {
         }
       });
 
-      // Filtrer par patron si spécifié
+      // Option : filtrer par patron si demandé
       if (patronId) {
         filtered = filtered.filter((f) => f?.patron_id === patronId);
       }
@@ -168,14 +185,13 @@ export const useFrais = (onError) => {
     [fraisDivers]
   );
 
-  /**
-   * Calcule le total des frais
-   * @param {Array} fraisList - Liste des frais (défaut: tous les frais)
-   * @returns {number} - Total des frais
-   */
+  // ------------------------------------------------------------
+  // 7) OUTIL : Calculer le total € des frais
+  // ------------------------------------------------------------
   const getTotalFrais = useCallback(
     (fraisList) => {
-      // Utiliser la liste passée ou tous les frais
+      // Si on fournit une liste -> on calcule dessus
+      // Sinon -> on calcule sur TOUS les frais
       const list = Array.isArray(fraisList) ? fraisList : fraisDivers;
 
       return list.reduce((sum, f) => {
@@ -186,29 +202,31 @@ export const useFrais = (onError) => {
     [fraisDivers]
   );
 
-  /**
-   * Récupère les frais filtrés par patron
-   * @param {string|null} patronId - ID du patron (null = tous)
-   * @returns {Array} - Liste des frais filtrés
-   */
+  // ------------------------------------------------------------
+  // 8) OUTIL : Récupérer les frais par patron (tous les frais d'un patron)
+  // ------------------------------------------------------------
   const getFraisByPatron = useCallback(
     (patronId = null) => {
       if (!patronId) return fraisDivers;
-
       return fraisDivers.filter((f) => f?.patron_id === patronId);
     },
     [fraisDivers]
   );
 
+  // ------------------------------------------------------------
+  // 9) Ce que App.jsx reçoit quand il appelle useFrais(...)
+  // ------------------------------------------------------------
   return {
-    fraisDivers,
-    loading,
-    fetchFrais,
-    createFrais,
-    updateFrais,
-    deleteFrais,
-    getFraisByWeek,
-    getTotalFrais,
-    getFraisByPatron, // Nouvelle fonction utile
+    fraisDivers,       // la liste des frais (affichage, bilans, etc.)
+    loading,           // pour afficher un loader
+
+    fetchFrais,        // charge tout depuis DB
+    createFrais,       // ajoute un frais
+    updateFrais,       // modifie un frais
+    deleteFrais,       // supprime un frais
+
+    getFraisByWeek,    // filtre pour le bilan semaine
+    getTotalFrais,     // somme des montants
+    getFraisByPatron,  // filtre par patron
   };
 };

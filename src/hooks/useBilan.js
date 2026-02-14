@@ -3,8 +3,11 @@ import { supabase } from "../services/supabase";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 
 /**
- * Récupère la météo historique pour une date donnée (Open-Meteo archive)
- * Coordonnées par défaut : Liège/Belgique
+ * ==========================================
+ * METEO : enrichit les missions affichées
+ * ==========================================
+ * Dans le bilan semaine, tu affiches une petite météo.
+ * Ici on appelle l’API Open-Meteo archive pour une date précise.
  */
 const fetchHistoricalWeather = async (dateIso) => {
   try {
@@ -53,55 +56,81 @@ const fetchHistoricalWeather = async (dateIso) => {
   }
 };
 
-// ✅ Constante GLOBAL (jamais null côté DB)
+// ==========================================
+// “Global patron” : quand tu ne filtres pas par patron
+// ==========================================
 const GLOBAL_PATRON_ID = "00000000-0000-0000-0000-000000000000";
+
+// Table Supabase qui stocke : payé / impayé, reste, acompte consommé, etc.
 const TABLE = "bilans_status_v2";
 
+/**
+ * ==========================================
+ * HOOK useBilan
+ * ==========================================
+ * Rôle :
+ * - Générer un bilan (semaine/mois/année)
+ * - Calculer impayés, acomptes, reste à percevoir
+ * - Sauvegarder le statut du bilan dans Supabase
+ * - Charger l’historique des bilans (payés / impayés)
+ */
 export function useBilan({
   missions,
-  fraisDivers, // gardé car présent dans l'appel
+  fraisDivers,
   patrons = [],
-  getMissionsByWeek, // gardé car présent dans l'appel
-  getMissionsByPeriod,
-  getFraisByWeek,
-  getTotalFrais,
-  getSoldeAvant, // gardé (utile ailleurs / UI)
-  getAcomptesDansPeriode, // gardé (UI)
-  getTotalAcomptesJusqua, // ✅ NOUVEAU : nécessaire pour déduire l'acompte sur les semaines impayées
+  getMissionsByWeek, // pas utilisé ici mais gardé si tu l’utilises ailleurs
+  getMissionsByPeriod, // filtre missions selon période + patron
+  getFraisByWeek, // récup frais d’une semaine
+  getTotalFrais, // somme les frais
+  getSoldeAvant, // solde acompte avant une date (utilisé surtout pour affichage)
+  getAcomptesDansPeriode, // somme acomptes dans une période (UI)
+  getTotalAcomptesJusqua, // ✅ clé du fix : cumul acomptes jusqu’à fin de période
   triggerAlert,
 }) {
-  // ========== STATE ==========
+  // ==========================================
+  // STATE : ce que l’app utilise pour afficher
+  // ==========================================
   const [showBilan, setShowBilan] = useState(false);
   const [showPeriodModal, setShowPeriodModal] = useState(false);
   const [bilanPeriodType, setBilanPeriodType] = useState("semaine");
   const [bilanPeriodValue, setBilanPeriodValue] = useState("");
   const [availablePeriods, setAvailablePeriods] = useState([]);
   const [bilanPaye, setBilanPaye] = useState(false);
+
+  // Ce gros objet = données affichées dans l’écran “Bilan”
   const [bilanContent, setBilanContent] = useState({
     titre: "",
-    totalE: 0,
-    totalH: 0,
-    filteredData: [],
-    groupedData: [],
+    totalE: 0, // total en € de la période
+    totalH: 0, // total heures de la période
+    filteredData: [], // missions filtrées (+ météo)
+    groupedData: [], // regroupement mois/année
     totalFrais: 0,
     fraisDivers: [],
+
+    // comptabilité (affichage)
     impayePrecedent: 0,
     resteCettePeriode: 0,
     resteAPercevoir: 0,
     soldeAcomptesAvant: 0,
     soldeAcomptesApres: 0,
+
+    // UI
     selectedPatronId: null,
     selectedPatronNom: "Tous les patrons (Global)",
   });
 
-  // ========== CONSTANTES ==========
+  // ==========================================
+  // CONSTANTES PÉRIODE
+  // ==========================================
   const PERIOD_TYPES = {
     SEMAINE: "semaine",
     MOIS: "mois",
     ANNEE: "annee",
   };
 
-  // ========== HELPERS ==========
+  // ==========================================
+  // HELPERS : petites fonctions utilitaires
+  // ==========================================
   const effectivePatronId = (patronId) =>
     patronId ? patronId : GLOBAL_PATRON_ID;
 
@@ -114,18 +143,19 @@ export function useBilan({
     return p?.nom || "Inconnu";
   };
 
+  // Sert à trier / comparer des périodes dans Supabase (index numérique)
   const computePeriodeIndex = (type, value) => {
     const v = value?.toString?.() ?? "";
     if (!v) return 0;
 
     if (type === PERIOD_TYPES.SEMAINE) return parseInt(v, 10) || 0;
     if (type === PERIOD_TYPES.ANNEE) return parseInt(v, 10) || 0;
-    if (type === PERIOD_TYPES.MOIS)
-      return parseInt(v.replace("-", ""), 10) || 0;
+    if (type === PERIOD_TYPES.MOIS) return parseInt(v.replace("-", ""), 10) || 0;
 
     return 0;
   };
 
+  // Titre affiché dans l’UI : “Semaine 6” / “FÉVRIER 2026” / “2026”
   const formatPeriodLabel = useCallback(
     (val) => {
       if (!val) return "";
@@ -147,6 +177,7 @@ export function useBilan({
     [bilanPeriodType]
   );
 
+  // Remplit la liste des périodes dispo selon missions existantes (pour ton modal)
   const calculerPeriodesDisponibles = useCallback(() => {
     const periods = new Set();
 
@@ -171,6 +202,12 @@ export function useBilan({
     }
   }, [missions, bilanPeriodType]);
 
+  /**
+   * ==========================================
+   * Statut payé (Supabase)
+   * ==========================================
+   * Vérifie si la période/patron est marquée payée.
+   */
   const getStatutPaiement = useCallback(
     async (patronId = null) => {
       const pId = effectivePatronId(patronId);
@@ -194,43 +231,63 @@ export function useBilan({
   );
 
   /**
-   * ✅ CUMUL impayés précédents (SEMAINE) pour un patron donné
-   * basé sur bilans_status_v2 : ca_brut_periode - acompte_consomme
+   * ==========================================
+   * Impayés précédents (Supabase)
+   * ==========================================
+   * Calcule le cumul des semaines impayées AVANT la semaine courante.
+   *
+   * Important : on ne prend que les bilans enregistrés dans Supabase.
+   * Le calcul = ca_brut_periode - acompte_consomme.
+   *
+   * ⚠️ Note technique :
+   * - useCallback(..., []) ici fige PERIOD_TYPES/effectivePatronId au montage.
+   * - Ça marche souvent, mais c’est “bizarre”.
    */
-  const getImpayePrecedent = useCallback(async (currentWeek, patronId = null) => {
-    const pId = effectivePatronId(patronId);
-    const currentIndex = parseInt(currentWeek, 10) || 0;
+  const getImpayePrecedent = useCallback(
+    async (currentWeek, patronId = null) => {
+      const pId = effectivePatronId(patronId);
+      const currentIndex = parseInt(currentWeek, 10) || 0;
 
-    try {
-      const { data, error } = await supabase
-        .from(TABLE)
-        .select("periode_index, paye, ca_brut_periode, acompte_consomme")
-        .eq("periode_type", PERIOD_TYPES.SEMAINE)
-        .eq("patron_id", pId)
-        .eq("paye", false)
-        .lt("periode_index", currentIndex)
-        .order("periode_index", { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from(TABLE)
+          .select("periode_index, paye, ca_brut_periode, acompte_consomme")
+          .eq("periode_type", PERIOD_TYPES.SEMAINE)
+          .eq("patron_id", pId)
+          .eq("paye", false)
+          .lt("periode_index", currentIndex)
+          .order("periode_index", { ascending: true });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      const total = (data || []).reduce((sum, row) => {
-        const ca = parseFloat(row?.ca_brut_periode ?? 0);
-        const acompte = parseFloat(row?.acompte_consomme ?? 0);
-        const resteSemaine = Math.max(
-          0,
-          (isNaN(ca) ? 0 : ca) - (isNaN(acompte) ? 0 : acompte)
-        );
-        return sum + resteSemaine;
-      }, 0);
+        const total = (data || []).reduce((sum, row) => {
+          const ca = parseFloat(row?.ca_brut_periode ?? 0);
+          const acompte = parseFloat(row?.acompte_consomme ?? 0);
+          const resteSemaine = Math.max(
+            0,
+            (isNaN(ca) ? 0 : ca) - (isNaN(acompte) ? 0 : acompte)
+          );
+          return sum + resteSemaine;
+        }, 0);
 
-      return total;
-    } catch {
-      return 0;
-    }
-  }, []);
+        return total;
+      } catch {
+        return 0;
+      }
+    },
+    [] // ⚠️ potentiellement à améliorer plus tard
+  );
 
   /**
-   * ✅ HISTORIQUE (Option 1) = semaines uniquement
+   * ==========================================
+   * Historique bilans (Supabase)
+   * ==========================================
+   * Retourne :
+   * - impayes : bilans non payés
+   * - payes : bilans payés
+   * - all : tous
+   *
+   * Et on recalcule le "reste_a_percevoir" pour les semaines pour éviter un cumul.
    */
   const fetchHistoriqueBilans = useCallback(
     async (patronId = null) => {
@@ -253,6 +310,7 @@ export function useBilan({
 
           let resteFixe = r.reste_a_percevoir ?? 0;
 
+          // Pour la semaine : reste = ca - acompte_consomme
           if (r.periode_type === "semaine") {
             const ca = parseFloat(r?.ca_brut_periode ?? 0);
             const acompte = parseFloat(r?.acompte_consomme ?? 0);
@@ -274,12 +332,8 @@ export function useBilan({
         const payes = rows
           .filter((r) => r.paye === true)
           .sort((a, b) => {
-            const ad = a?.date_paiement
-              ? new Date(a.date_paiement).getTime()
-              : 0;
-            const bd = b?.date_paiement
-              ? new Date(b.date_paiement).getTime()
-              : 0;
+            const ad = a?.date_paiement ? new Date(a.date_paiement).getTime() : 0;
+            const bd = b?.date_paiement ? new Date(b.date_paiement).getTime() : 0;
             return bd - ad;
           });
 
@@ -293,7 +347,13 @@ export function useBilan({
   );
 
   /**
-   * Génère le bilan
+   * ==========================================
+   * Générer le bilan (fonction principale)
+   * ==========================================
+   * C’est elle qui alimente l’écran Bilan :
+   * - calcule totaux, impayés, acomptes, reste à percevoir
+   * - ajoute météo
+   * - sauvegarde dans Supabase (bilans_status_v2)
    */
   const genererBilan = useCallback(
     async (patronId = null) => {
@@ -302,31 +362,27 @@ export function useBilan({
         return false;
       }
 
-      // ✅ sécurité : on a besoin de getTotalAcomptesJusqua pour la semaine
+      // En mode semaine, on veut absolument la fonction de cumul des acomptes.
       if (bilanPeriodType === PERIOD_TYPES.SEMAINE && !getTotalAcomptesJusqua) {
-        triggerAlert?.(
-          "⚠️ getTotalAcomptesJusqua manquant (useAcomptes)."
-        );
+        triggerAlert?.("⚠️ getTotalAcomptesJusqua manquant (useAcomptes).");
         return false;
       }
 
       try {
         const pId = effectivePatronId(patronId);
 
-        // 1) Missions filtrées
+        // 1) Missions filtrées pour la période + patron
         const filtered = getMissionsByPeriod(
           bilanPeriodType,
           bilanPeriodValue,
           patronId
         ).sort((a, b) => new Date(a.date_iso) - new Date(b.date_iso));
 
-        const totalMissions = filtered.reduce(
-          (sum, m) => sum + (m.montant || 0),
-          0
-        );
+        // Totaux missions
+        const totalMissions = filtered.reduce((sum, m) => sum + (m.montant || 0), 0);
         const totalH = filtered.reduce((sum, m) => sum + (m.duree || 0), 0);
 
-        // 2) Groupements (mois/année)
+        // 2) Groupements (uniquement pour MOIS/ANNEE)
         let groupedData = [];
 
         if (bilanPeriodType === PERIOD_TYPES.MOIS && filtered.length > 0) {
@@ -397,14 +453,14 @@ export function useBilan({
             });
         }
 
-        // 3) Frais (semaine)
+        // 3) Frais (uniquement semaine)
         let fraisFiltres = [];
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           fraisFiltres = getFraisByWeek(parseInt(bilanPeriodValue, 10), patronId);
         }
         const totalFrais = getTotalFrais(fraisFiltres);
 
-        // 4) Dates période
+        // 4) Début / fin de la période (dates ISO)
         let debutPeriode = "";
         let finPeriode = "";
 
@@ -425,12 +481,13 @@ export function useBilan({
           finPeriode = `${bilanPeriodValue}-12-31`;
         }
 
-        // =========================================================
-        // ✅ CALCUL SEMAINE "COMPTABLE"
-        // L’acompte couvre d’abord les semaines impayées, puis la semaine courante
-        // =========================================================
+        // ==========================================
+        // 5) CALCUL COMPTABLE (la partie importante)
+        // ==========================================
+        // CA de la période = missions + frais
         const caBrutPeriode = totalMissions + totalFrais;
 
+        // Dette des semaines avant (impayés précédents)
         let impayePrecedent = 0;
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           impayePrecedent = await getImpayePrecedent(
@@ -439,39 +496,48 @@ export function useBilan({
           );
         }
 
+        // Variables résultats (affichage)
         let resteCettePeriode = 0;
         let resteAPercevoir = 0;
         let soldeAvantPeriode = 0;
         let soldeApresPeriode = 0;
         let acompteConsomme = 0;
 
-        // infos UI (inchangées)
+        // Pour l’UI : “acomptes reçus cette période”
         const acomptesDansPeriode =
           bilanPeriodType === PERIOD_TYPES.SEMAINE
             ? getAcomptesDansPeriode(debutPeriode, finPeriode, patronId)
             : 0;
 
+        // ✅ Mode semaine : on déduit les acomptes sur impayés + semaine courante
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          // Acomptes cumulés jusqu'à FIN de semaine (clé du fix)
+          // Acomptes cumulés jusqu’à la FIN de la semaine (clé du comportement attendu)
           const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
 
-          // solde avant = acomptes jusqu'à début - dettes avant (approx)
-          // (on garde aussi ton ancien getSoldeAvant pour affichage)
+          // Solde avant période (affichage)
           soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
 
+          // Dette totale = impayés précédents + dette de la semaine
           const detteTotale = impayePrecedent + caBrutPeriode;
 
+          // Ce que tu dois recevoir si les acomptes ne suffisent pas
           resteAPercevoir = Math.max(0, detteTotale - acomptesCumules);
+
+          // Si les acomptes dépassent la dette, tu as un solde à reporter
           soldeApresPeriode = Math.max(0, acomptesCumules - detteTotale);
 
+          // Montant d’acompte “consommé” jusqu’ici
           acompteConsomme = Math.min(acomptesCumules, detteTotale);
 
-          // Ce qu’il reste SPECIFIQUEMENT pour cette semaine (après rattrapage)
-          // = total restant - impayés restant
+          /**
+           * ⚠️ Ici tu estimes “ce qu’il reste pour cette semaine”
+           * en retranchant un impayé restant.
+           * Ça dépend fortement de ta logique getSoldeAvant.
+           */
           const impayeRestant = Math.max(0, impayePrecedent - soldeAvantPeriode);
           resteCettePeriode = Math.max(0, resteAPercevoir - impayeRestant);
         } else {
-          // Mois/année : on garde ton fonctionnement actuel (pas de suivi d’acompte)
+          // Mode mois/année : on garde un calcul simple (pas de rattrapage)
           soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
           const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
           acompteConsomme = Math.min(acompteDisponible, caBrutPeriode);
@@ -480,14 +546,14 @@ export function useBilan({
           soldeApresPeriode = acompteDisponible - acompteConsomme;
         }
 
-        // 7) Statut payé
+        // 7) Statut payé (Supabase)
         const statutPaye = await getStatutPaiement(patronId);
 
-        // 8) Nom patron
+        // 8) Nom patron affiché
         const selectedPatron = patronId ? patrons.find((p) => p.id === patronId) : null;
         const patronNom = selectedPatron ? selectedPatron.nom : "Tous les patrons (Global)";
 
-        // 9) Météo (semaine)
+        // 9) Ajout météo (semaine seulement)
         let filteredWithWeather = filtered;
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE && filtered.length > 0) {
           const uniqueDates = [...new Set(filtered.map((m) => m.date_iso))];
@@ -507,9 +573,10 @@ export function useBilan({
           }));
         }
 
-        // 10) Contenu final
+        // 10) Objet final envoyé à l’UI (App.jsx)
         const content = {
           titre: formatPeriodLabel(bilanPeriodValue),
+
           totalE: caBrutPeriode,
           totalH,
           filteredData: filteredWithWeather,
@@ -518,7 +585,10 @@ export function useBilan({
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
 
+          // Affichage “acompte consommé”
           totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
+
+          // Affichage “reçus cette période”
           acomptesDansPeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acomptesDansPeriode : 0,
 
           resteCettePeriode,
@@ -537,7 +607,7 @@ export function useBilan({
         setShowPeriodModal(false);
         setShowBilan(true);
 
-        // 11) Sauvegarde v2
+        // 11) Sauvegarde dans Supabase (bilans_status_v2)
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
 
         const dataToSave = {
@@ -548,17 +618,18 @@ export function useBilan({
           paye: statutPaye,
           date_paiement: statutPaye ? new Date().toISOString() : null,
 
-          // on stocke la dette de LA période (pas le cumul)
+          // ✅ on stocke la dette de LA période (pas le cumul)
           reste_a_percevoir: resteCettePeriode,
+
           ca_brut_periode: caBrutPeriode,
+
+          // acompte consommé (semaine uniquement)
           acompte_consomme: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
         };
 
-        const { error: upsertError } = await supabase
-          .from(TABLE)
-          .upsert(dataToSave, {
-            onConflict: "periode_type,periode_value,patron_id",
-          });
+        const { error: upsertError } = await supabase.from(TABLE).upsert(dataToSave, {
+          onConflict: "periode_type,periode_value,patron_id",
+        });
 
         if (upsertError) {
           triggerAlert?.("Erreur sauvegarde bilan.");
@@ -588,7 +659,10 @@ export function useBilan({
   );
 
   /**
-   * Marque comme payé (v2)
+   * ==========================================
+   * Marquer comme payé (bouton "MARQUER COMME PAYÉ" dans App.jsx)
+   * ==========================================
+   * On upsert Supabase en mettant paye=true + date_paiement.
    */
   const marquerCommePaye = useCallback(
     async (patronId = null) => {
@@ -625,6 +699,9 @@ export function useBilan({
     [bilanPeriodType, bilanPeriodValue, bilanContent, triggerAlert]
   );
 
+  // ==========================================
+  // Ce que App.jsx récupère (bilan.xxx)
+  // ==========================================
   return {
     showBilan,
     setShowBilan,
@@ -642,6 +719,7 @@ export function useBilan({
     genererBilan,
     marquerCommePaye,
 
+    // utilisé dans l’onglet Historique de App.jsx
     fetchHistoriqueBilans,
   };
 }

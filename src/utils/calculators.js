@@ -1,60 +1,84 @@
-
 /**
  * Fonctions de calcul métier
+ * => ici, on ne touche PAS à l’interface (boutons, écran),
+ * => c’est juste des calculs réutilisables partout.
  */
 
 /**
- * Calcule la durée de travail en heures
- * @param {string} debut - Heure de début (format "HH:MM")
- * @param {string} fin - Heure de fin (format "HH:MM")
- * @param {number} pause - Durée de pause en minutes
- * @returns {number} - Durée en heures
+ * ==========================================================
+ * 1) calculerDuree(debut, fin, pause)
+ * ==========================================================
+ * Rôle dans l'app :
+ * - Quand tu enregistres une mission, on calcule automatiquement la durée (heures)
+ * - Exemple : 08:00 → 17:00 avec 30 min de pause => 8h30 (8.5)
+ *
+ * Important :
+ * - Gère le passage à minuit (ex: 22:00 → 02:00)
+ * - Empêche les résultats négatifs (retourne minimum 0)
  */
 export const calculerDuree = (debut, fin, pause = 0) => {
-  // Validation des entrées
+  // Sécurité : si on n’a pas les 2 heures, on ne peut pas calculer
   if (!debut || !fin) {
     console.warn("calculerDuree: debut ou fin manquant");
     return 0;
   }
 
+  // On découpe "HH:MM" en ["HH","MM"]
   const debutParts = debut.split(":");
   const finParts = fin.split(":");
 
+  // Vérifie que le format est bien HH:MM
   if (debutParts.length !== 2 || finParts.length !== 2) {
     console.warn("calculerDuree: format d'heure invalide");
     return 0;
   }
 
+  // Transforme les strings en nombres
   const [hD, mD] = debutParts.map(Number);
   const [hF, mF] = finParts.map(Number);
 
-  // Vérification que les valeurs sont des nombres valides
+  // Vérifie que ce sont bien des chiffres
   if (isNaN(hD) || isNaN(mD) || isNaN(hF) || isNaN(mF)) {
     console.warn("calculerDuree: valeurs d'heure non numériques");
     return 0;
   }
 
+  // Convertit en minutes totales depuis 00:00
   let minutesDebut = hD * 60 + mD;
   let minutesFin = hF * 60 + mF;
 
-  // Gestion du passage à minuit
+  // Cas "on finit après minuit" (ex: 22:00 -> 02:00)
   if (minutesFin < minutesDebut) {
-    minutesFin += 1440; // 24 * 60
+    minutesFin += 1440; // 24h = 1440 minutes
   }
 
+  // Pause (minutes)
   const pauseMinutes = Number(pause) || 0;
+
+  // Durée en minutes = fin - début - pause
   const dureeMinutes = minutesFin - minutesDebut - pauseMinutes;
 
+  // Retourne en heures (ex: 510 min => 8.5 h)
   return Math.max(0, dureeMinutes / 60);
 };
 
 /**
- * Calcule le solde des acomptes avant une date de référence
- * @param {string} dateReferenceIso - Date de référence au format ISO (YYYY-MM-DD)
- * @param {Array} listeAcomptes - Liste des acomptes
- * @param {Array} missions - Liste des missions
- * @param {Array} fraisDivers - Liste des frais divers
- * @returns {number} - Solde des acomptes
+ * ==========================================================
+ * 2) calculerSoldeAcomptesAvant(dateReferenceIso, acomptes, missions, frais)
+ * ==========================================================
+ * Rôle dans l’app :
+ * - Sert au bilan pour savoir : "Combien d’acompte RESTE avant telle date ?"
+ * - Donc : on prend les acomptes reçus avant la date,
+ *   puis on déduit les missions et frais qui sont avant la date,
+ *   MAIS uniquement tant qu’il reste du solde (jamais négatif).
+ *
+ * Exemple simple :
+ * - Acompte 300€ (avant la date)
+ * - Mission 200€ (avant la date) => solde 100€
+ * - Mission 150€ (avant la date) => consomme 100€, solde 0€ (et pas -50)
+ *
+ * Important :
+ * - On ignore tout ce qui est le jour même ou après (strictement < dateReferenceIso)
  */
 export const calculerSoldeAcomptesAvant = (
   dateReferenceIso,
@@ -64,10 +88,12 @@ export const calculerSoldeAcomptesAvant = (
 ) => {
   if (!dateReferenceIso) return 0;
 
-  // Construire la liste des événements
+  // On construit une liste d' "événements" triés par date :
+  // - acompte = + (crédit)
+  // - mission/frais = - (débit)
   const events = [];
 
-  // Ajouter les acomptes (crédit)
+  // 1) Acomptes (argent qui entre)
   listeAcomptes.forEach((ac) => {
     if (ac?.date_acompte && ac.date_acompte < dateReferenceIso) {
       events.push({
@@ -78,7 +104,7 @@ export const calculerSoldeAcomptesAvant = (
     }
   });
 
-  // Ajouter les missions (débit du solde acompte)
+  // 2) Missions (argent "consommé" par l’acompte)
   missions.forEach((m) => {
     if (m?.date_iso && m.date_iso < dateReferenceIso) {
       events.push({
@@ -89,7 +115,7 @@ export const calculerSoldeAcomptesAvant = (
     }
   });
 
-  // Ajouter les frais (débit du solde acompte)
+  // 3) Frais (consomment aussi l’acompte)
   fraisDivers.forEach((f) => {
     const dateFrais = f?.date_frais;
     if (dateFrais && dateFrais < dateReferenceIso) {
@@ -101,22 +127,24 @@ export const calculerSoldeAcomptesAvant = (
     }
   });
 
-  // Trier par date
+  // 4) On trie tout par date (ordre chrono)
   events.sort((a, b) => a.date.localeCompare(b.date));
 
-  // Calculer le solde
+  // 5) On simule un "porte-monnaie" : solde
   let solde = 0;
 
   for (const evt of events) {
     if (evt.type === "acompte") {
-      // Les acomptes augmentent le solde
+      // acompte = on ajoute de l'argent
       solde += evt.montant;
     } else {
-      // Les missions et frais consomment le solde disponible
+      // mission/frais = on consomme si possible
+      // Si solde = 50 et mission = 120 => on consomme 50 (solde devient 0)
       const consomme = Math.min(solde, evt.montant);
       solde -= consomme;
     }
   }
 
+  // solde ne peut pas être négatif
   return Math.max(0, solde);
 };

@@ -1,11 +1,23 @@
 /**
  * Utilitaires de gestion des dates
+ * => ici, on fait tout ce qui touche aux dates :
+ * - afficher proprement
+ * - vérifier si une date est valide
+ * - calculer le numéro de semaine
+ * - trouver le lundi d’une semaine (super important pour ton bilan)
  */
 
 /**
- * Extrait les parties d'une date ISO
- * @param {string} iso - Date au format ISO (YYYY-MM-DD)
- * @returns {Object} - { day, month, year }
+ * ==========================================================
+ * 1) getDateParts(iso)
+ * ==========================================================
+ * Rôle dans l'app :
+ * - Quand tu affiches une mission, tu veux souvent :
+ *   jour (ex: "05"), mois ("FÉVRIER"), année (2026)
+ * - Ça sert à faire de jolies cartes UI avec "jour + mois" etc.
+ *
+ * Entrée : "YYYY-MM-DD"
+ * Sortie : { day, month, year }
  */
 export const getDateParts = (iso) => {
   if (!iso) {
@@ -15,7 +27,7 @@ export const getDateParts = (iso) => {
 
   const d = new Date(iso);
 
-  // Vérifier si la date est valide
+  // Si la date est invalide => on renvoie une valeur "safe" (pas de crash)
   if (isNaN(d.getTime())) {
     console.warn("getDateParts: date ISO invalide:", iso);
     return { day: "01", month: "JANVIER", year: new Date().getFullYear() };
@@ -29,9 +41,19 @@ export const getDateParts = (iso) => {
 };
 
 /**
- * Calcule le numéro de semaine ISO d'une date
- * @param {Date} date - Objet Date
- * @returns {number} - Numéro de semaine (1-53)
+ * ==========================================================
+ * 2) getWeekNumber(date)
+ * ==========================================================
+ * Rôle dans l'app :
+ * - C’est ce qui te dit "Semaine 6", "Semaine 12", etc.
+ * - Utilisé dans :
+ *   - onglet "bilan"
+ *   - regroupements
+ *   - calcul des périodes disponibles
+ *
+ * Important :
+ * - C’est la norme ISO 8601 : la semaine commence lundi
+ * - Et la semaine 1 est celle qui contient le 4 janvier
  */
 export const getWeekNumber = (date) => {
   if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
@@ -39,34 +61,42 @@ export const getWeekNumber = (date) => {
     return 1;
   }
 
-  // Créer une copie pour ne pas modifier l'original
+  // Copie UTC pour éviter les bugs de fuseau horaire
   const d = new Date(
     Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
   );
 
-  // Définir au jeudi de la semaine courante (ISO 8601)
+  // ISO: on se cale sur le jeudi de la semaine courante
+  // (astuce standard ISO 8601)
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
 
-  // Premier jour de l'année
+  // Premier jour de l'année ISO
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
 
-  // Calculer le numéro de semaine
+  // Calcul du numéro de semaine (1 à 53)
   const weekNumber = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
 
   return weekNumber;
 };
 
 /**
- * Calcule la date de début (lundi) d'une semaine donnée
- * @param {number} weekNumber - Numéro de semaine (1-53)
- * @param {number} year - Année (défaut: année courante)
- * @returns {string} - Date ISO du lundi de la semaine (YYYY-MM-DD)
+ * ==========================================================
+ * 3) getWeekStartDate(weekNumber, year)
+ * ==========================================================
+ * Rôle dans l'app :
+ * - SUPER IMPORTANT pour ton bilan :
+ *   tu as besoin d’un "début de semaine" (lundi) pour :
+ *   - calculer debutPeriode
+ *   - calculer finPeriode (lundi + 6 jours)
+ *   - savoir quels acomptes sont dans la semaine
+ *
+ * Retour : "YYYY-MM-DD" (le lundi de la semaine)
  */
 export const getWeekStartDate = (
   weekNumber,
   year = new Date().getFullYear()
 ) => {
-  // Validation des entrées
+  // Sécurités pour éviter les crashes
   if (!weekNumber || weekNumber < 1 || weekNumber > 53) {
     console.warn("getWeekStartDate: numéro de semaine invalide:", weekNumber);
     return new Date().toISOString().split("T")[0];
@@ -77,15 +107,15 @@ export const getWeekStartDate = (
     year = new Date().getFullYear();
   }
 
-  // Le 4 janvier est toujours dans la semaine 1 (ISO 8601)
+  // ISO: le 4 janvier est toujours dans la semaine 1
   const jan4 = new Date(Date.UTC(year, 0, 4));
-  const dayOfWeek = jan4.getUTCDay() || 7; // Dimanche = 7
+  const dayOfWeek = jan4.getUTCDay() || 7; // dimanche = 7
 
-  // Trouver le lundi de la semaine 1
+  // Lundi de la semaine 1
   const mondayWeek1 = new Date(jan4);
   mondayWeek1.setUTCDate(4 - (dayOfWeek - 1));
 
-  // Calculer le lundi de la semaine cible
+  // Lundi de la semaine demandée
   const mondayTargetWeek = new Date(mondayWeek1);
   mondayTargetWeek.setUTCDate(mondayWeek1.getUTCDate() + (weekNumber - 1) * 7);
 
@@ -93,9 +123,13 @@ export const getWeekStartDate = (
 };
 
 /**
- * Formate une date ISO en format français lisible
- * @param {string} iso - Date au format ISO (YYYY-MM-DD)
- * @returns {string} - Date formatée (ex: "15 janvier 2024")
+ * ==========================================================
+ * 4) formatDateFr(iso)
+ * ==========================================================
+ * Rôle dans l'app :
+ * - Afficher une date propre en français :
+ *   "2026-02-13" => "13 février 2026"
+ * - Utilisé dans l’UI (ex: missions, modals, historique)
  */
 export const formatDateFr = (iso) => {
   if (!iso) return "";
@@ -115,9 +149,13 @@ export const formatDateFr = (iso) => {
 };
 
 /**
- * Vérifie si une date ISO est valide
- * @param {string} iso - Date au format ISO (YYYY-MM-DD)
- * @returns {boolean}
+ * ==========================================================
+ * 5) isValidDateIso(iso)
+ * ==========================================================
+ * Rôle dans l'app :
+ * - Petit "contrôle qualité" :
+ *   vérifie que c’est bien "YYYY-MM-DD"
+ * - Utile avant d’enregistrer en base ou faire des calculs
  */
 export const isValidDateIso = (iso) => {
   if (!iso || typeof iso !== "string") return false;

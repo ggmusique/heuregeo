@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { formatEuro, formatHeures } from "../../utils/formatters";
 
 /**
- * Gestionnaire complet des clients avec liste et stats
+ * ClientsManager (ULTRA PRO + DEDOUBLONNAGE)
+ * ✅ Optimisation:
+ * - Index missions par client_id (Map) + fallback par client (nom)
+ * - Dédoublonnage strict par mission.id pour éviter les doubles comptes
+ * - Même UI / même comportement
  */
 export const ClientsManager = ({
   clients = [],
@@ -10,46 +14,136 @@ export const ClientsManager = ({
   onDelete = () => {},
   onAdd = () => {},
   darkMode = true,
-  missions = [], // Pour calculer les stats
+  missions = [],
 }) => {
-  const [clientsWithStats, setClientsWithStats] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Calculer les stats pour chaque client
-  useEffect(() => {
-    const statsPromises = clients.map(async (client) => {
-      // Filtrer les missions de ce client (client_id OU client TEXT)
-      const clientMissions = missions.filter(
-        (m) => m.client_id === client.id || m.client === client.nom
+  /**
+   * ✅ Index missions :
+   * - byClientId : Map(client_id => missions[])
+   * - byClientName : Map(clientName => missions[]) (fallback legacy)
+   */
+  const missionIndex = useMemo(() => {
+    const safeMissions = Array.isArray(missions) ? missions : [];
+
+    const byClientId = new Map();
+    const byClientName = new Map();
+
+    for (const m of safeMissions) {
+      if (!m) continue;
+
+      if (m.client_id) {
+        const key = m.client_id;
+        if (!byClientId.has(key)) byClientId.set(key, []);
+        byClientId.get(key).push(m);
+      }
+
+      if (m.client) {
+        const name = String(m.client);
+        if (!byClientName.has(name)) byClientName.set(name, []);
+        byClientName.get(name).push(m);
+      }
+    }
+
+    return { byClientId, byClientName };
+  }, [missions]);
+
+  /**
+   * ✅ Clients enrichis avec stats
+   * - récupère missions depuis Map (rapide)
+   * - concatène id + fallback nom
+   * - dédoublonne par mission.id (ou fallback clé si pas d'id)
+   */
+  const clientsWithStats = useMemo(() => {
+    const safeClients = Array.isArray(clients) ? clients : [];
+
+    return safeClients.map((client) => {
+      const fromId = missionIndex.byClientId.get(client.id) || [];
+      const fromName = missionIndex.byClientName.get(client.nom) || [];
+
+      // ✅ Fusion + dédoublonnage
+      const merged = [...fromId, ...fromName];
+      const seen = new Set();
+
+      const clientMissions = merged.filter((m) => {
+        // id idéal
+        const key =
+          m?.id != null
+            ? `id:${m.id}`
+            : `fallback:${m?.date_iso || ""}|${m?.debut || ""}|${m?.fin || ""}|${
+                m?.montant || 0
+              }|${m?.duree || 0}`;
+
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      const totalHeures = clientMissions.reduce(
+        (sum, m) => sum + (m?.duree || 0),
+        0
       );
 
-      const stats = {
+      const totalCA = clientMissions.reduce(
+        (sum, m) => sum + (m?.montant || 0),
+        0
+      );
+
+      const derniereMission =
+        clientMissions.length > 0
+          ? [...clientMissions].sort(
+              (a, b) => new Date(b.date_iso) - new Date(a.date_iso)
+            )[0]?.date_iso || null
+          : null;
+
+      return {
+        ...client,
         nombreMissions: clientMissions.length,
-        totalHeures: clientMissions.reduce((sum, m) => sum + (m.duree || 0), 0),
-        totalCA: clientMissions.reduce((sum, m) => sum + (m.montant || 0), 0),
-        derniereMission:
-          clientMissions.length > 0
-            ? clientMissions.sort(
-                (a, b) => new Date(b.date_iso) - new Date(a.date_iso)
-              )[0].date_iso
-            : null,
+        totalHeures,
+        totalCA,
+        derniereMission,
       };
-
-      return { ...client, ...stats };
     });
+  }, [clients, missionIndex]);
 
-    Promise.all(statsPromises).then(setClientsWithStats);
-  }, [clients, missions]);
+  /**
+   * ✅ Filtrage (recherche sur nom)
+   */
+  const filteredClients = useMemo(() => {
+    const term = (searchTerm || "").toLowerCase().trim();
+    if (!term) return clientsWithStats;
 
-  // Filtrer les clients selon la recherche
-  const filteredClients = clientsWithStats.filter((client) =>
-    client.nom.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    return clientsWithStats.filter((client) =>
+      (client?.nom || "").toLowerCase().includes(term)
+    );
+  }, [clientsWithStats, searchTerm]);
 
-  // Trier par nombre de missions (les plus actifs en premier)
-  const sortedClients = [...filteredClients].sort(
-    (a, b) => b.nombreMissions - a.nombreMissions
-  );
+  /**
+   * ✅ Tri par activité
+   */
+  const sortedClients = useMemo(() => {
+    return [...filteredClients].sort(
+      (a, b) => (b.nombreMissions || 0) - (a.nombreMissions || 0)
+    );
+  }, [filteredClients]);
+
+  /**
+   * ✅ Stats globales
+   */
+  const globalStats = useMemo(() => {
+    return {
+      totalClients: clients.length,
+      totalMissions: clientsWithStats.reduce(
+        (sum, c) => sum + (c.nombreMissions || 0),
+        0
+      ),
+      totalHeures: clientsWithStats.reduce(
+        (sum, c) => sum + (c.totalHeures || 0),
+        0
+      ),
+      totalCA: clientsWithStats.reduce((sum, c) => sum + (c.totalCA || 0), 0),
+    };
+  }, [clients.length, clientsWithStats]);
 
   return (
     <div className="space-y-6">
@@ -90,7 +184,7 @@ export const ClientsManager = ({
             Total Clients
           </div>
           <div className="text-2xl font-black text-white mt-1">
-            {clients.length}
+            {globalStats.totalClients}
           </div>
         </div>
 
@@ -105,7 +199,7 @@ export const ClientsManager = ({
             Total Missions
           </div>
           <div className="text-2xl font-black text-white mt-1">
-            {clientsWithStats.reduce((sum, c) => sum + c.nombreMissions, 0)}
+            {globalStats.totalMissions}
           </div>
         </div>
 
@@ -120,9 +214,7 @@ export const ClientsManager = ({
             Total Heures
           </div>
           <div className="text-2xl font-black text-white mt-1">
-            {formatHeures(
-              clientsWithStats.reduce((sum, c) => sum + c.totalHeures, 0)
-            )}
+            {formatHeures(globalStats.totalHeures)}
           </div>
         </div>
 
@@ -137,9 +229,7 @@ export const ClientsManager = ({
             CA Total
           </div>
           <div className="text-2xl font-black text-white mt-1">
-            {formatEuro(
-              clientsWithStats.reduce((sum, c) => sum + c.totalCA, 0)
-            )}
+            {formatEuro(globalStats.totalCA)}
           </div>
         </div>
       </div>
@@ -185,7 +275,7 @@ export const ClientsManager = ({
                     )}
                   </div>
 
-                  {/* Contact & Adresse */}
+                  {/* Contact & lieu_travail */}
                   <div className="space-y-1 mb-3">
                     {client.contact && (
                       <div className="text-xs text-white/60 flex items-center gap-2">
@@ -246,7 +336,7 @@ export const ClientsManager = ({
                   )}
                 </div>
 
-                {/* Boutons d'action */}
+                {/* Actions */}
                 <div className="flex gap-2">
                   <button
                     onClick={() => onEdit(client)}

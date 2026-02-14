@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 
 /**
  * Composant pour sélectionner un patron dans un formulaire
+ * - Version "cartes" (boutons)
+ * - Multi-patrons
  */
 export function PatronSelector({
-  patrons,
+  patrons = [],                 // ✅ safe: évite patrons undefined
   selectedPatronId,
   onSelect,
   required = false,
@@ -12,15 +14,26 @@ export function PatronSelector({
   darkMode = true,
   onAddNew,
 }) {
+  // ✅ Micro UX : si required et un seul patron, on le sélectionne automatiquement
+  useEffect(() => {
+    if (required && !selectedPatronId && patrons.length === 1) {
+      onSelect?.(patrons[0].id);
+    }
+  }, [required, selectedPatronId, patrons, onSelect]);
+
   return (
     <div>
+      {/* Label */}
       <label className="block text-[10px] font-black uppercase opacity-60 mb-2 tracking-wider">
         Patron {required && "*"}
       </label>
 
+      {/* Aucun patron */}
       {patrons.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-sm opacity-60 mb-4">Aucun patron créé</p>
+
+          {/* Bouton création */}
           {onAddNew && (
             <button
               onClick={onAddNew}
@@ -32,12 +45,13 @@ export function PatronSelector({
         </div>
       ) : (
         <>
+          {/* Liste de patrons (cartes) */}
           <div className="grid grid-cols-1 gap-2 mb-3">
             {patrons.map((patron) => (
               <button
                 key={patron.id}
                 type="button"
-                onClick={() => onSelect(patron.id)}
+                onClick={() => onSelect?.(patron.id)}
                 disabled={disabled}
                 className={`p-4 rounded-[20px] flex items-center gap-3 transition-all ${
                   selectedPatronId === patron.id
@@ -52,13 +66,15 @@ export function PatronSelector({
                 {/* Pastille couleur */}
                 <div
                   className="w-6 h-6 rounded-full flex-shrink-0 shadow-lg"
-                  style={{ backgroundColor: patron.couleur }}
+                  style={{ backgroundColor: patron.couleur || "#8b5cf6" }} // ✅ fallback couleur
                 />
 
                 {/* Infos patron */}
                 <div className="flex-1 text-left">
                   <p className="font-bold text-sm uppercase">{patron.nom}</p>
-                  {patron.taux_horaire && (
+
+                  {/* Taux horaire si présent */}
+                  {patron.taux_horaire != null && (
                     <p className="text-[10px] opacity-60">
                       {patron.taux_horaire}€/h
                     </p>
@@ -98,9 +114,11 @@ export function PatronSelector({
 
 /**
  * Version compacte pour sélection rapide (dropdown)
+ * - Ajoute une pastille couleur du patron sélectionné
+ * - Améliore le padding pour ne pas recouvrir le texte
  */
 export function PatronSelectorCompact({
-  patrons,
+  patrons = [],                 // ✅ safe
   selectedPatronId,
   onSelect,
   required = false,
@@ -108,29 +126,47 @@ export function PatronSelectorCompact({
   darkMode = true,
   className = "",
 }) {
-  const selectedPatron = patrons.find((p) => p.id === selectedPatronId);
+  // ✅ Patron sélectionné (memo pour éviter recalcul)
+  const selectedPatron = useMemo(
+    () => patrons.find((p) => p.id === selectedPatronId),
+    [patrons, selectedPatronId]
+  );
+
+  // ✅ Micro UX : si required et un seul patron, on auto-sélectionne
+  useEffect(() => {
+    if (required && !selectedPatronId && patrons.length === 1) {
+      onSelect?.(patrons[0].id);
+    }
+  }, [required, selectedPatronId, patrons, onSelect]);
 
   return (
     <div className={className}>
       <label className="block text-[10px] font-black uppercase opacity-60 mb-2 tracking-wider">
         Patron {required && "*"}
       </label>
+
       <div className="relative">
         <select
           value={selectedPatronId || ""}
-          onChange={(e) => onSelect(e.target.value || null)}
+          onChange={(e) => onSelect?.(e.target.value || null)}
           disabled={disabled}
           className={`w-full px-5 py-4 pr-10 rounded-[20px] text-base font-semibold transition-all outline-none appearance-none ${
+            // ✅ si pastille affichée, on décale le texte à gauche
+            selectedPatron ? "pl-10" : "pl-5"
+          } ${
             darkMode
               ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400 focus:bg-white/15"
               : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"
           } disabled:opacity-50`}
         >
-          <option value="">Sélectionner un patron</option>
+          <option value="">
+            {required ? "Sélectionner un patron *" : "Sélectionner un patron"}
+          </option>
+
           {patrons.map((patron) => (
             <option key={patron.id} value={patron.id}>
               {patron.nom}
-              {patron.taux_horaire ? ` (${patron.taux_horaire}€/h)` : ""}
+              {patron.taux_horaire != null ? ` (${patron.taux_horaire}€/h)` : ""}
             </option>
           ))}
         </select>
@@ -155,8 +191,9 @@ export function PatronSelectorCompact({
         {/* Pastille couleur du patron sélectionné */}
         {selectedPatron && (
           <div
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full"
-            style={{ backgroundColor: selectedPatron.couleur }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full shadow-sm"
+            style={{ backgroundColor: selectedPatron.couleur || "#8b5cf6" }}
+            title={selectedPatron.nom}
           />
         )}
       </div>

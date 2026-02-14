@@ -1,59 +1,88 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { formatEuro } from "../../utils/formatters";
 
 /**
  * Gestionnaire complet des patrons avec liste et actions
+ * - Affiche les patrons
+ * - Statistiques par patron (missions / frais / acomptes)
+ * - Expand / collapse par patron
  */
 export function PatronsManager({
-  patrons,
-  onEdit,
-  onDelete,
-  onAdd,
+  patrons = [],          // ✅ safe: éviter undefined
+  onEdit = () => {},     // ✅ safe: fallback
+  onDelete = () => {},   // ✅ safe: fallback
+  onAdd = () => {},      // ✅ safe: fallback
   darkMode = true,
-  missions = [],
-  fraisDivers = [],
-  acomptes = [],
+  missions = [],         // ✅ safe
+  fraisDivers = [],      // ✅ safe
+  acomptes = [],         // ✅ safe
 }) {
   const [expandedPatronId, setExpandedPatronId] = useState(null);
 
-  // Calculer les stats pour chaque patron
-  const getPatronStats = (patronId) => {
-    const patronMissions = missions.filter((m) => m.patron_id === patronId);
-    const patronFrais = fraisDivers.filter((f) => f.patron_id === patronId);
-    const patronAcomptes = acomptes.filter((a) => a.patron_id === patronId);
+  /**
+   * ✅ Calcul des stats pour un patron
+   * - missions: heures + montant
+   * - frais: total frais (⚠️ souvent "montant" en string)
+   * - acomptes: total acomptes (⚠️ souvent "montant" en string)
+   */
+  const getPatronStats = useCallback(
+    (patronId) => {
+      const patronMissions = missions.filter((m) => m?.patron_id === patronId);
+      const patronFrais = fraisDivers.filter((f) => f?.patron_id === patronId);
+      const patronAcomptes = acomptes.filter((a) => a?.patron_id === patronId);
 
-    const nbMissions = patronMissions.length;
-    const totalHeures = patronMissions.reduce(
-      (sum, m) => sum + (m.duree || 0),
-      0
-    );
-    const totalMontant = patronMissions.reduce(
-      (sum, m) => sum + (m.montant || 0),
-      0
-    );
-    const totalFrais = patronFrais.reduce(
-      (sum, f) => sum + (f.montant || 0),
-      0
-    );
-    const totalAcomptes = patronAcomptes.reduce(
-      (sum, a) => sum + (a.montant || 0),
-      0
-    );
+      const nbMissions = patronMissions.length;
 
-    return {
-      nbMissions,
-      totalHeures,
-      totalMontant,
-      totalFrais,
-      totalAcomptes,
-      caBrut: totalMontant + totalFrais,
-      reste: totalMontant + totalFrais - totalAcomptes,
-    };
-  };
+      // Total heures (missions)
+      const totalHeures = patronMissions.reduce(
+        (sum, m) => sum + (parseFloat(m?.duree) || 0),
+        0
+      );
 
-  const toggleExpand = (patronId) => {
-    setExpandedPatronId(expandedPatronId === patronId ? null : patronId);
-  };
+      // Total montant missions
+      const totalMontant = patronMissions.reduce(
+        (sum, m) => sum + (parseFloat(m?.montant) || 0),
+        0
+      );
+
+      // Total frais (montant peut être string)
+      const totalFrais = patronFrais.reduce(
+        (sum, f) => sum + (parseFloat(f?.montant) || 0),
+        0
+      );
+
+      // Total acomptes (montant peut être string)
+      const totalAcomptes = patronAcomptes.reduce(
+        (sum, a) => sum + (parseFloat(a?.montant) || 0),
+        0
+      );
+
+      // CA brut = missions + frais
+      const caBrut = totalMontant + totalFrais;
+
+      // Reste à percevoir = CA brut - acomptes
+      // ✅ clamp à 0 pour éviter un affichage négatif
+      const reste = Math.max(0, caBrut - totalAcomptes);
+
+      return {
+        nbMissions,
+        totalHeures,
+        totalMontant,
+        totalFrais,
+        totalAcomptes,
+        caBrut,
+        reste,
+      };
+    },
+    [missions, fraisDivers, acomptes]
+  );
+
+  /**
+   * Toggle expand/collapse
+   */
+  const toggleExpand = useCallback((patronId) => {
+    setExpandedPatronId((prev) => (prev === patronId ? null : patronId));
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -68,6 +97,8 @@ export function PatronsManager({
             {patrons.length > 1 ? "s" : ""}
           </p>
         </div>
+
+        {/* Bouton ajout */}
         <button
           onClick={onAdd}
           className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-all shadow-lg"
@@ -91,6 +122,7 @@ export function PatronsManager({
       ) : (
         <div className="space-y-3">
           {patrons.map((patron) => {
+            // ✅ stats calculées par patron
             const stats = getPatronStats(patron.id);
             const isExpanded = expandedPatronId === patron.id;
 
@@ -103,7 +135,7 @@ export function PatronsManager({
                     : "bg-slate-100 border border-slate-200"
                 }`}
               >
-                {/* En-tête patron */}
+                {/* En-tête patron (clic = expand) */}
                 <button
                   onClick={() => toggleExpand(patron.id)}
                   className="w-full p-5 flex items-center gap-4 hover:bg-white/5 transition-all"
@@ -111,7 +143,7 @@ export function PatronsManager({
                   {/* Pastille couleur */}
                   <div
                     className="w-10 h-10 rounded-full flex-shrink-0 shadow-lg"
-                    style={{ backgroundColor: patron.couleur }}
+                    style={{ backgroundColor: patron.couleur || "#8b5cf6" }} // ✅ fallback
                   />
 
                   {/* Infos principales */}
@@ -119,16 +151,19 @@ export function PatronsManager({
                     <p className="font-black text-lg uppercase tracking-tight">
                       {patron.nom}
                     </p>
-                    <div className="flex gap-4 mt-1">
-                      {patron.taux_horaire && (
+
+                    {/* Mini infos */}
+                    <div className="flex gap-4 mt-1 flex-wrap">
+                      {patron.taux_horaire != null && (
                         <span className="text-[10px] opacity-60">
                           {patron.taux_horaire}€/h
                         </span>
                       )}
+
                       <span className="text-[10px] opacity-60">
-                        {stats.nbMissions} mission
-                        {stats.nbMissions > 1 ? "s" : ""}
+                        {stats.nbMissions} mission{stats.nbMissions > 1 ? "s" : ""}
                       </span>
+
                       <span className="text-[10px] font-bold text-green-400">
                         {formatEuro(stats.caBrut)}
                       </span>
@@ -175,23 +210,24 @@ export function PatronsManager({
                           Total heures
                         </p>
                         <p className="text-lg font-black text-indigo-400">
-                          {stats.totalHeures}h
+                          {stats.totalHeures.toFixed(2)}h
                         </p>
                       </div>
+
+                      {/* ⚠️ ici, tu affichais un montant mais le label disait "Missions" */}
                       <div
                         className={`p-3 rounded-2xl ${
                           darkMode ? "bg-white/5" : "bg-white"
                         }`}
                       >
                         <p className="text-[9px] font-black uppercase opacity-50">
-                          Missions
+                          Montant missions
                         </p>
                         <p className="text-lg font-black text-purple-400">
-                          {stats.totalMontant > 0
-                            ? formatEuro(stats.totalMontant)
-                            : "0€"}
+                          {formatEuro(stats.totalMontant)}
                         </p>
                       </div>
+
                       <div
                         className={`p-3 rounded-2xl ${
                           darkMode ? "bg-white/5" : "bg-white"
@@ -201,11 +237,10 @@ export function PatronsManager({
                           Frais
                         </p>
                         <p className="text-lg font-black text-amber-400">
-                          {stats.totalFrais > 0
-                            ? formatEuro(stats.totalFrais)
-                            : "0€"}
+                          {formatEuro(stats.totalFrais)}
                         </p>
                       </div>
+
                       <div
                         className={`p-3 rounded-2xl ${
                           darkMode ? "bg-white/5" : "bg-white"
@@ -215,9 +250,7 @@ export function PatronsManager({
                           Acomptes
                         </p>
                         <p className="text-lg font-black text-cyan-400">
-                          {stats.totalAcomptes > 0
-                            ? formatEuro(stats.totalAcomptes)
-                            : "0€"}
+                          {formatEuro(stats.totalAcomptes)}
                         </p>
                       </div>
                     </div>
@@ -244,6 +277,7 @@ export function PatronsManager({
                       >
                         ✏️ Modifier
                       </button>
+
                       <button
                         onClick={() => onDelete(patron)}
                         className={`flex-1 py-3 rounded-xl font-black uppercase text-[10px] transition-all ${

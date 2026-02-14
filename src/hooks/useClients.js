@@ -3,18 +3,33 @@ import { supabase } from "../services/supabase";
 
 /**
  * Hook personnalisé pour gérer les clients
- * CRUD complet + fonctions utilitaires
+ *
+ * 👉 Son boulot :
+ * - Charger les clients (table "clients")
+ * - Créer / modifier / désactiver un client (CRUD)
+ * - Donner des fonctions utiles à App.jsx :
+ *   - getClientNom(id) : retrouver le nom
+ *   - searchClients("geo") : filtrer la liste en local
+ *   - getClientStats(id) : stats en allant lire la table missions
  */
 export function useClients(triggerAlert) {
-  const [clients, setClients] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // ------------------------------------------------------------
+  // 1) ÉTATS LOCAUX DU HOOK
+  // ------------------------------------------------------------
+  const [clients, setClients] = useState([]);   // Liste des clients actifs en mémoire
+  const [loading, setLoading] = useState(false); // Indique si une action est en cours
 
-  /**
-   * Récupérer tous les clients actifs
-   */
+  // ------------------------------------------------------------
+  // 2) LIRE : Charger tous les clients actifs
+  // ------------------------------------------------------------
   const fetchClients = useCallback(async () => {
     try {
       setLoading(true);
+
+      // 🔎 Lecture Supabase :
+      // - table "clients"
+      // - uniquement ceux qui sont actif = true
+      // - triés par nom A -> Z
       const { data, error } = await supabase
         .from("clients")
         .select("*")
@@ -22,6 +37,8 @@ export function useClients(triggerAlert) {
         .order("nom", { ascending: true });
 
       if (error) throw error;
+
+      // On stocke dans le state -> l’UI se met à jour
       setClients(data || []);
     } catch (err) {
       console.error("Erreur chargement clients:", err);
@@ -31,18 +48,19 @@ export function useClients(triggerAlert) {
     }
   }, [triggerAlert]);
 
-  /**
-   * Créer un nouveau client
-   */
+  // ------------------------------------------------------------
+  // 3) CRÉER : Ajouter un nouveau client
+  // ------------------------------------------------------------
   const createClient = useCallback(async (clientData) => {
     try {
       setLoading(true);
 
-      // Vérifier que le nom est fourni
+      // ✅ sécurité : pas de nom vide
       if (!clientData.nom || !clientData.nom.trim()) {
         throw new Error("Le nom du client est obligatoire");
       }
 
+      // Insertion Supabase (actif: true)
       const { data, error } = await supabase
         .from("clients")
         .insert([
@@ -55,32 +73,33 @@ export function useClients(triggerAlert) {
           },
         ])
         .select()
-        .single();
+        .single(); // 👈 important : on veut 1 seul objet en retour
 
       if (error) {
-        // Gérer l'erreur de doublon
+        // ⚠️ Code 23505 = duplication (souvent "unique constraint")
         if (error.code === "23505") {
           throw new Error("Un client avec ce nom existe déjà");
         }
         throw error;
       }
 
-      // Ajouter le nouveau client à la liste
+      // On ajoute en mémoire + tri par nom
       setClients((prev) =>
         [...prev, data].sort((a, b) => a.nom.localeCompare(b.nom))
       );
+
       return data;
     } catch (err) {
       console.error("Erreur création client:", err);
-      throw err;
+      throw err; // ⚠️ App.jsx gère l’alerte de ce throw
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /**
-   * Mettre à jour un client existant
-   */
+  // ------------------------------------------------------------
+  // 4) MODIFIER : Mettre à jour un client existant
+  // ------------------------------------------------------------
   const updateClient = useCallback(async (clientId, clientData) => {
     try {
       setLoading(true);
@@ -104,12 +123,13 @@ export function useClients(triggerAlert) {
         throw error;
       }
 
-      // Mettre à jour dans la liste
+      // Remplace dans la liste mémoire + tri
       setClients((prev) =>
         prev
           .map((c) => (c.id === clientId ? data : c))
           .sort((a, b) => a.nom.localeCompare(b.nom))
       );
+
       return data;
     } catch (err) {
       console.error("Erreur mise à jour client:", err);
@@ -119,14 +139,15 @@ export function useClients(triggerAlert) {
     }
   }, []);
 
-  /**
-   * Supprimer (désactiver) un client
-   * Note: On ne supprime pas vraiment, on désactive pour garder l'historique
-   */
+  // ------------------------------------------------------------
+  // 5) SUPPRIMER (soft delete) : Désactiver un client
+  // ------------------------------------------------------------
   const deleteClient = useCallback(async (clientId) => {
     try {
       setLoading(true);
 
+      // ⚠️ On ne supprime pas vraiment : on met actif=false
+      // Ça garde l’historique et évite de casser des missions déjà enregistrées
       const { error } = await supabase
         .from("clients")
         .update({ actif: false })
@@ -134,7 +155,7 @@ export function useClients(triggerAlert) {
 
       if (error) throw error;
 
-      // Retirer de la liste
+      // En mémoire : on l’enlève de la liste visible
       setClients((prev) => prev.filter((c) => c.id !== clientId));
     } catch (err) {
       console.error("Erreur suppression client:", err);
@@ -144,9 +165,9 @@ export function useClients(triggerAlert) {
     }
   }, []);
 
-  /**
-   * Obtenir le nom d'un client par son ID
-   */
+  // ------------------------------------------------------------
+  // 6) OUTIL UI : Obtenir le nom d’un client via son ID
+  // ------------------------------------------------------------
   const getClientNom = useCallback(
     (clientId) => {
       if (!clientId) return null;
@@ -156,12 +177,12 @@ export function useClients(triggerAlert) {
     [clients]
   );
 
-  /**
-   * Obtenir les stats d'un client (nombre de missions, heures, CA)
-   * Nécessite les missions pour calculer
-   */
+  // ------------------------------------------------------------
+  // 7) OUTIL "stats" : Calculer stats d’un client (requête missions)
+  // ------------------------------------------------------------
   const getClientStats = useCallback(async (clientId) => {
     try {
+      // On lit missions juste pour ce client
       const { data: missions, error } = await supabase
         .from("missions")
         .select("duree, montant")
@@ -169,6 +190,7 @@ export function useClients(triggerAlert) {
 
       if (error) throw error;
 
+      // On calcule quelques totaux
       const stats = {
         nombreMissions: missions.length,
         totalHeures: missions.reduce((sum, m) => sum + (m.duree || 0), 0),
@@ -182,9 +204,9 @@ export function useClients(triggerAlert) {
     }
   }, []);
 
-  /**
-   * Rechercher un client par nom (fuzzy search)
-   */
+  // ------------------------------------------------------------
+  // 8) RECHERCHE LOCALE : Filtrer la liste de clients en mémoire
+  // ------------------------------------------------------------
   const searchClients = useCallback(
     (searchTerm) => {
       if (!searchTerm || !searchTerm.trim()) return clients;
@@ -197,22 +219,27 @@ export function useClients(triggerAlert) {
     [clients]
   );
 
-  /**
-   * Charger les clients au montage du composant
-   */
+  // ------------------------------------------------------------
+  // 9) Au démarrage : on charge les clients automatiquement
+  // ------------------------------------------------------------
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
 
+  // ------------------------------------------------------------
+  // 10) Ce que App.jsx récupère quand il fait: useClients(triggerAlert)
+  // ------------------------------------------------------------
   return {
-    clients,
-    loading,
-    fetchClients,
-    createClient,
-    updateClient,
-    deleteClient,
-    getClientNom,
-    getClientStats,
-    searchClients,
+    clients,        // liste utilisée dans ClientsManager + MissionForm etc.
+    loading,        // afficher un loader si besoin
+
+    fetchClients,   // recharger manuellement
+    createClient,   // bouton "ajouter client"
+    updateClient,   // bouton "modifier"
+    deleteClient,   // bouton "supprimer" (désactive)
+
+    getClientNom,   // retrouver le nom via ID
+    getClientStats, // stats client (si tu l'utilises dans une UI)
+    searchClients,  // barre de recherche
   };
 }

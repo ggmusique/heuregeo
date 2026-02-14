@@ -2,36 +2,54 @@ import React, { useRef, useMemo, useCallback } from "react";
 import { getDateParts } from "../../utils/dateUtils";
 
 /**
- * Sélecteur de date rectangulaire plus large
+ * DateSelector
+ * ✅ Composant UI qui affiche une date en “carte” stylée
+ * ✅ Au clic, ouvre le picker natif (<input type="date">) mais sans le montrer
  */
 export const DateSelector = React.memo(
   ({ dateMission, setDateMission, isIOS }) => {
+    // ✅ Référence vers l'input date caché (pour pouvoir le focus/click programmatiquement)
     const dateInputRef = useRef(null);
+
+    // ✅ On transforme "YYYY-MM-DD" en { day, month, year } pour l’affichage
+    // useMemo = recalcul seulement quand dateMission change (optimisation)
     const { day, month, year } = useMemo(
       () => getDateParts(dateMission),
       [dateMission]
     );
 
+    /**
+     * handleCalendarClick
+     * ✅ Quand on clique sur la carte, on ouvre le sélecteur de date natif
+     * - showPicker() (Chrome récent) si dispo
+     * - sinon .click() en fallback
+     */
     const handleCalendarClick = useCallback(() => {
       if (dateInputRef.current) {
         dateInputRef.current.focus();
+
+        // ✅ showPicker: plus "propre" sur certains navigateurs
         if (typeof dateInputRef.current.showPicker === "function") {
           try {
             dateInputRef.current.showPicker();
           } catch (e) {
+            // ✅ si showPicker échoue (certaines plateformes), fallback click
             dateInputRef.current.click();
           }
         } else {
+          // ✅ fallback général
           dateInputRef.current.click();
         }
       }
     }, []);
 
     return (
+      // ✅ Container cliquable (toute la carte ouvre le calendrier)
       <div
         onClick={handleCalendarClick}
         className="relative active:scale-[0.98] transition-transform cursor-pointer w-full"
       >
+        {/* ✅ Carte visuelle (fond gradient + style) */}
         <div
           className={`
             flex items-center justify-between
@@ -41,10 +59,10 @@ export const DateSelector = React.memo(
             h-20 px-8
           `}
         >
-          {/* Fond subtil */}
+          {/* ✅ Couche de fond sombre pour rendre le texte plus lisible */}
           <div className="absolute inset-0 bg-black/20" />
 
-          {/* Infos date à gauche */}
+          {/* ✅ Bloc gauche: affichage du mois + jour + année */}
           <div className="flex flex-col items-start z-10">
             <span className="text-[10px] font-black text-indigo-200/90 uppercase tracking-wider mb-0.5 drop-shadow">
               {month}
@@ -59,7 +77,7 @@ export const DateSelector = React.memo(
             </div>
           </div>
 
-          {/* Icône calendrier */}
+          {/* ✅ Bloc droite: icône calendrier (juste décoratif) */}
           <div className="z-10 pointer-events-none">
             <svg
               className="w-6 h-6 text-cyan-300 opacity-90"
@@ -76,7 +94,12 @@ export const DateSelector = React.memo(
             </svg>
           </div>
 
-          {/* Input caché */}
+          /**
+           * ✅ Input date caché (le vrai sélecteur)
+           * - Il prend toute la surface (absolute inset-0)
+           * - Il est invisible (opacity-0)
+           * - Quand on change la date, on appelle setDateMission() (state parent)
+           */
           <input
             ref={dateInputRef}
             type="date"
@@ -86,6 +109,7 @@ export const DateSelector = React.memo(
           />
         </div>
 
+        {/* ✅ Petit texte en dessous de la carte */}
         <div className="mt-1 text-[9px] font-black uppercase text-indigo-400/70 text-center tracking-[0.12em] opacity-90 drop-shadow">
           Changer Date
         </div>

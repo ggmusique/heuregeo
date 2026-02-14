@@ -1,7 +1,6 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { DateSelector } from "../common/DateSelector";
 import { PatronSelectorCompact } from "../patron/PatronSelector";
-import { useGeolocation } from "../../hooks/useGeolocation";
 import {
   PAUSE_OPTIONS,
   TARIF_OPTIONS,
@@ -10,54 +9,79 @@ import {
 import { calculerDuree } from "../../utils/calculators";
 import { ClientSelector } from "../client/ClientSelector";
 
+/**
+ * ✅ MissionForm (annoté / safe)
+ * - Météo + ville auto via geoloc (sans toucher au champ "lieu")
+ * - Patron obligatoire + auto-tarif depuis patron.taux_horaire
+ * - Client obligatoire + lieu auto depuis client.lieu_travail
+ * - Sélecteurs heures/pause
+ */
 export const MissionForm = ({
   editMode = false,
   initialData = null,
+
+  // ⚠️ Ces props existent mais ne sont pas utilisés dans TON rendu actuel
   clientsUniques = [],
   lieuxUniques = [],
+  onCopyLast,
+
   onSubmit,
   onCancel,
-  onCopyLast,
   darkMode = true,
   isIOS = false,
   loading = false,
+
   patrons = [],
   selectedPatronId = null,
   onPatronChange = () => {},
+
   clients = [],
   selectedClientId = null,
   onClientChange = () => {},
   onAddNewClient = () => {},
 }) => {
-  const [client, setClient] = useState(initialData?.client || "");
-  const [lieu, setLieu] = useState(initialData?.lieu || "");
-  const [pause, setPause] = useState(initialData?.pause || 30);
-  const [dateMission, setDateMission] = useState(
-    initialData?.date_iso || new Date().toISOString().split("T")[0]
-  );
+  // ======= STATE (form) =======
+  const [client, setClient] = useState(initialData?.client || ""); // (pas utilisé dans submit, gardé pour compat)
+  const [lieu, setLieu] = useState(initialData?.lieu || ""); // (pas utilisé dans submit, gardé pour compat)
+
+  const [pause, setPause] = useState(initialData?.pause ?? 30);
+
+  const [dateMission, setDateMission] = useState(() => {
+    return (
+      initialData?.date_iso ||
+      new Date().toISOString().split("T")[0]
+    );
+  });
+
   const [debut, setDebut] = useState(initialData?.debut || "08:00");
   const [fin, setFin] = useState(initialData?.fin || "17:00");
-  const [tarifHoraire, setTarifHoraire] = useState(initialData?.tarif || "15");
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const [weather, setWeather] = useState(null);
-  const [weatherCity, setWeatherCity] = useState(""); // ← pour afficher la ville dans la météo
-
-  const {
-    loading: geoLoading,
-    position,
-    getCurrentLocation,
-  } = useGeolocation(
-    (address) => setLieu(address), // ← bouton manuel seulement
-    (error) => alert(error)
+  const [tarifHoraire, setTarifHoraire] = useState(
+    initialData?.tarif?.toString?.() || "15"
   );
 
-  // Géoloc + météo + ville AUTOMATIQUE (indépendante du champ lieu)
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // ======= STATE (météo) =======
+  const [weather, setWeather] = useState(null);
+  const [weatherCity, setWeatherCity] = useState("");
+
+  // ======= MEMO (selected client) =======
+  const selectedClient = useMemo(() => {
+    if (!selectedClientId) return null;
+    return (Array.isArray(clients) ? clients : []).find(
+      (c) => c.id === selectedClientId
+    );
+  }, [clients, selectedClientId]);
+
+  // ======= Météo + Ville auto (sur changement date) =======
   useEffect(() => {
     if (!dateMission) return;
 
+    let alive = true; // ✅ évite setState après unmount
+
     const loadWeatherAndCity = async () => {
       if (!navigator.geolocation) {
+        if (!alive) return;
         setWeatherCity("Géolocalisation non supportée");
         return;
       }
@@ -67,14 +91,17 @@ export const MissionForm = ({
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
 
-          // 1. Météo Open-Meteo
+          // 1) Météo (Open-Meteo)
           try {
             const weatherRes = await fetch(
               `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`
             );
+            if (!weatherRes.ok) throw new Error("Météo HTTP error");
             const weatherData = await weatherRes.json();
 
-            if (weatherData.current) {
+            if (!alive) return;
+
+            if (weatherData?.current) {
               const code = weatherData.current.weathercode;
               let icon = "01d";
               let desc = "Ensoleillé";
@@ -101,34 +128,42 @@ export const MissionForm = ({
                 icon,
                 desc,
               });
+            } else {
+              setWeather(null);
             }
           } catch (err) {
             console.warn("Météo indisponible", err);
+            if (!alive) return;
             setWeather(null);
           }
 
-          // 2. Ville via Nominatim (reverse geocoding)
+          // 2) Ville (Nominatim reverse)
           try {
             const cityRes = await fetch(
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`
             );
+            if (!cityRes.ok) throw new Error("Ville HTTP error");
             const cityData = await cityRes.json();
 
+            if (!alive) return;
+
             const city =
-              cityData.address?.city ||
-              cityData.address?.town ||
-              cityData.address?.village ||
-              cityData.address?.municipality ||
+              cityData?.address?.city ||
+              cityData?.address?.town ||
+              cityData?.address?.village ||
+              cityData?.address?.municipality ||
               "Position actuelle";
 
             setWeatherCity(city);
           } catch (err) {
             console.warn("Ville indisponible", err);
+            if (!alive) return;
             setWeatherCity("Position actuelle");
           }
         },
         (err) => {
           console.warn("Géoloc refusée", err);
+          if (!alive) return;
           setWeatherCity("Localisation indisponible");
         },
         { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
@@ -136,30 +171,33 @@ export const MissionForm = ({
     };
 
     loadWeatherAndCity();
+
+    return () => {
+      alive = false;
+    };
   }, [dateMission]);
 
-  // Auto-remplir tarif depuis patron
+  // ======= Auto-tarif depuis patron =======
   useEffect(() => {
-    if (selectedPatronId && patrons.length > 0) {
-      const patron = patrons.find((p) => p.id === selectedPatronId);
-      if (patron && patron.taux_horaire) {
-        setTarifHoraire(patron.taux_horaire.toString());
-      }
+    if (!selectedPatronId || !Array.isArray(patrons) || patrons.length === 0) return;
+
+    const patron = patrons.find((p) => p.id === selectedPatronId);
+    if (patron?.taux_horaire != null) {
+      setTarifHoraire(patron.taux_horaire.toString());
     }
   }, [selectedPatronId, patrons]);
 
+  // ======= Submit =======
   const handleSubmit = useCallback(() => {
-    // Validation de base
+    // ✅ Validations minimales
     if (!dateMission || !debut || !fin) {
       alert("Veuillez remplir la date et les horaires.");
       return;
     }
-
     if (!selectedPatronId) {
       alert("Veuillez sélectionner un patron pour cette mission.");
       return;
     }
-
     if (!selectedClientId) {
       alert("Veuillez sélectionner un client pour cette mission.");
       return;
@@ -167,22 +205,27 @@ export const MissionForm = ({
 
     const dureeH = calculerDuree(debut, fin, pause);
 
-    // Récupérer le nom du client et du lieu depuis les objets
-    const client = clients.find((c) => c.id === selectedClientId);
+    const tarifNum = parseFloat(tarifHoraire);
+    const montant = dureeH * (Number.isFinite(tarifNum) ? tarifNum : 0);
+
     const missionData = {
-      client: client?.nom || "", // Nom du client
-      lieu: client?.lieu_travail || client?.adresse || "", // ✅ NOUVEAU : Lieu depuis le client
+      // ✅ Nom du client (texte) + client_id (relation)
+      client: selectedClient?.nom || "",
+      client_id: selectedClientId,
+
+      // ✅ Lieu rempli depuis client
+      lieu: selectedClient?.lieu_travail || selectedClient?.adresse || "",
+
       debut,
       fin,
       date_iso: dateMission,
       duree: dureeH,
-      montant: dureeH * parseFloat(tarifHoraire),
+      montant,
       pause,
       patron_id: selectedPatronId,
-      client_id: selectedClientId,
     };
 
-    onSubmit(missionData);
+    onSubmit?.(missionData);
   }, [
     dateMission,
     debut,
@@ -191,33 +234,20 @@ export const MissionForm = ({
     tarifHoraire,
     selectedPatronId,
     selectedClientId,
-    clients, // ✅ AJOUTER
+    selectedClient,
     onSubmit,
   ]);
 
-  // Helpers calendrier
-  const formatDate = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("fr-FR", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    });
-  };
+  // ======= Helpers date (safe) =======
+  const safeDate = useMemo(() => {
+    const d = new Date(dateMission);
+    return Number.isNaN(d.getTime()) ? new Date() : d;
+  }, [dateMission]);
 
-  const getMonthName = (dateStr) => {
-    return new Date(dateStr)
-      .toLocaleString("fr-FR", { month: "long" })
-      .toUpperCase();
-  };
-
-  const getDay = (dateStr) => {
-    return new Date(dateStr).getDate().toString().padStart(2, "0");
-  };
-
-  const getYear = (dateStr) => {
-    return new Date(dateStr).getFullYear();
-  };
+  const getMonthName = () =>
+    safeDate.toLocaleString("fr-FR", { month: "long" }).toUpperCase();
+  const getDay = () => safeDate.getDate().toString().padStart(2, "0");
+  const getYear = () => safeDate.getFullYear();
 
   return (
     <section
@@ -227,12 +257,10 @@ export const MissionForm = ({
           : "bg-white/70 border-slate-200/80"
       }`}
     >
-      {/* CARTE MÉTÉO + DATE */}
+      {/* ===================== CARTE MÉTÉO + DATE ===================== */}
       <div
         className={`relative mb-6 rounded-[28px] overflow-hidden backdrop-blur-2xl shadow-xl border ${
-          darkMode
-            ? "bg-white/6 border-white/12"
-            : "bg-white/35 border-white/25"
+          darkMode ? "bg-white/6 border-white/12" : "bg-white/35 border-white/25"
         }`}
         style={{
           background: weather
@@ -285,7 +313,7 @@ export const MissionForm = ({
           {/* CALENDRIER */}
           <button
             type="button"
-            onClick={() => setShowDatePicker(!showDatePicker)}
+            onClick={() => setShowDatePicker((v) => !v)}
             className="shrink-0 flex flex-col items-center justify-center px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-br from-purple-700/85 via-indigo-600/80 to-purple-900/85 rounded-2xl backdrop-blur-xl border border-purple-400/35 shadow-xl hover:scale-105 transition-all active:scale-95 cursor-pointer min-w-[110px] sm:min-w-[130px] md:min-w-[150px]"
           >
             <div className="text-[9px] sm:text-[10px] font-black uppercase text-purple-200/85 tracking-wider mb-0.5">
@@ -293,13 +321,13 @@ export const MissionForm = ({
             </div>
             <div className="text-center leading-tight">
               <div className="text-xs sm:text-sm font-black uppercase text-white/90">
-                {getMonthName(dateMission)}
+                {getMonthName()}
               </div>
               <div className="text-3xl sm:text-4xl md:text-5xl font-black text-white drop-shadow-lg my-0.5">
-                {getDay(dateMission)}
+                {getDay()}
               </div>
               <div className="text-xs sm:text-sm font-black text-white/90">
-                {getYear(dateMission)}
+                {getYear()}
               </div>
             </div>
             <div className="text-[9px] sm:text-[10px] font-black uppercase text-purple-200/85 tracking-wider mt-1">
@@ -309,7 +337,7 @@ export const MissionForm = ({
         </div>
       </div>
 
-      {/* MODAL DATE PICKER */}
+      {/* ===================== MODAL DATE PICKER ===================== */}
       {showDatePicker && (
         <div
           className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
@@ -326,6 +354,7 @@ export const MissionForm = ({
             <h3 className="text-lg font-black uppercase mb-4 text-center text-white">
               Choisir la date
             </h3>
+
             <DateSelector
               dateMission={dateMission}
               setDateMission={(newDate) => {
@@ -334,6 +363,7 @@ export const MissionForm = ({
               }}
               isIOS={isIOS}
             />
+
             <button
               onClick={() => setShowDatePicker(false)}
               className="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-2xl font-black uppercase text-[11px] text-white transition-all"
@@ -344,7 +374,7 @@ export const MissionForm = ({
         </div>
       )}
 
-      {/* PATRON + TARIF */}
+      {/* ===================== PATRON + TARIF ===================== */}
       <div className="flex items-center gap-2 mb-6">
         <div className="flex-1">
           <PatronSelectorCompact
@@ -356,6 +386,7 @@ export const MissionForm = ({
           />
         </div>
 
+        {/* Sélecteur tarif “camouflé” */}
         <div
           className={`shrink-0 w-[64px] h-[64px] rounded-2xl border-2 flex items-center justify-center relative overflow-hidden transition-all active:scale-90 mt-5 ${
             darkMode
@@ -381,7 +412,7 @@ export const MissionForm = ({
         </div>
       </div>
 
-      {/* CLIENT + DERNIER JOB */}
+      {/* ===================== CLIENT ===================== */}
       <div className="mb-6">
         <ClientSelector
           clients={clients}
@@ -393,21 +424,19 @@ export const MissionForm = ({
         />
       </div>
 
-      {/* LIEU + GEOLOC (manuel seulement) */}
-      {selectedClientId &&
-        clients.find((c) => c.id === selectedClientId)?.lieu_travail && (
-          <div className="mb-4 p-4 bg-purple-600/20 rounded-2xl border border-purple-500/30">
-            <div className="text-[10px] font-black uppercase text-purple-300 mb-1">
-              Lieu de travail
-            </div>
-            <div className="text-sm text-white">
-              📍 {clients.find((c) => c.id === selectedClientId)?.lieu_travail}
-            </div>
+      {/* ===================== LIEU depuis client ===================== */}
+      {selectedClient?.lieu_travail && (
+        <div className="mb-4 p-4 bg-purple-600/20 rounded-2xl border border-purple-500/30">
+          <div className="text-[10px] font-black uppercase text-purple-300 mb-1">
+            Lieu de travail
           </div>
-        )}
+          <div className="text-sm text-white">📍 {selectedClient.lieu_travail}</div>
+        </div>
+      )}
 
-      {/* HORAIRES */}
+      {/* ===================== HORAIRES ===================== */}
       <div className="grid grid-cols-3 gap-3 mb-10">
+        {/* Début */}
         <div
           className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
             darkMode ? "border-slate-700" : "border-slate-300"
@@ -430,6 +459,7 @@ export const MissionForm = ({
           </select>
         </div>
 
+        {/* Pause */}
         <div
           className={`p-4 bg-black/40 rounded-[28px] border-2 relative flex flex-col items-center justify-center text-center min-h-[90px] ${
             darkMode ? "border-slate-700" : "border-slate-300"
@@ -441,7 +471,7 @@ export const MissionForm = ({
           <div className="font-black text-xl text-indigo-400">{pause}m</div>
           <select
             value={pause}
-            onChange={(e) => setPause(parseInt(e.target.value))}
+            onChange={(e) => setPause(parseInt(e.target.value, 10))}
             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
           >
             {PAUSE_OPTIONS.map((val) => (
@@ -452,6 +482,7 @@ export const MissionForm = ({
           </select>
         </div>
 
+        {/* Fin */}
         <div
           className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
             darkMode ? "border-slate-700" : "border-slate-300"
@@ -475,7 +506,7 @@ export const MissionForm = ({
         </div>
       </div>
 
-      {/* BOUTONS D'ACTION */}
+      {/* ===================== ACTIONS ===================== */}
       <div className="flex flex-col gap-3">
         <button
           onClick={handleSubmit}
