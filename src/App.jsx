@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { BUILD_INFO } from "./buildInfo";
+
 
 
 /* ============================================================
@@ -1809,27 +1809,6 @@ const resetLieuForm = () => {
         </div>
       </nav>
 
-  {/* ✅ Badge branche/commit (auto) */}
-<div
-  style={{
-    position: "fixed",
-    top: 10,
-    right: 10,
-    zIndex: 999999,
-    padding: "6px 10px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 800,
-    letterSpacing: 0.5,
-    background: "rgba(0,0,0,0.55)",
-    color: "white",
-    border: "1px solid rgba(255,255,255,0.15)",
-    backdropFilter: "blur(8px)",
-  }}
-  title="Branche + commit (auto)"
->
-  {BUILD_INFO.branch} • {BUILD_INFO.commit}
-</div>
 
     </div>
   );
