@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { supabase } from "../services/supabase";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 
@@ -7,7 +7,7 @@ import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
  * METEO : enrichit les missions affichées
  * ==========================================
  * Dans le bilan semaine, tu affiches une petite météo.
- * Ici on appelle l’API Open-Meteo archive pour une date précise.
+ * Ici on appelle l'API Open-Meteo archive pour une date précise.
  */
 const fetchHistoricalWeather = async (dateIso) => {
   try {
@@ -57,7 +57,7 @@ const fetchHistoricalWeather = async (dateIso) => {
 };
 
 // ==========================================
-// “Global patron” : quand tu ne filtres pas par patron
+// "Global patron" : quand tu ne filtres pas par patron
 // ==========================================
 const GLOBAL_PATRON_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -72,23 +72,23 @@ const TABLE = "bilans_status_v2";
  * - Générer un bilan (semaine/mois/année)
  * - Calculer impayés, acomptes, reste à percevoir
  * - Sauvegarder le statut du bilan dans Supabase
- * - Charger l’historique des bilans (payés / impayés)
+ * - Charger l'historique des bilans (payés / impayés)
  */
 export function useBilan({
   missions,
   fraisDivers,
   patrons = [],
-  getMissionsByWeek, // pas utilisé ici mais gardé si tu l’utilises ailleurs
+  getMissionsByWeek, // pas utilisé ici mais gardé si tu l'utilises ailleurs
   getMissionsByPeriod, // filtre missions selon période + patron
-  getFraisByWeek, // récup frais d’une semaine
+  getFraisByWeek, // récup frais d'une semaine
   getTotalFrais, // somme les frais
   getSoldeAvant, // solde acompte avant une date (utilisé surtout pour affichage)
   getAcomptesDansPeriode, // somme acomptes dans une période (UI)
-  getTotalAcomptesJusqua, // ✅ clé du fix : cumul acomptes jusqu’à fin de période
+  getTotalAcomptesJusqua, // ✅ clé du fix : cumul acomptes jusqu'à fin de période
   triggerAlert,
 }) {
   // ==========================================
-  // STATE : ce que l’app utilise pour afficher
+  // STATE : ce que l'app utilise pour afficher
   // ==========================================
   const [showBilan, setShowBilan] = useState(false);
   const [showPeriodModal, setShowPeriodModal] = useState(false);
@@ -97,7 +97,7 @@ export function useBilan({
   const [availablePeriods, setAvailablePeriods] = useState([]);
   const [bilanPaye, setBilanPaye] = useState(false);
 
-  // Ce gros objet = données affichées dans l’écran “Bilan”
+  // Ce gros objet = données affichées dans l'écran "Bilan"
   const [bilanContent, setBilanContent] = useState({
     titre: "",
     totalE: 0, // total en € de la période
@@ -118,6 +118,16 @@ export function useBilan({
     selectedPatronId: null,
     selectedPatronNom: "Tous les patrons (Global)",
   });
+
+  // ==========================================
+  // Auto-régénération du bilan quand la période change
+  // ==========================================
+  useEffect(() => {
+    if (showBilan && bilanPeriodValue) {
+      genererBilan(bilanContent.selectedPatronId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bilanPeriodValue]);
 
   // ==========================================
   // CONSTANTES PÉRIODE
@@ -155,7 +165,7 @@ export function useBilan({
     return 0;
   };
 
-  // Titre affiché dans l’UI : “Semaine 6” / “FÉVRIER 2026” / “2026”
+  // Titre affiché dans l'UI : "Semaine 6" / "FÉVRIER 2026" / "2026"
   const formatPeriodLabel = useCallback(
     (val) => {
       if (!val) return "";
@@ -241,7 +251,7 @@ export function useBilan({
    *
    * ⚠️ Note technique :
    * - useCallback(..., []) ici fige PERIOD_TYPES/effectivePatronId au montage.
-   * - Ça marche souvent, mais c’est “bizarre”.
+   * - Ça marche souvent, mais c'est "bizarre".
    */
   const getImpayePrecedent = useCallback(
     async (currentWeek, patronId = null) => {
@@ -350,7 +360,7 @@ export function useBilan({
    * ==========================================
    * Générer le bilan (fonction principale)
    * ==========================================
-   * C’est elle qui alimente l’écran Bilan :
+   * C'est elle qui alimente l'écran Bilan :
    * - calcule totaux, impayés, acomptes, reste à percevoir
    * - ajoute météo
    * - sauvegarde dans Supabase (bilans_status_v2)
@@ -503,7 +513,7 @@ export function useBilan({
         let soldeApresPeriode = 0;
         let acompteConsomme = 0;
 
-        // Pour l’UI : “acomptes reçus cette période”
+        // Pour l'UI : "acomptes reçus cette période"
         const acomptesDansPeriode =
           bilanPeriodType === PERIOD_TYPES.SEMAINE
             ? getAcomptesDansPeriode(debutPeriode, finPeriode, patronId)
@@ -511,7 +521,7 @@ export function useBilan({
 
         // ✅ Mode semaine : on déduit les acomptes sur impayés + semaine courante
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          // Acomptes cumulés jusqu’à la FIN de la semaine (clé du comportement attendu)
+          // Acomptes cumulés jusqu'à la FIN de la semaine (clé du comportement attendu)
           const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
 
           // Solde avant période (affichage)
@@ -526,11 +536,11 @@ export function useBilan({
           // Si les acomptes dépassent la dette, tu as un solde à reporter
           soldeApresPeriode = Math.max(0, acomptesCumules - detteTotale);
 
-          // Montant d’acompte “consommé” jusqu’ici
+          // Montant d'acompte "consommé" jusqu'ici
           acompteConsomme = Math.min(acomptesCumules, detteTotale);
 
           /**
-           * ⚠️ Ici tu estimes “ce qu’il reste pour cette semaine”
+           * ⚠️ Ici tu estimes "ce qu'il reste pour cette semaine"
            * en retranchant un impayé restant.
            * Ça dépend fortement de ta logique getSoldeAvant.
            */
@@ -573,7 +583,7 @@ export function useBilan({
           }));
         }
 
-        // 10) Objet final envoyé à l’UI (App.jsx)
+        // 10) Objet final envoyé à l'UI (App.jsx)
         const content = {
           titre: formatPeriodLabel(bilanPeriodValue),
 
@@ -585,10 +595,10 @@ export function useBilan({
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
 
-          // Affichage “acompte consommé”
+          // Affichage "acompte consommé"
           totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
 
-          // Affichage “reçus cette période”
+          // Affichage "reçus cette période"
           acomptesDansPeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acomptesDansPeriode : 0,
 
           resteCettePeriode,
@@ -699,6 +709,41 @@ export function useBilan({
     [bilanPeriodType, bilanPeriodValue, bilanContent, triggerAlert]
   );
 
+  /**
+   * ==========================================
+   * Navigation entre périodes
+   * ==========================================
+   */
+  const gotoPreviousWeek = useCallback(() => {
+    const currentIndex = availablePeriods.indexOf(bilanPeriodValue);
+    if (currentIndex < availablePeriods.length - 1) {
+      const newValue = availablePeriods[currentIndex + 1];
+      setBilanPeriodValue(newValue);
+    }
+  }, [availablePeriods, bilanPeriodValue]);
+
+  const gotoNextWeek = useCallback(() => {
+    const currentIndex = availablePeriods.indexOf(bilanPeriodValue);
+    if (currentIndex > 0) {
+      const newValue = availablePeriods[currentIndex - 1];
+      setBilanPeriodValue(newValue);
+    }
+  }, [availablePeriods, bilanPeriodValue]);
+
+  const hasPreviousWeek = useMemo(() => {
+    const currentIndex = availablePeriods.indexOf(bilanPeriodValue);
+    return currentIndex < availablePeriods.length - 1;
+  }, [availablePeriods, bilanPeriodValue]);
+
+  const hasNextWeek = useMemo(() => {
+    const currentIndex = availablePeriods.indexOf(bilanPeriodValue);
+    return currentIndex > 0;
+  }, [availablePeriods, bilanPeriodValue]);
+
+  const handleWeekChange = useCallback((newValue) => {
+    setBilanPeriodValue(newValue);
+  }, []);
+
   // ==========================================
   // Ce que App.jsx récupère (bilan.xxx)
   // ==========================================
@@ -719,7 +764,14 @@ export function useBilan({
     genererBilan,
     marquerCommePaye,
 
-    // utilisé dans l’onglet Historique de App.jsx
+    // utilisé dans l'onglet Historique de App.jsx
     fetchHistoriqueBilans,
+
+    // ✅ Navigation entre périodes
+    gotoPreviousWeek,
+    gotoNextWeek,
+    hasPreviousWeek,
+    hasNextWeek,
+    handleWeekChange,
   };
 }
