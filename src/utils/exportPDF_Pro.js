@@ -954,8 +954,7 @@ export const exportToPDFPro = (
       .replace(/\s+/g, "_")
       .replace(/[^a-zA-Z0-9_-]/g, "")}_${Date.now()}.pdf`;
 
-    console.log("✅ Génération du PDF réussie:", fileName);
-    doc.save(fileName);
+        doc.save(fileName);
   } catch (error) {
     console.error("❌ Erreur lors de la génération du PDF:", error);
     console.error("Stack:", error.stack);

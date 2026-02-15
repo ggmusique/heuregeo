@@ -24,4 +24,3 @@ export const BUILD_INFO = {
 `;
 
 writeFileSync("src/buildInfo.js", info, "utf8");
-console.log("✅ buildInfo generated:", { branch, commit });

@@ -1,292 +1,121 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../services/supabase";
+import { useState, useCallback, useRef } from "react";
+import * as lieuxApi from "../services/api/lieuxApi";
 
 /**
- * Hook personnalisé pour gérer les lieux
- * CRUD complet + fonctions utilitaires
- *
- * Patterns:
- * - loading global
- * - fetch au montage
- * - gestion doublons (23505)
- * - tri par nom (comme clients)
- * - helpers: getLieuNom / getLieuStats / searchLieux
- * - création depuis GPS (optionnel)
+ * ✅ Hook pour gérer les lieux
+ * 
+ * Ajout : createLieu retourne maintenant le lieu créé pour auto-sélection
  */
-export function useLieux(triggerAlert) {
+export const useLieux = (onError) => {
   const [lieux, setLieux] = useState([]);
   const [loading, setLoading] = useState(false);
+  const isFetching = useRef(false);
 
-  /**
-   * Récupérer tous les lieux actifs
-   */
+  // ========= FETCH (READ) =========
   const fetchLieux = useCallback(async () => {
+    if (isFetching.current) return;
+
     try {
+      isFetching.current = true;
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from("lieux")
-        .select("*")
-        .eq("actif", true)
-        .order("nom", { ascending: true });
-
-      if (error) throw error;
-
+      const data = await lieuxApi.fetchLieux();
       setLieux(data || []);
+
+      return data || [];
     } catch (err) {
-      console.error("Erreur chargement lieux:", err);
-      triggerAlert?.("Erreur lors du chargement des lieux");
+      console.error("Erreur fetch lieux:", err);
+      onError?.("Erreur chargement lieux");
+      throw err;
     } finally {
       setLoading(false);
+      isFetching.current = false;
     }
-  }, [triggerAlert]);
+  }, [onError]);
 
-  /**
-   * Créer un nouveau lieu
-   * @param {Object} lieuData
-   */
+  // ========= CREATE =========
   const createLieu = useCallback(
     async (lieuData) => {
+      if (!lieuData) {
+        throw new Error("Données du lieu manquantes");
+      }
+
       try {
         setLoading(true);
 
-        // ✅ Validation: nom obligatoire
-        if (!lieuData?.nom || !lieuData.nom.trim()) {
-          throw new Error("Le nom du lieu est obligatoire");
+        const newLieu = await lieuxApi.createLieu(lieuData);
+
+        if (newLieu) {
+          setLieux((prev) => [newLieu, ...prev]);
         }
 
-        const payload = {
-          nom: lieuData.nom.trim(),
-          adresse_complete: lieuData.adresse_complete?.trim() || null,
-          latitude: typeof lieuData.latitude === "number" ? lieuData.latitude : lieuData.latitude || null,
-          longitude: typeof lieuData.longitude === "number" ? lieuData.longitude : lieuData.longitude || null,
-          notes: lieuData.notes?.trim() || null,
-          actif: true,
-        };
-
-        const { data, error } = await supabase
-          .from("lieux")
-          .insert([payload])
-          .select()
-          .single();
-
-        if (error) {
-          // ✅ Gestion doublon (unique constraint)
-          if (error.code === "23505") {
-            throw new Error("Un lieu avec ce nom existe déjà");
-          }
-          throw error;
-        }
-
-        // ✅ Ajouter + trier par nom
-        setLieux((prev) =>
-          [...prev, data].sort((a, b) => a.nom.localeCompare(b.nom))
-        );
-
-        return data;
+        // ✅ IMPORTANT : Retourner le lieu créé pour auto-sélection
+        return newLieu;
       } catch (err) {
         console.error("Erreur création lieu:", err);
+        onError?.("Erreur création lieu");
         throw err;
       } finally {
         setLoading(false);
       }
     },
-    []
+    [onError]
   );
 
-  /**
-   * Mettre à jour un lieu existant
-   * @param {string} lieuId
-   * @param {Object} lieuData
-   */
-  const updateLieu = useCallback(async (lieuId, lieuData) => {
-    try {
-      setLoading(true);
+  // ========= UPDATE =========
+  const updateLieu = useCallback(
+    async (id, lieuData) => {
+      if (!id) throw new Error("ID du lieu manquant");
+      if (!lieuData) throw new Error("Données du lieu manquantes");
 
-      if (!lieuId) throw new Error("ID du lieu manquant");
-      if (!lieuData?.nom || !lieuData.nom.trim()) {
-        throw new Error("Le nom du lieu est obligatoire");
-      }
+      try {
+        setLoading(true);
 
-      const payload = {
-        nom: lieuData.nom.trim(),
-        adresse_complete: lieuData.adresse_complete?.trim() || null,
-        latitude: typeof lieuData.latitude === "number" ? lieuData.latitude : lieuData.latitude || null,
-        longitude: typeof lieuData.longitude === "number" ? lieuData.longitude : lieuData.longitude || null,
-        notes: lieuData.notes?.trim() || null,
-      };
+        const updated = await lieuxApi.updateLieu(id, lieuData);
 
-      const { data, error } = await supabase
-        .from("lieux")
-        .update(payload)
-        .eq("id", lieuId)
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === "23505") {
-          throw new Error("Un lieu avec ce nom existe déjà");
+        if (updated) {
+          setLieux((prev) => prev.map((l) => (l.id === id ? updated : l)));
         }
-        throw error;
+
+        return updated;
+      } catch (err) {
+        console.error("Erreur mise à jour lieu:", err);
+        onError?.("Erreur mise à jour lieu");
+        throw err;
+      } finally {
+        setLoading(false);
       }
-
-      // ✅ Update dans la liste + tri
-      setLieux((prev) =>
-        prev
-          .map((l) => (l.id === lieuId ? data : l))
-          .sort((a, b) => a.nom.localeCompare(b.nom))
-      );
-
-      return data;
-    } catch (err) {
-      console.error("Erreur mise à jour lieu:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Supprimer (désactiver) un lieu
-   * (On garde l'historique)
-   * @param {string} lieuId
-   */
-  const deleteLieu = useCallback(async (lieuId) => {
-    try {
-      setLoading(true);
-
-      if (!lieuId) throw new Error("ID du lieu manquant");
-
-      const { error } = await supabase
-        .from("lieux")
-        .update({ actif: false })
-        .eq("id", lieuId);
-
-      if (error) throw error;
-
-      // ✅ Retirer de la liste locale
-      setLieux((prev) => prev.filter((l) => l.id !== lieuId));
-    } catch (err) {
-      console.error("Erreur suppression lieu:", err);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  /**
-   * Obtenir le nom d'un lieu par son ID
-   * @param {string} lieuId
-   */
-  const getLieuNom = useCallback(
-    (lieuId) => {
-      if (!lieuId) return null;
-      const lieu = lieux.find((l) => l.id === lieuId);
-      return lieu?.nom || null;
     },
-    [lieux]
+    [onError]
   );
 
-  /**
-   * Obtenir les stats d'un lieu (nombre de missions, heures, CA)
-   * @param {string} lieuId
-   */
-  const getLieuStats = useCallback(async (lieuId) => {
-    try {
-      if (!lieuId) return { nombreMissions: 0, totalHeures: 0, totalCA: 0 };
+  // ========= DELETE =========
+  const deleteLieu = useCallback(
+    async (id) => {
+      if (!id) throw new Error("ID du lieu manquant");
 
-      const { data: missions, error } = await supabase
-        .from("missions")
-        .select("duree, montant")
-        .eq("lieu_id", lieuId);
+      try {
+        setLoading(true);
 
-      if (error) throw error;
-
-      return {
-        nombreMissions: missions.length,
-        totalHeures: missions.reduce((sum, m) => sum + (m.duree || 0), 0),
-        totalCA: missions.reduce((sum, m) => sum + (m.montant || 0), 0),
-      };
-    } catch (err) {
-      console.error("Erreur stats lieu:", err);
-      return { nombreMissions: 0, totalHeures: 0, totalCA: 0 };
-    }
-  }, []);
-
-  /**
-   * Rechercher un lieu par nom / adresse (fuzzy)
-   * @param {string} searchTerm
-   */
-  const searchLieux = useCallback(
-    (searchTerm) => {
-      if (!searchTerm || !searchTerm.trim()) return lieux;
-
-      const term = searchTerm.toLowerCase().trim();
-      return lieux.filter(
-        (lieu) =>
-          lieu.nom?.toLowerCase().includes(term) ||
-          lieu.adresse_complete?.toLowerCase().includes(term)
-      );
-    },
-    [lieux]
-  );
-
-  /**
-   * Obtenir la position GPS actuelle et créer un lieu
-   * @param {string} nom
-   * @param {string} address
-   */
-  const createLieuFromGPS = useCallback(
-    async (nom, address) => {
-      if (!nom || !nom.trim()) throw new Error("Le nom du lieu est obligatoire");
-
-      // ✅ Guard: geolocation dispo
-      if (!("geolocation" in navigator)) {
-        throw new Error("Géolocalisation non disponible");
+        await lieuxApi.deleteLieu(id);
+        setLieux((prev) => prev.filter((l) => l.id !== id));
+      } catch (err) {
+        console.error("Erreur suppression lieu:", err);
+        onError?.("Erreur suppression lieu");
+        throw err;
+      } finally {
+        setLoading(false);
       }
-
-      return new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            try {
-              const lieuData = {
-                nom: nom.trim(),
-                adresse_complete: address?.trim() || null,
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude,
-              };
-
-              const lieu = await createLieu(lieuData);
-              resolve(lieu);
-            } catch (err) {
-              reject(err);
-            }
-          },
-          () => reject(new Error("Impossible d'obtenir la position GPS")),
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-      });
     },
-    [createLieu]
+    [onError]
   );
-
-  /**
-   * Charger les lieux au montage
-   */
-  useEffect(() => {
-    fetchLieux();
-  }, [fetchLieux]);
 
   return {
     lieux,
     loading,
     fetchLieux,
-    createLieu,
+    createLieu,    // ✅ Retourne le lieu créé
     updateLieu,
     deleteLieu,
-    getLieuNom,
-    getLieuStats,
-    searchLieux,
-    createLieuFromGPS,
   };
-}
+};

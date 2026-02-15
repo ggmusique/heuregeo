@@ -1,10 +1,15 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 
 /**
- * ✅ Sélecteur de lieu avec autocomplete
- * Version intelligente :
+ * ✅ Sélecteur de lieu avec autocomplete - VERSION UUID
+ * 
+ * IMPORTANT : Tous les IDs sont des UUID (strings)
+ * - lieu_id : UUID string
+ * - client_id : UUID string
+ * 
+ * Fonctionnalités :
  * - Filtrage par recherche (nom + adresse)
- * - Priorise les lieux déjà utilisés par le client (historique, fréquence)
+ * - Priorise les lieux déjà utilisés par le client (historique)
  * - Bouton + pour créer un nouveau lieu
  */
 export const LieuSelector = ({
@@ -15,89 +20,104 @@ export const LieuSelector = ({
   darkMode = true,
   onAddNew = null,
 
-  // ✅ NOUVEAUX PROPS
   selectedClientId = null,
-  missions = [], // utilisé pour l'historique client
+  missions = [],
 }) => {
   // ========= STATE UI =========
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // refs DOM pour gérer le click-outside
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
-  // ========= SAFE ARRAYS (évite crash si undefined) =========
+  // ========= SAFE ARRAYS =========
   const lieuxArray = useMemo(() => (Array.isArray(lieux) ? lieux : []), [lieux]);
   const missionsArray = useMemo(
     () => (Array.isArray(missions) ? missions : []),
     [missions]
   );
 
-  // ========= LIEU SÉLECTIONNÉ =========
-  const selectedLieu = useMemo(
-    () => lieuxArray.find((l) => l.id === selectedLieuId),
-    [lieuxArray, selectedLieuId]
+  // ========= ✅ NORMALISATION IDs (UUID = strings) =========
+  const selectedLieuIdStr = useMemo(
+    () => (selectedLieuId == null ? null : String(selectedLieuId)),
+    [selectedLieuId]
   );
 
-  // ========= NORMALISATION DE LA RECHERCHE =========
+  const selectedClientIdStr = useMemo(
+    () => (selectedClientId == null ? null : String(selectedClientId)),
+    [selectedClientId]
+  );
+
+  // ========= LIEU SÉLECTIONNÉ =========
+  const selectedLieu = useMemo(() => {
+    if (selectedLieuIdStr == null) return null;
+    return lieuxArray.find((l) => String(l?.id) === selectedLieuIdStr) || null;
+  }, [lieuxArray, selectedLieuIdStr]);
+
+  // ========= NORMALISATION RECHERCHE =========
   const searchNorm = useMemo(() => search.trim().toLowerCase(), [search]);
 
   // ========= HISTORIQUE CLIENT (IDs triés par fréquence) =========
   const lieuxHistorique = useMemo(() => {
-    if (!selectedClientId || missionsArray.length === 0) return [];
+    if (selectedClientIdStr == null || missionsArray.length === 0) return [];
 
     // Filtrer missions du client + avec lieu_id
-    const missionsClient = missionsArray.filter(
-      (m) => m?.client_id === selectedClientId && m?.lieu_id
-    );
+    const missionsClient = missionsArray.filter((m) => {
+      const cid = m?.client_id == null ? null : String(m.client_id);
+      const lid = m?.lieu_id == null ? null : String(m.lieu_id);
+      return cid === selectedClientIdStr && lid != null;
+    });
 
     // Compter fréquence d'utilisation par lieu_id
     const frequence = {};
     missionsClient.forEach((m) => {
-      frequence[m.lieu_id] = (frequence[m.lieu_id] || 0) + 1;
+      const lid = String(m.lieu_id);
+      frequence[lid] = (frequence[lid] || 0) + 1;
     });
 
-    // Retourner les IDs triés du plus utilisé au moins utilisé
+    // IDs triés du plus utilisé au moins utilisé (strings)
     return Object.entries(frequence)
       .sort(([, a], [, b]) => b - a)
-      .map(([id]) => id);
-  }, [selectedClientId, missionsArray]);
+      .map(([id]) => String(id));
+  }, [selectedClientIdStr, missionsArray]);
 
-  // ✅ Set pour tests rapides (évite .includes() partout)
   const lieuxHistoriqueSet = useMemo(
     () => new Set(lieuxHistorique),
     [lieuxHistorique]
   );
 
-  // ========= COUNT MISSIONS PAR LIEU (pour badge "x") =========
-  // ✅ memo-map pour éviter de recalculer filter() à chaque ligne
+  // ========= COUNT MISSIONS PAR LIEU =========
   const missionCountByLieu = useMemo(() => {
-    if (!selectedClientId) return {};
+    if (selectedClientIdStr == null) return {};
 
     const map = {};
     missionsArray.forEach((m) => {
-      if (m?.client_id === selectedClientId && m?.lieu_id) {
-        map[m.lieu_id] = (map[m.lieu_id] || 0) + 1;
+      const cid = m?.client_id == null ? null : String(m.client_id);
+      const lid = m?.lieu_id == null ? null : String(m.lieu_id);
+
+      if (cid === selectedClientIdStr && lid != null) {
+        map[lid] = (map[lid] || 0) + 1;
       }
     });
 
     return map;
-  }, [missionsArray, selectedClientId]);
+  }, [missionsArray, selectedClientIdStr]);
 
   const getMissionCount = useCallback(
     (lieuId) => {
-      if (!selectedClientId) return 0;
-      return missionCountByLieu[lieuId] || 0;
+      if (selectedClientIdStr == null) return 0;
+      const idStr = lieuId == null ? null : String(lieuId);
+      if (idStr == null) return 0;
+      return missionCountByLieu[idStr] || 0;
     },
-    [selectedClientId, missionCountByLieu]
+    [selectedClientIdStr, missionCountByLieu]
   );
 
   // ========= FILTRAGE + TRI DES LIEUX =========
   const filteredLieux = useMemo(() => {
     let filtered = lieuxArray;
 
-    // Filtrer par recherche (nom + adresse)
+    // Filtrer par recherche
     if (searchNorm) {
       filtered = filtered.filter((lieu) => {
         const nom = (lieu?.nom || "").toLowerCase();
@@ -106,46 +126,53 @@ export const LieuSelector = ({
       });
     }
 
-    // Séparer en 2 groupes : lieux du client vs autres lieux
-    const lieuxDuClient = filtered.filter((l) => lieuxHistoriqueSet.has(l.id));
-    const autresLieux = filtered.filter((l) => !lieuxHistoriqueSet.has(l.id));
+    // Séparer lieux du client vs autres
+    const lieuxDuClient = filtered.filter((l) =>
+      lieuxHistoriqueSet.has(String(l?.id))
+    );
+    const autresLieux = filtered.filter(
+      (l) => !lieuxHistoriqueSet.has(String(l?.id))
+    );
 
-    // Tri lieux du client = par ordre de fréquence (lieuxHistorique)
+    // Tri lieux du client = par fréquence
     lieuxDuClient.sort(
-      (a, b) => lieuxHistorique.indexOf(a.id) - lieuxHistorique.indexOf(b.id)
+      (a, b) =>
+        lieuxHistorique.indexOf(String(a?.id)) -
+        lieuxHistorique.indexOf(String(b?.id))
     );
 
     // Tri autres = alphabétique
-    autresLieux.sort((a, b) => (a.nom || "").localeCompare(b.nom || ""));
+    autresLieux.sort((a, b) => (a?.nom || "").localeCompare(b?.nom || ""));
 
     return [...lieuxDuClient, ...autresLieux];
   }, [lieuxArray, searchNorm, lieuxHistorique, lieuxHistoriqueSet]);
 
   // ========= SYNC INPUT AVEC SÉLECTION =========
   useEffect(() => {
-    // ✅ quand dropdown est fermé, on affiche le nom du lieu sélectionné
     if (selectedLieu && !showDropdown) {
-      setSearch(selectedLieu.nom);
+      setSearch(selectedLieu.nom || "");
     }
   }, [selectedLieu, showDropdown]);
 
-  // ✅ Option UX : quand on change de client, on vide la recherche si dropdown ouvert
   useEffect(() => {
     if (showDropdown) setSearch("");
-    // (on ne désélectionne pas automatiquement le lieu : c’est toi qui décides via UI)
-  }, [selectedClientId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedClientIdStr]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ========= CLICK OUTSIDE (fermer dropdown) =========
+  // ========= CLICK OUTSIDE =========
   useEffect(() => {
     const handleClickOutside = (event) => {
       const drop = dropdownRef.current;
       const inp = inputRef.current;
 
-      if (drop && !drop.contains(event.target) && inp && !inp.contains(event.target)) {
+      if (
+        drop &&
+        !drop.contains(event.target) &&
+        inp &&
+        !inp.contains(event.target)
+      ) {
         setShowDropdown(false);
 
-        // ✅ restaurer le nom sélectionné ou vider
-        if (selectedLieu) setSearch(selectedLieu.nom);
+        if (selectedLieu) setSearch(selectedLieu.nom || "");
         else setSearch("");
       }
     };
@@ -156,8 +183,9 @@ export const LieuSelector = ({
 
   // ========= ACTIONS =========
   const handleSelect = (lieu) => {
-    onSelect(lieu.id);
-    setSearch(lieu.nom);
+    // ✅ UUID : renvoyer string tel quel
+    onSelect(lieu?.id || null);
+    setSearch(lieu?.nom || "");
     setShowDropdown(false);
   };
 
@@ -166,23 +194,22 @@ export const LieuSelector = ({
     setSearch(value);
     setShowDropdown(true);
 
-    // ✅ si on efface, désélectionner
     if (!value) onSelect(null);
   };
 
   const handleInputFocus = () => {
     setShowDropdown(true);
-    setSearch(""); // montrer toute la liste
+    setSearch("");
   };
 
   // ========= GROUPES POUR RENDER =========
   const lieuxDuClientList = useMemo(
-    () => filteredLieux.filter((l) => lieuxHistoriqueSet.has(l.id)),
+    () => filteredLieux.filter((l) => lieuxHistoriqueSet.has(String(l?.id))),
     [filteredLieux, lieuxHistoriqueSet]
   );
 
   const autresLieuxList = useMemo(
-    () => filteredLieux.filter((l) => !lieuxHistoriqueSet.has(l.id)),
+    () => filteredLieux.filter((l) => !lieuxHistoriqueSet.has(String(l?.id))),
     [filteredLieux, lieuxHistoriqueSet]
   );
 
@@ -244,33 +271,36 @@ export const LieuSelector = ({
                     ✓ Lieux habituels pour ce client
                   </div>
 
-                  {lieuxDuClientList.map((lieu) => (
-                    <button
-                      key={lieu.id}
-                      type="button"
-                      onClick={() => handleSelect(lieu)}
-                      className={`w-full text-left p-3 rounded-xl transition-all mb-1 ${
-                        lieu.id === selectedLieuId
-                          ? "bg-purple-600 text-white"
-                          : darkMode
-                          ? "hover:bg-green-600/20 text-white border border-green-500/30"
-                          : "hover:bg-green-100 text-slate-900 border border-green-300"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="font-bold">{lieu.nom}</div>
-                        <div className="text-xs bg-green-600/30 px-2 py-0.5 rounded-full">
-                          {getMissionCount(lieu.id)}x
+                  {lieuxDuClientList.map((lieu) => {
+                    const idStr = String(lieu?.id);
+                    return (
+                      <button
+                        key={lieu.id}
+                        type="button"
+                        onClick={() => handleSelect(lieu)}
+                        className={`w-full text-left p-3 rounded-xl transition-all mb-1 ${
+                          idStr === selectedLieuIdStr
+                            ? "bg-purple-600 text-white"
+                            : darkMode
+                            ? "hover:bg-green-600/20 text-white border border-green-500/30"
+                            : "hover:bg-green-100 text-slate-900 border border-green-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-bold">{lieu.nom}</div>
+                          <div className="text-xs bg-green-600/30 px-2 py-0.5 rounded-full">
+                            {getMissionCount(idStr)}x
+                          </div>
                         </div>
-                      </div>
 
-                      {lieu.adresse_complete && (
-                        <div className="text-xs opacity-60 mt-1 line-clamp-1">
-                          📍 {lieu.adresse_complete}
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                        {lieu.adresse_complete && (
+                          <div className="text-xs opacity-60 mt-1 line-clamp-1">
+                            📍 {lieu.adresse_complete}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </>
               )}
 
@@ -283,27 +313,30 @@ export const LieuSelector = ({
                     </div>
                   )}
 
-                  {autresLieuxList.map((lieu) => (
-                    <button
-                      key={lieu.id}
-                      type="button"
-                      onClick={() => handleSelect(lieu)}
-                      className={`w-full text-left p-3 rounded-xl transition-all ${
-                        lieu.id === selectedLieuId
-                          ? "bg-purple-600 text-white"
-                          : darkMode
-                          ? "hover:bg-white/10 text-white"
-                          : "hover:bg-slate-100 text-slate-900"
-                      }`}
-                    >
-                      <div className="font-bold">{lieu.nom}</div>
-                      {lieu.adresse_complete && (
-                        <div className="text-xs opacity-60 mt-1 line-clamp-1">
-                          📍 {lieu.adresse_complete}
-                        </div>
-                      )}
-                    </button>
-                  ))}
+                  {autresLieuxList.map((lieu) => {
+                    const idStr = String(lieu?.id);
+                    return (
+                      <button
+                        key={lieu.id}
+                        type="button"
+                        onClick={() => handleSelect(lieu)}
+                        className={`w-full text-left p-3 rounded-xl transition-all ${
+                          idStr === selectedLieuIdStr
+                            ? "bg-purple-600 text-white"
+                            : darkMode
+                            ? "hover:bg-white/10 text-white"
+                            : "hover:bg-slate-100 text-slate-900"
+                        }`}
+                      >
+                        <div className="font-bold">{lieu.nom}</div>
+                        {lieu.adresse_complete && (
+                          <div className="text-xs opacity-60 mt-1 line-clamp-1">
+                            📍 {lieu.adresse_complete}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </>
               )}
             </div>
@@ -330,8 +363,7 @@ export const LieuSelector = ({
           <div className="text-xs font-bold text-white flex items-center justify-between">
             <span>✓ {selectedLieu.nom}</span>
 
-            {/* ✅ petit badge mission count */}
-            {selectedClientId && getMissionCount(selectedLieu.id) > 0 && (
+            {selectedClientIdStr != null && getMissionCount(selectedLieu.id) > 0 && (
               <span className="text-[10px] bg-green-600/30 px-2 py-0.5 rounded-full">
                 {getMissionCount(selectedLieu.id)} missions ici
               </span>

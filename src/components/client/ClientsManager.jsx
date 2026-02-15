@@ -2,11 +2,14 @@ import React, { useState, useMemo } from "react";
 import { formatEuro, formatHeures } from "../../utils/formatters";
 
 /**
- * ClientsManager (ULTRA PRO + DEDOUBLONNAGE)
- * ✅ Optimisation:
+ * Gestionnaire complet des clients avec liste et stats
+ *
+ * ✅ Optimisations / Correctifs :
  * - Index missions par client_id (Map) + fallback par client (nom)
- * - Dédoublonnage strict par mission.id pour éviter les doubles comptes
- * - Même UI / même comportement
+ * - Dédoublonnage strict des missions (mission.id sinon clé fallback)
+ * - Dédoublonnage des clients par nom (évite 2 cartes "Confluence" si 2 adresses)
+ * - Agrégation des adresses multiples dans lieuxTravail[]
+ * - UI inchangée (même style)
  */
 export const ClientsManager = ({
   clients = [],
@@ -19,7 +22,43 @@ export const ClientsManager = ({
   const [searchTerm, setSearchTerm] = useState("");
 
   /**
-   * ✅ Index missions :
+   * ✅ 1) Dédoublonnage CLIENTS par nom (affichage)
+   * -> si tu as 2 lignes clients avec même nom mais lieu_travail différent,
+   *    on affiche 1 seule carte + liste d'adresses.
+   */
+  const clientsDeduped = useMemo(() => {
+    const safeClients = Array.isArray(clients) ? clients : [];
+    const map = new Map();
+
+    for (const c of safeClients) {
+      if (!c?.nom) continue;
+      const key = String(c.nom).trim().toLowerCase();
+
+      if (!map.has(key)) {
+        map.set(key, {
+          ...c,
+          _ids: [c.id], // tous les ids regroupés
+          lieuxTravail: c.lieu_travail ? [c.lieu_travail] : [],
+        });
+      } else {
+        const existing = map.get(key);
+        existing._ids.push(c.id);
+
+        if (c.lieu_travail && !existing.lieuxTravail.includes(c.lieu_travail)) {
+          existing.lieuxTravail.push(c.lieu_travail);
+        }
+
+        // on garde aussi contact/notes si jamais le 1er était vide
+        if (!existing.contact && c.contact) existing.contact = c.contact;
+        if (!existing.notes && c.notes) existing.notes = c.notes;
+      }
+    }
+
+    return Array.from(map.values());
+  }, [clients]);
+
+  /**
+   * ✅ 2) Index MISSIONS
    * - byClientId : Map(client_id => missions[])
    * - byClientName : Map(clientName => missions[]) (fallback legacy)
    */
@@ -49,24 +88,28 @@ export const ClientsManager = ({
   }, [missions]);
 
   /**
-   * ✅ Clients enrichis avec stats
-   * - récupère missions depuis Map (rapide)
-   * - concatène id + fallback nom
-   * - dédoublonne par mission.id (ou fallback clé si pas d'id)
+   * ✅ 3) Calcul stats clients
+   * - récupère missions depuis:
+   *   a) toutes les missions liées à un des ids regroupés (_ids)
+   *   b) fallback missions par nom exact (legacy)
+   * - dédoublonne les missions (id sinon clé fallback)
    */
   const clientsWithStats = useMemo(() => {
-    const safeClients = Array.isArray(clients) ? clients : [];
+    const safeClients = Array.isArray(clientsDeduped) ? clientsDeduped : [];
 
     return safeClients.map((client) => {
-      const fromId = missionIndex.byClientId.get(client.id) || [];
+      // a) missions par IDs regroupés
+      const ids = Array.isArray(client._ids) ? client._ids : [client.id];
+      const fromIds = ids.flatMap((id) => missionIndex.byClientId.get(id) || []);
+
+      // b) fallback par nom (ancienne DB: mission.client = "Nom")
       const fromName = missionIndex.byClientName.get(client.nom) || [];
 
-      // ✅ Fusion + dédoublonnage
-      const merged = [...fromId, ...fromName];
+      // fusion + dédoublonnage
+      const merged = [...fromIds, ...fromName];
       const seen = new Set();
 
       const clientMissions = merged.filter((m) => {
-        // id idéal
         const key =
           m?.id != null
             ? `id:${m.id}`
@@ -104,10 +147,10 @@ export const ClientsManager = ({
         derniereMission,
       };
     });
-  }, [clients, missionIndex]);
+  }, [clientsDeduped, missionIndex]);
 
   /**
-   * ✅ Filtrage (recherche sur nom)
+   * ✅ 4) Filtrage (recherche nom)
    */
   const filteredClients = useMemo(() => {
     const term = (searchTerm || "").toLowerCase().trim();
@@ -119,7 +162,7 @@ export const ClientsManager = ({
   }, [clientsWithStats, searchTerm]);
 
   /**
-   * ✅ Tri par activité
+   * ✅ 5) Tri (plus actifs en premier)
    */
   const sortedClients = useMemo(() => {
     return [...filteredClients].sort(
@@ -128,11 +171,11 @@ export const ClientsManager = ({
   }, [filteredClients]);
 
   /**
-   * ✅ Stats globales
+   * ✅ 6) Stats globales
    */
   const globalStats = useMemo(() => {
     return {
-      totalClients: clients.length,
+      totalClients: clientsDeduped.length,
       totalMissions: clientsWithStats.reduce(
         (sum, c) => sum + (c.nombreMissions || 0),
         0
@@ -143,7 +186,7 @@ export const ClientsManager = ({
       ),
       totalCA: clientsWithStats.reduce((sum, c) => sum + (c.totalCA || 0), 0),
     };
-  }, [clients.length, clientsWithStats]);
+  }, [clientsDeduped.length, clientsWithStats]);
 
   return (
     <div className="space-y-6">
@@ -275,7 +318,7 @@ export const ClientsManager = ({
                     )}
                   </div>
 
-                  {/* Contact & lieu_travail */}
+                  {/* Contact & lieu_travail (multi) */}
                   <div className="space-y-1 mb-3">
                     {client.contact && (
                       <div className="text-xs text-white/60 flex items-center gap-2">
@@ -283,12 +326,22 @@ export const ClientsManager = ({
                         <span>{client.contact}</span>
                       </div>
                     )}
-                    {client.lieu_travail && (
+
+                    {client.lieuxTravail?.length > 0 && (
                       <div className="text-xs text-white/60 flex items-center gap-2">
                         <span>📍</span>
-                        <span className="truncate">{client.lieu_travail}</span>
+                        <span className="truncate">
+                          {client.lieuxTravail.length === 1
+                            ? client.lieuxTravail[0]
+                            : `${client.lieuxTravail[0]} (+${
+                                client.lieuxTravail.length - 1
+                              } autre${
+                                client.lieuxTravail.length - 1 > 1 ? "s" : ""
+                              })`}
+                        </span>
                       </div>
                     )}
+
                     {client.notes && (
                       <div className="text-xs text-white/60 flex items-center gap-2">
                         <span>📝</span>

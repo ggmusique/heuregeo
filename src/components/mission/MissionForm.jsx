@@ -8,19 +8,22 @@ import {
 } from "../../constants/options";
 import { calculerDuree } from "../../utils/calculators";
 import { ClientSelector } from "../client/ClientSelector";
+import { LieuSelector } from "../lieu/LieuSelector";
 
 /**
- * ✅ MissionForm (annoté / safe)
- * - Météo + ville auto via geoloc (sans toucher au champ "lieu")
- * - Patron obligatoire + auto-tarif depuis patron.taux_horaire
- * - Client obligatoire + lieu auto depuis client.lieu_travail
- * - Sélecteurs heures/pause
+ * ✅ MissionForm - VERSION CLEAN FINALE
+ * 
+ * Architecture propre :
+ * - Patron (avec taux_horaire auto)
+ * - Client (nom, contact, notes)
+ * - Lieu (ville avec adresse)
+ * - Pas de lieu_travail
+ * - Tous les IDs sont UUID
  */
 export const MissionForm = ({
   editMode = false,
   initialData = null,
 
-  // ⚠️ Ces props existent mais ne sont pas utilisés dans TON rendu actuel
   clientsUniques = [],
   lieuxUniques = [],
   onCopyLast,
@@ -39,27 +42,28 @@ export const MissionForm = ({
   selectedClientId = null,
   onClientChange = () => {},
   onAddNewClient = () => {},
+
+  lieux = [],
+  selectedLieuId = null,
+  onLieuChange = () => {},
+  onAddNewLieu = () => {},
+
+  missions = [],
 }) => {
   // ======= STATE (form) =======
-  const [client, setClient] = useState(initialData?.client || ""); // (pas utilisé dans submit, gardé pour compat)
-  const [lieu, setLieu] = useState(initialData?.lieu || ""); // (pas utilisé dans submit, gardé pour compat)
-
   const [pause, setPause] = useState(initialData?.pause ?? 30);
-
   const [dateMission, setDateMission] = useState(() => {
-    return (
-      initialData?.date_iso ||
-      new Date().toISOString().split("T")[0]
-    );
+    return initialData?.date_iso || new Date().toISOString().split("T")[0];
   });
-
   const [debut, setDebut] = useState(initialData?.debut || "08:00");
   const [fin, setFin] = useState(initialData?.fin || "17:00");
   const [tarifHoraire, setTarifHoraire] = useState(
     initialData?.tarif?.toString?.() || "15"
   );
-
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // ✅ VERROU ANTI DOUBLE-SUBMIT
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ======= STATE (météo) =======
   const [weather, setWeather] = useState(null);
@@ -73,11 +77,25 @@ export const MissionForm = ({
     );
   }, [clients, selectedClientId]);
 
+  // ======= MEMO (selected lieu) =======
+  const selectedLieu = useMemo(() => {
+    if (!selectedLieuId) return null;
+    return (Array.isArray(lieux) ? lieux : []).find((l) => l.id === selectedLieuId);
+  }, [lieux, selectedLieuId]);
+
+  // ======= Mode édition : si mission a déjà lieu_id, on le remet =======
+  useEffect(() => {
+    if (!editMode || !initialData) return;
+    if (initialData.lieu_id && onLieuChange) {
+      onLieuChange(initialData.lieu_id);
+    }
+  }, [editMode, initialData, onLieuChange]);
+
   // ======= Météo + Ville auto (sur changement date) =======
   useEffect(() => {
     if (!dateMission) return;
 
-    let alive = true; // ✅ évite setState après unmount
+    let alive = true;
 
     const loadWeatherAndCity = async () => {
       if (!navigator.geolocation) {
@@ -91,7 +109,7 @@ export const MissionForm = ({
           const lat = pos.coords.latitude;
           const lon = pos.coords.longitude;
 
-          // 1) Météo (Open-Meteo)
+          // Météo
           try {
             const weatherRes = await fetch(
               `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`
@@ -132,12 +150,11 @@ export const MissionForm = ({
               setWeather(null);
             }
           } catch (err) {
-            console.warn("Météo indisponible", err);
             if (!alive) return;
             setWeather(null);
           }
 
-          // 2) Ville (Nominatim reverse)
+          // Ville
           try {
             const cityRes = await fetch(
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`
@@ -156,13 +173,11 @@ export const MissionForm = ({
 
             setWeatherCity(city);
           } catch (err) {
-            console.warn("Ville indisponible", err);
             if (!alive) return;
             setWeatherCity("Position actuelle");
           }
         },
         (err) => {
-          console.warn("Géoloc refusée", err);
           if (!alive) return;
           setWeatherCity("Localisation indisponible");
         },
@@ -179,7 +194,8 @@ export const MissionForm = ({
 
   // ======= Auto-tarif depuis patron =======
   useEffect(() => {
-    if (!selectedPatronId || !Array.isArray(patrons) || patrons.length === 0) return;
+    if (!selectedPatronId || !Array.isArray(patrons) || patrons.length === 0)
+      return;
 
     const patron = patrons.find((p) => p.id === selectedPatronId);
     if (patron?.taux_horaire != null) {
@@ -189,7 +205,13 @@ export const MissionForm = ({
 
   // ======= Submit =======
   const handleSubmit = useCallback(() => {
-    // ✅ Validations minimales
+    // ✅ BLOQUER SI DÉJÀ EN COURS
+    if (isSubmitting) {
+      console.log("⚠️ Submit déjà en cours, ignoré");
+      return;
+    }
+
+    // Validations
     if (!dateMission || !debut || !fin) {
       alert("Veuillez remplir la date et les horaires.");
       return;
@@ -202,19 +224,25 @@ export const MissionForm = ({
       alert("Veuillez sélectionner un client pour cette mission.");
       return;
     }
+    if (!selectedLieuId) {
+      alert("Veuillez sélectionner un lieu pour cette mission.");
+      return;
+    }
 
     const dureeH = calculerDuree(debut, fin, pause);
-
     const tarifNum = parseFloat(tarifHoraire);
     const montant = dureeH * (Number.isFinite(tarifNum) ? tarifNum : 0);
 
-    const missionData = {
-      // ✅ Nom du client (texte) + client_id (relation)
-      client: selectedClient?.nom || "",
-      client_id: selectedClientId,
+    // ✅ Texte du lieu (pour affichage)
+    const lieuTexte = selectedLieu?.nom || "";
 
-      // ✅ Lieu rempli depuis client
-      lieu: selectedClient?.lieu_travail || selectedClient?.adresse || "",
+    // ✅ TOUS LES IDs SONT UUID (strings)
+    const missionData = {
+      client: selectedClient?.nom || "",
+      client_id: selectedClientId || null,
+      
+      lieu: lieuTexte,
+      lieu_id: selectedLieuId || null,
 
       debut,
       fin,
@@ -222,11 +250,21 @@ export const MissionForm = ({
       duree: dureeH,
       montant,
       pause,
-      patron_id: selectedPatronId,
+      
+      patron_id: selectedPatronId || null,
     };
 
+    // ✅ ACTIVER LE VERROU
+    setIsSubmitting(true);
+
     onSubmit?.(missionData);
+
+    // ✅ DÉSACTIVER APRÈS 1 SECONDE
+    setTimeout(() => {
+      setIsSubmitting(false);
+    }, 1000);
   }, [
+    isSubmitting,
     dateMission,
     debut,
     fin,
@@ -235,10 +273,12 @@ export const MissionForm = ({
     selectedPatronId,
     selectedClientId,
     selectedClient,
+    selectedLieuId,
+    selectedLieu,
     onSubmit,
   ]);
 
-  // ======= Helpers date (safe) =======
+  // ======= Helpers date =======
   const safeDate = useMemo(() => {
     const d = new Date(dateMission);
     return Number.isNaN(d.getTime()) ? new Date() : d;
@@ -386,7 +426,7 @@ export const MissionForm = ({
           />
         </div>
 
-        {/* Sélecteur tarif “camouflé” */}
+        {/* Tarif (caché, juste l'icône €) */}
         <div
           className={`shrink-0 w-[64px] h-[64px] rounded-2xl border-2 flex items-center justify-center relative overflow-hidden transition-all active:scale-90 mt-5 ${
             darkMode
@@ -424,15 +464,29 @@ export const MissionForm = ({
         />
       </div>
 
-      {/* ===================== LIEU depuis client ===================== */}
-      {selectedClient?.lieu_travail && (
-        <div className="mb-4 p-4 bg-purple-600/20 rounded-2xl border border-purple-500/30">
-          <div className="text-[10px] font-black uppercase text-purple-300 mb-1">
-            Lieu de travail
-          </div>
-          <div className="text-sm text-white">📍 {selectedClient.lieu_travail}</div>
-        </div>
-      )}
+      {/* ===================== LIEU ===================== */}
+      <div className="mb-6">
+        <LieuSelector
+          lieux={lieux}
+          selectedLieuId={selectedLieuId}
+          onSelect={onLieuChange}
+          required={true}
+          darkMode={darkMode}
+          onAddNew={() => {
+            // Pré-remplir avec le nom du client
+            const prefill = selectedClient?.nom 
+              ? { 
+                  nom: "",
+                  notes: `Lieu pour ${selectedClient.nom}`
+                }
+              : null;
+            
+            onAddNewLieu(prefill);
+          }}
+          selectedClientId={selectedClientId}
+          missions={missions}
+        />
+      </div>
 
       {/* ===================== HORAIRES ===================== */}
       <div className="grid grid-cols-3 gap-3 mb-10">
@@ -506,17 +560,19 @@ export const MissionForm = ({
         </div>
       </div>
 
-      {/* ===================== ACTIONS ===================== */}
+      {/* ===================== BOUTON SUBMIT ===================== */}
       <div className="flex flex-col gap-3">
         <button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || isSubmitting}
           className="relative w-full py-6 group overflow-hidden rounded-[30px] font-black uppercase tracking-widest text-[13px] transition-all active:scale-95 disabled:opacity-50"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-700" />
           <div className="absolute inset-0 bg-white/20 backdrop-blur-sm" />
           <span className="relative z-10 text-white drop-shadow">
-            {editMode ? "Mettre à jour" : "Enregistrer la mission"}
+            {isSubmitting 
+              ? "Enregistrement..." 
+              : editMode ? "Mettre à jour" : "Enregistrer la mission"}
           </span>
         </button>
 

@@ -15,11 +15,9 @@ import "./styles.css";
 registerSW({
   immediate: true,
   onOfflineReady() {
-    console.log("✅ PWA prête hors-ligne");
-  },
+      },
   onNeedRefresh() {
-    console.log("🔄 Nouvelle version dispo, reload…");
-    window.location.reload();
+        window.location.reload();
   },
 });
 

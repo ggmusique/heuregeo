@@ -19,6 +19,10 @@ import { usePatrons } from "./hooks/usePatrons";
 import { useBilan } from "./hooks/useBilan";
 import { useConfirm } from "./hooks/useConfirm";
 import { useGeolocation } from "./hooks/useGeolocation";
+import { useLieux } from "./hooks/useLieux";
+import { LieuxManager } from "./components/lieu/LieuxManager";
+import { LieuModal } from "./components/lieu/LieuModal";
+
 
 // Components
 import { MissionForm } from "./components/mission/MissionForm";
@@ -64,6 +68,14 @@ export default function App() {
   const [liveTime, setLiveTime] = useState(""); // horloge temps réel
 
   // ============================================================
+// ✅ LIEUX (modale + édition)
+// ============================================================
+const [showLieuModal, setShowLieuModal] = useState(false);
+const [editingLieuId, setEditingLieuId] = useState(null);
+const [editingLieuData, setEditingLieuData] = useState(null);
+
+
+  // ============================================================
   // ✅ HISTORIQUE bilans (liste payés / impayés)
   // ============================================================
   const [historique, setHistorique] = useState({
@@ -82,6 +94,8 @@ export default function App() {
   const [editingClientId, setEditingClientId] = useState(null);
   const [editingClientData, setEditingClientData] = useState(null);
   const [selectedClientId, setSelectedClientId] = useState(null); // sélection client dans MissionForm
+  const [selectedLieuId, setSelectedLieuId] = useState(null);
+  const [selectedPatronId, setSelectedPatronId] = useState(null);
 
   // ============================================================
   // ✅ Patron sélectionné pour le BILAN (filtre)
@@ -154,6 +168,20 @@ export default function App() {
     getMissionsByWeek,
     getMissionsByPeriod,
   } = useMissions(triggerAlert);
+
+// ============================================================
+// ✅ Hook LIEUX (CRUD)
+// ============================================================
+const {
+  lieux,
+  loading: lieuxLoading,
+  fetchLieux,
+  createLieu,
+  updateLieu,
+  deleteLieu,
+} = useLieux(triggerAlert);
+
+
 
   // ============================================================
   // ✅ Hook FRAIS (CRUD + filtres semaine)
@@ -251,9 +279,20 @@ export default function App() {
     );
 
     fetchMissions();
-    fetchFrais();
-    fetchAcomptes();
-  }, [fetchMissions, fetchFrais, fetchAcomptes]);
+fetchFrais();
+fetchAcomptes();
+fetchLieux(); // ✅
+  }, [fetchMissions, fetchFrais, fetchAcomptes,fetchLieux]);
+
+
+  useEffect(() => {
+  if (editingMissionData?.lieu_id) {
+    setSelectedLieuId(editingMissionData.lieu_id);
+  } else if (!editingMissionId) {
+    setSelectedLieuId(null);
+  }
+}, [editingMissionData, editingMissionId]);
+
 
   // Horloge live
   useEffect(() => {
@@ -270,6 +309,16 @@ export default function App() {
   useEffect(() => {
     if (bilan.showPeriodModal) bilan.calculerPeriodesDisponibles();
   }, [bilan.showPeriodModal, bilan.bilanPeriodType, missions]);
+
+  // ✅ Sync client sélectionné quand on édite une mission
+useEffect(() => {
+  if (editingMissionData?.client_id) {
+    setSelectedClientId(editingMissionData.client_id);
+  } else if (!editingMissionId) {
+    setSelectedClientId(null);
+  }
+}, [editingMissionData, editingMissionId]);
+
 
   // ============================================================
   // ✅ Charger historique bilans (depuis useBilan)
@@ -293,84 +342,100 @@ export default function App() {
     }
   };
 
-  // ============================================================
-  // ✅ HANDLERS MISSIONS
-  // ============================================================
-  const handleMissionSubmit = async (missionData) => {
-    try {
-      setLoading(true);
-      if (editingMissionId) await updateMission(editingMissionId, missionData);
-      else await createMission(missionData);
+// ============================================================
+// ✅ HANDLERS MISSIONS - VERSION CLEAN FINALE
+// ============================================================
 
-      triggerAlert(
-        editingMissionId ? "Mission mise à jour !" : "Mission enregistrée !"
-      );
-      resetMissionForm();
-    } catch (err) {
-      triggerAlert("Erreur : " + (err?.message || "Opération échouée"));
-    } finally {
-      setLoading(false);
+const handleMissionSubmit = async (missionData) => {
+  try {
+    setLoading(true);
+    
+    if (editingMissionId) {
+      await updateMission(editingMissionId, missionData);
+      triggerAlert("✅ Mission mise à jour !");
+    } else {
+      await createMission(missionData);
+      triggerAlert("✅ Mission enregistrée !");
     }
-  };
 
-  const handleMissionEdit = (mission) => {
-    setEditingMissionId(mission.id);
-    setEditingMissionData(mission);
-    setActiveTab("saisie");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+    // Reset après succès
+    resetMissionForm();
+    
+  } catch (err) {
+    triggerAlert("❌ Erreur : " + (err?.message || "Opération échouée"));
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const handleMissionDelete = async (id) => {
-    const mission = missions.find((m) => m.id === id);
-    if (!mission) return;
+const handleMissionEdit = (mission) => {
+  setEditingMissionId(mission.id);
+  setEditingMissionData(mission);
+  setSelectedClientId(mission.client_id || null);
+  setSelectedLieuId(mission.lieu_id || null);
+  setSelectedPatronId(mission.patron_id || null);  // ✅ AJOUTE cette ligne
+  setActiveTab("saisie");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+};
 
-    const confirmed = await showConfirm({
-      title: "Supprimer mission",
-      message: `Supprimer définitivement "${mission.client}" du ${formatDateFR(
-        mission.date_iso
-      )} ?`,
-      confirmText: "Supprimer",
-      cancelText: "Annuler",
-      type: "danger",
-    });
+const handleMissionDelete = async (id) => {
+  const mission = missions.find((m) => m.id === id);
+  if (!mission) return;
 
-    if (!confirmed) return;
+  const confirmed = await showConfirm({
+    title: "Supprimer mission",
+    message: `Supprimer définitivement "${mission.client}" du ${formatDateFR(
+      mission.date_iso
+    )} ?`,
+    confirmText: "Supprimer",
+    cancelText: "Annuler",
+    type: "danger",
+  });
 
-    try {
-      setLoading(true);
-      await deleteMission(id);
-      triggerAlert("Mission supprimée !");
-    } catch {
-      triggerAlert("Erreur suppression");
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!confirmed) return;
 
-  const resetMissionForm = () => {
-    setEditingMissionId(null);
-    setEditingMissionData(null);
-  };
+  try {
+    setLoading(true);
+    await deleteMission(id);
+    triggerAlert("✅ Mission supprimée !");
+  } catch {
+    triggerAlert("❌ Erreur suppression");
+  } finally {
+    setLoading(false);
+  }
+};
 
-  // Copie la dernière mission (pour gagner du temps)
-  const copierDerniereMission = () => {
-    if (!missions.length) return triggerAlert("Aucune mission précédente.");
-    const derniere = [...missions].sort((a, b) =>
-      b.date_iso.localeCompare(a.date_iso)
-    )[0];
+const resetMissionForm = () => {
+  setEditingMissionId(null);
+  setEditingMissionData(null);
+  setSelectedClientId(null);
+  setSelectedLieuId(null);
+  setSelectedPatronId(null);  // ✅ AJOUTE ÇA
+};
 
-    setEditingMissionData({
-      client: derniere.client,
-      lieu: derniere.lieu,
-      debut: derniere.debut,
-      fin: derniere.fin,
-      pause: derniere.pause,
-      patron_id: derniere.patron_id,
-      client_id: derniere.client_id,
-    });
+// Copier la dernière mission
+const copierDerniereMission = () => {
+  if (!missions.length) return triggerAlert("Aucune mission précédente.");
+  
+  const derniere = [...missions].sort((a, b) =>
+    b.date_iso.localeCompare(a.date_iso)
+  )[0];
 
-    setSelectedClientId(derniere.client_id || null);
-  };
+  setEditingMissionData({
+    lieu_id: derniere.lieu_id || null,
+    lieu: derniere.lieu || "",
+    debut: derniere.debut,
+    fin: derniere.fin,
+    pause: derniere.pause,
+    patron_id: derniere.patron_id,
+    client_id: derniere.client_id,
+    client: derniere.client,
+  });
+
+  setSelectedClientId(derniere.client_id || null);
+  setSelectedLieuId(derniere.lieu_id || null);
+  setSelectedPatronId(derniere.patron_id || null);  // ✅ AJOUTE cette ligne
+};
 
   // ============================================================
   // ✅ HANDLERS FRAIS
@@ -600,6 +665,83 @@ export default function App() {
   };
 
   // ============================================================
+// ✅ HANDLERS LIEUX
+// ============================================================
+
+const handleLieuSubmit = async (lieuData) => {
+  try {
+    setLoading(true);
+
+    let createdLieu;
+
+    if (editingLieuId) {
+      await updateLieu(editingLieuId, lieuData);
+      triggerAlert("✅ Lieu modifié !");
+    } else {
+      createdLieu = await createLieu(lieuData);
+      triggerAlert("✅ Lieu créé !");
+    }
+
+    await fetchLieux(); // refresh liste
+
+    // ✅ AUTO-SELECT le lieu créé (UUID string)
+    if (createdLieu?.id) {
+      setSelectedLieuId(createdLieu.id);  // ✅ UUID string
+      
+      // ✅ Mettre à jour editingMissionData
+      if (!editingMissionId) {
+        setEditingMissionData((prev) => ({
+          ...(prev || {}),
+          lieu_id: createdLieu.id,
+          lieu: createdLieu.nom || "",
+        }));
+      }
+    }
+
+    resetLieuForm();
+    setShowLieuModal(false);
+  } catch (err) {
+    triggerAlert("❌ Erreur : " + (err?.message || "Opération échouée"));
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleLieuEdit = (lieu) => {
+  setEditingLieuId(lieu.id);
+  setEditingLieuData(lieu);
+  setShowLieuModal(true);
+};
+
+const handleLieuDelete = async (lieu) => {
+  const confirmed = await showConfirm({
+    title: "Supprimer ce lieu",
+    message: `Voulez-vous vraiment supprimer "${lieu.nom}" ?\n\nLes missions existantes ne seront pas supprimées.`,
+    confirmText: "Supprimer",
+    cancelText: "Annuler",
+    type: "danger",
+  });
+
+  if (!confirmed) return;
+
+  try {
+    setLoading(true);
+    await deleteLieu(lieu.id);
+    triggerAlert("🗑️ Lieu supprimé !");
+  } catch {
+    triggerAlert("❌ Erreur suppression");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const resetLieuForm = () => {
+  setEditingLieuId(null);
+  setEditingLieuData(null);
+};
+
+
+  // ============================================================
   // ✅ HANDLER : marquer bilan comme payé
   // ============================================================
   const handleMarquerCommePaye = async () => {
@@ -711,6 +853,7 @@ export default function App() {
         acomptesLoading ||
         patronsLoading ||
         clientsLoading ||
+        lieuxLoading || // ✅
         gpsLoading ||
         loadingHistorique) && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -751,34 +894,82 @@ export default function App() {
         {/* ========= ONGLET SAISIE ========= */}
         {activeTab === "saisie" ? (
           <div className="animate-in fade-in duration-500">
-            <MissionForm
-              editMode={!!editingMissionId}
-              initialData={editingMissionData}
-              clientsUniques={clientsUniques}
-              lieuxUniques={lieuxUniques}
-              onSubmit={handleMissionSubmit}
-              onCancel={resetMissionForm}
-              onCopyLast={copierDerniereMission}
-              darkMode={darkMode}
-              isIOS={isIOS}
-              loading={loading}
-              patrons={patrons}
-              missions={missions}
-              selectedPatronId={editingMissionData?.patron_id || null}
-              onPatronChange={(patronId) => {
-                setEditingMissionData((prev) => ({
-                  ...(prev || {}),
-                  patron_id: patronId,
-                }));
-              }}
-              clients={clients}
-              selectedClientId={selectedClientId}
-              onClientChange={setSelectedClientId}
-              onAddNewClient={() => {
-                resetClientForm();
-                setShowClientModal(true);
-              }}
-            />
+
+
+
+<MissionForm
+  editMode={!!editingMissionId}
+  initialData={editingMissionData}
+  
+  lieux={lieux}
+  selectedLieuId={selectedLieuId}
+  onLieuChange={(lieuId) => {
+    setSelectedLieuId(lieuId);
+    
+    // ✅ Ne modifier editingMissionData QUE si édition
+    if (editingMissionId) {
+      const selected = lieux.find((l) => String(l.id) === String(lieuId));
+      setEditingMissionData((prev) => ({
+        ...(prev || {}),
+        lieu_id: lieuId,
+        lieu: selected?.nom || prev?.lieu || "",
+      }));
+    }
+  }}
+  
+  onAddNewLieu={(prefilledData) => {
+    resetLieuForm();
+    if (prefilledData) {
+      setEditingLieuData(prefilledData);
+    }
+    setShowLieuModal(true);
+  }}
+  
+  onSubmit={handleMissionSubmit}
+  onCancel={resetMissionForm}
+  onCopyLast={copierDerniereMission}
+  darkMode={darkMode}
+  isIOS={isIOS}
+  loading={loading}
+  
+  patrons={patrons}
+  missions={missions}
+  
+  // ✅ CORRECTION : Utiliser selectedPatronId state (pas editingMissionData)
+  selectedPatronId={selectedPatronId}
+  onPatronChange={(patronId) => {
+    setSelectedPatronId(patronId);
+    
+    // ✅ Ne modifier editingMissionData QUE si édition
+    if (editingMissionId) {
+      setEditingMissionData((prev) => ({
+        ...(prev || {}),
+        patron_id: patronId,
+      }));
+    }
+  }}
+  
+  clients={clients}
+  selectedClientId={selectedClientId}
+  onClientChange={(clientId) => {
+    setSelectedClientId(clientId);
+    
+    // ✅ Ne modifier editingMissionData QUE si édition
+    if (editingMissionId) {
+      const selected = clients.find((c) => c.id === clientId);
+      setEditingMissionData((prev) => ({
+        ...(prev || {}),
+        client_id: clientId,
+        client: selected?.nom || prev?.client || "",
+      }));
+    }
+  }}
+  
+  onAddNewClient={() => {
+    resetClientForm();
+    setShowClientModal(true);
+  }}
+/>
 
             {/* Boutons rapides */}
             <div className="grid grid-cols-2 gap-4 mt-6">
@@ -836,7 +1027,24 @@ export default function App() {
                 missions={missions}
               />
             </AccordionSection>
+  
+<AccordionSection title="📍 Lieux" count={lieux.length} defaultOpen={false}>
+  <LieuxManager
+    lieux={lieux}
+    missions={missions}
+    darkMode={darkMode}
+    onAdd={() => {
+      resetLieuForm();
+      setShowLieuModal(true);
+    }}
+    onEdit={handleLieuEdit}
+    onDelete={handleLieuDelete}
+  />
+</AccordionSection>
+
+
           </div>
+          
         ) : /* ========= ONGLET HISTORIQUE ========= */
         activeTab === "historique" ? (
           <div className="animate-in fade-in duration-500 space-y-4">
@@ -1532,6 +1740,19 @@ export default function App() {
         selectedPatronId={bilanPatronId}
         onPatronChange={setBilanPatronId}
       />
+<LieuModal
+  show={showLieuModal}
+  editMode={!!editingLieuId}
+  initialData={editingLieuData}
+  onSubmit={handleLieuSubmit}
+  onCancel={() => {
+    setShowLieuModal(false);
+    resetLieuForm();
+  }}
+  loading={loading}
+  darkMode={darkMode}
+/>
+
 
       {/* Navigation en bas */}
       <nav className="fixed bottom-6 left-6 right-6 z-[100]">

@@ -4,7 +4,7 @@ import { supabase } from "../supabase";
  * API pour les missions
  *
  * Rôle :
- * - Ce fichier ne gère PAS l’interface (pas de React ici).
+ * - Ce fichier ne gère PAS l'interface (pas de React ici).
  * - Il ne fait PAS de calcul métier.
  * - Il fait seulement les appels à Supabase (la base de données).
  *
@@ -15,19 +15,13 @@ import { supabase } from "../supabase";
 // 1) LIRE toutes les missions (READ)
 // ------------------------------------------------------------
 export const fetchMissions = async () => {
-  // .from("missions") = la table "missions" dans Supabase
-  // .select("*") = toutes les colonnes
-  // .order("date_iso", { ascending: false }) = tri par date décroissante (les plus récentes en haut)
   const { data, error } = await supabase
     .from("missions")
     .select("*")
     .order("date_iso", { ascending: false });
 
-  // Si Supabase renvoie une erreur, on la “propage”
-  // => useMissions catch l’erreur et affiche un message dans l’app
   if (error) throw error;
 
-  // data = tableau des missions (ou [] si vide)
   return data || [];
 };
 
@@ -35,17 +29,40 @@ export const fetchMissions = async () => {
 // 2) CRÉER une mission (CREATE)
 // ------------------------------------------------------------
 export const createMission = async (missionData) => {
-  // .insert([missionData]) = ajoute une ligne dans la table
-  // On met entre [] car Supabase insert attend un tableau d’objets
-  // .select() = demande à Supabase de nous renvoyer la ligne créée
+  // ✅ LOG : Voir ce qui arrive dans l'API
+  console.log("🔵 API - createMission appelée avec:", {
+    missionData,
+    types: {
+      client_id: typeof missionData.client_id,
+      lieu_id: typeof missionData.lieu_id,
+      patron_id: typeof missionData.patron_id,
+    },
+    values: {
+      client_id: missionData.client_id,
+      lieu_id: missionData.lieu_id,
+      patron_id: missionData.patron_id,
+    }
+  });
+
   const { data, error } = await supabase
     .from("missions")
     .insert([missionData])
     .select();
 
-  if (error) throw error;
+  // ✅ LOG : Voir l'erreur détaillée si échec
+  if (error) {
+    console.error("🔴 API - Erreur Supabase:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw error;
+  }
 
-  // data est un tableau (même si 1 seule ligne), donc on renvoie data[0]
+  // ✅ LOG : Succès
+  console.log("🟢 API - Mission créée:", data[0]);
+
   return data[0];
 };
 
@@ -53,18 +70,35 @@ export const createMission = async (missionData) => {
 // 3) MODIFIER une mission (UPDATE)
 // ------------------------------------------------------------
 export const updateMission = async (id, missionData) => {
-  // .update(missionData) = remplace les champs envoyés
-  // .eq("id", id) = “où id = ...” (on cible la ligne à modifier)
-  // .select() = renvoie la mission mise à jour
+  // ✅ LOG : Voir ce qui arrive dans l'API
+  console.log("🔵 API - updateMission appelée avec:", {
+    id,
+    missionData,
+    types: {
+      client_id: typeof missionData.client_id,
+      lieu_id: typeof missionData.lieu_id,
+      patron_id: typeof missionData.patron_id,
+    },
+  });
+
   const { data, error } = await supabase
     .from("missions")
     .update(missionData)
     .eq("id", id)
     .select();
 
-  if (error) throw error;
+  if (error) {
+    console.error("🔴 API - Erreur Supabase (update):", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+    });
+    throw error;
+  }
 
-  // data[0] = la mission mise à jour
+  console.log("🟢 API - Mission mise à jour:", data[0]);
+
   return data[0];
 };
 
@@ -72,8 +106,6 @@ export const updateMission = async (id, missionData) => {
 // 4) SUPPRIMER une mission (DELETE)
 // ------------------------------------------------------------
 export const deleteMission = async (id) => {
-  // .delete() = supprime
-  // .eq("id", id) = seulement la mission dont l’id correspond
   const { error } = await supabase.from("missions").delete().eq("id", id);
 
   if (error) throw error;

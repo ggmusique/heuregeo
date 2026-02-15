@@ -94,12 +94,7 @@ export const DateSelector = React.memo(
             </svg>
           </div>
 
-          /**
-           * ✅ Input date caché (le vrai sélecteur)
-           * - Il prend toute la surface (absolute inset-0)
-           * - Il est invisible (opacity-0)
-           * - Quand on change la date, on appelle setDateMission() (state parent)
-           */
+        
           <input
             ref={dateInputRef}
             type="date"
