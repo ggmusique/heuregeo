@@ -56,40 +56,48 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
     }
   }, [onError]);
 
-  /**
-   * ==========================================
-   * 2) Créer un acompte (API)
-   * ==========================================
-   * Utilisé quand tu valides la modal “+ Acompte”
-   * => On ajoute direct l’acompte dans la liste (optimiste)
-   */
-  const createAcompte = useCallback(
-    async (acompteData) => {
-      if (!acompteData) {
-        throw new Error("Données de l'acompte manquantes");
-      }
+/**
+ * ==========================================
+ * 2) Créer un acompte (API) + AUTO-PAIEMENT
+ * ==========================================
+ * Utilisé quand tu valides la modal "+ Acompte"
+ * => On ajoute direct l'acompte dans la liste (optimiste)
+ * => ✅ On déclenche l'auto-paiement des bilans
+ */
+const createAcompte = useCallback(
+  async (acompteData, autoPayerBilans) => { // ✅ Nouveau param
+    if (!acompteData) {
+      throw new Error("Données de l'acompte manquantes");
+    }
 
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        const newAcompte = await acomptesApi.createAcompte(acompteData);
+      const newAcompte = await acomptesApi.createAcompte(acompteData);
 
-        // On le met au début de la liste (le plus récent en premier)
-        if (newAcompte) {
-          setListeAcomptes((prev) => [newAcompte, ...prev]);
+      if (newAcompte) {
+        setListeAcomptes((prev) => [newAcompte, ...prev]);
+        
+        // ✅ DÉCLENCHER L'AUTO-PAIEMENT
+        if (autoPayerBilans && typeof autoPayerBilans === 'function') {
+          await autoPayerBilans(
+            acompteData.patron_id,
+            acompteData.montant
+          );
         }
-
-        return newAcompte;
-      } catch (err) {
-        console.error("Erreur création acompte:", err);
-        onError?.("Erreur création acompte");
-        throw err;
-      } finally {
-        setLoading(false);
       }
-    },
-    [onError]
-  );
+
+      return newAcompte;
+    } catch (err) {
+      console.error("Erreur création acompte:", err);
+      onError?.("Erreur création acompte");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  },
+  [onError]
+);
 
   /**
    * ==========================================

@@ -519,34 +519,51 @@ export function useBilan({
             ? getAcomptesDansPeriode(debutPeriode, finPeriode, patronId)
             : 0;
 
-        // ✅ Mode semaine : on déduit les acomptes sur impayés + semaine courante
-        if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          // Acomptes cumulés jusqu'à la FIN de la semaine (clé du comportement attendu)
-          const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
+// ✅ Mode semaine : on déduit les acomptes sur impayés + semaine courante
+if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
+  // Acomptes cumulés jusqu'à la FIN de la semaine
+  const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
 
-          // Solde avant période (affichage)
-          soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
+  // ✅ NOUVEAU : Calculer les acomptes déjà consommés sur les semaines AVANT
+  let acomptesDejaUtilises = 0;
+  try {
+    const { data: bilansPrecedents } = await supabase
+      .from(TABLE)
+      .select("acompte_consomme")
+      .eq("patron_id", pId)
+      .eq("periode_type", "semaine")
+      .lt("periode_index", parseInt(bilanPeriodValue, 10));
 
-          // Dette totale = impayés précédents + dette de la semaine
-          const detteTotale = impayePrecedent + caBrutPeriode;
+    if (bilansPrecedents) {
+      acomptesDejaUtilises = bilansPrecedents.reduce((sum, b) => {
+        return sum + (parseFloat(b.acompte_consomme) || 0);
+      }, 0);
+    }
+  } catch (err) {
+    console.error("Erreur calcul acomptes utilisés:", err);
+  }
 
-          // Ce que tu dois recevoir si les acomptes ne suffisent pas
-          resteAPercevoir = Math.max(0, detteTotale - acomptesCumules);
+  // Acomptes vraiment disponibles pour cette semaine
+  const acomptesDisponibles = Math.max(0, acomptesCumules - acomptesDejaUtilises);
 
-          // Si les acomptes dépassent la dette, tu as un solde à reporter
-          soldeApresPeriode = Math.max(0, acomptesCumules - detteTotale);
+  // Solde avant période (affichage)
+  soldeAvantPeriode = acomptesDisponibles;
 
-          // Montant d'acompte "consommé" jusqu'ici
-          acompteConsomme = Math.min(acomptesCumules, detteTotale);
+  // Dette totale = impayés précédents + dette de la semaine
+  const detteTotale = impayePrecedent + caBrutPeriode;
 
-          /**
-           * ⚠️ Ici tu estimes "ce qu'il reste pour cette semaine"
-           * en retranchant un impayé restant.
-           * Ça dépend fortement de ta logique getSoldeAvant.
-           */
-          const impayeRestant = Math.max(0, impayePrecedent - soldeAvantPeriode);
-          resteCettePeriode = Math.max(0, resteAPercevoir - impayeRestant);
-        } else {
+  // Ce que tu dois recevoir si les acomptes ne suffisent pas
+  resteAPercevoir = Math.max(0, detteTotale - acomptesDisponibles);
+
+  // Si les acomptes dépassent la dette, tu as un solde à reporter
+  soldeApresPeriode = Math.max(0, acomptesDisponibles - detteTotale);
+
+  // Montant d'acompte "consommé" pour CETTE semaine
+  acompteConsomme = Math.min(acomptesDisponibles, caBrutPeriode);
+
+  const impayeRestant = Math.max(0, impayePrecedent - soldeAvantPeriode);
+  resteCettePeriode = Math.max(0, resteAPercevoir - impayeRestant);
+} else {
           // Mode mois/année : on garde un calcul simple (pas de rattrapage)
           soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
           const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
@@ -617,25 +634,33 @@ export function useBilan({
         setShowPeriodModal(false);
         setShowBilan(true);
 
-        // 11) Sauvegarde dans Supabase (bilans_status_v2)
-        const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
+    // 11) Sauvegarde dans Supabase (bilans_status_v2)
+const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
 
-        const dataToSave = {
-          periode_type: bilanPeriodType,
-          periode_value: bilanPeriodValue,
-          periode_index: periodeIndex,
-          patron_id: pId,
-          paye: statutPaye,
-          date_paiement: statutPaye ? new Date().toISOString() : null,
+// ✅ Vérifier si le bilan existe déjà
+const { data: bilanExistant } = await supabase
+  .from(TABLE)
+  .select("acompte_consomme, paye")
+  .eq("periode_type", bilanPeriodType)
+  .eq("periode_value", bilanPeriodValue)
+  .eq("patron_id", pId)
+  .maybeSingle();
 
-          // ✅ on stocke la dette de LA période (pas le cumul)
-          reste_a_percevoir: resteCettePeriode,
+const dataToSave = {
+  periode_type: bilanPeriodType,
+  periode_value: bilanPeriodValue,
+  periode_index: periodeIndex,
+  patron_id: pId,
+  paye: statutPaye,
+  date_paiement: statutPaye ? new Date().toISOString() : null,
 
-          ca_brut_periode: caBrutPeriode,
+  reste_a_percevoir: resteCettePeriode,
+  ca_brut_periode: caBrutPeriode,
 
-          // acompte consommé (semaine uniquement)
-          acompte_consomme: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
-        };
+  // ✅ Ne pas écraser acompte_consomme s'il existe déjà
+  acompte_consomme: bilanExistant?.acompte_consomme ?? 
+    (bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0),
+};
 
         const { error: upsertError } = await supabase.from(TABLE).upsert(dataToSave, {
           onConflict: "periode_type,periode_value,patron_id",
@@ -667,6 +692,115 @@ export function useBilan({
       patrons,
     ]
   );
+
+  /**
+ * ==========================================
+ * Auto-payer les bilans (NOUVEAU)
+ * ==========================================
+ * Appelé automatiquement après création d'un acompte.
+ * Parcourt les bilans impayés dans l'ordre chronologique
+ * et les marque payés si l'acompte suffit.
+ */
+const autoPayerBilans = useCallback(
+  async (patronId, montantAcompte) => {
+    try {
+      const pId = effectivePatronId(patronId);
+
+      console.log("🔵 AUTO-PAIEMENT DÉMARRÉ", {
+        patronId: pId,
+        montantAcompte,
+      });
+
+      // 1. Récupérer bilans impayés du patron (ordre chrono)
+      const { data: bilansImpayes, error } = await supabase
+        .from(TABLE)
+        .select("*")
+        .eq("patron_id", pId)
+        .eq("periode_type", "semaine")
+        .eq("paye", false)
+        .order("periode_index", { ascending: true });
+
+      if (error) throw error;
+
+      console.log("🟡 Bilans impayés trouvés:", bilansImpayes);
+
+      if (!bilansImpayes || bilansImpayes.length === 0) {
+        console.log("⚠️ Aucun bilan impayé trouvé");
+        return true;
+      }
+
+      let resteAcompte = montantAcompte;
+
+      // 2. Pour chaque bilan impayé
+      for (const bilan of bilansImpayes) {
+        console.log(`\n🔄 Traitement semaine ${bilan.periode_value}:`, {
+          ca_brut: bilan.ca_brut_periode,
+          acompte_deja_consomme: bilan.acompte_consomme,
+          reste_acompte_dispo: resteAcompte,
+        });
+
+        if (resteAcompte <= 0) {
+          console.log("❌ Plus d'acompte disponible, stop");
+          break;
+        }
+
+        // Calculer ce qu'il reste à payer pour ce bilan
+        const caBrut = parseFloat(bilan.ca_brut_periode || 0);
+        const acompteDejaConsomme = parseFloat(bilan.acompte_consomme || 0);
+        const resteDu = Math.max(0, caBrut - acompteDejaConsomme);
+
+        console.log(`  → Reste dû pour S${bilan.periode_value}: ${resteDu}€`);
+
+        if (resteDu <= 0) {
+          console.log("  → Déjà payé, skip");
+          continue;
+        }
+
+        if (resteAcompte >= resteDu) {
+          // ✅ L'acompte couvre tout le bilan
+          console.log(`  ✅ Couvre tout ! Paiement de ${resteDu}€`);
+
+          await supabase
+            .from(TABLE)
+            .update({
+              paye: true,
+              date_paiement: new Date().toISOString(),
+              acompte_consomme: caBrut,
+              reste_a_percevoir: 0,
+            })
+            .eq("id", bilan.id);
+
+          resteAcompte -= resteDu;
+          console.log(`  → Reste après: ${resteAcompte}€`);
+        } else {
+          // ⚠️ L'acompte couvre partiellement
+          const nouvelAcompteConsomme = acompteDejaConsomme + resteAcompte;
+          console.log(`  ⚠️ Paiement partiel: ${resteAcompte}€ sur ${resteDu}€`);
+
+          await supabase
+            .from(TABLE)
+            .update({
+              acompte_consomme: nouvelAcompteConsomme,
+              reste_a_percevoir: caBrut - nouvelAcompteConsomme,
+            })
+            .eq("id", bilan.id);
+
+          resteAcompte = 0;
+          console.log("  → Acompte épuisé");
+          break;
+        }
+      }
+
+      console.log("✅ AUTO-PAIEMENT TERMINÉ");
+      return true;
+    } catch (err) {
+      console.error("❌ Erreur auto-paiement bilans:", err);
+      triggerAlert?.("⚠️ Erreur lors de la mise à jour automatique des bilans");
+      return false;
+    }
+  },
+  [triggerAlert]
+);
 
   /**
    * ==========================================
@@ -763,6 +897,7 @@ export function useBilan({
     calculerPeriodesDisponibles,
     genererBilan,
     marquerCommePaye,
+    autoPayerBilans, // ✅ AJOUTE ÇA
 
     // utilisé dans l'onglet Historique de App.jsx
     fetchHistoriqueBilans,

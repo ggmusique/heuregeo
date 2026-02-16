@@ -523,43 +523,54 @@ const copierDerniereMission = () => {
     setFraisPatronId(null);
   };
 
-  // ============================================================
-  // ✅ HANDLERS ACOMPTE
-  // ============================================================
-  const handleAcompteSubmit = async () => {
-    const montantNet = parseFloat(acompteMontant?.toString().replace(",", "."));
-    if (!acompteMontant || isNaN(montantNet) || montantNet <= 0) {
-      return triggerAlert("Veuillez saisir un montant valide");
-    }
+ // ============================================================
+// ✅ HANDLERS ACOMPTE (avec auto-paiement)
+// ============================================================
 
-    if (!acomptePatronId) {
-      return triggerAlert("Sélectionne un patron pour cet acompte");
-    }
+const resetAcompteForm = () => {
+  setAcompteMontant("");
+  setAcompteDate(new Date().toISOString().split("T")[0]);
+  setAcomptePatronId(null);
+};
+const handleAcompteSubmit = async () => {
+  const montantNet = parseFloat(acompteMontant?.toString().replace(",", "."));
+  if (!acompteMontant || isNaN(montantNet) || montantNet <= 0) {
+    return triggerAlert("Veuillez saisir un montant valide");
+  }
 
-    try {
-      setLoading(true);
-      await createAcompte({
+  if (!acomptePatronId) {
+    return triggerAlert("Sélectionne un patron pour cet acompte");
+  }
+
+  try {
+    setLoading(true);
+    
+    await createAcompte(
+      {
         montant: montantNet,
         date_acompte: acompteDate,
         patron_id: acomptePatronId,
-      });
-      triggerAlert("💰 Acompte enregistré !");
-      resetAcompteForm();
-      setShowAcompteModal(false);
-    } catch (err) {
-      triggerAlert(
-        "Erreur : " + (err?.message || "Problème de base de données")
-      );
-    } finally {
-      setLoading(false);
+      },
+      bilan.autoPayerBilans
+    );
+    
+    triggerAlert("💰 Acompte enregistré et bilans mis à jour automatiquement !");
+    resetAcompteForm();
+    setShowAcompteModal(false);
+    
+    // ✅ REGÉNÉRER LE BILAN SI VISIBLE
+    if (bilan.showBilan && bilan.bilanPeriodValue) {
+      await bilan.genererBilan(bilanPatronId);
     }
-  };
-
-  const resetAcompteForm = () => {
-    setAcompteMontant("");
-    setAcompteDate(new Date().toISOString().split("T")[0]);
-    setAcomptePatronId(null);
-  };
+    
+  } catch (err) {
+    triggerAlert(
+      "Erreur : " + (err?.message || "Problème de base de données")
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ============================================================
   // ✅ HANDLERS PATRON
