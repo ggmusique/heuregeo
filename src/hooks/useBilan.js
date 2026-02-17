@@ -317,14 +317,9 @@ export function useBilan({
           let resteFixe = r.reste_a_percevoir ?? 0;
 
           // Pour la semaine : reste = ca - acompte_consomme
-          if (r.periode_type === "semaine") {
-            const ca = parseFloat(r?.ca_brut_periode ?? 0);
-            const acompte = parseFloat(r?.acompte_consomme ?? 0);
-            resteFixe = Math.max(
-              0,
-              (isNaN(ca) ? 0 : ca) - (isNaN(acompte) ? 0 : acompte)
-            );
-          }
+        if (r.periode_type === "semaine") {
+  resteFixe = parseFloat(r?.reste_a_percevoir ?? 0);
+}
 
           return {
             ...r,
@@ -493,6 +488,14 @@ export function useBilan({
         // CA de la période = missions + frais
         const caBrutPeriode = totalMissions + totalFrais;
 
+        // ✅ NOUVEAU : Pas de missions pour ce patron cette semaine
+if (caBrutPeriode === 0 && filtered.length === 0) {
+  triggerAlert?.(`⚠️ Aucune mission pour ${resolvePatronNom(patronId) || "ce patron"} en ${formatPeriodLabel(bilanPeriodValue)}`);
+  setShowPeriodModal(false);
+  setShowBilan(false);
+  return false; // ← On arrête tout, pas de sauvegarde
+}
+
         // Dette des semaines avant (impayés précédents)
         let impayePrecedent = 0;
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
@@ -659,13 +662,17 @@ acompte_consomme: (bilanExistant?.acompte_consomme > 0)
   : (bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0),
 };
 
-        const { error: upsertError } = await supabase.from(TABLE).upsert(dataToSave, {
-          onConflict: "periode_type,periode_value,patron_id",
-        });
+       // ✅ Ne sauvegarder QUE si un vrai patron est sélectionné
+// Le mode global (GLOBAL_PATRON_ID) est juste pour affichage
+if (!isGlobalPatronId(patronId)) {
+  const { error: upsertError } = await supabase.from(TABLE).upsert(dataToSave, {
+    onConflict: "periode_type,periode_value,patron_id",
+  });
 
-        if (upsertError) {
-          triggerAlert?.("Erreur sauvegarde bilan.");
-        }
+  if (upsertError) {
+    triggerAlert?.("Erreur sauvegarde bilan.");
+  }
+}
 
         return true;
       } catch {
