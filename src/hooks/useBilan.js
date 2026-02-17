@@ -261,7 +261,7 @@ export function useBilan({
       try {
         const { data, error } = await supabase
           .from(TABLE)
-          .select("periode_index, paye, ca_brut_periode, acompte_consomme")
+         .select("periode_index, paye, ca_brut_periode, acompte_consomme, reste_a_percevoir")
           .eq("periode_type", PERIOD_TYPES.SEMAINE)
           .eq("patron_id", pId)
           .eq("paye", false)
@@ -270,15 +270,11 @@ export function useBilan({
 
         if (error) throw error;
 
-        const total = (data || []).reduce((sum, row) => {
-          const ca = parseFloat(row?.ca_brut_periode ?? 0);
-          const acompte = parseFloat(row?.acompte_consomme ?? 0);
-          const resteSemaine = Math.max(
-            0,
-            (isNaN(ca) ? 0 : ca) - (isNaN(acompte) ? 0 : acompte)
-          );
-          return sum + resteSemaine;
-        }, 0);
+       const total = (data || []).reduce((sum, row) => {
+  // ✅ Utiliser reste_a_percevoir directement
+  const reste = parseFloat(row?.reste_a_percevoir ?? 0);
+  return sum + (isNaN(reste) ? 0 : reste);
+}, 0);
 
         return total;
       } catch {
@@ -657,9 +653,10 @@ const dataToSave = {
   reste_a_percevoir: resteCettePeriode,
   ca_brut_periode: caBrutPeriode,
 
-  // ✅ Ne pas écraser acompte_consomme s'il existe déjà
-  acompte_consomme: bilanExistant?.acompte_consomme ?? 
-    (bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0),
+// ✅ Ne jamais écraser acompte_consomme s'il est déjà > 0
+acompte_consomme: (bilanExistant?.acompte_consomme > 0)
+  ? bilanExistant.acompte_consomme
+  : (bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0),
 };
 
         const { error: upsertError } = await supabase.from(TABLE).upsert(dataToSave, {
