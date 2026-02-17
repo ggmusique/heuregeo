@@ -1309,43 +1309,41 @@ const resetLieuForm = () => {
                   <p className="text-center text-sm opacity-80 mb-4">
                     Pour : {bilan.bilanContent.selectedPatronNom}
                   </p>
+                  
+<div className={`grid gap-3 ${
+  bilan.bilanContent.impayePrecedent > 0
+    ? "grid-cols-3"
+    : "grid-cols-2"
+}`}>
+  <div className="bg-white/10 p-3 rounded-3xl">
+    <p className="text-[9px] font-black text-white/50 uppercase mb-1">
+      Heures
+    </p>
+    <p className="text-lg font-black text-white leading-tight">
+      {formatHeures(bilan.bilanContent.totalH)}
+    </p>
+  </div>
 
-                  <div
-                    className={`grid gap-4 ${
-                      bilan.bilanContent.impayePrecedent > 0
-                        ? "grid-cols-3"
-                        : "grid-cols-2"
-                    }`}
-                  >
-                    <div className="bg-white/10 p-4 rounded-3xl">
-                      <p className="text-[9px] font-black text-white/50 uppercase">
-                        Heures
-                      </p>
-                      <p className="text-xl font-black text-white">
-                        {formatHeures(bilan.bilanContent.totalH)}
-                      </p>
-                    </div>
+  {bilan.bilanContent.impayePrecedent > 0 && (
+    <div className="bg-white/10 p-3 rounded-3xl">
+      <p className="text-[9px] font-black text-white/50 uppercase mb-1 leading-tight">
+        Impayé préc.
+      </p>
+      <p className="text-lg font-black text-orange-300 leading-tight">
+        +{formatEuro(bilan.bilanContent.impayePrecedent)}
+      </p>
+    </div>
+  )}
 
-                    {bilan.bilanContent.impayePrecedent > 0 && (
-                      <div className="bg-white/10 p-4 rounded-3xl">
-                        <p className="text-[9px] font-black text-white/50 uppercase">
-                          Impayé précédent
-                        </p>
-                        <p className="text-xl font-black text-orange-300">
-                          +{formatEuro(bilan.bilanContent.impayePrecedent)}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="bg-white/10 p-4 rounded-3xl">
-                      <p className="text-[9px] font-black text-white/50 uppercase">
-                        Total Brut
-                      </p>
-                      <p className="text-xl font-black text-green-300">
-                        {formatEuro(bilan.bilanContent.totalE)}
-                      </p>
-                    </div>
-                  </div>
+  <div className="bg-white/10 p-3 rounded-3xl">
+    <p className="text-[9px] font-black text-white/50 uppercase mb-1">
+      Total Brut
+    </p>
+    <p className="text-lg font-black text-green-300 leading-tight">
+      {formatEuro(bilan.bilanContent.totalE)}
+    </p>
+  </div>
+</div>
                 </div>
 
                 {/* SUIVI FRAIS / ACOMPTES */}
