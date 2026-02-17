@@ -1344,13 +1344,10 @@ const resetLieuForm = () => {
                 </div>
 
                 {/* SUIVI FRAIS / ACOMPTES */}
-                {bilan.bilanPeriodType === "semaine" &&
-                  (bilan.bilanContent.fraisDivers.length > 0 ||
-                    bilan.bilanContent.impayePrecedent !== 0 ||
-                    bilan.bilanContent.soldeAcomptesAvant !== 0 ||
-                    bilan.bilanContent.acomptesDansPeriode !== 0 ||
-                    bilan.bilanContent.totalAcomptes !== 0 ||
-                    bilan.bilanContent.soldeAcomptesApres !== 0) && (
+               {bilan.bilanPeriodType === "semaine" &&
+  (bilan.bilanContent.fraisDivers.length > 0 ||
+    bilan.bilanContent.acomptesDansPeriode > 0 ||
+    bilan.bilanContent.soldeAcomptesApres > 0) && (
                     <div className="mb-8 p-6 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 rounded-[35px] border border-indigo-500/30 backdrop-blur-md">
                       <p className="text-[10px] font-black uppercase text-cyan-400 mb-4 tracking-[0.2em]">
                         {bilan.bilanContent.fraisDivers.length > 0
