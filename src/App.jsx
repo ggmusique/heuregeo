@@ -1423,56 +1423,7 @@ const resetLieuForm = () => {
                   ← Retour
                 </button>
 
-             <div className="bg-gradient-to-br from-indigo-600 to-purple-800 p-8 rounded-[45px] shadow-2xl mb-8">
-  <p className="text-[10px] font-black uppercase text-white/50 tracking-[0.3em] mb-1">
-    {bilan.bilanContent.titre}
-  </p>
-<div className="flex items-center justify-between gap-4 mb-6">
-  <h2 className="text-4xl font-black text-white italic leading-none">
-    BILAN
-  </h2>
-
-  {bilan.bilanPeriodType === "semaine" && (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={bilan.gotoPreviousWeek}
-        disabled={!bilan.hasPreviousWeek}
-        className="
-          h-8 w-8 rounded-xl
-          bg-white/10 border border-white/20
-          text-white font-black
-          disabled:opacity-30
-          hover:bg-white/20
-          transition-all
-        "
-      >
-        ←
-      </button>
-
-      <WeekPicker
-        value={bilan.bilanPeriodValue}
-        weeks={bilan.availablePeriods}
-        onChange={bilan.handleWeekChange}
-      />
-
-      <button
-        onClick={bilan.gotoNextWeek}
-        disabled={!bilan.hasNextWeek}
-        className="
-          h-8 w-8 rounded-xl
-          bg-white/10 border border-white/20
-          text-white font-black
-          disabled:opacity-30
-          hover:bg-white/20
-          transition-all
-        "
-      >
-        →
-      </button>
-    </div>
-  )}
-</div>
-
+<div className="bg-gradient-to-br from-indigo-600 to-purple-800 p-8 rounded-[45px] shadow-2xl mb-8">  {/* Header avec titre et sélecteur alignés */}  <div className="flex items-center justify-between mb-6">    <div>      <p className="text-[10px] font-black uppercase text-white/50 tracking-[0.3em] mb-1">        {bilan.bilanContent.titre}      </p>      <h2 className="text-4xl font-black text-white italic">        BILAN      </h2>    </div>    {/* WeekPicker aligné à droite */}    <WeekPicker      value={bilan.bilanPeriodValue}      weeks={bilan.availablePeriods}      onChange={bilan.handleWeekChange}      onPrevious={bilan.gotoPreviousWeek}      onNext={bilan.gotoNextWeek}      hasPrevious={bilan.hasPreviousWeek}      hasNext={bilan.hasNextWeek}    />  </div>
 
 
 
