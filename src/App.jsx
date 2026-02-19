@@ -38,7 +38,7 @@ import { getWeekNumber } from "./utils/dateUtils";
 
 export default function App() {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
-  const APP_VERSION = import.meta.env.VITE_APP_VERSION || "";
+  const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
   // ============================================================
   // ✅ STATE GÉNÉRAL
@@ -712,7 +712,7 @@ export default function App() {
           </h1>
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border border-yellow-600/40 text-yellow-500/70">
-              v4.6.1 ✓ OTA
+              v{APP_VERSION} ✓ OTA
             </span>
           </div>
           <div className="flex items-center justify-center gap-2 text-white/90">
