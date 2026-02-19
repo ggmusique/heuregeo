@@ -445,23 +445,7 @@ export const BilanTab = ({
                         ?
                       </div>
                     )}
-                    {/* ✅ BOUTONS EDIT/DELETE */}
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => onMissionEdit && onMissionEdit(m)}
-                        className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
-                        title="Modifier"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => onMissionDelete && onMissionDelete(m.id)}
-                        className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
-                        title="Supprimer"
-                      >
-                        🗑️
-                      </button>
-                    </div>
+
                   </div>
                 </div>
               </div>
