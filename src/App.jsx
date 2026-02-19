@@ -1695,6 +1695,7 @@ const resetLieuForm = () => {
                 </div>
 
                 {/* Détail missions (semaine) OU Regroupement (mois/année) */}
+                {/* ℹ️ Vue lecture seule : pas de boutons ✏️/🗑️ ici. Les actions sont uniquement dans "Semaine en cours" via <MissionCard onEdit onDelete>. */}
                 {bilan.bilanPeriodType === "semaine" ? (
                   <div className="space-y-3">
                     <p className="text-[10px] font-black uppercase opacity-40 tracking-widest px-2">
