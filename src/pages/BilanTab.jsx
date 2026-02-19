@@ -51,7 +51,7 @@ export const BilanTab = ({
               bilan.setShowBilan(false);
               bilan.setShowPeriodModal(true);
             }}
-            className="w-full py-6 bg-gradient-to-r from-indigo-600 to-purple-700 rounded-3xl font-black text-white text-[14px] uppercase shadow-xl active:scale-95 transition-all"
+            className="w-full py-6 bg-gradient-to-r from-[#C9A84C] to-[#A07830] rounded-3xl font-black text-white text-[14px] uppercase shadow-xl active:scale-95 transition-all"
           >
             Rapport bilan
           </button>
@@ -96,13 +96,13 @@ export const BilanTab = ({
       </button>
 
       {/* HEADER BILAN */}
-      <div className="bg-gradient-to-br from-indigo-600 to-purple-800 p-8 rounded-[45px] shadow-2xl mb-8">
+      <div className="bg-gradient-to-br from-[#0A1628] to-[#020818] p-8 rounded-[45px] shadow-2xl mb-8 border border-yellow-600/30">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <p className="text-[10px] font-black uppercase text-white/50 tracking-[0.3em] mb-1">
+            <p className="text-[10px] font-black uppercase text-yellow-500/70 tracking-[0.3em] mb-1">
               {bilan.bilanContent.titre}
             </p>
-            <h2 className="text-4xl font-black text-white italic">BILAN</h2>
+            <h2 className="text-4xl font-black text-white italic font-['Playfair_Display']">Bilan</h2>
           </div>
           <WeekPicker
             value={bilan.bilanPeriodValue}
@@ -115,13 +115,13 @@ export const BilanTab = ({
           />
         </div>
 
-        <p className="text-center text-sm opacity-80 mb-4">
+        <p className="text-center text-sm text-white/70 mb-4">
           Pour : {bilan.bilanContent.selectedPatronNom}
         </p>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/10 p-4 rounded-3xl">
-            <p className="text-[9px] font-black text-white/50 uppercase mb-1">
+          <div className="bg-[#0A1628]/80 p-4 rounded-2xl border border-yellow-600/20">
+            <p className="text-[9px] font-black text-yellow-500/70 uppercase mb-1">
               Heures
             </p>
             <p className="text-xl font-black text-white">
@@ -129,21 +129,21 @@ export const BilanTab = ({
             </p>
           </div>
 
-          <div className="bg-white/10 p-4 rounded-3xl">
-            <p className="text-[9px] font-black text-white/50 uppercase mb-1">
+          <div className="bg-[#0A1628]/80 p-4 rounded-2xl border border-yellow-600/20">
+            <p className="text-[9px] font-black text-yellow-500/70 uppercase mb-1">
               Total Brut
             </p>
-            <p className="text-xl font-black text-green-300">
+            <p className="text-xl font-black text-emerald-400">
               {formatEuro(bilan.bilanContent.totalE)}
             </p>
           </div>
 
           {bilan.bilanContent.impayePrecedent > 0 && (
-            <div className="col-span-2 bg-white/10 p-4 rounded-3xl flex justify-between items-center">
-              <p className="text-[9px] font-black text-white/50 uppercase">
-                Impayé précédent
+            <div className="col-span-2 bg-[#0A1628]/80 p-4 rounded-2xl border border-orange-500/30 flex justify-between items-center">
+              <p className="text-[9px] font-black text-orange-400/70 uppercase">
+                ⏳ Impayé précédent
               </p>
-              <p className="text-xl font-black text-orange-300">
+              <p className="text-xl font-black text-orange-400">
                 +{formatEuro(bilan.bilanContent.impayePrecedent)}
               </p>
             </div>
@@ -156,8 +156,8 @@ export const BilanTab = ({
         (bilan.bilanContent.fraisDivers.length > 0 ||
           bilan.bilanContent.acomptesDansPeriode > 0 ||
           bilan.bilanContent.soldeAcomptesApres > 0) && (
-        <div className="mb-8 p-6 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 rounded-[35px] border border-indigo-500/30 backdrop-blur-md">
-          <p className="text-[10px] font-black uppercase text-cyan-400 mb-4 tracking-[0.2em]">
+        <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
+          <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
             {bilan.bilanContent.fraisDivers.length > 0
               ? "Frais & Acomptes"
               : "Suivi des acomptes & impayés"}
@@ -201,8 +201,8 @@ export const BilanTab = ({
             </>
           )}
 
-          <div className="mt-6 bg-black/30 rounded-3xl p-5 border border-cyan-500/20">
-            <p className="text-[9px] font-black uppercase text-cyan-400 mb-4 tracking-[0.2em]">
+          <div className="mt-6 bg-black/30 rounded-3xl p-5 border border-yellow-600/20">
+            <p className="text-[9px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
               Suivi du solde acompte & impayés
             </p>
 
@@ -261,19 +261,19 @@ export const BilanTab = ({
       {/* PAIEMENT */}
       {bilan.bilanPeriodType === "semaine" &&
         (!bilan.bilanPaye ? (
-          <div className="mb-8 mt-2 p-5 bg-gradient-to-r from-orange-600 to-red-700 rounded-2xl shadow-lg">
+          <div className="mb-8 mt-2 p-5 bg-gradient-to-r from-[#7B1A1A] to-[#5C1010] rounded-2xl shadow-lg border border-red-700/50">
             <div className="flex justify-between items-center mb-3">
-              <span className="text-[11px] font-black uppercase text-white/80">
+              <span className="text-[11px] font-black uppercase text-white/70">
                 Reste à percevoir (Net)
               </span>
-              <span className="text-2xl font-black text-white">
+              <span className="text-3xl font-black text-orange-400">
                 {formatEuro(bilan.bilanContent.resteAPercevoir || 0)}
               </span>
             </div>
 
             <button
               onClick={onMarquerCommePaye}
-              className="w-full py-3 bg-white/20 hover:bg-white/30 rounded-xl font-black uppercase text-[11px] text-white tracking-wider transition-all active:scale-95 backdrop-blur-md border border-white/30"
+              className="w-full py-3 bg-[#8B2020] hover:bg-[#A02525] rounded-xl font-black uppercase text-[11px] text-white tracking-wider transition-all active:scale-95 border border-red-500/50"
             >
               💰 MARQUER COMME PAYÉ
             </button>
@@ -311,7 +311,7 @@ export const BilanTab = ({
               bilan.bilanContent.fraisDivers
             )
           }
-          className="flex-1 min-w-[120px] py-4 bg-green-600/20 text-green-400 rounded-2xl font-black text-[10px] uppercase border border-green-500/30 active:scale-95 transition-all backdrop-blur-md"
+          className="flex-1 min-w-[120px] py-4 bg-green-600/20 text-green-400 rounded-2xl font-black text-[10px] uppercase border border-yellow-600/20 active:scale-95 transition-all backdrop-blur-md"
         >
           Excel
         </button>
@@ -325,7 +325,7 @@ export const BilanTab = ({
               bilan.bilanPeriodValue
             )
           }
-          className="flex-1 min-w-[120px] py-4 bg-red-600/20 text-red-400 rounded-2xl font-black text-[10px] uppercase border border-red-500/30 active:scale-95 transition-all backdrop-blur-md"
+          className="flex-1 min-w-[120px] py-4 bg-red-600/20 text-red-400 rounded-2xl font-black text-[10px] uppercase border border-yellow-600/20 active:scale-95 transition-all backdrop-blur-md"
         >
           PDF
         </button>
@@ -339,7 +339,7 @@ export const BilanTab = ({
               false
             )
           }
-          className="flex-1 min-w-[120px] py-4 bg-blue-600/20 text-blue-400 rounded-2xl font-black text-[10px] uppercase border border-blue-500/30 active:scale-95 transition-all backdrop-blur-md"
+          className="flex-1 min-w-[120px] py-4 bg-blue-600/20 text-blue-400 rounded-2xl font-black text-[10px] uppercase border border-yellow-600/20 active:scale-95 transition-all backdrop-blur-md"
         >
           CSV Missions
         </button>
@@ -355,7 +355,7 @@ export const BilanTab = ({
                   true
                 )
               }
-              className="flex-1 min-w-[140px] py-4 bg-cyan-600/20 text-cyan-300 rounded-2xl font-black text-[10px] uppercase border border-cyan-500/30 active:scale-95 transition-all backdrop-blur-md"
+              className="flex-1 min-w-[140px] py-4 bg-cyan-600/20 text-cyan-300 rounded-2xl font-black text-[10px] uppercase border border-yellow-600/20 active:scale-95 transition-all backdrop-blur-md"
             >
               CSV + Frais
             </button>
@@ -379,17 +379,15 @@ export const BilanTab = ({
             return (
               <div
                 key={i}
-                className={`p-5 rounded-[25px] backdrop-blur-md border border-white/10 ${
-                  darkMode ? "bg-white/5" : "bg-black/5"
-                }`}
+                className="p-5 rounded-[25px] backdrop-blur-md border border-yellow-600/15 bg-[#0A1628]/60"
               >
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <div className="flex flex-col items-center min-w-[50px]">
-                      <div className="text-[10px] font-black uppercase text-indigo-300/90">
+                      <div className="text-[10px] font-black uppercase text-[#D4AF37]/90">
                         {monthShort}
                       </div>
-                      <div className="w-10 h-10 bg-indigo-700 rounded-md flex items-center justify-center shadow-md border border-indigo-600/30">
+                      <div className="w-10 h-10 bg-[#0A1628] rounded-md flex items-center justify-center shadow-md border border-yellow-600/30">
                         <span className="text-white font-black text-xl">
                           {day}
                         </span>
@@ -414,10 +412,10 @@ export const BilanTab = ({
 
                   <div className="flex items-center gap-6 shrink-0">
                     <div className="text-right">
-                      <p className="text-[12px] font-bold text-indigo-300">
+                      <p className="text-[12px] font-bold text-yellow-400/80">
                         {formatHeures(m.duree || 0)}
                       </p>
-                      <p className="text-lg font-black text-green-400">
+                      <p className="text-lg font-black text-emerald-400">
                         {formatEuro(m.montant)}
                       </p>
                     </div>
@@ -486,7 +484,7 @@ export const BilanTab = ({
                 </p>
                 <div className="flex justify-between text-sm">
                   <span className="opacity-70">Heures :</span>
-                  <span className="font-bold text-indigo-300">
+                  <span className="font-bold text-yellow-400/80">
                     {formatHeures(group.h)}
                   </span>
                 </div>

@@ -670,13 +670,13 @@ export default function App() {
     <div
       className={`min-h-screen relative overflow-hidden transition-all duration-700 ${
         darkMode
-          ? "bg-gradient-to-br from-[#0a001f] via-[#1a0033] to-[#0f0022] text-white"
+          ? "bg-[#020818] text-white"
           : "bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900"
       }`}
     >
       {/* Fond décoratif */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/30 via-transparent to-indigo-900/30" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-blue-800/10" />
         <div className="absolute inset-0 backdrop-blur-3xl" />
       </div>
 
@@ -690,13 +690,13 @@ export default function App() {
       {/* Loading */}
       {isLoading && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-400 border-t-transparent shadow-[0_0_30px_rgba(99,102,241,0.6)]"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-500 border-t-transparent"></div>
         </div>
       )}
 
       {/* Header */}
-      <header className="relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-800/95 via-purple-900/95 to-indigo-950/95 backdrop-blur-xl" />
+      <header className="relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-yellow-600/30">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#020818] via-[#0A1628] to-[#020818] backdrop-blur-xl" />
         <div className="relative z-10 text-center">
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -704,7 +704,7 @@ export default function App() {
           >
             {darkMode ? "☀️" : "🌙"}
           </button>
-          <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-white mb-2 drop-shadow-2xl">
+          <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[#D4AF37] mb-2 drop-shadow-2xl font-['Playfair_Display']">
             HEURES DE GEO
           </h1>
           <div className="flex items-center justify-center gap-2 text-white/90">
@@ -960,7 +960,7 @@ export default function App() {
 
       {/* Navigation */}
       <nav className="fixed bottom-6 left-6 right-6 z-[100]">
-        <div className="bg-[#0f111a]/80 backdrop-blur-3xl border border-white/10 p-2 rounded-[35px] shadow-2xl flex gap-1">
+        <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">
           <button
             onClick={() => setActiveTab("saisie")}
             className={`flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest ${
@@ -1004,7 +1004,7 @@ export default function App() {
             }}
             className={`flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest ${
               activeTab === "histo"
-                ? "bg-gradient-to-br from-purple-600 to-purple-800 text-white"
+                ? "bg-gradient-to-br from-[#C9A84C] to-[#A07830] text-white"
                 : "text-white/30"
             }`}
           >
