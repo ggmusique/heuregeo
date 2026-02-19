@@ -27,8 +27,8 @@ export const BilanTab = ({
   onMarquerCommePaye,
   onFraisEdit,
   onFraisDelete,
-  onMissionEdit,      // ← AJOUTE CETTE LIGNE
-  onMissionDelete,    // ← AJOUTE CETTE LIGNE
+  onMissionEdit,
+  onMissionDelete,
 }) => {
   // ✅ Memoization des missions triées
   const sortedBilanMissions = useMemo(() => {
@@ -73,8 +73,8 @@ export const BilanTab = ({
                 <MissionCard
                   key={m.id}
                   mission={m}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
+                  onEdit={onMissionEdit}
+                  onDelete={onMissionDelete}
                   patronNom={getPatronNom(m.patron_id)}
                   patronColor={getPatronColor(m.patron_id)}
                 />
@@ -156,107 +156,107 @@ export const BilanTab = ({
         (bilan.bilanContent.fraisDivers.length > 0 ||
           bilan.bilanContent.acomptesDansPeriode > 0 ||
           bilan.bilanContent.soldeAcomptesApres > 0) && (
-          <div className="mb-8 p-6 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 rounded-[35px] border border-indigo-500/30 backdrop-blur-md">
-            <p className="text-[10px] font-black uppercase text-cyan-400 mb-4 tracking-[0.2em]">
-              {bilan.bilanContent.fraisDivers.length > 0
-                ? "Frais & Acomptes"
-                : "Suivi des acomptes & impayés"}
+        <div className="mb-8 p-6 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 rounded-[35px] border border-indigo-500/30 backdrop-blur-md">
+          <p className="text-[10px] font-black uppercase text-cyan-400 mb-4 tracking-[0.2em]">
+            {bilan.bilanContent.fraisDivers.length > 0
+              ? "Frais & Acomptes"
+              : "Suivi des acomptes & impayés"}
+          </p>
+
+          {bilan.bilanContent.fraisDivers.length > 0 && (
+            <>
+              {[...bilan.bilanContent.fraisDivers]
+                .sort((a, b) => new Date(a.date_frais) - new Date(b.date_frais))
+                .map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex justify-between items-center mb-3 gap-3"
+                  >
+                    <div className="flex-1">
+                      <span className="text-sm font-bold opacity-70 uppercase">
+                        {f.description} – {formatDateFR(f.date_frais)}
+                      </span>
+                    </div>
+                    <span className="text-sm font-black text-amber-500">
+                      +{formatEuro(f.montant)}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => onFraisEdit(f)}
+                        className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
+                        title="Modifier"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => onFraisDelete(f)}
+                        className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
+                        title="Supprimer"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </>
+          )}
+
+          <div className="mt-6 bg-black/30 rounded-3xl p-5 border border-cyan-500/20">
+            <p className="text-[9px] font-black uppercase text-cyan-400 mb-4 tracking-[0.2em]">
+              Suivi du solde acompte & impayés
             </p>
 
-            {bilan.bilanContent.fraisDivers.length > 0 && (
-              <>
-                {[...bilan.bilanContent.fraisDivers]
-                  .sort((a, b) => new Date(a.date_frais) - new Date(b.date_frais))
-                  .map((f) => (
-                    <div
-                      key={f.id}
-                      className="flex justify-between items-center mb-3 gap-3"
-                    >
-                      <div className="flex-1">
-                        <span className="text-sm font-bold opacity-70 uppercase">
-                          {f.description} – {formatDateFR(f.date_frais)}
-                        </span>
-                      </div>
-                      <span className="text-sm font-black text-amber-500">
-                        +{formatEuro(f.montant)}
-                      </span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => onFraisEdit(f)}
-                          className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
-                          title="Modifier"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => onFraisDelete(f)}
-                          className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
-                          title="Supprimer"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </>
-            )}
+            <div className="space-y-3">
+              {bilan.bilanContent.impayePrecedent !== 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Impayé précédent :</span>
+                  <span className="font-bold text-orange-400">
+                    +{formatEuro(bilan.bilanContent.impayePrecedent)}
+                  </span>
+                </div>
+              )}
 
-            <div className="mt-6 bg-black/30 rounded-3xl p-5 border border-cyan-500/20">
-              <p className="text-[9px] font-black uppercase text-cyan-400 mb-4 tracking-[0.2em]">
-                Suivi du solde acompte & impayés
-              </p>
+              {bilan.bilanContent.soldeAcomptesAvant !== 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Solde avant période :</span>
+                  <span className="font-bold text-white">
+                    {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
+                  </span>
+                </div>
+              )}
 
-              <div className="space-y-3">
-                {bilan.bilanContent.impayePrecedent !== 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/60">Impayé précédent :</span>
-                    <span className="font-bold text-orange-400">
-                      +{formatEuro(bilan.bilanContent.impayePrecedent)}
-                    </span>
-                  </div>
-                )}
+              {bilan.bilanContent.acomptesDansPeriode !== 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Reçus cette période :</span>
+                  <span className="font-bold text-cyan-300">
+                    +{formatEuro(bilan.bilanContent.acomptesDansPeriode)}
+                  </span>
+                </div>
+              )}
 
-                {bilan.bilanContent.soldeAcomptesAvant !== 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/60">Solde avant période :</span>
-                    <span className="font-bold text-white">
-                      {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
-                    </span>
-                  </div>
-                )}
+              {bilan.bilanContent.totalAcomptes !== 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Consommé :</span>
+                  <span className="font-bold text-cyan-300">
+                    -{formatEuro(bilan.bilanContent.totalAcomptes)}
+                  </span>
+                </div>
+              )}
 
-                {bilan.bilanContent.acomptesDansPeriode !== 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/60">Reçus cette période :</span>
-                    <span className="font-bold text-cyan-300">
-                      +{formatEuro(bilan.bilanContent.acomptesDansPeriode)}
-                    </span>
-                  </div>
-                )}
-
-                {bilan.bilanContent.totalAcomptes !== 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/60">Consommé :</span>
-                    <span className="font-bold text-cyan-300">
-                      -{formatEuro(bilan.bilanContent.totalAcomptes)}
-                    </span>
-                  </div>
-                )}
-
-                {bilan.bilanContent.soldeAcomptesApres !== 0 && (
-                  <div className="pt-3 border-t border-white/10 flex justify-between items-center">
-                    <span className="text-[10px] font-black uppercase text-white/80">
-                      Solde restant à reporter :
-                    </span>
-                    <span className="text-xl font-black text-green-400">
-                      {formatEuro(bilan.bilanContent.soldeAcomptesApres)}
-                    </span>
-                  </div>
-                )}
-              </div>
+              {bilan.bilanContent.soldeAcomptesApres !== 0 && (
+                <div className="pt-3 border-t border-white/10 flex justify-between items-center">
+                  <span className="text-[10px] font-black uppercase text-white/80">
+                    Solde restant à reporter :
+                  </span>
+                  <span className="text-xl font-black text-green-400">
+                    {formatEuro(bilan.bilanContent.soldeAcomptesApres)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
       {/* PAIEMENT */}
       {bilan.bilanPeriodType === "semaine" &&
@@ -447,17 +447,17 @@ export const BilanTab = ({
                         ?
                       </div>
                     )}
-                {/* ✅ BOUTONS EDIT/DELETE */}
+                    {/* ✅ BOUTONS EDIT/DELETE */}
                     <div className="flex gap-2">
                       <button
-                        onClick={() => bilan.onMissionEdit && bilan.onMissionEdit(m)}
+                        onClick={() => onMissionEdit && onMissionEdit(m)}
                         className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
                         title="Modifier"
                       >
                         ✏️
                       </button>
                       <button
-                        onClick={() => bilan.onMissionDelete && bilan.onMissionDelete(m.id)}
+                        onClick={() => onMissionDelete && onMissionDelete(m.id)}
                         className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
                         title="Supprimer"
                       >
