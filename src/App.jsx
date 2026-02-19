@@ -25,6 +25,7 @@ import { ClientModal } from "./components/client/ClientModal";
 import { PeriodModal } from "./components/common/bilan/PeriodModal";
 import { ConfirmModal } from "./components/common/ConfirmModal";
 import { CustomAlert } from "./components/common/CustomAlert";
+import { UpdatePrompt } from "./components/common/UpdatePrompt";
 import { LieuModal } from "./components/lieu/LieuModal";
 
 // Styles
@@ -687,6 +688,8 @@ export default function App() {
         onDismiss={() => setCustomAlert((prev) => ({ ...prev, show: false }))}
       />
 
+      <UpdatePrompt />
+
       {/* Loading */}
       {isLoading && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -717,6 +720,13 @@ export default function App() {
               })}
             </span>
           </div>
+          {APP_VERSION && (
+            <div className="mt-1">
+              <span className="text-[10px] text-yellow-600/50 font-mono tracking-widest uppercase">
+                v{APP_VERSION}
+              </span>
+            </div>
+          )}
         </div>
       </header>
 
