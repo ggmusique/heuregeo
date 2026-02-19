@@ -73,8 +73,8 @@ export const BilanTab = ({
                 <MissionCard
                   key={m.id}
                   mission={m}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
+                  onEdit={onMissionEdit}
+                  onDelete={onMissionDelete}
                   patronNom={getPatronNom(m.patron_id)}
                   patronColor={getPatronColor(m.patron_id)}
                 />
@@ -450,14 +450,14 @@ export const BilanTab = ({
                 {/* ✅ BOUTONS EDIT/DELETE */}
                     <div className="flex gap-2">
                       <button
-                        onClick={() => bilan.onMissionEdit && bilan.onMissionEdit(m)}
+                        onClick={() => onMissionEdit && onMissionEdit(m)}
                         className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
                         title="Modifier"
                       >
                         ✏️
                       </button>
                       <button
-                        onClick={() => bilan.onMissionDelete && bilan.onMissionDelete(m.id)}
+                        onClick={() => onMissionDelete && onMissionDelete(m.id)}
                         className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
                         title="Supprimer"
                       >
