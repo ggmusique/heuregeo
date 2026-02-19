@@ -2,75 +2,94 @@ import { useEffect, useRef, useState } from 'react'
 
 export function UpdatePrompt() {
   const [needRefresh, setNeedRefresh] = useState(false)
-  const registrationRef = useRef(null)
+  const waitingWorkerRef = useRef(null)
 
   useEffect(() => {
-    // Éviter la boucle : si on vient d'un rechargement SW, ne pas re-proposer
-    if (sessionStorage.getItem('sw-updated')) {
-      sessionStorage.removeItem('sw-updated')
-      return
-    }
-
     if (!('serviceWorker' in navigator)) return
 
-    let interval
     let cancelled = false
+    let interval = null
+    let registrationRef = null
+    let onUpdateFound = null
 
     const handleUpdateFound = (registration) => {
       const newWorker = registration.installing
-      if (newWorker) {
-        newWorker.addEventListener('statechange', function onStateChange() {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller && !cancelled) {
-            setNeedRefresh(true)
-          }
-          if (newWorker.state === 'installed' || newWorker.state === 'redundant') {
-            newWorker.removeEventListener('statechange', onStateChange)
-          }
-        })
-      }
+      if (!newWorker) return
+
+      newWorker.addEventListener('statechange', function onStateChange() {
+        if (
+          newWorker.state === 'installed' &&
+          navigator.serviceWorker.controller &&
+          !cancelled
+        ) {
+          waitingWorkerRef.current = newWorker
+          setNeedRefresh(true)
+        }
+        if (newWorker.state === 'installed' || newWorker.state === 'redundant') {
+          newWorker.removeEventListener('statechange', onStateChange)
+        }
+      })
     }
 
     navigator.serviceWorker.ready.then((registration) => {
       if (cancelled) return
-      registrationRef.current = registration
-      interval = setInterval(() => registration.update(), 60 * 1000)
 
-      const onUpdateFound = () => handleUpdateFound(registration)
-      registration.addEventListener('updatefound', onUpdateFound)
+      registrationRef = registration
 
-      // Vérifier immédiatement si un SW est déjà en attente
+      // Vérifier si un SW est déjà en attente au chargement
       if (registration.waiting && navigator.serviceWorker.controller) {
+        waitingWorkerRef.current = registration.waiting
         setNeedRefresh(true)
       }
 
-      registrationRef._cleanup = () => {
-        registration.removeEventListener('updatefound', onUpdateFound)
-      }
+      // Écouter les nouvelles mises à jour
+      onUpdateFound = () => handleUpdateFound(registration)
+      registration.addEventListener('updatefound', onUpdateFound)
+
+      // Vérifier périodiquement (toutes les 60s)
+      interval = setInterval(() => {
+        registration.update().catch(() => {})
+      }, 60 * 1000)
     })
 
     return () => {
       cancelled = true
-      clearInterval(interval)
-      if (registrationRef._cleanup) {
-        registrationRef._cleanup()
-        delete registrationRef._cleanup
+      if (interval) clearInterval(interval)
+      if (registrationRef && onUpdateFound) {
+        registrationRef.removeEventListener('updatefound', onUpdateFound)
       }
     }
   }, [])
 
+  const reloadOnControllerChange = () => {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload()
+    }, { once: true })
+  }
+
   const handleUpdate = () => {
-    if ('serviceWorker' in navigator) {
+    const worker = waitingWorkerRef.current
+    if (worker) {
+      // Dire au SW en attente de prendre le contrôle
+      worker.postMessage({ type: 'SKIP_WAITING' })
+      setNeedRefresh(false)
+      reloadOnControllerChange()
+    } else if ('serviceWorker' in navigator) {
+      // Fallback : forcer via ready
       navigator.serviceWorker.ready.then((registration) => {
         if (registration.waiting) {
-          // Indiquer au SW en attente de prendre le contrôle
           registration.waiting.postMessage({ type: 'SKIP_WAITING' })
-          sessionStorage.setItem('sw-updated', '1')
           setNeedRefresh(false)
-          // Recharger après un court délai
-          setTimeout(() => window.location.reload(), 300)
+          reloadOnControllerChange()
         }
       })
     }
+  }
+
+  const handleDismiss = () => {
+    // Ferme juste la notif — le SW en attente reste en waiting
+    // La prochaine fois que l'appli est relancée, la notif reviendra
+    setNeedRefresh(false)
   }
 
   if (!needRefresh) return null
@@ -85,9 +104,9 @@ export function UpdatePrompt() {
             <p className="text-white/50 text-xs">Nouvelle version prête à installer</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <button
-            onClick={() => setNeedRefresh(false)}
+            onClick={handleDismiss}
             className="px-3 py-2 rounded-xl text-white/40 text-xs font-medium border border-white/10 active:scale-95"
           >
             Plus tard
