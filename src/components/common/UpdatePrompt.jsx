@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
+const LS_KEY = 'pwa-update-pending'
+
 export function UpdatePrompt() {
   const [needRefresh, setNeedRefresh] = useState(false)
   const waitingWorkerRef = useRef(null)
@@ -9,8 +11,13 @@ export function UpdatePrompt() {
 
     let cancelled = false
     let interval = null
-    let registrationRef = null
-    let onUpdateFound = null
+
+    const showUpdateBanner = (worker) => {
+      if (cancelled) return
+      waitingWorkerRef.current = worker
+      localStorage.setItem(LS_KEY, '1')
+      setNeedRefresh(true)
+    }
 
     const handleUpdateFound = (registration) => {
       const newWorker = registration.installing
@@ -22,8 +29,7 @@ export function UpdatePrompt() {
           navigator.serviceWorker.controller &&
           !cancelled
         ) {
-          waitingWorkerRef.current = newWorker
-          setNeedRefresh(true)
+          showUpdateBanner(newWorker)
         }
         if (newWorker.state === 'installed' || newWorker.state === 'redundant') {
           newWorker.removeEventListener('statechange', onStateChange)
@@ -34,17 +40,18 @@ export function UpdatePrompt() {
     navigator.serviceWorker.ready.then((registration) => {
       if (cancelled) return
 
-      registrationRef = registration
-
-      // Vérifier si un SW est déjà en attente au chargement
+      // Cas 1 : un SW est déjà en attente au démarrage
       if (registration.waiting && navigator.serviceWorker.controller) {
-        waitingWorkerRef.current = registration.waiting
-        setNeedRefresh(true)
+        showUpdateBanner(registration.waiting)
+      }
+      // Cas 2 : localStorage dit qu'une MAJ était en attente, mais plus de SW waiting
+      // → la MAJ s'est auto-installée silencieusement, on nettoie
+      else if (localStorage.getItem(LS_KEY)) {
+        localStorage.removeItem(LS_KEY)
       }
 
       // Écouter les nouvelles mises à jour
-      onUpdateFound = () => handleUpdateFound(registration)
-      registration.addEventListener('updatefound', onUpdateFound)
+      registration.addEventListener('updatefound', () => handleUpdateFound(registration))
 
       // Vérifier périodiquement (toutes les 60s)
       interval = setInterval(() => {
@@ -55,40 +62,35 @@ export function UpdatePrompt() {
     return () => {
       cancelled = true
       if (interval) clearInterval(interval)
-      if (registrationRef && onUpdateFound) {
-        registrationRef.removeEventListener('updatefound', onUpdateFound)
-      }
     }
   }, [])
 
-  const reloadOnControllerChange = () => {
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      window.location.reload()
-    }, { once: true })
-  }
-
   const handleUpdate = () => {
     const worker = waitingWorkerRef.current
-    if (worker) {
-      // Dire au SW en attente de prendre le contrôle
-      worker.postMessage({ type: 'SKIP_WAITING' })
+
+    const doUpdate = (w) => {
+      localStorage.removeItem(LS_KEY)
       setNeedRefresh(false)
-      reloadOnControllerChange()
-    } else if ('serviceWorker' in navigator) {
-      // Fallback : forcer via ready
+      w.postMessage({ type: 'SKIP_WAITING' })
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload()
+      }, { once: true })
+    }
+
+    if (worker) {
+      doUpdate(worker)
+    } else {
       navigator.serviceWorker.ready.then((registration) => {
         if (registration.waiting) {
-          registration.waiting.postMessage({ type: 'SKIP_WAITING' })
-          setNeedRefresh(false)
-          reloadOnControllerChange()
+          doUpdate(registration.waiting)
         }
       })
     }
   }
 
   const handleDismiss = () => {
-    // Ferme juste la notif — le SW en attente reste en waiting
-    // La prochaine fois que l'appli est relancée, la notif reviendra
+    // On cache la notif MAIS on garde le localStorage
+    // → au prochain lancement, si le SW est encore en waiting, la notif reviendra
     setNeedRefresh(false)
   }
 
