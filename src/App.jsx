@@ -710,6 +710,11 @@ export default function App() {
           <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[#D4AF37] mb-2 drop-shadow-2xl font-['Playfair_Display']">
             HEURES DE GEO
           </h1>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <span className="text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border border-yellow-600/40 text-yellow-500/70">
+              v4.6.1 ✓ OTA
+            </span>
+          </div>
           <div className="flex items-center justify-center gap-2 text-white/90">
             <span className="text-[17px] font-black tracking-tight">{liveTime}</span>
             <span className="text-[15px] font-medium opacity-80 lowercase">
