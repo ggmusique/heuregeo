@@ -97,4 +97,3 @@ Quand tu veux, on fera :
 - soit un **schéma visuel simple** (work → main → version)
 - soit un **mode “sécurité maximale”** (impossible de tout casser)
 
-test sauvegarde 
