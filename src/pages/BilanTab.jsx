@@ -30,6 +30,7 @@ export const BilanTab = ({
   onMissionEdit,
   onMissionDelete,
   profile,
+  isViewer,
 }) => {
   // ✅ Memoization des missions triées
   const sortedBilanMissions = useMemo(() => {
@@ -74,8 +75,8 @@ export const BilanTab = ({
                 <MissionCard
                   key={m.id}
                   mission={m}
-                  onEdit={onMissionEdit}
-                  onDelete={onMissionDelete}
+                  onEdit={isViewer ? null : onMissionEdit}
+                  onDelete={isViewer ? null : onMissionDelete}
                   patronNom={getPatronNom(m.patron_id)}
                   patronColor={getPatronColor(m.patron_id)}
                 />
@@ -182,20 +183,24 @@ export const BilanTab = ({
                       +{formatEuro(f.montant)}
                     </span>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => onFraisEdit(f)}
-                        className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
-                        title="Modifier"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => onFraisDelete(f)}
-                        className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
-                        title="Supprimer"
-                      >
-                        🗑️
-                      </button>
+                      {!isViewer && (
+                        <>
+                          <button
+                            onClick={() => onFraisEdit(f)}
+                            className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
+                            title="Modifier"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => onFraisDelete(f)}
+                            className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
+                            title="Supprimer"
+                          >
+                            🗑️
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -272,12 +277,14 @@ export const BilanTab = ({
               </span>
             </div>
 
-            <button
-              onClick={onMarquerCommePaye}
-              className="w-full py-3 bg-[#8B2020] hover:bg-[#A02525] rounded-xl font-black uppercase text-[11px] text-white tracking-wider transition-all active:scale-95 border border-red-500/50"
-            >
-              💰 MARQUER COMME PAYÉ
-            </button>
+            {!isViewer && (
+              <button
+                onClick={onMarquerCommePaye}
+                className="w-full py-3 bg-[#8B2020] hover:bg-[#A02525] rounded-xl font-black uppercase text-[11px] text-white tracking-wider transition-all active:scale-95 border border-red-500/50"
+              >
+                💰 MARQUER COMME PAYÉ
+              </button>
+            )}
           </div>
         ) : (
           <div className="mb-8 mt-2 relative overflow-hidden">

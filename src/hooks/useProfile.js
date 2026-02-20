@@ -54,5 +54,8 @@ export const useProfile = (user) => {
   // Profil complet = prénom ET nom renseignés
   const isProfileComplete = Boolean(profile && profile.prenom?.trim() && profile.nom?.trim())
 
-  return { profile, loading, saving, error, saveProfile, fetchProfile, isProfileComplete }
+  const isViewer = profile?.role === 'viewer'
+  const viewerPatronId = isViewer ? profile?.patron_id : null
+
+  return { profile, loading, saving, error, saveProfile, fetchProfile, isProfileComplete, isViewer, viewerPatronId }
 }
