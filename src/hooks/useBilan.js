@@ -357,7 +357,7 @@ export function useBilan({
    * - sauvegarde dans Supabase (bilans_status_v2)
    */
   const genererBilan = useCallback(
-    async (patronId = null) => {
+    async (patronId = null, clientId = null) => {
       if (!bilanPeriodValue) {
         triggerAlert?.("Sélectionnez une période.");
         return false;
@@ -377,7 +377,8 @@ export function useBilan({
           bilanPeriodType,
           bilanPeriodValue,
           patronId
-        ).sort((a, b) => new Date(a.date_iso) - new Date(b.date_iso));
+        ).filter((m) => !clientId || m.client_id === clientId)
+          .sort((a, b) => new Date(a.date_iso) - new Date(b.date_iso));
 
         // Totaux missions
         const totalMissions = filtered.reduce((sum, m) => sum + (m.montant || 0), 0);
