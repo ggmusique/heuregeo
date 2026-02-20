@@ -97,5 +97,5 @@ Tu t’en sors très bien, même avec des moments de panique — c’est exactem
 Quand tu veux, on fera :
 - soit un **schéma visuel simple** (work → main → version)
 - soit un **mode “sécurité maximale”** (impossible de tout casser)
-
-test mise a jours
+ test
+ 

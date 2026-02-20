@@ -1064,7 +1064,6 @@ export default function App({ user }) {
                 : "text-white/30"
             }`}
           >
-            <span className={`text-[14px] ${activeTab === "compte" ? "text-amber-400" : "text-amber-400/40"}`}>👤</span>
             <span>Compte</span>
           </button>
         </div>
