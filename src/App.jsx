@@ -5,6 +5,7 @@ import { SaisieTab } from "./pages/SaisieTab";
 import { DonneesTab } from "./pages/DonneesTab";
 import { HistoriqueTab } from "./pages/HistoriqueTab";
 import { BilanTab } from "./pages/BilanTab";
+import { CompteTab } from "./pages/CompteTab";
 
 // Hooks
 import { useClients } from "./hooks/useClients";
@@ -16,6 +17,7 @@ import { useBilan } from "./hooks/useBilan";
 import { useConfirm } from "./hooks/useConfirm";
 import { useGeolocation } from "./hooks/useGeolocation";
 import { useLieux } from "./hooks/useLieux";
+import { useProfile } from "./hooks/useProfile";
 
 // Components
 import { FraisModal } from "./components/common/frais/FraisModal";
@@ -27,6 +29,7 @@ import { ConfirmModal } from "./components/common/ConfirmModal";
 import { CustomAlert } from "./components/common/CustomAlert";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
 import { LieuModal } from "./components/lieu/LieuModal";
+import { OnboardingForm } from "./components/auth/OnboardingForm";
 
 // Styles
 import "./time-inputs-fix.css";
@@ -36,7 +39,7 @@ import "./fix-selects.css";
 // Utils
 import { getWeekNumber } from "./utils/dateUtils";
 
-export default function App() {
+export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
@@ -184,6 +187,14 @@ export default function App() {
     getTotalAcomptesJusqua,
     triggerAlert,
   });
+
+  const {
+    profile,
+    loading: profileLoading,
+    saving: profileSaving,
+    saveProfile,
+    isProfileComplete,
+  } = useProfile(user);
 
   // ============================================================
   // ✅ EFFECTS
@@ -668,6 +679,11 @@ export default function App() {
     gpsLoading ||
     loadingHistorique;
 
+  // Onboarding obligatoire si profil incomplet
+  if (user && !profileLoading && !isProfileComplete) {
+    return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
+  }
+
   return (
     <div
       className={`min-h-screen relative overflow-hidden transition-all duration-700 ${
@@ -709,7 +725,7 @@ export default function App() {
             {darkMode ? "☀️" : "🌙"}
           </button>
           <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[#D4AF37] mb-2 drop-shadow-2xl font-['Playfair_Display']">
-            HEURES DE GEO
+            {`HEURES DE ${profile?.prenom?.trim()?.toUpperCase() || 'GEO'}`}
           </h1>
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border border-yellow-600/40 text-yellow-500/70">
@@ -863,8 +879,18 @@ export default function App() {
     onFraisDelete={handleFraisDelete}
     onMissionEdit={handleMissionEdit}
     onMissionDelete={handleMissionDelete}
+    profile={profile}
   />
 )}
+
+        {activeTab === "compte" && (
+          <CompteTab
+            profile={profile}
+            saving={profileSaving}
+            onSave={saveProfile}
+            userEmail={user?.email}
+          />
+        )}
       </main>
 
       {/* Modales */}
@@ -1028,6 +1054,17 @@ export default function App() {
             }`}
           >
             Bilan
+          </button>
+
+          <button
+            onClick={() => setActiveTab("compte")}
+            className={`flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest ${
+              activeTab === "compte"
+                ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white"
+                : "text-white/30"
+            }`}
+          >
+            👤
           </button>
         </div>
       </nav>

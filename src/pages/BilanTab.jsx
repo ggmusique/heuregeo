@@ -29,6 +29,7 @@ export const BilanTab = ({
   onFraisDelete,
   onMissionEdit,
   onMissionDelete,
+  profile,
 }) => {
   // ✅ Memoization des missions triées
   const sortedBilanMissions = useMemo(() => {
@@ -308,7 +309,8 @@ export const BilanTab = ({
               bilan.bilanPeriodType,
               bilan.bilanPeriodValue,
               bilan.bilanContent.titre,
-              bilan.bilanContent.fraisDivers
+              bilan.bilanContent.fraisDivers,
+              profile
             )
           }
           className="flex-1 min-w-[120px] py-4 bg-green-600/20 text-green-400 rounded-2xl font-black text-[10px] uppercase border border-yellow-600/20 active:scale-95 transition-all backdrop-blur-md"
@@ -322,7 +324,8 @@ export const BilanTab = ({
               bilan.bilanContent,
               bilan.bilanPeriodType,
               bilan.bilanPaye,
-              bilan.bilanPeriodValue
+              bilan.bilanPeriodValue,
+              profile
             )
           }
           className="flex-1 min-w-[120px] py-4 bg-red-600/20 text-red-400 rounded-2xl font-black text-[10px] uppercase border border-yellow-600/20 active:scale-95 transition-all backdrop-blur-md"
