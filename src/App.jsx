@@ -92,6 +92,7 @@ export default function App() {
 
   // État pour BilanTab
   const [bilanPatronId, setBilanPatronId] = useState(null);
+  const [bilanClientId, setBilanClientId] = useState(null);
 
   // ============================================================
   // ✅ UTILS
@@ -952,12 +953,15 @@ export default function App() {
         setPeriodValue={bilan.setBilanPeriodValue}
         availablePeriods={bilan.availablePeriods}
         formatPeriodLabel={bilan.formatPeriodLabel}
-        onConfirm={() => bilan.genererBilan(bilanPatronId)}
-        onCancel={() => bilan.setShowPeriodModal(false)}
+        onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}
+        onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}
         darkMode={darkMode}
         patrons={patrons}
         selectedPatronId={bilanPatronId}
         onPatronChange={setBilanPatronId}
+        clients={clients}
+        selectedClientId={bilanClientId}
+        onClientChange={setBilanClientId}
       />
 
       <LieuModal
