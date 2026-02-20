@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Children } from "react";
 import { supabase } from "../../services/supabase";
 
 export default function AuthGate({ children }) {
@@ -124,16 +124,5 @@ export default function AuthGate({ children }) {
     );
   }
 
-  return (
-    <>
-      <button
-        onClick={logout}
-        className="fixed top-4 left-4 z-[9999] px-3 py-2 rounded-xl bg-white/10 text-white text-xs font-black border border-white/10"
-        title="Se déconnecter"
-      >
-        Logout
-      </button>
-      {children}
-    </>
-  );
+  return React.cloneElement(Children.only(children), { user: session.user });
 }

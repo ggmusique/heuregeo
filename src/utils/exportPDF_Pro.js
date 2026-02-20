@@ -904,13 +904,44 @@ const drawFooter = (doc) => {
 };
 
 /**
+ * Dessine les coordonnées du profil utilisateur
+ */
+const drawProfileSection = (doc, profile, startY) => {
+  if (!profile) return startY;
+  try {
+    const lines = [];
+    const fullName = [profile.prenom, profile.nom].filter(Boolean).join(" ");
+    if (fullName) lines.push(fullName);
+    if (profile.adresse) lines.push(profile.adresse);
+    const cityLine = [profile.code_postal, profile.ville].filter(Boolean).join(" ");
+    if (cityLine) lines.push(cityLine);
+    if (profile.telephone) lines.push(profile.telephone);
+    if (lines.length === 0) return startY;
+
+    let y = startY;
+    doc.setFontSize(8);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(...COLORS.textSecondary);
+    lines.forEach((line) => {
+      doc.text(line, 15, y);
+      y += 4;
+    });
+    return y + 4;
+  } catch (error) {
+    console.error("Erreur drawProfileSection:", error);
+    return startY;
+  }
+};
+
+/**
  * Export PDF Professionnel - Design moderne
  */
 export const exportToPDFPro = (
   bilanContent,
   periodType,
   estPaye = false,
-  periodValue = ""
+  periodValue = "",
+  profile = null
 ) => {
   // Validation
   if (!bilanContent) {
@@ -931,6 +962,7 @@ export const exportToPDFPro = (
 
     // Dessiner les sections
     let y = drawHeader(doc, bilanContent, periodType, periodValue);
+    y = drawProfileSection(doc, profile, y);
     y = drawMetrics(doc, bilanContent, periodType, y);
 
     if (periodType === "semaine") {
