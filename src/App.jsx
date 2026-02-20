@@ -92,7 +92,6 @@ export default function App() {
 
   // État pour BilanTab
   const [bilanPatronId, setBilanPatronId] = useState(null);
-  const [bilanClientId, setBilanClientId] = useState(null);
 
   // ============================================================
   // ✅ UTILS
@@ -421,7 +420,7 @@ export default function App() {
       resetAcompteForm();
       setShowAcompteModal(false);
       if (bilan.showBilan && bilan.bilanPeriodValue) {
-        await bilan.genererBilan(bilanPatronId, bilanClientId);
+        await bilan.genererBilan(bilanPatronId);
       }
     } catch (err) {
       triggerAlert("Erreur : " + (err?.message || "Problème de base de données"));
@@ -852,17 +851,12 @@ export default function App() {
   <BilanTab
     bilan={bilan}
     bilanPatronId={bilanPatronId}
-    onPatronFilterChange={setBilanPatronId}
-    bilanClientId={bilanClientId}
-    onClientFilterChange={setBilanClientId}
     currentWeek={currentWeek}
     missionsThisWeek={missionsThisWeek}
     darkMode={darkMode}
     patrons={patrons}
-    clients={clients}
     getPatronNom={getPatronNom}
     getPatronColor={getPatronColor}
-    getClientNom={getClientNom}
     onMarquerCommePaye={handleMarquerCommePaye}
     onFraisEdit={handleFraisEdit}
     onFraisDelete={handleFraisDelete}
@@ -958,7 +952,7 @@ export default function App() {
         setPeriodValue={bilan.setBilanPeriodValue}
         availablePeriods={bilan.availablePeriods}
         formatPeriodLabel={bilan.formatPeriodLabel}
-        onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}
+        onConfirm={() => bilan.genererBilan(bilanPatronId)}
         onCancel={() => bilan.setShowPeriodModal(false)}
         darkMode={darkMode}
         patrons={patrons}
