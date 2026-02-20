@@ -27,13 +27,10 @@ import { CustomAlert } from "./components/common/CustomAlert";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
 import { LieuModal } from "./components/lieu/LieuModal";
 import { OnboardingForm } from "./components/auth/OnboardingForm";
-import { ViewerBadge } from "./components/common/ViewerBadge";
 
 import "./time-inputs-fix.css";
 import "./fix-time-pickers-emergency.css";
 import "./fix-selects.css";
-
-import { supabase } from "./services/supabase";
 
 import { getWeekNumber } from "./utils/dateUtils";
 
@@ -104,7 +101,7 @@ export default function App({ user }) {
   );
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert });
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId } = useProfile(user);
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete } = useProfile(user);
 
   useEffect(() => {
     document.title = "Heures de Geo";
@@ -114,12 +111,6 @@ export default function App({ user }) {
     fetchAcomptes();
     fetchLieux();
   }, [fetchMissions, fetchFrais, fetchAcomptes, fetchLieux]);
-
-  useEffect(() => {
-    if (!profileLoading && isViewer) {
-      setActiveTab("histo");
-    }
-  }, [profileLoading, isViewer]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -331,7 +322,7 @@ export default function App({ user }) {
 
   const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || loadingHistorique;
 
-  if (user && !profileLoading && !isViewer && !isProfileComplete) {
+  if (user && !profileLoading && !isProfileComplete) {
     return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
   }
 
@@ -363,9 +354,6 @@ export default function App({ user }) {
           <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[#D4AF37] mb-2 drop-shadow-2xl font-['Playfair_Display']">  
             {("HEURES DE " + (profile?.prenom?.trim()?.toUpperCase() || "GEO"))}  
           </h1>  
-          {isViewer && (
-            <ViewerBadge patronNom={patrons.find((p) => p.id === viewerPatronId)?.nom || "..."} />
-          )}  
           <div className="flex items-center justify-center gap-2 mb-1">  
             <span className="text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border border-yellow-600/40 text-yellow-500/70">  
               v{APP_VERSION} ✓ OTA  
@@ -438,7 +426,6 @@ export default function App({ user }) {
             darkMode={darkMode} patrons={patrons} missions={missions} listeAcomptes={listeAcomptes}  
             onPatronFilterChange={(patronId) => { setHistoriquePatronId(patronId); chargerHistorique(patronId); }}  
             onTabChange={setHistoriqueTab} onLoadHistorique={chargerHistorique}  
-            isViewer={isViewer} viewerPatronId={viewerPatronId}  
           />  
         )}  
 
@@ -448,7 +435,6 @@ export default function App({ user }) {
             darkMode={darkMode} patrons={patrons} getPatronNom={getPatronNom} getPatronColor={getPatronColor}  
             onMarquerCommePaye={handleMarquerCommePaye} onFraisEdit={handleFraisEdit} onFraisDelete={handleFraisDelete}  
             onMissionEdit={handleMissionEdit} onMissionDelete={handleMissionDelete} profile={profile}  
-            isViewer={isViewer}  
           />  
         )}  
 
@@ -480,20 +466,13 @@ export default function App({ user }) {
 
       <nav className="fixed bottom-6 left-6 right-6 z-[100]">  
         <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">  
-          {!isViewer && <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>}  
-          {!isViewer && <button onClick={() => setActiveTab("donnees")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "donnees" ? "bg-gradient-to-br from-green-600 to-green-800 text-white" : "text-white/30")}>Donnees</button>}  
+          <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>  
+          <button onClick={() => setActiveTab("donnees")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "donnees" ? "bg-gradient-to-br from-green-600 to-green-800 text-white" : "text-white/30")}>Donnees</button>  
           <button onClick={() => { setActiveTab("historique"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "historique" ? "bg-gradient-to-br from-cyan-600 to-cyan-800 text-white" : "text-white/30")}>Historique</button>  
           <button onClick={() => { setActiveTab("histo"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "histo" ? "bg-gradient-to-br from-[#C9A84C] to-[#A07830] text-white" : "text-white/30")}>Bilan</button>  
-          {!isViewer && (
-            <button onClick={() => setActiveTab("compte")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "compte" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>  
-              <span>Compte</span>  
-            </button>
-          )}
-          {isViewer && (
-            <button onClick={() => supabase.auth.signOut()} aria-label="Déconnexion" className="flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 text-white/30">
-              🚪
-            </button>
-          )}
+          <button onClick={() => setActiveTab("compte")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "compte" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>  
+            <span>Compte</span>  
+          </button>  
         </div>  
       </nav>  
     </div>  
