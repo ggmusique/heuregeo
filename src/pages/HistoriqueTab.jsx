@@ -23,35 +23,43 @@ export const HistoriqueTab = ({
   onPatronFilterChange,
   onTabChange,
   onLoadHistorique,
+
+  // Viewer
+  isViewer,
+  viewerPatronId,
 }) => {
+  // When viewer, use their fixed patron_id for all filtering
+  const effectivePatronId = isViewer ? viewerPatronId : historiquePatronId;
   return (
     <div className="animate-in fade-in duration-500 space-y-4 pb-4">
       {/* ── SÉLECTEUR PATRON ── */}
-      <div
-        className={`p-4 rounded-[25px] border ${
-          darkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200"
-        } backdrop-blur-md`}
-      >
-        <p className="text-[10px] font-black uppercase opacity-50 tracking-widest mb-3">
-          Filtre patron
-        </p>
-        <select
-          value={historiquePatronId || ""}
-          onChange={(e) => onPatronFilterChange(e.target.value || null)}
-          className={`w-full p-3 rounded-2xl border text-sm font-bold ${
-            darkMode
-              ? "bg-black/30 border-white/10 text-white"
-              : "bg-slate-50 border-slate-200 text-slate-900"
-          }`}
+      {!isViewer && (
+        <div
+          className={`p-4 rounded-[25px] border ${
+            darkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200"
+          } backdrop-blur-md`}
         >
-          <option value="">Tous les patrons</option>
-          {patrons.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nom}
-            </option>
-          ))}
-        </select>
-      </div>
+          <p className="text-[10px] font-black uppercase opacity-50 tracking-widest mb-3">
+            Filtre patron
+          </p>
+          <select
+            value={historiquePatronId || ""}
+            onChange={(e) => onPatronFilterChange(e.target.value || null)}
+            className={`w-full p-3 rounded-2xl border text-sm font-bold ${
+              darkMode
+                ? "bg-black/30 border-white/10 text-white"
+                : "bg-slate-50 border-slate-200 text-slate-900"
+            }`}
+          >
+            <option value="">Tous les patrons</option>
+            {patrons.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nom}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* ── TABLEAU DE BORD ── */}
       {(historique.all?.length > 0 ||
@@ -65,14 +73,14 @@ export const HistoriqueTab = ({
           // CA ce mois
           const missionsMois = missions.filter((m) => {
             const patronOk =
-              !historiquePatronId || m.patron_id === historiquePatronId;
+              !effectivePatronId || m.patron_id === effectivePatronId;
             return patronOk && m.date_iso?.startsWith(currentMonth);
           });
           const caMois = missionsMois.reduce((s, m) => s + (m.montant || 0), 0);
 
           // CA total
           const missionsTotal = missions.filter(
-            (m) => !historiquePatronId || m.patron_id === historiquePatronId
+            (m) => !effectivePatronId || m.patron_id === effectivePatronId
           );
           const caTotal = missionsTotal.reduce((s, m) => s + (m.montant || 0), 0);
 
@@ -84,7 +92,7 @@ export const HistoriqueTab = ({
 
           // Dernier acompte
           const acomptesFiltres = listeAcomptes.filter(
-            (a) => !historiquePatronId || a.patron_id === historiquePatronId
+            (a) => !effectivePatronId || a.patron_id === effectivePatronId
           );
           const dernierAcompte = acomptesFiltres.sort((a, b) =>
             b.date_acompte?.localeCompare(a.date_acompte)
@@ -213,7 +221,7 @@ export const HistoriqueTab = ({
       {/* ── BOUTON CHARGER ── */}
       {historique.all?.length === 0 && (
         <button
-          onClick={() => onLoadHistorique(historiquePatronId)}
+          onClick={() => onLoadHistorique(effectivePatronId)}
           className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-700 rounded-2xl font-black text-white text-[11px] uppercase active:scale-95 transition-all"
         >
           {loadingHistorique ? "Chargement..." : "📊 Charger le tableau de bord"}
