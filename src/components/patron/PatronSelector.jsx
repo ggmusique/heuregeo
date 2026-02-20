@@ -1,10 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 
-/**
- * Composant pour sélectionner un patron dans un formulaire
- * - Version "cartes" (boutons)
- * - Multi-patrons
- */
 export function PatronSelector({
   patrons = [],
   selectedPatronId,
@@ -55,7 +50,7 @@ export function PatronSelector({
                     : darkMode
                     ? "bg-white/5 border-2 border-white/10 hover:bg-white/10"
                     : "bg-slate-100 border-2 border-slate-200 hover:bg-slate-200"
-                } disabled:opacity-50 active:scale-95"}
+                } disabled:opacity-50 active:scale-95`}
               >
                 <div
                   className="w-6 h-6 rounded-full flex-shrink-0 shadow-lg"
@@ -64,9 +59,7 @@ export function PatronSelector({
                 <div className="flex-1 text-left">
                   <p className="font-bold text-sm uppercase">{patron.nom}</p>
                   {patron.taux_horaire != null && (
-                    <p className="text-[10px] opacity-60">
-                      {patron.taux_horaire}€/h
-                    </p>
+                    <p className="text-[10px] opacity-60">{patron.taux_horaire}€/h</p>
                   )}
                 </div>
                 {selectedPatronId === patron.id && (
@@ -87,7 +80,7 @@ export function PatronSelector({
                 darkMode
                   ? "border-white/20 text-white/60 hover:border-white/40 hover:text-white"
                   : "border-slate-300 text-slate-600 hover:border-slate-400 hover:text-slate-900"
-              } disabled:opacity-50 active:scale-95"}
+              } disabled:opacity-50 active:scale-95`}
             >
               + Nouveau patron
             </button>
@@ -98,12 +91,6 @@ export function PatronSelector({
   );
 }
 
-/**
- * Version compacte — style cohérent avec ClientSelector / LieuSelector
- * - Barre de recherche + liste déroulante
- * - Pastille couleur
- * - Bouton + pour ajouter
- */
 export function PatronSelectorCompact({
   patrons = [],
   selectedPatronId,
@@ -147,13 +134,12 @@ export function PatronSelectorCompact({
         Patron {required && "*"}
       </label>
 
-      {/* Barre principale */}
       <div
         className={`flex items-center gap-2 px-4 py-3 rounded-[20px] border-2 transition-all cursor-pointer ${
           darkMode
             ? "bg-white/10 border-white/20 hover:border-indigo-400"
             : "bg-slate-100 border-slate-300 hover:border-indigo-500"
-        } ${open ? (darkMode ? "border-indigo-400" : "border-indigo-500") : ""}`}
+        } ${open ? (darkMode ? "border-indigo-400" : "border-indigo-500") : ""}`} 
         onClick={() => !disabled && setOpen((v) => !v)}
       >
         {selectedPatron ? (
@@ -189,13 +175,10 @@ export function PatronSelectorCompact({
         </svg>
       </div>
 
-      {/* Dropdown */}
       {open && (
         <div
           className={`absolute z-50 mt-2 w-full rounded-[20px] shadow-2xl border overflow-hidden ${
-            darkMode
-              ? "bg-[#1a1f2e] border-white/15"
-              : "bg-white border-slate-200"
+            darkMode ? "bg-[#1a1f2e] border-white/15" : "bg-white border-slate-200"
           }`}
         >
           <div className="p-3 border-b border-white/10">
