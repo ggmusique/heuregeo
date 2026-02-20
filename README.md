@@ -85,6 +85,7 @@ main = version propre
 
 tag (v6.0, v6.1…) = photo officielle
 
+a chaque demarrage de cospace faire ceci git pull origin main
 
 ---
 
