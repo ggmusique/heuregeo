@@ -14,14 +14,19 @@ export const BilanTab = ({
   // État bilan
   bilan,
   bilanPatronId,
+  onPatronFilterChange,
+  bilanClientId,
+  onClientFilterChange,
   currentWeek,
   missionsThisWeek,
   darkMode,
   
   // Données
   patrons,
+  clients,
   getPatronNom,
   getPatronColor,
+  getClientNom,
   
   // Handlers
   onMarquerCommePaye,
@@ -38,6 +43,20 @@ export const BilanTab = ({
     );
   }, [bilan.bilanContent?.filteredData]);
 
+  // ✅ Missions filtrées par patron ET client pour la semaine en cours
+  const filteredMissionsThisWeek = useMemo(() => {
+    return missionsThisWeek.filter((m) => {
+      const matchPatron = !bilanPatronId || m.patron_id === bilanPatronId;
+      const matchClient = !bilanClientId || m.client_id === bilanClientId;
+      return matchPatron && matchClient;
+    });
+  }, [missionsThisWeek, bilanPatronId, bilanClientId]);
+
+  // ✅ Barre de filtres combinée Patron + Client
+  const hasPatrons = patrons && patrons.length > 0;
+  const hasClients = clients && clients.length > 0;
+  const showFilterBar = hasPatrons || hasClients;
+
   // ✅ Vue avant le bilan (bouton + semaine en cours)
   if (!bilan.showBilan) {
     return (
@@ -46,6 +65,83 @@ export const BilanTab = ({
           <p className="text-[11px] font-black uppercase opacity-40 px-2 tracking-[0.25em] text-center">
             Rapports & Bilans
           </p>
+
+          {/* Barre de filtres Patron + Client */}
+          {showFilterBar && (
+            <div className="p-4 bg-[#0A1628]/60 rounded-[25px] border border-yellow-600/20 backdrop-blur-md">
+              <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-3 tracking-[0.2em]">🔍 Filtres</p>
+
+              {/* Filtre Patron */}
+              {hasPatrons && (
+                <div className="mb-3">
+                  <p className="text-[9px] font-black uppercase text-white/40 mb-2 tracking-wider">Patron :</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    <button
+                      onClick={() => onPatronFilterChange?.(null)}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                        !bilanPatronId
+                          ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white"
+                          : "text-white/30 border border-white/10"
+                      }`}
+                    >
+                      Tous
+                    </button>
+                    {patrons.map((p) => {
+                      const color = getPatronColor?.(p.id);
+                      const isActive = bilanPatronId === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => onPatronFilterChange?.(p.id === bilanPatronId ? null : p.id)}
+                          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                            isActive
+                              ? "text-white"
+                              : "text-white/30 border border-white/10"
+                          }`}
+                          style={isActive && color ? { background: color } : undefined}
+                        >
+                          {p.nom || getPatronNom?.(p.id) || p.id}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Filtre Client */}
+              {hasClients && (
+                <div>
+                  <p className="text-[9px] font-black uppercase text-white/40 mb-2 tracking-wider">Client :</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    <button
+                      onClick={() => onClientFilterChange?.(null)}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                        !bilanClientId
+                          ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white"
+                          : "text-white/30 border border-white/10"
+                      }`}
+                    >
+                      Tous
+                    </button>
+                    {clients.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => onClientFilterChange?.(c.id === bilanClientId ? null : c.id)}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 ${
+                          bilanClientId === c.id
+                            ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white"
+                            : "text-white/30 border border-white/10"
+                        }`}
+                      >
+                        {c.nom || getClientNom?.(c.id) || c.id}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <button
             onClick={() => {
               bilan.setShowBilan(false);
@@ -62,12 +158,12 @@ export const BilanTab = ({
             Semaine en cours (S{currentWeek})
           </p>
 
-          {missionsThisWeek.length === 0 ? (
+          {filteredMissionsThisWeek.length === 0 ? (
             <p className="text-center text-[13px] opacity-60 py-8">
               Aucune mission cette semaine...
             </p>
           ) : (
-            [...missionsThisWeek]
+            [...filteredMissionsThisWeek]
               .sort((a, b) => new Date(a.date_iso) - new Date(b.date_iso))
               .map((m) => (
                 <MissionCard
