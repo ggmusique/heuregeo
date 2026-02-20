@@ -328,15 +328,13 @@ export function useBilan({
           };
         });
 
-        const impayes = rows.filter((r) => r.paye === false);
+        const impayes = rows
+          .filter((r) => r.paye === false)
+          .sort((a, b) => Number(b.periode_value) - Number(a.periode_value));
 
         const payes = rows
           .filter((r) => r.paye === true)
-          .sort((a, b) => {
-            const ad = a?.date_paiement ? new Date(a.date_paiement).getTime() : 0;
-            const bd = b?.date_paiement ? new Date(b.date_paiement).getTime() : 0;
-            return bd - ad;
-          });
+          .sort((a, b) => Number(b.periode_value) - Number(a.periode_value));
 
         return { impayes, payes, all: rows };
       } catch {
