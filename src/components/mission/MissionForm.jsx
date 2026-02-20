@@ -300,16 +300,16 @@ export const MissionForm = ({
       {/* ===================== CARTE MÉTÉO + DATE ===================== */}
       <div
         className={`relative mb-6 rounded-[28px] overflow-hidden backdrop-blur-2xl shadow-xl border ${
-          darkMode ? "bg-white/6 border-white/12" : "bg-white/35 border-white/25"
+          darkMode ? "bg-white/6 border-yellow-600/20" : "bg-white/35 border-white/25"
         }`}
         style={{
           background: weather
             ? weather.temp < 10
-              ? "linear-gradient(135deg, #4c669f, #3b5998)"
+              ? "linear-gradient(135deg, #0a1628, #1a2a4a)"
               : weather.temp < 20
-              ? "linear-gradient(135deg, #667eea, #764ba2)"
-              : "linear-gradient(135deg, #f12711, #f5af19)"
-            : "linear-gradient(135deg, #667eea, #764ba2)",
+              ? "linear-gradient(135deg, #0d1f3c, #1e3a5f)"
+              : "linear-gradient(135deg, #1a2a4a, #2a3a6a)"
+            : "linear-gradient(135deg, #0d1f3c, #1e3a5f)",
         }}
       >
         <div className="relative z-10 flex flex-row items-center justify-between gap-3 px-4 py-3 sm:py-4 md:gap-5 md:px-6 md:py-5">
@@ -354,9 +354,9 @@ export const MissionForm = ({
           <button
             type="button"
             onClick={() => setShowDatePicker((v) => !v)}
-            className="shrink-0 flex flex-col items-center justify-center px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-br from-purple-700/85 via-indigo-600/80 to-purple-900/85 rounded-2xl backdrop-blur-xl border border-purple-400/35 shadow-xl hover:scale-105 transition-all active:scale-95 cursor-pointer min-w-[110px] sm:min-w-[130px] md:min-w-[150px]"
+            className="shrink-0 flex flex-col items-center justify-center px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-br from-[#C9A84C] via-[#A07830] to-[#7A5C20] rounded-2xl backdrop-blur-xl border border-yellow-600/50 shadow-xl hover:scale-105 transition-all active:scale-95 cursor-pointer min-w-[110px] sm:min-w-[130px] md:min-w-[150px]"
           >
-            <div className="text-[9px] sm:text-[10px] font-black uppercase text-purple-200/85 tracking-wider mb-0.5">
+            <div className="text-[9px] sm:text-[10px] font-black uppercase text-yellow-100/90 tracking-wider mb-0.5">
               DATE MISSION
             </div>
             <div className="text-center leading-tight">
@@ -370,7 +370,7 @@ export const MissionForm = ({
                 {getYear()}
               </div>
             </div>
-            <div className="text-[9px] sm:text-[10px] font-black uppercase text-purple-200/85 tracking-wider mt-1">
+            <div className="text-[9px] sm:text-[10px] font-black uppercase text-yellow-100/90 tracking-wider mt-1">
               CHANGER
             </div>
           </button>
