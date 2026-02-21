@@ -5,6 +5,7 @@ import { DonneesTab } from "./pages/DonneesTab";
 import { HistoriqueTab } from "./pages/HistoriqueTab";
 import { BilanTab } from "./pages/BilanTab";
 import { CompteTab } from "./pages/CompteTab";
+import { AdminPage } from "./pages/AdminPage";
 
 import { useClients } from "./hooks/useClients";
 import { useMissions } from "./hooks/useMissions";
@@ -104,7 +105,7 @@ export default function App({ user }) {
   );
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert });
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId } = useProfile(user);
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV } = useProfile(user);
 
   useEffect(() => {
     document.title = "Heures de Geo";
@@ -446,19 +447,25 @@ export default function App({ user }) {
           />  
         )}  
 
-        {activeTab === "histo" && (  
-          <BilanTab  
-            bilan={bilan} bilanPatronId={bilanPatronId} currentWeek={currentWeek} missionsThisWeek={missionsThisWeek}  
-            darkMode={darkMode} patrons={patrons} getPatronNom={getPatronNom} getPatronColor={getPatronColor}  
-            onMarquerCommePaye={handleMarquerCommePaye} onFraisEdit={handleFraisEdit} onFraisDelete={handleFraisDelete}  
-            onMissionEdit={handleMissionEdit} onMissionDelete={handleMissionDelete} profile={profile}  
-            isViewer={isViewer}  
-          />  
-        )}  
+        {activeTab === "histo" && (
+          <BilanTab
+            bilan={bilan} bilanPatronId={bilanPatronId} currentWeek={currentWeek} missionsThisWeek={missionsThisWeek}
+            darkMode={darkMode} patrons={patrons} getPatronNom={getPatronNom} getPatronColor={getPatronColor}
+            onMarquerCommePaye={handleMarquerCommePaye} onFraisEdit={handleFraisEdit} onFraisDelete={handleFraisDelete}
+            onMissionEdit={handleMissionEdit} onMissionDelete={handleMissionDelete} profile={profile}
+            isViewer={isViewer}
+            canBilanMois={canBilanMois} canBilanAnnee={canBilanAnnee}
+            canExportPDF={canExportPDF} canExportExcel={canExportExcel} canExportCSV={canExportCSV}
+          />
+        )}
 
-        {activeTab === "compte" && (  
-          <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={user?.email} />  
-        )}  
+        {activeTab === "compte" && (
+          <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={user?.email} />
+        )}
+
+        {activeTab === "admin" && isAdmin && (
+          <AdminPage darkMode={darkMode} />
+        )}
       </main>  
 
       <ConfirmModal show={confirmState.show} title={confirmState.title} message={confirmState.message} confirmText={confirmState.confirmText} cancelText={confirmState.cancelText} type={confirmState.type} onConfirm={confirmState.onConfirm} onCancel={hideConfirm} />  
@@ -471,14 +478,15 @@ export default function App({ user }) {
 
       <ClientModal show={showClientModal} editMode={!!editingClientId} initialData={editingClientData} onSubmit={handleClientSubmit} onCancel={() => { setShowClientModal(false); resetClientForm(); }} loading={loading} darkMode={darkMode} />  
 
-      <PeriodModal  
-        show={bilan.showPeriodModal} periodType={bilan.bilanPeriodType} setPeriodType={bilan.setBilanPeriodType}  
-        periodValue={bilan.bilanPeriodValue} setPeriodValue={bilan.setBilanPeriodValue} availablePeriods={bilan.availablePeriods}  
-        formatPeriodLabel={bilan.formatPeriodLabel} onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}  
-        onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}  
+      <PeriodModal
+        show={bilan.showPeriodModal} periodType={bilan.bilanPeriodType} setPeriodType={bilan.setBilanPeriodType}
+        periodValue={bilan.bilanPeriodValue} setPeriodValue={bilan.setBilanPeriodValue} availablePeriods={bilan.availablePeriods}
+        formatPeriodLabel={bilan.formatPeriodLabel} onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}
+        onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}
         darkMode={darkMode} patrons={patrons} selectedPatronId={bilanPatronId} onPatronChange={(id) => !isViewer && setBilanPatronId(id)}
         clients={clients} selectedClientId={bilanClientId} onClientChange={setBilanClientId}
         isViewer={isViewer}
+        canBilanMois={canBilanMois} canBilanAnnee={canBilanAnnee}
       />
 
       <LieuModal show={showLieuModal} editMode={!!editingLieuId} initialData={editingLieuData} onSubmit={handleLieuSubmit} onCancel={() => { setShowLieuModal(false); resetLieuForm(); }} loading={loading} darkMode={darkMode} />  
@@ -500,6 +508,11 @@ export default function App({ user }) {
           ) : (
             <button onClick={() => supabase.auth.signOut()} className="flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 text-white/30">
               <span>🚪</span>
+            </button>
+          )}
+          {isAdmin && (
+            <button onClick={() => setActiveTab("admin")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "admin" ? "bg-gradient-to-br from-purple-600 to-purple-800 text-white" : "text-white/20")}>
+              <span>⚙️</span>
             </button>
           )}
         </div>  

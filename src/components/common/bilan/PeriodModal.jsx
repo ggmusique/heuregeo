@@ -35,6 +35,10 @@ export const PeriodModal = ({
   onClientChange = () => {}, // callback quand on change de client
 
   isViewer = false,          // masque le sélecteur de patron pour les viewers
+
+  // Features plan Free/Pro
+  canBilanMois = true,       // accès au bilan par mois (plan Pro)
+  canBilanAnnee = true,      // accès au bilan par année (plan Pro)
 }) => {
   /**
    * Garde-fou : si show est false, on ne rend rien.
@@ -78,25 +82,33 @@ export const PeriodModal = ({
           </button>
 
           <button
-            onClick={() => setPeriodType("mois")}
+            onClick={() => canBilanMois && setPeriodType("mois")}
+            disabled={!canBilanMois}
+            title={!canBilanMois ? "Fonctionnalité Pro" : undefined}
             className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${
-              periodType === "mois"
+              !canBilanMois
+                ? "text-white/20 cursor-not-allowed"
+                : periodType === "mois"
                 ? "bg-indigo-600 text-white shadow-md"
                 : "text-white/50 hover:bg-white/10"
             }`}
           >
-            Mois
+            {canBilanMois ? "Mois" : "🔒 Mois"}
           </button>
 
           <button
-            onClick={() => setPeriodType("annee")}
+            onClick={() => canBilanAnnee && setPeriodType("annee")}
+            disabled={!canBilanAnnee}
+            title={!canBilanAnnee ? "Fonctionnalité Pro" : undefined}
             className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${
-              periodType === "annee"
+              !canBilanAnnee
+                ? "text-white/20 cursor-not-allowed"
+                : periodType === "annee"
                 ? "bg-indigo-600 text-white shadow-md"
                 : "text-white/50 hover:bg-white/10"
             }`}
           >
-            Année
+            {canBilanAnnee ? "Année" : "🔒 Année"}
           </button>
         </div>
 

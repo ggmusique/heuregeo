@@ -57,5 +57,28 @@ export const useProfile = (user) => {
   const isViewer = profile?.role === 'viewer'
   const viewerPatronId = isViewer ? profile?.patron_id : null
 
-  return { profile, loading, saving, error, saveProfile, fetchProfile, isProfileComplete, isViewer, viewerPatronId }
+  // Plan Gratuit / Pro
+  // Colonne `is_admin` (boolean, default false) et `features` (jsonb, default {}) dans la table `profiles`
+  // L'admin geohelene@msn.com doit avoir is_admin = true dans Supabase
+  const isAdmin = profile?.is_admin === true
+  const features = profile?.features || {}
+  const isPro = features?.plan === 'pro'
+
+  // Features individuelles (avec fallback sur isPro)
+  const canBilanMois = isPro || features?.bilan_mois === true
+  const canBilanAnnee = isPro || features?.bilan_annee === true
+  const canExportPDF = isPro || features?.export_pdf === true
+  const canExportExcel = isPro || features?.export_excel === true
+  const canExportCSV = isPro || features?.export_csv === true
+  const canMultiPatron = isPro || features?.multi_patron === true
+  const canViewerMode = isPro || features?.viewer_enabled === true
+  const canHistoriqueComplet = isPro || features?.historique_complet === true
+
+  return {
+    profile, loading, saving, error, saveProfile, fetchProfile,
+    isProfileComplete, isViewer, viewerPatronId,
+    isAdmin, features, isPro,
+    canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV,
+    canMultiPatron, canViewerMode, canHistoriqueComplet,
+  }
 }
