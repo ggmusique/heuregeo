@@ -47,7 +47,7 @@ export const AdminPage = ({ darkMode = true }) => {
       // Nécessite une politique RLS autorisant l'admin à lire tous les profils
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, prenom, nom, email, created_at, features, is_admin")
+        .select("id, prenom, nom, created_at, features, is_admin")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -191,7 +191,7 @@ export const AdminPage = ({ darkMode = true }) => {
                       </span>
                     </div>
                     <p className="text-[11px] opacity-60 truncate">
-                      {user.email || "—"}
+                      {user.id?.substring(0, 8)}...
                     </p>
                     <p className="text-[10px] opacity-40 mt-1">
                       Inscription : {formatDate(user.created_at)}
