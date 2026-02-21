@@ -16,10 +16,14 @@ export function usePatrons(triggerAlert) {
     try {
       setLoading(true);
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Utilisateur non connecté");
+
       const { data, error } = await supabase
         .from("patrons")
         .select("*")
         .eq("actif", true)
+        .eq("user_id", user.id)
         .order("nom", { ascending: true });
 
       if (error) throw error;
@@ -58,6 +62,9 @@ export function usePatrons(triggerAlert) {
 
       const couleur = patronData.couleur || "#8b5cf6";
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Utilisateur non connecté");
+
       const { data, error } = await supabase
         .from("patrons")
         .insert([
@@ -66,6 +73,7 @@ export function usePatrons(triggerAlert) {
             taux_horaire,
             couleur,
             actif: true,
+            user_id: user.id,
           },
         ])
         .select()

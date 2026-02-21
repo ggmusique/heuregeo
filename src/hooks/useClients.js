@@ -26,6 +26,12 @@ export function useClients(triggerAlert) {
     try {
       setLoading(true);
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setClients([]);
+        return;
+      }
+
       // 🔎 Lecture Supabase :
       // - table "clients"
       // - uniquement ceux qui sont actif = true
@@ -34,6 +40,7 @@ export function useClients(triggerAlert) {
         .from("clients")
         .select("*")
         .eq("actif", true)
+        .eq("user_id", user.id)
         .order("nom", { ascending: true });
 
       if (error) throw error;
@@ -61,6 +68,9 @@ export function useClients(triggerAlert) {
       }
 
       // Insertion Supabase (actif: true)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Utilisateur non connecté");
+
       const { data, error } = await supabase
         .from("clients")
         .insert([
@@ -70,6 +80,7 @@ export function useClients(triggerAlert) {
             lieu_travail: clientData.lieu_travail?.trim() || null,
             notes: clientData.notes?.trim() || null,
             actif: true,
+            user_id: user.id,
           },
         ])
         .select()
