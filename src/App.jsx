@@ -471,11 +471,11 @@ export default function App({ user }) {
 
       <ClientModal show={showClientModal} editMode={!!editingClientId} initialData={editingClientData} onSubmit={handleClientSubmit} onCancel={() => { setShowClientModal(false); resetClientForm(); }} loading={loading} darkMode={darkMode} />  
 
-      <PeriodModal
-        show={bilan.showPeriodModal} periodType={bilan.bilanPeriodType} setPeriodType={bilan.setBilanPeriodType}
-        periodValue={bilan.bilanPeriodValue} setPeriodValue={bilan.setBilanPeriodValue} availablePeriods={bilan.availablePeriods}
-        formatPeriodLabel={bilan.formatPeriodLabel} onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}
-        onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}
+      <PeriodModal  
+        show={bilan.showPeriodModal} periodType={bilan.bilanPeriodType} setPeriodType={bilan.setBilanPeriodType}  
+        periodValue={bilan.bilanPeriodValue} setPeriodValue={bilan.setBilanPeriodValue} availablePeriods={bilan.availablePeriods}  
+        formatPeriodLabel={bilan.formatPeriodLabel} onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}  
+        onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}  
         darkMode={darkMode} patrons={patrons} selectedPatronId={bilanPatronId} onPatronChange={(id) => !isViewer && setBilanPatronId(id)}
         clients={clients} selectedClientId={bilanClientId} onClientChange={setBilanClientId}
         isViewer={isViewer}
