@@ -306,32 +306,47 @@ export function useBilan({
   const fetchHistoriqueBilans = useCallback(
     async (patronId = null) => {
       const pId = effectivePatronId(patronId);
-
+  
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { impayes: [], payes: [], all: [] };
-
-        const { data, error } = await supabase
+  
+        // Récupère le profil pour savoir si viewer
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("role, patron_id")
+          .eq("id", user.id)
+          .single();
+  
+        const isViewerUser = profileData?.role === "viewer";
+  
+        let query = supabase
           .from(TABLE)
           .select(
             "id, periode_type, periode_value, periode_index, patron_id, paye, date_paiement, reste_a_percevoir, ca_brut_periode, acompte_consomme, created_at"
           )
-          .eq("user_id", user.id)
           .eq("patron_id", pId)
           .eq("periode_type", "semaine")
           .order("periode_index", { ascending: false });
-
+  
+        // Owner seulement : filtre par user_id
+        // Viewer : la RLS Supabase gère l'accès
+        if (!isViewerUser) {
+          query = query.eq("user_id", user.id);
+        }
+  
+        const { data, error } = await query;
         if (error) throw error;
-
+  
         const rows = (data || []).map((r) => {
           const patron_nom = resolvePatronNom(r.patron_id);
-
+  
           let resteFixe = r.reste_a_percevoir ?? 0;
-
+  
           // Pour la semaine : reste = ca - acompte_consomme
-        if (r.periode_type === "semaine") {
-  resteFixe = parseFloat(r?.reste_a_percevoir ?? 0);
-}
+          if (r.periode_type === "semaine") {
+            resteFixe = parseFloat(r?.reste_a_percevoir ?? 0);
+          }
 
           return {
             ...r,

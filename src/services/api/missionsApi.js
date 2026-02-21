@@ -18,12 +18,27 @@ export const fetchMissions = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data, error } = await supabase
+  // Récupère le profil pour savoir si viewer
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("role, patron_id")
+    .eq("id", user.id)
+    .single();
+
+  const isViewer = profileData?.role === "viewer";
+
+  let query = supabase
     .from("missions")
     .select("*")
-    .eq("user_id", user.id)
     .order("date_iso", { ascending: false });
 
+  // Viewer : la RLS Supabase gère déjà le filtrage par patron_id
+  // Owner : on filtre par user_id
+  if (!isViewer) {
+    query = query.eq("user_id", user.id);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
 
   return data || [];
