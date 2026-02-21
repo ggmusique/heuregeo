@@ -31,6 +31,13 @@ export const BilanTab = ({
   onMissionDelete,
   profile,
   isViewer,
+
+  // Features plan Free/Pro
+  canBilanMois = true,
+  canBilanAnnee = true,
+  canExportPDF = true,
+  canExportExcel = true,
+  canExportCSV = true,
 }) => {
   // ✅ Memoization des missions triées
   const sortedBilanMissions = useMemo(() => {
@@ -310,8 +317,7 @@ export const BilanTab = ({
       {/* EXPORTS */}
       <div className="flex flex-wrap gap-3 mb-8">
         <button
-          onClick={() =>
-            exportToExcel(
+          onClick={() => canExportExcel && exportToExcel(
               bilan.bilanContent,
               bilan.bilanPeriodType,
               bilan.bilanPeriodValue,
@@ -320,14 +326,15 @@ export const BilanTab = ({
               profile
             )
           }
-          className="flex-1 min-w-[120px] py-4 bg-green-600/20 text-green-400 rounded-2xl font-black text-[10px] uppercase border border-yellow-600/20 active:scale-95 transition-all backdrop-blur-md"
+          disabled={!canExportExcel}
+          title={!canExportExcel ? "Fonctionnalité Pro" : undefined}
+          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " + (canExportExcel ? "bg-green-600/20 text-green-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
         >
-          Excel
+          {canExportExcel ? "Excel" : "🔒 Excel"}
         </button>
 
         <button
-          onClick={() =>
-            exportToPDFPro(
+          onClick={() => canExportPDF && exportToPDFPro(
               bilan.bilanContent,
               bilan.bilanPeriodType,
               bilan.bilanPaye,
@@ -335,39 +342,43 @@ export const BilanTab = ({
               profile
             )
           }
-          className="flex-1 min-w-[120px] py-4 bg-red-600/20 text-red-400 rounded-2xl font-black text-[10px] uppercase border border-yellow-600/20 active:scale-95 transition-all backdrop-blur-md"
+          disabled={!canExportPDF}
+          title={!canExportPDF ? "Fonctionnalité Pro" : undefined}
+          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " + (canExportPDF ? "bg-red-600/20 text-red-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
         >
-          PDF
+          {canExportPDF ? "PDF" : "🔒 PDF"}
         </button>
 
         <button
-          onClick={() =>
-            exportToCSV(
+          onClick={() => canExportCSV && exportToCSV(
               bilan.bilanContent,
               bilan.bilanPeriodType,
               bilan.bilanPeriodValue,
               false
             )
           }
-          className="flex-1 min-w-[120px] py-4 bg-blue-600/20 text-blue-400 rounded-2xl font-black text-[10px] uppercase border border-yellow-600/20 active:scale-95 transition-all backdrop-blur-md"
+          disabled={!canExportCSV}
+          title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
+          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " + (canExportCSV ? "bg-blue-600/20 text-blue-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
         >
-          CSV Missions
+          {canExportCSV ? "CSV Missions" : "🔒 CSV Missions"}
         </button>
 
         {bilan.bilanPeriodType === "semaine" &&
           bilan.bilanContent.fraisDivers.length > 0 && (
             <button
-              onClick={() =>
-                exportToCSV(
+              onClick={() => canExportCSV && exportToCSV(
                   bilan.bilanContent,
                   bilan.bilanPeriodType,
                   bilan.bilanPeriodValue,
                   true
                 )
               }
-              className="flex-1 min-w-[140px] py-4 bg-cyan-600/20 text-cyan-300 rounded-2xl font-black text-[10px] uppercase border border-yellow-600/20 active:scale-95 transition-all backdrop-blur-md"
+              disabled={!canExportCSV}
+              title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
+              className={"flex-1 min-w-[140px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " + (canExportCSV ? "bg-cyan-600/20 text-cyan-300 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
             >
-              CSV + Frais
+              {canExportCSV ? "CSV + Frais" : "🔒 CSV + Frais"}
             </button>
           )}
       </div>
