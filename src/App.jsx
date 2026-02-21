@@ -370,7 +370,14 @@ export default function App({ user }) {
           <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[#D4AF37] mb-2 drop-shadow-2xl font-['Playfair_Display']">  
             {("HEURES DE " + (profile?.prenom?.trim()?.toUpperCase() || "GEO"))}  
           </h1>  
-          {isViewer && <ViewerBadge patronNom={profile?.nom || ""} />}  
+          {isViewer && <ViewerBadge patronNom={profile?.nom || ""} />} 
+          {isPro && !isViewer && (
+  <div className="text-center py-1">
+    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-yellow-500/15 border border-yellow-500/40 text-yellow-400">
+      ✨ Pro
+    </span>
+  </div>
+)} 
           <div className="flex items-center justify-center gap-2 mb-1">  
             <span className="text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border border-yellow-600/40 text-yellow-500/70">  
               v{APP_VERSION} ✓ OTA  
