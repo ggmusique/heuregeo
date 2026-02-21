@@ -3,33 +3,22 @@ import "jspdf-autotable";
 import { formatEuro, formatHeures, formatDateFR } from "./formatters";
 
 /**
- * PALETTE DE COULEURS MODERNE
+ * PALETTE CLASSIQUE PRO — Blanc / Bleu Marine
  */
 const COLORS = {
-  primary: [99, 102, 241],
-  secondary: [168, 85, 247],
-  success: [34, 197, 94],
-  warning: [245, 158, 11],
-  danger: [239, 68, 68],
-  cyan: [6, 182, 212],
-  orange: [251, 146, 60],
-  dark: [15, 23, 42],
-  light: [248, 250, 252],
-  border: [226, 232, 240],
-  textPrimary: [30, 41, 59],
-  textSecondary: [100, 116, 139],
-};
-
-/**
- * Utilitaire pour définir l'opacité de manière sûre
- */
-const setOpacity = (doc, opacity) => {
-  try {
-    doc.setGState(new doc.GState({ opacity }));
-  } catch (e) {
-    // Fallback si GState ne fonctionne pas
-    doc.setFillColor(255, 255, 255);
-  }
+  navy:          [15,  40,  80],   // bleu marine foncé
+  navyMid:       [26,  58, 110],   // bleu marine moyen
+  navyLight:     [44,  82, 148],   // bleu marine clair
+  gold:          [180, 145,  60],  // or discret
+  white:         [255, 255, 255],
+  offWhite:      [248, 249, 252],
+  light:         [235, 240, 250],  // bleu très clair (zèbre)
+  border:        [210, 220, 235],
+  textPrimary:   [20,  30,  50],
+  textSecondary: [90, 110, 140],
+  success:       [22, 120,  70],
+  danger:        [180,  40,  40],
+  warning:       [160, 110,  20],
 };
 
 /**
@@ -38,874 +27,89 @@ const setOpacity = (doc, opacity) => {
 const generateDocRef = (periodType, periodValue) => {
   const year = new Date().getFullYear();
   let periodStr = "PER";
-
   if (periodType === "semaine") {
-    const weekNum = Number(periodValue);
-    if (!isNaN(weekNum) && weekNum > 0) {
-      periodStr = `W${String(weekNum).padStart(2, "0")}`;
-    }
+    const w = Number(periodValue);
+    if (!isNaN(w) && w > 0) periodStr = `S${String(w).padStart(2, "0")}`;
   } else if (periodType === "mois") {
-    const monthMatch = String(periodValue).match(/-(\d{2})$/);
-    if (monthMatch) {
-      periodStr = `M${monthMatch[1]}`;
-    }
+    const m = String(periodValue).match(/-(\d{2})$/);
+    if (m) periodStr = `M${m[1]}`;
   } else if (periodType === "annee") {
-    periodStr = `Y${periodValue}`;
+    periodStr = `A${periodValue}`;
   }
-
-  const randomSuffix = Math.floor(100 + Math.random() * 900);
-  return `BILAN-${year}-${periodStr}-${randomSuffix}`;
+  const suffix = Math.floor(100 + Math.random() * 900);
+  return `GEO-${year}-${periodStr}-${suffix}`;
 };
 
-/**
- * Dessine l'en-tête du PDF
- */
+// ─────────────────────────────────────────────
+// EN-TÊTE
+// ─────────────────────────────────────────────
 const drawHeader = (doc, bilanContent, periodType, periodValue) => {
   try {
-    // Fond dégradé simplifié
-    doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-    doc.rect(0, 0, 210, 50, "F");
+    const pageW = 210;
 
-    // Logo/Icône
-    doc.setFillColor(255, 255, 255);
-    doc.circle(20, 30, 8, "F");
-    doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
-    doc.setFontSize(16);
-    doc.setFont(undefined, "bold");
-    doc.text("H", 20, 32, { align: "center" });
+    // Bande navy principale
+    doc.setFillColor(...COLORS.navy);
+    doc.rect(0, 0, pageW, 44, "F");
 
-    // Titre principal
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
+    // Bande or fine en bas du header
+    doc.setFillColor(...COLORS.gold);
+    doc.rect(0, 44, pageW, 1.5, "F");
+
+    // Titre
+    doc.setTextColor(...COLORS.white);
+    doc.setFontSize(18);
     doc.setFont(undefined, "bold");
-    doc.text("HEURES DE GEO", 35, 28);
+    doc.text("HEURES DE GEO", 15, 22);
 
     // Sous-titre
-    doc.setFontSize(11);
-    doc.setFont(undefined, "normal");
-    doc.text("Rapport d'activité professionnel", 35, 35);
-
-    // Badge période
-    const periodText = `${periodType.toUpperCase()} : ${
-      bilanContent.titre || ""
-    }`;
-    const docRef = generateDocRef(periodType, periodValue);
-
-    doc.setFillColor(255, 255, 255);
-    doc.roundedRect(130, 20, 70, 20, 4, 4, "F");
-
-    doc.setTextColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
     doc.setFontSize(9);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(180, 200, 230);
+    doc.text("Rapport d'activité professionnel", 15, 30);
+
+    // Bloc référence (droite)
+    const docRef = generateDocRef(periodType, periodValue);
+    const periodText = `${periodType.toUpperCase()} — ${bilanContent.titre || ""}`;
+    const dateGen = new Date().toLocaleDateString("fr-FR", {
+      day: "2-digit", month: "long", year: "numeric",
+    });
+
+    doc.setFillColor(...COLORS.navyMid);
+    doc.roundedRect(128, 7, 72, 32, 3, 3, "F");
+    doc.setDrawColor(...COLORS.gold);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(128, 7, 72, 32, 3, 3, "S");
+
+    doc.setTextColor(...COLORS.gold);
+    doc.setFontSize(7);
     doc.setFont(undefined, "bold");
-    doc.text(periodText, 165, 28, { align: "center" });
+    doc.text("RÉFÉRENCE", 164, 14, { align: "center" });
+
+    doc.setTextColor(...COLORS.white);
+    doc.setFontSize(8);
+    doc.setFont(undefined, "bold");
+    doc.text(docRef, 164, 21, { align: "center" });
+
+    doc.setFontSize(7.5);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(180, 200, 230);
+    doc.text(periodText, 164, 28, { align: "center" });
 
     doc.setFontSize(7);
-    doc.setFont(undefined, "normal");
-    doc.text(`N° ${docRef}`, 165, 37, { align: "center" });
-
-    // Date
     doc.setTextColor(...COLORS.textSecondary);
-    doc.setFontSize(8);
-    const dateGen = new Date().toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-    doc.text(`Généré le ${dateGen}`, 165, 47, { align: "center" });
+    doc.setTextColor(150, 175, 210);
+    doc.text(`Généré le ${dateGen}`, 164, 35, { align: "center" });
 
-    return 55;
-  } catch (error) {
-    console.error("Erreur drawHeader:", error);
-    return 55;
+    return 52;
+  } catch (e) {
+    console.error("Erreur drawHeader:", e);
+    return 52;
   }
 };
 
-/**
- * Dessine les cartes métriques (KPIs)
- */
-const drawMetrics = (doc, bilanContent, periodType, startY) => {
-  try {
-    const totalMissions =
-      (bilanContent.totalE || 0) - (bilanContent.totalFrais || 0);
-    const netValue =
-      bilanContent.resteAPercevoir !== undefined
-        ? bilanContent.resteAPercevoir
-        : bilanContent.totalE || 0;
-
-    let metrics = [
-      {
-        label: "Total Heures",
-        value: formatHeures(bilanContent.totalH || 0),
-        color: COLORS.primary,
-      },
-      {
-        label: "CA Missions",
-        value: formatEuro(totalMissions),
-        color: COLORS.success,
-      },
-    ];
-
-    if (periodType === "semaine") {
-      metrics.push({
-        label: "Frais Divers",
-        value: formatEuro(bilanContent.totalFrais || 0),
-        color: COLORS.warning,
-      });
-    }
-
-    if (periodType === "semaine" && (bilanContent.impayePrecedent || 0) > 0) {
-      metrics.push({
-        label: "Semaine Passée (Impayé)",
-        value: `+${formatEuro(bilanContent.impayePrecedent)}`,
-        color: COLORS.orange,
-      });
-    }
-
-    if (periodType === "semaine" && (bilanContent.totalAcomptes || 0) > 0) {
-      metrics.push({
-        label: "Acomptes Consommés",
-        value: `-${formatEuro(bilanContent.totalAcomptes || 0)}`,
-        color: COLORS.cyan,
-      });
-    }
-
-    if (periodType === "semaine") {
-      metrics.push({
-        label: "Reste à Percevoir",
-        value: formatEuro(netValue),
-        color: netValue > 0 ? COLORS.secondary : COLORS.success,
-      });
-    } else {
-      metrics.push({
-        label: "CA Brut Total",
-        value: formatEuro(bilanContent.totalE || 0),
-        color: COLORS.secondary,
-      });
-    }
-
-    const numMetrics = metrics.length;
-    const totalWidthAvailable = 190;
-    const gap = numMetrics > 4 ? 3 : 4;
-    const cardWidth = Math.floor(
-      (totalWidthAvailable - (numMetrics - 1) * gap) / numMetrics
-    );
-    const startX = 10;
-    const cardHeight = 20;
-
-    let currentX = startX;
-    let y = startY;
-
-    metrics.forEach((metric) => {
-      const x = currentX;
-      const centerX = x + cardWidth / 2;
-
-      // Carte
-      doc.setFillColor(255, 255, 255);
-      doc.setDrawColor(...COLORS.border);
-      doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3, "FD");
-
-      // Bordure colorée
-      doc.setFillColor(metric.color[0], metric.color[1], metric.color[2]);
-      doc.roundedRect(x, y, cardWidth, 3, 3, 3, "F");
-      doc.rect(x, y + 1.5, cardWidth, 1.5, "F");
-
-      // Label
-      doc.setFontSize(6.5);
-      doc.setFont(undefined, "normal");
-      doc.setTextColor(...COLORS.textSecondary);
-      const labelLines = doc.splitTextToSize(metric.label, cardWidth - 4);
-      const labelY = y + 8;
-      labelLines.forEach((line, i) => {
-        doc.text(line, centerX, labelY + i * 3, { align: "center" });
-      });
-
-      // Valeur
-      doc.setFontSize(10);
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(metric.color[0], metric.color[1], metric.color[2]);
-      doc.text(metric.value, centerX, y + 16, { align: "center" });
-
-      currentX += cardWidth + gap;
-    });
-
-    return y + cardHeight + 10;
-  } catch (error) {
-    console.error("Erreur drawMetrics:", error);
-    return startY + 30;
-  }
-};
-
-/**
- * Dessine le tableau de résumé par semaine (pour bilan MOIS)
- */
-const drawWeeklySummary = (doc, bilanContent, startY) => {
-  if (!bilanContent.groupedData?.length) return startY;
-
-  try {
-    let y = startY;
-
-    doc.setFontSize(12);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(...COLORS.textPrimary);
-    doc.text("Résumé par semaine", 15, y);
-
-    y += 8;
-
-    const headers = ["Semaine", "Heures", "Montant"];
-    const colWidths = [120, 35, 30];
-    const startTableX = 15;
-    const tableWidth = colWidths.reduce((a, b) => a + b, 0);
-
-    // Header
-    doc.setFillColor(...COLORS.secondary);
-    doc.roundedRect(startTableX, y, tableWidth, 8, 2, 2, "F");
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.setFont(undefined, "bold");
-
-    let currentX = startTableX;
-    headers.forEach((header, i) => {
-      doc.text(header, currentX + colWidths[i] / 2, y + 5.5, {
-        align: "center",
-      });
-      currentX += colWidths[i];
-    });
-
-    y += 10;
-
-    // Lignes
-    doc.setFont(undefined, "normal");
-    bilanContent.groupedData.forEach((group, index) => {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-
-      if (index % 2 === 0) {
-        doc.setFillColor(...COLORS.light);
-        doc.rect(startTableX, y - 1, tableWidth, 7, "F");
-      }
-
-      currentX = startTableX;
-
-      doc.setTextColor(...COLORS.textPrimary);
-      doc.setFontSize(8);
-      doc.setFont(undefined, "bold");
-      doc.text(group.label || "", currentX + 5, y + 4);
-      currentX += colWidths[0];
-
-      doc.setFont(undefined, "normal");
-      doc.setTextColor(...COLORS.primary);
-      doc.text(formatHeures(group.h || 0), currentX + colWidths[1] / 2, y + 4, {
-        align: "center",
-      });
-      currentX += colWidths[1];
-
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(...COLORS.success);
-      doc.text(formatEuro(group.e || 0), currentX + colWidths[2] / 2, y + 4, {
-        align: "center",
-      });
-
-      y += 7;
-    });
-
-    y += 8;
-
-    // Total
-    doc.setFillColor(...COLORS.success);
-    doc.setDrawColor(...COLORS.success);
-    doc.roundedRect(startTableX, y, tableWidth, 8, 2, 2, "FD");
-
-    doc.setFont(undefined, "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
-    doc.text("TOTAL", startTableX + 5, y + 5.5);
-
-    doc.text(
-      formatHeures(bilanContent.totalH || 0),
-      startTableX + colWidths[0] + colWidths[1] / 2,
-      y + 5.5,
-      { align: "center" }
-    );
-    doc.text(
-      formatEuro(bilanContent.totalE || 0),
-      startTableX + colWidths[0] + colWidths[1] + colWidths[2] / 2,
-      y + 5.5,
-      { align: "center" }
-    );
-
-    return y + 15;
-  } catch (error) {
-    console.error("Erreur drawWeeklySummary:", error);
-    return startY;
-  }
-};
-
-/**
- * Dessine le tableau de résumé par mois (pour bilan ANNÉE)
- */
-const drawMonthlySummary = (doc, bilanContent, startY) => {
-  if (!bilanContent.groupedData?.length) return startY;
-
-  try {
-    let y = startY;
-
-    doc.setFontSize(12);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(...COLORS.textPrimary);
-    doc.text("Résumé par mois", 15, y);
-
-    y += 8;
-
-    const headers = ["Mois", "Heures", "Montant"];
-    const colWidths = [120, 35, 30];
-    const startTableX = 15;
-    const tableWidth = colWidths.reduce((a, b) => a + b, 0);
-
-    doc.setFillColor(...COLORS.primary);
-    doc.roundedRect(startTableX, y, tableWidth, 8, 2, 2, "F");
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.setFont(undefined, "bold");
-
-    let currentX = startTableX;
-    headers.forEach((header, i) => {
-      doc.text(header, currentX + colWidths[i] / 2, y + 5.5, {
-        align: "center",
-      });
-      currentX += colWidths[i];
-    });
-
-    y += 10;
-
-    doc.setFont(undefined, "normal");
-    bilanContent.groupedData.forEach((group, index) => {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-
-      if (index % 2 === 0) {
-        doc.setFillColor(...COLORS.light);
-        doc.rect(startTableX, y - 1, tableWidth, 7, "F");
-      }
-
-      currentX = startTableX;
-
-      doc.setTextColor(...COLORS.textPrimary);
-      doc.setFontSize(8);
-      doc.setFont(undefined, "bold");
-      doc.text(group.label || "", currentX + 5, y + 4);
-      currentX += colWidths[0];
-
-      doc.setFont(undefined, "normal");
-      doc.setTextColor(...COLORS.primary);
-      doc.text(formatHeures(group.h || 0), currentX + colWidths[1] / 2, y + 4, {
-        align: "center",
-      });
-      currentX += colWidths[1];
-
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(...COLORS.success);
-      doc.text(formatEuro(group.e || 0), currentX + colWidths[2] / 2, y + 4, {
-        align: "center",
-      });
-
-      y += 7;
-    });
-
-    y += 8;
-
-    doc.setFillColor(...COLORS.success);
-    doc.roundedRect(startTableX, y, tableWidth, 8, 2, 2, "F");
-
-    doc.setFont(undefined, "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
-    doc.text("TOTAL ANNUEL", startTableX + 5, y + 5.5);
-
-    doc.text(
-      formatHeures(bilanContent.totalH || 0),
-      startTableX + colWidths[0] + colWidths[1] / 2,
-      y + 5.5,
-      { align: "center" }
-    );
-    doc.text(
-      formatEuro(bilanContent.totalE || 0),
-      startTableX + colWidths[0] + colWidths[1] + colWidths[2] / 2,
-      y + 5.5,
-      { align: "center" }
-    );
-
-    return y + 15;
-  } catch (error) {
-    console.error("Erreur drawMonthlySummary:", error);
-    return startY;
-  }
-};
-
-/**
- * Dessine le tableau des missions (pour bilan SEMAINE uniquement)
- */
-const drawMissionsTable = (doc, bilanContent, startY) => {
-  if (!bilanContent.filteredData?.length) return startY;
-
-  try {
-    let y = startY;
-
-    doc.setFontSize(12);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(...COLORS.textPrimary);
-    doc.text("Détail des missions", 15, y);
-
-    y += 8;
-
-    const headers = [
-      "Date",
-      "Client",
-      "Lieu",
-      "Horaires",
-      "Pause",
-      "Durée",
-      "Montant",
-    ];
-    const colWidths = [20, 38, 42, 25, 15, 20, 25];
-    const startTableX = 15;
-    const tableWidth = colWidths.reduce((a, b) => a + b, 0);
-
-    doc.setFillColor(...COLORS.dark);
-    doc.roundedRect(startTableX, y, tableWidth, 8, 2, 2, "F");
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.setFont(undefined, "bold");
-
-    let currentX = startTableX;
-    headers.forEach((header, i) => {
-      doc.text(header, currentX + colWidths[i] / 2, y + 5.5, {
-        align: "center",
-      });
-      currentX += colWidths[i];
-    });
-
-    y += 10;
-
-    doc.setFont(undefined, "normal");
-    bilanContent.filteredData.forEach((mission, index) => {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-
-      if (index % 2 === 0) {
-        doc.setFillColor(...COLORS.light);
-        doc.rect(startTableX, y - 1, tableWidth, 7, "F");
-      }
-
-      currentX = startTableX;
-
-      // Date
-      doc.setTextColor(...COLORS.textPrimary);
-      doc.setFontSize(7);
-      doc.text(
-        formatDateFR(mission.date_iso) || "",
-        currentX + colWidths[0] / 2,
-        y + 4,
-        { align: "center" }
-      );
-      currentX += colWidths[0];
-
-      // Client
-      doc.setFont(undefined, "bold");
-      const clientText = (mission.client || "").substring(0, 18);
-      doc.text(clientText, currentX + 2, y + 4);
-      doc.setFont(undefined, "normal");
-      currentX += colWidths[1];
-
-      // Lieu
-      doc.setTextColor(...COLORS.textSecondary);
-      doc.setFontSize(6.5);
-      const lieuText = (mission.lieu || "-").substring(0, 22);
-      doc.text(lieuText, currentX + 2, y + 4);
-      doc.setFontSize(7);
-      currentX += colWidths[2];
-
-      // Horaires
-      doc.setTextColor(...COLORS.primary);
-      doc.setFont(undefined, "bold");
-      doc.text(
-        `${mission.debut || ""} - ${mission.fin || ""}`,
-        currentX + colWidths[3] / 2,
-        y + 4,
-        { align: "center" }
-      );
-      doc.setFont(undefined, "normal");
-      currentX += colWidths[3];
-
-      // Pause
-      doc.setTextColor(...COLORS.textSecondary);
-      doc.text(
-        mission.pause > 0 ? `${mission.pause}m` : "-",
-        currentX + colWidths[4] / 2,
-        y + 4,
-        { align: "center" }
-      );
-      currentX += colWidths[4];
-
-      // Durée
-      doc.setTextColor(...COLORS.textPrimary);
-      doc.text(
-        formatHeures(mission.duree || 0),
-        currentX + colWidths[5] / 2,
-        y + 4,
-        { align: "center" }
-      );
-      currentX += colWidths[5];
-
-      // Montant
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(...COLORS.success);
-      doc.text(
-        formatEuro(mission.montant || 0),
-        currentX + colWidths[6] / 2,
-        y + 4,
-        { align: "center" }
-      );
-      doc.setFont(undefined, "normal");
-
-      y += 7;
-    });
-
-    y += 8;
-
-    doc.setDrawColor(...COLORS.border);
-    doc.setLineWidth(0.5);
-    doc.line(startTableX, y - 1, startTableX + tableWidth, y - 1);
-
-    y += 5;
-
-    doc.setFillColor(...COLORS.success);
-    doc.roundedRect(startTableX, y, tableWidth, 8, 2, 2, "F");
-
-    doc.setFont(undefined, "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
-    doc.text("TOTAL MISSIONS", startTableX + 5, y + 5.5);
-
-    const totalHeuresMissions = bilanContent.filteredData.reduce(
-      (sum, m) => sum + (m.duree || 0),
-      0
-    );
-    const totalMontantMissions = bilanContent.filteredData.reduce(
-      (sum, m) => sum + (m.montant || 0),
-      0
-    );
-
-    doc.text(
-      formatHeures(totalHeuresMissions),
-      startTableX + tableWidth - 60,
-      y + 5.5,
-      { align: "center" }
-    );
-    doc.text(
-      formatEuro(totalMontantMissions),
-      startTableX + tableWidth - 15,
-      y + 5.5,
-      { align: "center" }
-    );
-
-    return y + 20;
-  } catch (error) {
-    console.error("Erreur drawMissionsTable:", error);
-    return startY;
-  }
-};
-
-/**
- * Dessine le tableau des frais divers
- */
-const drawFraisTable = (doc, bilanContent, startY) => {
-  if (!bilanContent.fraisDivers?.length) return startY;
-
-  try {
-    let y = startY;
-
-    if (y > 220) {
-      doc.addPage();
-      y = 20;
-    }
-
-    doc.setFontSize(12);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(...COLORS.textPrimary);
-    doc.text("Frais divers", 15, y);
-
-    y += 8;
-
-    const fraisHeaders = ["Description", "Date", "Montant"];
-    const fraisColWidths = [100, 40, 45];
-    const fraisTableWidth = fraisColWidths.reduce((a, b) => a + b, 0);
-    const startFraisX = 15;
-
-    doc.setFillColor(...COLORS.warning);
-    doc.roundedRect(startFraisX, y, fraisTableWidth, 8, 2, 2, "F");
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.setFont(undefined, "bold");
-
-    let fraisX = startFraisX;
-    fraisHeaders.forEach((header, i) => {
-      doc.text(header, fraisX + fraisColWidths[i] / 2, y + 5.5, {
-        align: "center",
-      });
-      fraisX += fraisColWidths[i];
-    });
-
-    y += 10;
-
-    doc.setFont(undefined, "normal");
-    bilanContent.fraisDivers.forEach((frais, index) => {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-
-      if (index % 2 === 0) {
-        doc.setFillColor(254, 252, 232);
-        doc.rect(startFraisX, y - 1, fraisTableWidth, 7, "F");
-      }
-
-      fraisX = startFraisX;
-
-      doc.setTextColor(...COLORS.textPrimary);
-      doc.setFontSize(7);
-      const descText = (frais.description || "").substring(0, 45);
-      doc.text(descText, fraisX + 2, y + 4);
-      fraisX += fraisColWidths[0];
-
-      doc.setTextColor(...COLORS.textSecondary);
-      doc.text(
-        formatDateFR(frais.date_frais) || "-",
-        fraisX + fraisColWidths[1] / 2,
-        y + 4,
-        { align: "center" }
-      );
-      fraisX += fraisColWidths[1];
-
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(...COLORS.warning);
-      doc.text(
-        formatEuro(frais.montant || 0),
-        fraisX + fraisColWidths[2] / 2,
-        y + 4,
-        { align: "center" }
-      );
-      doc.setFont(undefined, "normal");
-
-      y += 7;
-    });
-
-    doc.setDrawColor(...COLORS.border);
-    doc.line(startFraisX, y - 1, startFraisX + fraisTableWidth, y - 1);
-
-    y += 5;
-
-    doc.setFillColor(...COLORS.warning);
-    doc.roundedRect(startFraisX, y, fraisTableWidth, 8, 2, 2, "F");
-
-    doc.setFont(undefined, "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
-    doc.text("TOTAL FRAIS", startFraisX + 5, y + 5.5);
-    doc.text(
-      formatEuro(bilanContent.totalFrais || 0),
-      startFraisX + fraisTableWidth - 5,
-      y + 5.5,
-      { align: "right" }
-    );
-
-    return y + 20;
-  } catch (error) {
-    console.error("Erreur drawFraisTable:", error);
-    return startY;
-  }
-};
-
-/**
- * Dessine la section suivi des acomptes
- */
-const drawAcomptesSection = (doc, bilanContent, startY) => {
-  const hasAcomptes =
-    (bilanContent.soldeAcomptesAvant || 0) > 0 ||
-    (bilanContent.acomptesDansPeriode || 0) > 0 ||
-    (bilanContent.totalAcomptes || 0) > 0 ||
-    (bilanContent.soldeAcomptesApres || 0) > 0;
-
-  if (!hasAcomptes) return startY;
-
-  try {
-    let y = startY;
-
-    if (y > 230) {
-      doc.addPage();
-      y = 20;
-    }
-
-    doc.setFontSize(12);
-    doc.setFont(undefined, "bold");
-    doc.setTextColor(...COLORS.textPrimary);
-    doc.text("Suivi des acomptes", 15, y);
-
-    y += 8;
-
-    const acompteWidth = 180;
-    const acompteX = 15;
-
-    doc.setDrawColor(...COLORS.primary);
-    doc.setLineWidth(1);
-    doc.roundedRect(acompteX, y, acompteWidth, 36, 3, 3, "S");
-
-    y += 6;
-
-    const acompteLines = [
-      {
-        label: "Solde avant période",
-        value: formatEuro(bilanContent.soldeAcomptesAvant || 0),
-        color: COLORS.textSecondary,
-      },
-      {
-        label: "Acomptes reçus cette période",
-        value: `+${formatEuro(bilanContent.acomptesDansPeriode || 0)}`,
-        color: COLORS.success,
-      },
-      {
-        label: "Consommé cette période",
-        value: `-${formatEuro(bilanContent.totalAcomptes || 0)}`,
-        color: COLORS.danger,
-      },
-    ];
-
-    doc.setFontSize(8);
-    acompteLines.forEach((line) => {
-      doc.setFont(undefined, "normal");
-      doc.setTextColor(...COLORS.textSecondary);
-      doc.text(line.label, acompteX + 5, y);
-
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(line.color[0], line.color[1], line.color[2]);
-      doc.text(line.value, acompteX + acompteWidth - 5, y, { align: "right" });
-
-      y += 6;
-    });
-
-    doc.setDrawColor(...COLORS.border);
-    doc.setLineWidth(0.5);
-    doc.line(acompteX + 5, y, acompteX + acompteWidth - 5, y);
-
-    y += 6;
-
-    doc.setFillColor(...COLORS.success);
-    doc.roundedRect(acompteX + 3, y - 3, acompteWidth - 6, 8, 2, 2, "F");
-
-    doc.setFont(undefined, "bold");
-    doc.setFontSize(10);
-    doc.setTextColor(255, 255, 255);
-    doc.text("SOLDE À REPORTER", acompteX + 5, y + 2);
-    doc.setFontSize(12);
-    doc.text(
-      formatEuro(bilanContent.soldeAcomptesApres || 0),
-      acompteX + acompteWidth - 5,
-      y + 2,
-      { align: "right" }
-    );
-
-    return y + 10;
-  } catch (error) {
-    console.error("Erreur drawAcomptesSection:", error);
-    return startY;
-  }
-};
-
-/**
- * Dessine le tampon "PAYÉ" (simplifié)
- */
-const drawPayeStamp = (doc) => {
-  try {
-    const pageCount = doc.internal.getNumberOfPages();
-
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const centerX = pageWidth / 2;
-      const centerY = pageHeight / 2;
-
-      const rectWidth = 140;
-      const rectHeight = 36;
-      const rectX = centerX - rectWidth / 2;
-      const rectY = centerY - rectHeight / 2;
-
-      // Contour
-      doc.setDrawColor(255, 0, 51);
-      doc.setLineWidth(3);
-      doc.roundedRect(rectX, rectY, rectWidth, rectHeight, 6, 6, "S");
-
-      // Texte "PAYÉ"
-      doc.setTextColor(255, 0, 51);
-      doc.setFontSize(48);
-      doc.setFont(undefined, "bold");
-      doc.text("PAYÉ", centerX, centerY + 8, { align: "center" });
-
-      // Date
-      doc.setFontSize(10);
-      doc.setFont(undefined, "italic");
-      const dateStr = new Date().toLocaleDateString("fr-FR", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
-      doc.text(`Réglé le ${dateStr}`, centerX, centerY + 20, {
-        align: "center",
-      });
-    }
-  } catch (error) {
-    console.error("Erreur drawPayeStamp:", error);
-  }
-};
-
-/**
- * Dessine le footer sur toutes les pages
- */
-const drawFooter = (doc) => {
-  try {
-    const pageCount = doc.internal.getNumberOfPages();
-
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-
-      doc.setDrawColor(...COLORS.border);
-      doc.setLineWidth(0.5);
-      doc.line(15, 285, 195, 285);
-
-      doc.setFontSize(8);
-      doc.setFont(undefined, "normal");
-      doc.setTextColor(...COLORS.textSecondary);
-      doc.text("Heures de Geo - Rapport d'activité", 15, 290);
-      doc.text(`Page ${i} / ${pageCount}`, 195, 290, { align: "right" });
-    }
-  } catch (error) {
-    console.error("Erreur drawFooter:", error);
-  }
-};
-
-/**
- * Dessine les coordonnées du profil utilisateur
- */
+// ─────────────────────────────────────────────
+// PROFIL UTILISATEUR
+// ─────────────────────────────────────────────
 const drawProfileSection = (doc, profile, startY) => {
   if (!profile) return startY;
   try {
@@ -916,26 +120,592 @@ const drawProfileSection = (doc, profile, startY) => {
     const cityLine = [profile.code_postal, profile.ville].filter(Boolean).join(" ");
     if (cityLine) lines.push(cityLine);
     if (profile.telephone) lines.push(profile.telephone);
-    if (lines.length === 0) return startY;
+    if (!lines.length) return startY;
 
     let y = startY;
-    doc.setFontSize(8);
+
+    // Fond léger
+    doc.setFillColor(...COLORS.offWhite);
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.4);
+    doc.roundedRect(12, y, 110, lines.length * 5 + 6, 2, 2, "FD");
+
+    doc.setFontSize(7);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(...COLORS.navyLight);
+    doc.text("PRESTATAIRE", 16, y + 5);
+
     doc.setFont(undefined, "normal");
-    doc.setTextColor(...COLORS.textSecondary);
-    lines.forEach((line) => {
-      doc.text(line, 15, y);
-      y += 4;
+    doc.setTextColor(...COLORS.textPrimary);
+    lines.forEach((line, i) => {
+      doc.text(line, 16, y + 10 + i * 5);
     });
-    return y + 4;
-  } catch (error) {
-    console.error("Erreur drawProfileSection:", error);
+
+    return y + lines.length * 5 + 12;
+  } catch (e) {
+    console.error("Erreur drawProfileSection:", e);
     return startY;
   }
 };
 
-/**
- * Export PDF Professionnel - Design moderne
- */
+// ─────────────────────────────────────────────
+// CARTES KPI
+// ─────────────────────────────────────────────
+const drawMetrics = (doc, bilanContent, periodType, startY) => {
+  try {
+    const netValue = bilanContent.resteAPercevoir !== undefined
+      ? bilanContent.resteAPercevoir
+      : bilanContent.totalE || 0;
+
+    let metrics = [
+      { label: "Total Heures",   value: formatHeures(bilanContent.totalH || 0),   accent: COLORS.navyLight },
+      { label: "CA Missions",    value: formatEuro(bilanContent.totalE || 0),      accent: COLORS.success   },
+    ];
+
+    if (periodType === "semaine" && (bilanContent.totalFrais || 0) > 0) {
+      metrics.push({ label: "Frais Divers", value: formatEuro(bilanContent.totalFrais || 0), accent: COLORS.warning });
+    }
+    if (periodType === "semaine" && (bilanContent.impayePrecedent || 0) > 0) {
+      metrics.push({ label: "Report semaine précédente", value: `+${formatEuro(bilanContent.impayePrecedent)}`, accent: COLORS.warning });
+    }
+    if (periodType === "semaine" && (bilanContent.totalAcomptes || 0) > 0) {
+      metrics.push({ label: "Acomptes déduits", value: `-${formatEuro(bilanContent.totalAcomptes || 0)}`, accent: COLORS.danger });
+    }
+    if (periodType === "semaine") {
+      metrics.push({ label: "Reste à Percevoir", value: formatEuro(netValue), accent: netValue > 0 ? COLORS.navy : COLORS.success });
+    } else {
+      metrics.push({ label: "CA Brut Total", value: formatEuro(bilanContent.totalE || 0), accent: COLORS.navyLight });
+    }
+
+    const n = metrics.length;
+    const gap = 4;
+    const cardW = Math.floor((190 - (n - 1) * gap) / n);
+    const cardH = 22;
+    const cardHBig = 28; // ← hauteur agrandie pour Reste à Percevoir
+    let x = 10;
+    const y = startY;
+
+    metrics.forEach((m) => {
+      const cx = x + cardW / 2;
+      const isRAP = m.label === "Reste à Percevoir";
+      const thisCardH = isRAP ? cardHBig : cardH;
+
+      // Ombre simulée
+      doc.setFillColor(200, 210, 225);
+      doc.roundedRect(x + 1, y + 1, cardW, thisCardH, 3, 3, "F");
+
+      // Fond blanc
+      doc.setFillColor(...COLORS.white);
+      doc.setDrawColor(...COLORS.border);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(x, y, cardW, thisCardH, 3, 3, "FD");
+
+      // Barre colorée en haut
+      doc.setFillColor(...m.accent);
+      doc.roundedRect(x, y, cardW, 3, 3, 3, "F");
+      doc.rect(x, y + 1.5, cardW, 1.5, "F");
+
+      // Label
+      doc.setFontSize(6);
+      doc.setFont(undefined, "normal");
+      doc.setTextColor(...COLORS.textSecondary);
+      const labelLines = doc.splitTextToSize(m.label, cardW - 4);
+      labelLines.forEach((line, i) => {
+        doc.text(line, cx, y + 9 + i * 3.5, { align: "center" });
+      });
+
+      // Valeur — plus grande et plus basse pour RAP
+     // Valeur — plus grande et plus basse pour RAP
+doc.setFontSize(isRAP ? 18 : 9.5);
+doc.setFont(undefined, isRAP ? "bold" : "bold");
+doc.setTextColor(...m.accent);
+// Pour RAP : on le centre mieux dans la carte
+doc.text(m.value, cx, y + (isRAP ? 20 : 18), { align: "center" });
+      x += cardW + gap;
+    });
+
+    // On retourne la hauteur max (cardHBig si RAP présent)
+    const maxH = metrics.some(m => m.label === "Reste à Percevoir") ? cardHBig : cardH;
+    return y + maxH + 10;
+  } catch (e) {
+    console.error("Erreur drawMetrics:", e);
+    return startY + 32;
+  }
+};
+
+// ─────────────────────────────────────────────
+// HELPER : dessine un header de tableau
+// ─────────────────────────────────────────────
+const drawTableHeader = (doc, startX, y, headers, colWidths, bgColor) => {
+  const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+  doc.setFillColor(...bgColor);
+  doc.roundedRect(startX, y, tableWidth, 8, 2, 2, "F");
+  doc.setTextColor(...COLORS.white);
+  doc.setFontSize(7.5);
+  doc.setFont(undefined, "bold");
+  let cx = startX;
+  headers.forEach((h, i) => {
+    doc.text(h, cx + colWidths[i] / 2, y + 5.5, { align: "center" });
+    cx += colWidths[i];
+  });
+  return y + 10;
+};
+
+// ─────────────────────────────────────────────
+// TABLEAU MISSIONS (SEMAINE)
+// ─────────────────────────────────────────────
+const drawMissionsTable = (doc, bilanContent, startY) => {
+  if (!bilanContent.filteredData?.length) return startY;
+  try {
+    let y = startY;
+
+    // Titre section
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(...COLORS.navy);
+    doc.text("Détail des missions", 15, y);
+    doc.setDrawColor(...COLORS.gold);
+    doc.setLineWidth(0.8);
+    doc.line(15, y + 2, 75, y + 2);
+    y += 8;
+
+    const headers   = ["Date", "Client", "Lieu", "Horaires", "Pause", "Durée", "Montant"];
+    const colWidths = [20, 38, 40, 26, 14, 20, 27];
+    const startX    = 15;
+    const tableW    = colWidths.reduce((a, b) => a + b, 0);
+
+    y = drawTableHeader(doc, startX, y, headers, colWidths, COLORS.navy);
+
+    bilanContent.filteredData.forEach((m, idx) => {
+      if (y > 268) { doc.addPage(); y = 20; }
+
+      if (idx % 2 === 0) {
+        doc.setFillColor(...COLORS.light);
+        doc.rect(startX, y - 1, tableW, 7.5, "F");
+      }
+
+      let cx = startX;
+      doc.setFontSize(7);
+
+      // Date
+      doc.setTextColor(...COLORS.textSecondary);
+      doc.setFont(undefined, "normal");
+      doc.text(formatDateFR(m.date_iso) || "", cx + colWidths[0] / 2, y + 4, { align: "center" });
+      cx += colWidths[0];
+
+      // Client
+      doc.setTextColor(...COLORS.textPrimary);
+      doc.setFont(undefined, "bold");
+      doc.text((m.client || "").substring(0, 18), cx + 2, y + 4);
+      cx += colWidths[1];
+
+      // Lieu
+      doc.setFont(undefined, "normal");
+      doc.setTextColor(...COLORS.textSecondary);
+      doc.setFontSize(6.5);
+      doc.text((m.lieu || "-").substring(0, 22), cx + 2, y + 4);
+      cx += colWidths[2];
+
+      // Horaires
+      doc.setFontSize(7);
+      doc.setTextColor(...COLORS.navyLight);
+      doc.setFont(undefined, "bold");
+      doc.text(`${m.debut || ""} - ${m.fin || ""}`, cx + colWidths[3] / 2, y + 4, { align: "center" });
+      cx += colWidths[3];
+
+      // Pause
+      doc.setFont(undefined, "normal");
+      doc.setTextColor(...COLORS.textSecondary);
+      doc.text(m.pause > 0 ? `${m.pause}m` : "-", cx + colWidths[4] / 2, y + 4, { align: "center" });
+      cx += colWidths[4];
+
+      // Durée
+      doc.setTextColor(...COLORS.textPrimary);
+      doc.text(formatHeures(m.duree || 0), cx + colWidths[5] / 2, y + 4, { align: "center" });
+      cx += colWidths[5];
+
+      // Montant
+      doc.setFont(undefined, "bold");
+      doc.setTextColor(...COLORS.success);
+      doc.text(formatEuro(m.montant || 0), cx + colWidths[6] / 2, y + 4, { align: "center" });
+
+      y += 7.5;
+    });
+
+    y += 3;
+
+    // Ligne séparatrice
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.4);
+    doc.line(startX, y, startX + tableW, y);
+    y += 4;
+
+    // Total missions
+    const totH = bilanContent.filteredData.reduce((s, m) => s + (m.duree || 0), 0);
+    const totE = bilanContent.filteredData.reduce((s, m) => s + (m.montant || 0), 0);
+
+    doc.setFillColor(...COLORS.navyLight);
+    doc.roundedRect(startX, y, tableW, 8, 2, 2, "F");
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...COLORS.white);
+    doc.text("TOTAL MISSIONS", startX + 5, y + 5.5);
+    doc.text(formatHeures(totH), startX + tableW - 52, y + 5.5, { align: "center" });
+    doc.text(formatEuro(totE),   startX + tableW - 13, y + 5.5, { align: "center" });
+
+    return y + 18;
+  } catch (e) {
+    console.error("Erreur drawMissionsTable:", e);
+    return startY;
+  }
+};
+
+// ─────────────────────────────────────────────
+// TABLEAU FRAIS
+// ─────────────────────────────────────────────
+const drawFraisTable = (doc, bilanContent, startY) => {
+  if (!bilanContent.fraisDivers?.length) return startY;
+  try {
+    let y = startY;
+    if (y > 220) { doc.addPage(); y = 20; }
+
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(...COLORS.navy);
+    doc.text("Frais divers", 15, y);
+    doc.setDrawColor(...COLORS.gold);
+    doc.setLineWidth(0.8);
+    doc.line(15, y + 2, 55, y + 2);
+    y += 8;
+
+    const headers   = ["Description", "Date", "Montant"];
+    const colWidths = [103, 40, 42];
+    const startX    = 15;
+    const tableW    = colWidths.reduce((a, b) => a + b, 0);
+
+    y = drawTableHeader(doc, startX, y, headers, colWidths, COLORS.navyMid);
+
+    bilanContent.fraisDivers.forEach((f, idx) => {
+      if (y > 268) { doc.addPage(); y = 20; }
+      if (idx % 2 === 0) {
+        doc.setFillColor(...COLORS.light);
+        doc.rect(startX, y - 1, tableW, 7.5, "F");
+      }
+      let cx = startX;
+      doc.setFontSize(7);
+
+      doc.setTextColor(...COLORS.textPrimary);
+      doc.setFont(undefined, "normal");
+      doc.text((f.description || "").substring(0, 48), cx + 2, y + 4);
+      cx += colWidths[0];
+
+      doc.setTextColor(...COLORS.textSecondary);
+      doc.text(formatDateFR(f.date_frais) || "-", cx + colWidths[1] / 2, y + 4, { align: "center" });
+      cx += colWidths[1];
+
+      doc.setFont(undefined, "bold");
+      doc.setTextColor(...COLORS.warning);
+      doc.text(formatEuro(f.montant || 0), cx + colWidths[2] / 2, y + 4, { align: "center" });
+
+      y += 7.5;
+    });
+
+    y += 3;
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.4);
+    doc.line(startX, y, startX + tableW, y);
+    y += 4;
+
+    doc.setFillColor(...COLORS.navyMid);
+    doc.roundedRect(startX, y, tableW, 8, 2, 2, "F");
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...COLORS.white);
+    doc.text("TOTAL FRAIS", startX + 5, y + 5.5);
+    doc.text(formatEuro(bilanContent.totalFrais || 0), startX + tableW - 5, y + 5.5, { align: "right" });
+
+    return y + 18;
+  } catch (e) {
+    console.error("Erreur drawFraisTable:", e);
+    return startY;
+  }
+};
+
+// ─────────────────────────────────────────────
+// SECTION ACOMPTES
+// ─────────────────────────────────────────────
+const drawAcomptesSection = (doc, bilanContent, startY) => {
+  const hasAcomptes =
+    (bilanContent.soldeAcomptesAvant  || 0) > 0 ||
+    (bilanContent.acomptesDansPeriode || 0) > 0 ||
+    (bilanContent.totalAcomptes       || 0) > 0 ||
+    (bilanContent.soldeAcomptesApres  || 0) > 0;
+  if (!hasAcomptes) return startY;
+
+  try {
+    let y = startY;
+    if (y > 230) { doc.addPage(); y = 20; }
+
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(...COLORS.navy);
+    doc.text("Suivi des acomptes", 15, y);
+    doc.setDrawColor(...COLORS.gold);
+    doc.setLineWidth(0.8);
+    doc.line(15, y + 2, 72, y + 2);
+    y += 8;
+
+    const boxW = 185;
+    const boxX = 12;
+
+    doc.setFillColor(...COLORS.offWhite);
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(boxX, y, boxW, 38, 3, 3, "FD");
+
+    // Barre navy gauche
+    doc.setFillColor(...COLORS.navy);
+    doc.roundedRect(boxX, y, 3, 38, 2, 2, "F");
+
+    y += 7;
+    const rows = [
+      { label: "Solde avant période",          value: formatEuro(bilanContent.soldeAcomptesAvant  || 0), color: COLORS.textSecondary },
+      { label: "Acomptes reçus cette période",  value: `+${formatEuro(bilanContent.acomptesDansPeriode || 0)}`, color: COLORS.success },
+      { label: "Consommé cette période",        value: `-${formatEuro(bilanContent.totalAcomptes   || 0)}`, color: COLORS.danger   },
+    ];
+
+    doc.setFontSize(8);
+    rows.forEach((r) => {
+      doc.setFont(undefined, "normal");
+      doc.setTextColor(...COLORS.textSecondary);
+      doc.text(r.label, boxX + 8, y);
+      doc.setFont(undefined, "bold");
+      doc.setTextColor(...r.color);
+      doc.text(r.value, boxX + boxW - 5, y, { align: "right" });
+      y += 7;
+    });
+
+    // Ligne séparatrice
+    doc.setDrawColor(...COLORS.border);
+    doc.line(boxX + 8, y, boxX + boxW - 8, y);
+    y += 5;
+
+    // Solde à reporter en grand
+    doc.setFillColor(...COLORS.navy);
+    doc.roundedRect(boxX + 3, y - 3, boxW - 6, 9, 2, 2, "F");
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.white);
+    doc.text("SOLDE À REPORTER", boxX + 8, y + 3);
+    doc.setFontSize(11);
+    doc.setTextColor(...COLORS.gold);
+    doc.text(formatEuro(bilanContent.soldeAcomptesApres || 0), boxX + boxW - 5, y + 3, { align: "right" });
+
+    return y + 14;
+  } catch (e) {
+    console.error("Erreur drawAcomptesSection:", e);
+    return startY;
+  }
+};
+
+// ─────────────────────────────────────────────
+// RÉSUMÉ PAR SEMAINE (BILAN MOIS)
+// ─────────────────────────────────────────────
+const drawWeeklySummary = (doc, bilanContent, startY) => {
+  if (!bilanContent.groupedData?.length) return startY;
+  try {
+    let y = startY;
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(...COLORS.navy);
+    doc.text("Résumé par semaine", 15, y);
+    doc.setDrawColor(...COLORS.gold);
+    doc.setLineWidth(0.8);
+    doc.line(15, y + 2, 72, y + 2);
+    y += 8;
+
+    const headers   = ["Semaine", "Heures", "Montant"];
+    const colWidths = [120, 35, 30];
+    const startX    = 15;
+    const tableW    = colWidths.reduce((a, b) => a + b, 0);
+
+    y = drawTableHeader(doc, startX, y, headers, colWidths, COLORS.navy);
+
+    bilanContent.groupedData.forEach((g, idx) => {
+      if (y > 268) { doc.addPage(); y = 20; }
+      if (idx % 2 === 0) {
+        doc.setFillColor(...COLORS.light);
+        doc.rect(startX, y - 1, tableW, 7.5, "F");
+      }
+      let cx = startX;
+      doc.setFontSize(8);
+
+      doc.setTextColor(...COLORS.textPrimary);
+      doc.setFont(undefined, "bold");
+      doc.text(g.label || "", cx + 5, y + 4);
+      cx += colWidths[0];
+
+      doc.setFont(undefined, "normal");
+      doc.setTextColor(...COLORS.navyLight);
+      doc.text(formatHeures(g.h || 0), cx + colWidths[1] / 2, y + 4, { align: "center" });
+      cx += colWidths[1];
+
+      doc.setFont(undefined, "bold");
+      doc.setTextColor(...COLORS.success);
+      doc.text(formatEuro(g.e || 0), cx + colWidths[2] / 2, y + 4, { align: "center" });
+
+      y += 7.5;
+    });
+
+    y += 4;
+    doc.setFillColor(...COLORS.navy);
+    doc.roundedRect(startX, y, tableW, 8, 2, 2, "F");
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...COLORS.white);
+    doc.text("TOTAL", startX + 5, y + 5.5);
+    doc.text(formatHeures(bilanContent.totalH || 0), startX + colWidths[0] + colWidths[1] / 2, y + 5.5, { align: "center" });
+    doc.setTextColor(...COLORS.gold);
+    doc.text(formatEuro(bilanContent.totalE || 0), startX + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 5.5, { align: "center" });
+
+    return y + 16;
+  } catch (e) {
+    console.error("Erreur drawWeeklySummary:", e);
+    return startY;
+  }
+};
+
+// ─────────────────────────────────────────────
+// RÉSUMÉ PAR MOIS (BILAN ANNÉE)
+// ─────────────────────────────────────────────
+const drawMonthlySummary = (doc, bilanContent, startY) => {
+  if (!bilanContent.groupedData?.length) return startY;
+  try {
+    let y = startY;
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(...COLORS.navy);
+    doc.text("Résumé par mois", 15, y);
+    doc.setDrawColor(...COLORS.gold);
+    doc.setLineWidth(0.8);
+    doc.line(15, y + 2, 65, y + 2);
+    y += 8;
+
+    const headers   = ["Mois", "Heures", "Montant"];
+    const colWidths = [120, 35, 30];
+    const startX    = 15;
+    const tableW    = colWidths.reduce((a, b) => a + b, 0);
+
+    y = drawTableHeader(doc, startX, y, headers, colWidths, COLORS.navyMid);
+
+    bilanContent.groupedData.forEach((g, idx) => {
+      if (y > 268) { doc.addPage(); y = 20; }
+      if (idx % 2 === 0) {
+        doc.setFillColor(...COLORS.light);
+        doc.rect(startX, y - 1, tableW, 7.5, "F");
+      }
+      let cx = startX;
+      doc.setFontSize(8);
+
+      doc.setTextColor(...COLORS.textPrimary);
+      doc.setFont(undefined, "bold");
+      doc.text(g.label || "", cx + 5, y + 4);
+      cx += colWidths[0];
+
+      doc.setFont(undefined, "normal");
+      doc.setTextColor(...COLORS.navyLight);
+      doc.text(formatHeures(g.h || 0), cx + colWidths[1] / 2, y + 4, { align: "center" });
+      cx += colWidths[1];
+
+      doc.setFont(undefined, "bold");
+      doc.setTextColor(...COLORS.success);
+      doc.text(formatEuro(g.e || 0), cx + colWidths[2] / 2, y + 4, { align: "center" });
+
+      y += 7.5;
+    });
+
+    y += 4;
+    doc.setFillColor(...COLORS.navy);
+    doc.roundedRect(startX, y, tableW, 8, 2, 2, "F");
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...COLORS.white);
+    doc.text("TOTAL ANNUEL", startX + 5, y + 5.5);
+    doc.text(formatHeures(bilanContent.totalH || 0), startX + colWidths[0] + colWidths[1] / 2, y + 5.5, { align: "center" });
+    doc.setTextColor(...COLORS.gold);
+    doc.text(formatEuro(bilanContent.totalE || 0), startX + colWidths[0] + colWidths[1] + colWidths[2] / 2, y + 5.5, { align: "center" });
+
+    return y + 16;
+  } catch (e) {
+    console.error("Erreur drawMonthlySummary:", e);
+    return startY;
+  }
+};
+
+// ─────────────────────────────────────────────
+// TAMPON PAYÉ
+// ─────────────────────────────────────────────
+const drawPayeStamp = (doc) => {
+  try {
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const cx = 210 / 2;
+      const cy = 297 / 2;
+
+      doc.setDrawColor(0, 120, 60);
+      doc.setLineWidth(3);
+      doc.roundedRect(cx - 55, cy - 16, 110, 32, 5, 5, "S");
+
+      doc.setTextColor(0, 120, 60);
+      doc.setFontSize(44);
+      doc.setFont(undefined, "bold");
+      doc.text("PAYÉ", cx, cy + 8, { align: "center" });
+
+      doc.setFontSize(9);
+      doc.setFont(undefined, "italic");
+      const dateStr = new Date().toLocaleDateString("fr-FR", {
+        day: "numeric", month: "long", year: "numeric",
+      });
+      doc.text(`Réglé le ${dateStr}`, cx, cy + 18, { align: "center" });
+    }
+  } catch (e) {
+    console.error("Erreur drawPayeStamp:", e);
+  }
+};
+
+// ─────────────────────────────────────────────
+// PIED DE PAGE
+// ─────────────────────────────────────────────
+const drawFooter = (doc) => {
+  try {
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+
+      // Bande navy
+      doc.setFillColor(...COLORS.navy);
+      doc.rect(0, 287, 210, 10, "F");
+
+      // Bande or fine
+      doc.setFillColor(...COLORS.gold);
+      doc.rect(0, 287, 210, 0.8, "F");
+
+      doc.setFontSize(7.5);
+      doc.setFont(undefined, "normal");
+      doc.setTextColor(180, 200, 230);
+      doc.text("Heures de Geo — Rapport d'activité professionnel", 15, 293);
+      doc.setTextColor(...COLORS.gold);
+      doc.text(`Page ${i} / ${pageCount}`, 195, 293, { align: "right" });
+    }
+  } catch (e) {
+    console.error("Erreur drawFooter:", e);
+  }
+};
+
+// ─────────────────────────────────────────────
+// EXPORT PRINCIPAL
+// ─────────────────────────────────────────────
 export const exportToPDFPro = (
   bilanContent,
   periodType,
@@ -943,24 +713,15 @@ export const exportToPDFPro = (
   periodValue = "",
   profile = null
 ) => {
-  // Validation
   if (!bilanContent) {
     console.error("❌ exportToPDFPro: bilanContent est requis");
     alert("Erreur : Aucune donnée à exporter");
     return;
   }
 
-  console.log("🚀 Démarrage exportToPDFPro", {
-    periodType,
-    estPaye,
-    periodValue,
-    bilanContent,
-  });
-
   try {
     const doc = new jsPDF();
 
-    // Dessiner les sections
     let y = drawHeader(doc, bilanContent, periodType, periodValue);
     y = drawProfileSection(doc, profile, y);
     y = drawMetrics(doc, bilanContent, periodType, y);
@@ -975,23 +736,16 @@ export const exportToPDFPro = (
       y = drawMonthlySummary(doc, bilanContent, y);
     }
 
-    if (estPaye) {
-      drawPayeStamp(doc);
-    }
-
+    if (estPaye) drawPayeStamp(doc);
     drawFooter(doc);
 
-    // Sauvegarde
     const fileName = `GeoBilan_${(bilanContent.titre || "export")
       .replace(/\s+/g, "_")
       .replace(/[^a-zA-Z0-9_-]/g, "")}_${Date.now()}.pdf`;
 
-        doc.save(fileName);
+    doc.save(fileName);
   } catch (error) {
-    console.error("❌ Erreur lors de la génération du PDF:", error);
-    console.error("Stack:", error.stack);
-    alert(
-      "Erreur lors de la génération du PDF. Consultez la console pour plus de détails."
-    );
+    console.error("❌ Erreur PDF:", error);
+    alert("Erreur lors de la génération du PDF. Consultez la console.");
   }
 };
