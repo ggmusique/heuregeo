@@ -223,9 +223,13 @@ export function useBilan({
       const pId = effectivePatronId(patronId);
 
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return false;
+
         const { data, error } = await supabase
           .from(TABLE)
           .select("paye")
+          .eq("user_id", user.id)
           .eq("periode_type", bilanPeriodType)
           .eq("periode_value", bilanPeriodValue)
           .eq("patron_id", pId)
@@ -259,9 +263,13 @@ export function useBilan({
       const currentIndex = parseInt(currentWeek, 10) || 0;
 
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return 0;
+
         const { data, error } = await supabase
           .from(TABLE)
          .select("periode_index, paye, ca_brut_periode, acompte_consomme, reste_a_percevoir")
+          .eq("user_id", user.id)
           .eq("periode_type", PERIOD_TYPES.SEMAINE)
           .eq("patron_id", pId)
           .eq("paye", false)
@@ -300,11 +308,15 @@ export function useBilan({
       const pId = effectivePatronId(patronId);
 
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { impayes: [], payes: [], all: [] };
+
         const { data, error } = await supabase
           .from(TABLE)
           .select(
             "id, periode_type, periode_value, periode_index, patron_id, paye, date_paiement, reste_a_percevoir, ca_brut_periode, acompte_consomme, created_at"
           )
+          .eq("user_id", user.id)
           .eq("patron_id", pId)
           .eq("periode_type", "semaine")
           .order("periode_index", { ascending: false });
@@ -369,6 +381,12 @@ export function useBilan({
 
       try {
         const pId = effectivePatronId(patronId);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          triggerAlert?.("Utilisateur non connecté.");
+          return false;
+        }
 
         // 1) Missions filtrées pour la période + patron
         const filtered = getMissionsByPeriod(
@@ -528,6 +546,7 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
     const { data: bilansPrecedents } = await supabase
       .from(TABLE)
       .select("acompte_consomme")
+      .eq("user_id", user.id)
       .eq("patron_id", pId)
       .eq("periode_type", "semaine")
       .lt("periode_index", parseInt(bilanPeriodValue, 10));
@@ -639,12 +658,14 @@ const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
 const { data: bilanExistant } = await supabase
   .from(TABLE)
   .select("acompte_consomme, paye")
+  .eq("user_id", user.id)
   .eq("periode_type", bilanPeriodType)
   .eq("periode_value", bilanPeriodValue)
   .eq("patron_id", pId)
   .maybeSingle();
 
 const dataToSave = {
+  user_id: user.id,
   periode_type: bilanPeriodType,
   periode_value: bilanPeriodValue,
   periode_index: periodeIndex,
@@ -709,6 +730,9 @@ const autoPayerBilans = useCallback(
     try {
       const pId = effectivePatronId(patronId);
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
       console.log("🔵 AUTO-PAIEMENT DÉMARRÉ", {
         patronId: pId,
         montantAcompte,
@@ -718,6 +742,7 @@ const autoPayerBilans = useCallback(
       const { data: bilansImpayes, error } = await supabase
         .from(TABLE)
         .select("*")
+        .eq("user_id", user.id)
         .eq("patron_id", pId)
         .eq("periode_type", "semaine")
         .eq("paye", false)
@@ -817,7 +842,11 @@ const autoPayerBilans = useCallback(
         const pId = effectivePatronId(patronId);
         const reste = bilanContent.resteCettePeriode || 0;
 
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Utilisateur non connecté");
+
         const dataToSave = {
+          user_id: user.id,
           periode_type: bilanPeriodType,
           periode_value: bilanPeriodValue,
           periode_index: computePeriodeIndex(bilanPeriodType, bilanPeriodValue),

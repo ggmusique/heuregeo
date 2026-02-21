@@ -6,9 +6,13 @@ import { supabase } from "../supabase";
 
 // ========= FETCH (READ) =========
 export const fetchLieux = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
   const { data, error } = await supabase
     .from("lieux")
     .select("*")
+    .eq("user_id", user.id)
     .order("nom", { ascending: true });
 
   if (error) throw error;
@@ -20,9 +24,14 @@ export const fetchLieux = async () => {
 export const createLieu = async (lieuData) => {
   console.log("🔵 API - createLieu appelée avec:", lieuData);
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  const payload = { ...lieuData, user_id: user.id };
+
   const { data, error } = await supabase
     .from("lieux")
-    .insert([lieuData])
+    .insert([payload])
     .select();
 
   if (error) {
