@@ -476,7 +476,7 @@ export default function App({ user }) {
         periodValue={bilan.bilanPeriodValue} setPeriodValue={bilan.setBilanPeriodValue} availablePeriods={bilan.availablePeriods}
         formatPeriodLabel={bilan.formatPeriodLabel} onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}
         onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}
-        darkMode={darkMode} patrons={patrons} selectedPatronId={bilanPatronId} onPatronChange={setBilanPatronId}
+        darkMode={darkMode} patrons={patrons} selectedPatronId={bilanPatronId} onPatronChange={(id) => !isViewer && setBilanPatronId(id)}
         clients={clients} selectedClientId={bilanClientId} onClientChange={setBilanClientId}
         isViewer={isViewer}
       />
