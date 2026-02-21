@@ -15,9 +15,13 @@ import { supabase } from "../supabase";
 // 1) LIRE toutes les missions (READ)
 // ------------------------------------------------------------
 export const fetchMissions = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
   const { data, error } = await supabase
     .from("missions")
     .select("*")
+    .eq("user_id", user.id)
     .order("date_iso", { ascending: false });
 
   if (error) throw error;
@@ -44,9 +48,14 @@ export const createMission = async (missionData) => {
     }
   });
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  const payload = { ...missionData, user_id: user.id };
+
   const { data, error } = await supabase
     .from("missions")
-    .insert([missionData])
+    .insert([payload])
     .select();
 
   // ✅ LOG : Voir l'erreur détaillée si échec
