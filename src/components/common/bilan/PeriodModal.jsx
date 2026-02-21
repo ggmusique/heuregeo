@@ -33,6 +33,8 @@ export const PeriodModal = ({
   clients = [],              // liste des clients
   selectedClientId = null,   // client choisi (null = tous)
   onClientChange = () => {}, // callback quand on change de client
+
+  isViewer = false,          // masque le sélecteur de patron pour les viewers
 }) => {
   /**
    * Garde-fou : si show est false, on ne rend rien.
@@ -156,6 +158,7 @@ export const PeriodModal = ({
             - null / "" = Global = tous les patrons
             - sinon patron.id
            ====================================================== */}
+        {!isViewer && (
         <div className="mb-8">
           <label className="block text-[11px] font-black uppercase mb-3 text-green-300 tracking-[0.25em] opacity-80">
             Filtrer par patron (optionnel)
@@ -205,6 +208,7 @@ export const PeriodModal = ({
             Laisser sur "Tous les patrons" pour un bilan consolidé
           </p>
         </div>
+        )}
 
         {/* ======================================================
             4) (NOUVEAU) Filtre CLIENT (optionnel)

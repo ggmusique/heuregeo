@@ -143,6 +143,12 @@ export default function App({ user }) {
     }
   }, [isViewer, profileLoading]);
 
+  useEffect(() => {
+    if (isViewer && viewerPatronId) {
+      setBilanPatronId(viewerPatronId);
+    }
+  }, [isViewer, viewerPatronId]);
+
   const handleMissionSubmit = async (missionData) => {
     if (!missionData?.debut || !missionData?.fin) { triggerAlert("Veuillez remplir debut et fin"); return; }
     try {
@@ -470,9 +476,10 @@ export default function App({ user }) {
         periodValue={bilan.bilanPeriodValue} setPeriodValue={bilan.setBilanPeriodValue} availablePeriods={bilan.availablePeriods}  
         formatPeriodLabel={bilan.formatPeriodLabel} onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}  
         onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}  
-        darkMode={darkMode} patrons={patrons} selectedPatronId={bilanPatronId} onPatronChange={setBilanPatronId}  
-        clients={clients} selectedClientId={bilanClientId} onClientChange={setBilanClientId}  
-      />  
+        darkMode={darkMode} patrons={patrons} selectedPatronId={bilanPatronId} onPatronChange={(id) => !isViewer && setBilanPatronId(id)}
+        clients={clients} selectedClientId={bilanClientId} onClientChange={setBilanClientId}
+        isViewer={isViewer}
+      />
 
       <LieuModal show={showLieuModal} editMode={!!editingLieuId} initialData={editingLieuData} onSubmit={handleLieuSubmit} onCancel={() => { setShowLieuModal(false); resetLieuForm(); }} loading={loading} darkMode={darkMode} />  
 
