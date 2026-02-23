@@ -28,6 +28,17 @@ export const PeriodModal = ({
   patrons = [],         // liste des patrons pour le select
   selectedPatronId = null, // patron choisi (null = global)
   onPatronChange = () => {}, // callback quand on change de patron
+
+  // ✅ Ajout filtre client
+  clients = [],              // liste des clients
+  selectedClientId = null,   // client choisi (null = tous)
+  onClientChange = () => {}, // callback quand on change de client
+
+  isViewer = false,          // masque le sélecteur de patron pour les viewers
+
+  // Features plan Free/Pro
+  canBilanMois = true,       // accès au bilan par mois (plan Pro)
+  canBilanAnnee = true,      // accès au bilan par année (plan Pro)
 }) => {
   /**
    * Garde-fou : si show est false, on ne rend rien.
@@ -71,25 +82,33 @@ export const PeriodModal = ({
           </button>
 
           <button
-            onClick={() => setPeriodType("mois")}
+            onClick={() => canBilanMois && setPeriodType("mois")}
+            disabled={!canBilanMois}
+            title={!canBilanMois ? "Fonctionnalité Pro" : undefined}
             className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${
-              periodType === "mois"
+              !canBilanMois
+                ? "text-white/20 cursor-not-allowed"
+                : periodType === "mois"
                 ? "bg-indigo-600 text-white shadow-md"
                 : "text-white/50 hover:bg-white/10"
             }`}
           >
-            Mois
+            {canBilanMois ? "Mois" : "🔒 Mois"}
           </button>
 
           <button
-            onClick={() => setPeriodType("annee")}
+            onClick={() => canBilanAnnee && setPeriodType("annee")}
+            disabled={!canBilanAnnee}
+            title={!canBilanAnnee ? "Fonctionnalité Pro" : undefined}
             className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${
-              periodType === "annee"
+              !canBilanAnnee
+                ? "text-white/20 cursor-not-allowed"
+                : periodType === "annee"
                 ? "bg-indigo-600 text-white shadow-md"
                 : "text-white/50 hover:bg-white/10"
             }`}
           >
-            Année
+            {canBilanAnnee ? "Année" : "🔒 Année"}
           </button>
         </div>
 
@@ -151,6 +170,7 @@ export const PeriodModal = ({
             - null / "" = Global = tous les patrons
             - sinon patron.id
            ====================================================== */}
+        {!isViewer && (
         <div className="mb-8">
           <label className="block text-[11px] font-black uppercase mb-3 text-green-300 tracking-[0.25em] opacity-80">
             Filtrer par patron (optionnel)
@@ -200,9 +220,64 @@ export const PeriodModal = ({
             Laisser sur "Tous les patrons" pour un bilan consolidé
           </p>
         </div>
+        )}
 
         {/* ======================================================
-            4) Boutons bas
+            4) (NOUVEAU) Filtre CLIENT (optionnel)
+            - null / "" = tous les clients
+            - sinon client.id
+           ====================================================== */}
+        {!isViewer && (
+        <div className="mb-8">
+          <label className="block text-[11px] font-black uppercase mb-3 text-amber-300 tracking-[0.25em] opacity-80">
+            Filtrer par client (optionnel)
+          </label>
+
+          <div className="relative">
+            <select
+              value={selectedClientId || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                onClientChange(value === "" ? null : value);
+              }}
+              className="w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase bg-[#1a1f2e] border-2 border-amber-500/40 text-white appearance-none cursor-pointer focus:outline-none focus:border-amber-400 transition-all shadow-inner backdrop-blur-md"
+            >
+              <option value="">👥 Tous les clients</option>
+
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.nom}
+                </option>
+              ))}
+            </select>
+
+            {/* flèche déco */}
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-amber-400">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Aide texte */}
+          <p className="text-[9px] opacity-50 mt-2 px-1">
+            Laisser sur "Tous les clients" pour un bilan consolidé
+          </p>
+        </div>
+        )}
+
+        {/* ======================================================
+            5) Boutons bas
             - Annuler : onCancel()
             - Confirmer : onConfirm() (désactivé si pas de periodValue)
            ====================================================== */}

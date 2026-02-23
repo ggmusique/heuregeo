@@ -85,6 +85,7 @@ main = version propre
 
 tag (v6.0, v6.1…) = photo officielle
 
+a chaque demarrage de cospace faire ceci git pull origin main
 
 ---
 
@@ -97,4 +98,4 @@ Quand tu veux, on fera :
 - soit un **schéma visuel simple** (work → main → version)
 - soit un **mode “sécurité maximale”** (impossible de tout casser)
 
-test sauvegarde 
+ git pull origin main

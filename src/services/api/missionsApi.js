@@ -15,11 +15,30 @@ import { supabase } from "../supabase";
 // 1) LIRE toutes les missions (READ)
 // ------------------------------------------------------------
 export const fetchMissions = async () => {
-  const { data, error } = await supabase
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // Récupère le profil pour savoir si viewer
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("role, patron_id")
+    .eq("id", user.id)
+    .single();
+
+  const isViewer = profileData?.role === "viewer";
+
+  let query = supabase
     .from("missions")
     .select("*")
     .order("date_iso", { ascending: false });
 
+  // Viewer : la RLS Supabase gère déjà le filtrage par patron_id
+  // Owner : on filtre par user_id
+  if (!isViewer) {
+    query = query.eq("user_id", user.id);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
 
   return data || [];
@@ -44,9 +63,14 @@ export const createMission = async (missionData) => {
     }
   });
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  const payload = { ...missionData, user_id: user.id };
+
   const { data, error } = await supabase
     .from("missions")
-    .insert([missionData])
+    .insert([payload])
     .select();
 
   // ✅ LOG : Voir l'erreur détaillée si échec

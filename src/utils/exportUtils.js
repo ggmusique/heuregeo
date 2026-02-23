@@ -20,7 +20,8 @@ export const exportToExcel = (
   periodType,
   periodValue,
   periodLabel,
-  fraisDivers = []
+  fraisDivers = [],
+  profile = null
 ) => {
   // Validation des entrées
   if (!bilanData) {
@@ -46,8 +47,21 @@ export const exportToExcel = (
   const totalMissions = totalE - totalFrais;
   const XLSX = window.XLSX;
 
+  // Construction des coordonnées du profil
+  const profileRows = [];
+  if (profile) {
+    const fullName = [profile.prenom, profile.nom].filter(Boolean).join(" ");
+    if (fullName) profileRows.push([fullName]);
+    if (profile.adresse) profileRows.push([profile.adresse]);
+    const cityLine = [profile.code_postal, profile.ville].filter(Boolean).join(" ");
+    if (cityLine) profileRows.push([cityLine]);
+    if (profile.telephone) profileRows.push([profile.telephone]);
+    if (profileRows.length > 0) profileRows.push([]);
+  }
+
   // Construction des données
   const data = [
+    ...profileRows,
     ["HEURES DE GEO"],
     [
       `BILAN ${(periodType || "").toUpperCase()} : ${(
