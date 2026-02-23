@@ -6,24 +6,15 @@ import { exportToPDFPro } from "../utils/exportPDF_Pro";
 import { MissionCard } from "../components/mission/MissionCard";
 import { WeekPicker } from "../components/common/bilan/WeekPicker";
 
-/**
- * ✅ BilanTab
- * Onglet pour afficher et exporter les bilans
- */
 export const BilanTab = ({
-  // État bilan
   bilan,
   bilanPatronId,
   currentWeek,
   missionsThisWeek,
   darkMode,
-  
-  // Données
   patrons,
   getPatronNom,
   getPatronColor,
-  
-  // Handlers
   onMarquerCommePaye,
   onFraisEdit,
   onFraisDelete,
@@ -31,15 +22,12 @@ export const BilanTab = ({
   onMissionDelete,
   profile,
   isViewer,
-
-  // Features plan Free/Pro
   canBilanMois = true,
   canBilanAnnee = true,
   canExportPDF = true,
   canExportExcel = true,
   canExportCSV = true,
 }) => {
-  // ✅ Memoization des missions triées
   const sortedBilanMissions = useMemo(() => {
     if (!bilan.bilanContent?.filteredData) return [];
     return [...bilan.bilanContent.filteredData].sort(
@@ -47,7 +35,6 @@ export const BilanTab = ({
     );
   }, [bilan.bilanContent?.filteredData]);
 
-  // ✅ Vue avant le bilan (bouton + semaine en cours)
   if (!bilan.showBilan) {
     return (
       <div className="animate-in slide-in-from-right duration-400">
@@ -94,7 +81,6 @@ export const BilanTab = ({
     );
   }
 
-  // ✅ Vue DU bilan (détails + exports)
   return (
     <div className="animate-in fade-in duration-500">
       <button
@@ -130,28 +116,18 @@ export const BilanTab = ({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-[#0A1628]/80 p-4 rounded-2xl border border-yellow-600/20">
-            <p className="text-[9px] font-black text-yellow-500/70 uppercase mb-1">
-              Heures
-            </p>
-            <p className="text-xl font-black text-white">
-              {formatHeures(bilan.bilanContent.totalH)}
-            </p>
+            <p className="text-[9px] font-black text-yellow-500/70 uppercase mb-1">Heures</p>
+            <p className="text-xl font-black text-white">{formatHeures(bilan.bilanContent.totalH)}</p>
           </div>
 
           <div className="bg-[#0A1628]/80 p-4 rounded-2xl border border-yellow-600/20">
-            <p className="text-[9px] font-black text-yellow-500/70 uppercase mb-1">
-              Total Brut
-            </p>
-            <p className="text-xl font-black text-emerald-400">
-              {formatEuro(bilan.bilanContent.totalE)}
-            </p>
+            <p className="text-[9px] font-black text-yellow-500/70 uppercase mb-1">Total Brut</p>
+            <p className="text-xl font-black text-emerald-400">{formatEuro(bilan.bilanContent.totalE)}</p>
           </div>
 
           {bilan.bilanContent.impayePrecedent > 0 && (
             <div className="col-span-2 bg-[#0A1628]/80 p-4 rounded-2xl border border-orange-500/30 flex justify-between items-center">
-              <p className="text-[9px] font-black text-orange-400/70 uppercase">
-                ⏳ Impayé précédent
-              </p>
+              <p className="text-[9px] font-black text-orange-400/70 uppercase">⏳ Impayé précédent</p>
               <p className="text-xl font-black text-orange-400">
                 +{formatEuro(bilan.bilanContent.impayePrecedent)}
               </p>
@@ -161,115 +137,104 @@ export const BilanTab = ({
       </div>
 
       {/* SUIVI FRAIS / ACOMPTES */}
+      {/* ✅ Affiché uniquement si frais OU acompte reçu cette période OU solde avant > 0 */}
       {bilan.bilanPeriodType === "semaine" &&
         (bilan.bilanContent.fraisDivers.length > 0 ||
           bilan.bilanContent.acomptesDansPeriode > 0 ||
-          bilan.bilanContent.soldeAcomptesApres > 0) && (
-        <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
-          <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
-            {bilan.bilanContent.fraisDivers.length > 0
-              ? "Frais & Acomptes"
-              : "Suivi des acomptes & impayés"}
-          </p>
-
-          {bilan.bilanContent.fraisDivers.length > 0 && (
-            <>
-              {[...bilan.bilanContent.fraisDivers]
-                .sort((a, b) => new Date(a.date_frais) - new Date(b.date_frais))
-                .map((f) => (
-                  <div
-                    key={f.id}
-                    className="flex justify-between items-center mb-3 gap-3"
-                  >
-                    <div className="flex-1">
-                      <span className="text-sm font-bold opacity-70 uppercase">
-                        {f.description} – {formatDateFR(f.date_frais)}
-                      </span>
-                    </div>
-                    <span className="text-sm font-black text-amber-500">
-                      +{formatEuro(f.montant)}
-                    </span>
-                    <div className="flex gap-2">
-                      {!isViewer && (
-                        <>
-                          <button
-                            onClick={() => onFraisEdit(f)}
-                            className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
-                            title="Modifier"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => onFraisDelete(f)}
-                            className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
-                            title="Supprimer"
-                          >
-                            🗑️
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </>
-          )}
-
-          <div className="mt-6 bg-black/30 rounded-3xl p-5 border border-yellow-600/20">
-            <p className="text-[9px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
-              Suivi du solde acompte & impayés
+          bilan.bilanContent.soldeAcomptesAvant > 0 ||
+    bilan.bilanContent.totalAcomptes > 0) && (
+          <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
+            <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
+              {bilan.bilanContent.fraisDivers.length > 0 ? "Frais & Acomptes" : "Suivi des acomptes & impayés"}
             </p>
 
-            <div className="space-y-3">
-              {bilan.bilanContent.impayePrecedent !== 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Impayé précédent :</span>
-                  <span className="font-bold text-orange-400">
-                    +{formatEuro(bilan.bilanContent.impayePrecedent)}
-                  </span>
-                </div>
-              )}
+            {/* FRAIS */}
+            {bilan.bilanContent.fraisDivers.length > 0 && (
+              <>
+                {[...bilan.bilanContent.fraisDivers]
+                  .sort((a, b) => new Date(a.date_frais) - new Date(b.date_frais))
+                  .map((f) => (
+                    <div key={f.id} className="flex justify-between items-center mb-3 gap-3">
+                      <div className="flex-1">
+                        <span className="text-sm font-bold opacity-70 uppercase">
+                          {f.description} – {formatDateFR(f.date_frais)}
+                        </span>
+                      </div>
+                      <span className="text-sm font-black text-amber-500">
+                        +{formatEuro(f.montant)}
+                      </span>
+                      <div className="flex gap-2">
+                        {!isViewer && (
+                          <>
+                            <button
+                              onClick={() => onFraisEdit(f)}
+                              className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
+                              title="Modifier"
+                            >✏️</button>
+                            <button
+                              onClick={() => onFraisDelete(f)}
+                              className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
+                              title="Supprimer"
+                            >🗑️</button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </>
+            )}
 
-              {bilan.bilanContent.soldeAcomptesAvant !== 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Solde avant période :</span>
-                  <span className="font-bold text-white">
-                    {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
-                  </span>
-                </div>
-              )}
+            {/* SUIVI SOLDE ACOMPTE */}
+            <div className="mt-6 bg-black/30 rounded-3xl p-5 border border-yellow-600/20">
+              <p className="text-[9px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
+                Suivi du solde acompte & impayés
+              </p>
+              <div className="space-y-3">
 
-              {bilan.bilanContent.acomptesDansPeriode !== 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Reçus cette période :</span>
-                  <span className="font-bold text-cyan-300">
-                    +{formatEuro(bilan.bilanContent.acomptesDansPeriode)}
-                  </span>
-                </div>
-              )}
+                {/* Acompte disponible précédent */}
+                {bilan.bilanContent.soldeAcomptesAvant > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/60">💳 Acompte disponible précédent :</span>
+                    <span className="font-bold text-cyan-300">
+                      {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
+                    </span>
+                  </div>
+                )}
 
-              {bilan.bilanContent.totalAcomptes !== 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Consommé :</span>
-                  <span className="font-bold text-cyan-300">
-                    -{formatEuro(bilan.bilanContent.totalAcomptes)}
-                  </span>
-                </div>
-              )}
+                {/* Reçus cette période */}
+                {bilan.bilanContent.acomptesDansPeriode > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/60">📥 Reçus cette période :</span>
+                    <span className="font-bold text-cyan-300">
+                      +{formatEuro(bilan.bilanContent.acomptesDansPeriode)}
+                    </span>
+                  </div>
+                )}
 
-              {bilan.bilanContent.soldeAcomptesApres !== 0 && (
+                {/* ✅ Consommé = totalAcomptes (affiché seulement si > 0) */}
+                {bilan.bilanContent.totalAcomptes > 0 && (
+  <div className="flex justify-between text-sm">
+    <span className="text-white/60">✂️ Consommé cette période :</span>
+    <span className="font-bold text-red-400">
+      -{formatEuro(bilan.bilanContent.totalAcomptes)}  {/* ✅ = 500€ */}
+    </span>
+  </div>
+)}
+
+                {/* Solde à reporter */}
                 <div className="pt-3 border-t border-white/10 flex justify-between items-center">
                   <span className="text-[10px] font-black uppercase text-white/80">
                     Solde restant à reporter :
                   </span>
-                  <span className="text-xl font-black text-green-400">
+                  <span className={`text-xl font-black ${bilan.bilanContent.soldeAcomptesApres > 0 ? "text-green-400" : "text-white/40"}`}>
                     {formatEuro(bilan.bilanContent.soldeAcomptesApres)}
                   </span>
                 </div>
-              )}
+
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* PAIEMENT */}
       {bilan.bilanPeriodType === "semaine" &&
@@ -283,7 +248,6 @@ export const BilanTab = ({
                 {formatEuro(bilan.bilanContent.resteAPercevoir || 0)}
               </span>
             </div>
-
             {!isViewer && (
               <button
                 onClick={onMarquerCommePaye}
@@ -305,9 +269,7 @@ export const BilanTab = ({
                   <p className="text-[10px] font-black uppercase text-white/80 tracking-wider">
                     Statut du paiement
                   </p>
-                  <p className="text-3xl font-black text-white uppercase tracking-tight">
-                    PAYÉ
-                  </p>
+                  <p className="text-3xl font-black text-white uppercase tracking-tight">PAYÉ</p>
                 </div>
               </div>
             </div>
@@ -318,69 +280,55 @@ export const BilanTab = ({
       <div className="flex flex-wrap gap-3 mb-8">
         <button
           onClick={() => canExportExcel && exportToExcel(
-              bilan.bilanContent,
-              bilan.bilanPeriodType,
-              bilan.bilanPeriodValue,
-              bilan.bilanContent.titre,
-              bilan.bilanContent.fraisDivers,
-              profile
-            )
-          }
+            bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
+            bilan.bilanContent.titre, bilan.bilanContent.fraisDivers, profile
+          )}
           disabled={!canExportExcel}
           title={!canExportExcel ? "Fonctionnalité Pro" : undefined}
-          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " + (canExportExcel ? "bg-green-600/20 text-green-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
+          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
+            (canExportExcel ? "bg-green-600/20 text-green-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
         >
           {canExportExcel ? "Excel" : "🔒 Excel"}
         </button>
 
         <button
           onClick={() => canExportPDF && exportToPDFPro(
-              bilan.bilanContent,
-              bilan.bilanPeriodType,
-              bilan.bilanPaye,
-              bilan.bilanPeriodValue,
-              profile
-            )
-          }
+            bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
+            bilan.bilanPeriodValue, profile
+          )}
           disabled={!canExportPDF}
           title={!canExportPDF ? "Fonctionnalité Pro" : undefined}
-          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " + (canExportPDF ? "bg-red-600/20 text-red-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
+          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
+            (canExportPDF ? "bg-red-600/20 text-red-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
         >
           {canExportPDF ? "PDF" : "🔒 PDF"}
         </button>
 
         <button
           onClick={() => canExportCSV && exportToCSV(
-              bilan.bilanContent,
-              bilan.bilanPeriodType,
-              bilan.bilanPeriodValue,
-              false
-            )
-          }
+            bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false
+          )}
           disabled={!canExportCSV}
           title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
-          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " + (canExportCSV ? "bg-blue-600/20 text-blue-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
+          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
+            (canExportCSV ? "bg-blue-600/20 text-blue-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
         >
           {canExportCSV ? "CSV Missions" : "🔒 CSV Missions"}
         </button>
 
-        {bilan.bilanPeriodType === "semaine" &&
-          bilan.bilanContent.fraisDivers.length > 0 && (
-            <button
-              onClick={() => canExportCSV && exportToCSV(
-                  bilan.bilanContent,
-                  bilan.bilanPeriodType,
-                  bilan.bilanPeriodValue,
-                  true
-                )
-              }
-              disabled={!canExportCSV}
-              title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
-              className={"flex-1 min-w-[140px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " + (canExportCSV ? "bg-cyan-600/20 text-cyan-300 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
-            >
-              {canExportCSV ? "CSV + Frais" : "🔒 CSV + Frais"}
-            </button>
-          )}
+        {bilan.bilanPeriodType === "semaine" && bilan.bilanContent.fraisDivers.length > 0 && (
+          <button
+            onClick={() => canExportCSV && exportToCSV(
+              bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true
+            )}
+            disabled={!canExportCSV}
+            title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
+            className={"flex-1 min-w-[140px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
+              (canExportCSV ? "bg-cyan-600/20 text-cyan-300 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
+          >
+            {canExportCSV ? "CSV + Frais" : "🔒 CSV + Frais"}
+          </button>
+        )}
       </div>
 
       {/* DÉTAIL MISSIONS OU REGROUPEMENT */}
@@ -393,52 +341,34 @@ export const BilanTab = ({
           {sortedBilanMissions.map((m, i) => {
             const date = new Date(m.date_iso);
             const day = date.getDate().toString().padStart(2, "0");
-            const monthShort = date
-              .toLocaleString("fr-FR", { month: "short" })
-              .toUpperCase();
+            const monthShort = date.toLocaleString("fr-FR", { month: "short" }).toUpperCase();
 
             return (
-              <div
-                key={i}
-                className="p-5 rounded-[25px] backdrop-blur-md border border-yellow-600/15 bg-[#0A1628]/60"
-              >
+              <div key={i} className="p-5 rounded-[25px] backdrop-blur-md border border-yellow-600/15 bg-[#0A1628]/60">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <div className="flex flex-col items-center min-w-[50px]">
-                      <div className="text-[10px] font-black uppercase text-[#D4AF37]/90">
-                        {monthShort}
-                      </div>
+                      <div className="text-[10px] font-black uppercase text-[#D4AF37]/90">{monthShort}</div>
                       <div className="w-10 h-10 bg-[#0A1628] rounded-md flex items-center justify-center shadow-md border border-yellow-600/30">
-                        <span className="text-white font-black text-xl">
-                          {day}
-                        </span>
+                        <span className="text-white font-black text-xl">{day}</span>
                       </div>
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm uppercase text-white truncate">
-                        {m.client}
-                      </p>
+                      <p className="font-bold text-sm uppercase text-white truncate">{m.client}</p>
                       <p className="text-[11px] opacity-70 truncate">
-                        {m.debut} → {m.fin}
-                        {m.pause > 0 && ` (${m.pause} min)`}
+                        {m.debut} → {m.fin}{m.pause > 0 && ` (${m.pause} min)`}
                       </p>
                       {m.lieu && (
-                        <p className="text-[11px] opacity-60 mt-1 truncate">
-                          {m.lieu}
-                        </p>
+                        <p className="text-[11px] opacity-60 mt-1 truncate">{m.lieu}</p>
                       )}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-6 shrink-0">
                     <div className="text-right">
-                      <p className="text-[12px] font-bold text-yellow-400/80">
-                        {formatHeures(m.duree || 0)}
-                      </p>
-                      <p className="text-lg font-black text-emerald-400">
-                        {formatEuro(m.montant)}
-                      </p>
+                      <p className="text-[12px] font-bold text-yellow-400/80">{formatHeures(m.duree || 0)}</p>
+                      <p className="text-lg font-black text-emerald-400">{formatEuro(m.montant)}</p>
                     </div>
 
                     {m.weather ? (
@@ -447,26 +377,17 @@ export const BilanTab = ({
                           src={`https://openweathermap.org/img/wn/${m.weather.icon}@2x.png`}
                           alt={m.weather.desc}
                           className="w-8 h-8 drop-shadow-sm opacity-90"
-                          onError={(e) =>
-                            (e.target.src =
-                              "https://openweathermap.org/img/wn/01d@2x.png")
-                          }
+                          crossOrigin="anonymous"
+                          onError={(e) => { e.target.style.display = "none"; }}
                         />
                         <div className="text-right text-xs leading-tight">
-                          <div className="font-medium">
-                            {m.weather.tempMin}–{m.weather.tempMax}°
-                          </div>
-                          <div className="opacity-70 capitalize truncate max-w-[60px]">
-                            {m.weather.desc}
-                          </div>
+                          <div className="font-medium">{m.weather.tempMin}–{m.weather.tempMax}°</div>
+                          <div className="opacity-70 capitalize truncate max-w-[60px]">{m.weather.desc}</div>
                         </div>
                       </div>
                     ) : (
-                      <div className="text-xs opacity-40 italic text-right">
-                        ?
-                      </div>
+                      <div className="text-xs opacity-40 italic text-right">?</div>
                     )}
-
                   </div>
                 </div>
               </div>
@@ -480,24 +401,15 @@ export const BilanTab = ({
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {bilan.bilanContent.groupedData.map((group, index) => (
-              <div
-                key={index}
-                className="p-5 bg-white/10 backdrop-blur-md rounded-3xl border border-white/10 shadow-lg"
-              >
-                <p className="font-black text-lg text-white mb-2">
-                  {group.label}
-                </p>
+              <div key={index} className="p-5 bg-white/10 backdrop-blur-md rounded-3xl border border-white/10 shadow-lg">
+                <p className="font-black text-lg text-white mb-2">{group.label}</p>
                 <div className="flex justify-between text-sm">
                   <span className="opacity-70">Heures :</span>
-                  <span className="font-bold text-yellow-400/80">
-                    {formatHeures(group.h)}
-                  </span>
+                  <span className="font-bold text-yellow-400/80">{formatHeures(group.h)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="opacity-70">Montant :</span>
-                  <span className="font-bold text-green-400">
-                    {formatEuro(group.e)}
-                  </span>
+                  <span className="font-bold text-green-400">{formatEuro(group.e)}</span>
                 </div>
               </div>
             ))}
