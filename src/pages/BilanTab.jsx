@@ -136,105 +136,96 @@ export const BilanTab = ({
         </div>
       </div>
 
-      {/* SUIVI FRAIS / ACOMPTES */}
-      {/* ✅ Affiché uniquement si frais OU acompte reçu cette période OU solde avant > 0 */}
-      {bilan.bilanPeriodType === "semaine" &&
-        (bilan.bilanContent.fraisDivers.length > 0 ||
-          bilan.bilanContent.acomptesDansPeriode > 0 ||
-          bilan.bilanContent.soldeAcomptesAvant > 0 ||
-    bilan.bilanContent.totalAcomptes > 0) && (
-          <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
-            <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
-              {bilan.bilanContent.fraisDivers.length > 0 ? "Frais & Acomptes" : "Suivi des acomptes & impayés"}
-            </p>
-
-            {/* FRAIS */}
-            {bilan.bilanContent.fraisDivers.length > 0 && (
-              <>
-                {[...bilan.bilanContent.fraisDivers]
-                  .sort((a, b) => new Date(a.date_frais) - new Date(b.date_frais))
-                  .map((f) => (
-                    <div key={f.id} className="flex justify-between items-center mb-3 gap-3">
-                      <div className="flex-1">
-                        <span className="text-sm font-bold opacity-70 uppercase">
-                          {f.description} – {formatDateFR(f.date_frais)}
-                        </span>
-                      </div>
-                      <span className="text-sm font-black text-amber-500">
-                        +{formatEuro(f.montant)}
-                      </span>
-                      <div className="flex gap-2">
-                        {!isViewer && (
-                          <>
-                            <button
-                              onClick={() => onFraisEdit(f)}
-                              className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
-                              title="Modifier"
-                            >✏️</button>
-                            <button
-                              onClick={() => onFraisDelete(f)}
-                              className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
-                              title="Supprimer"
-                            >🗑️</button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </>
-            )}
-
-            {/* SUIVI SOLDE ACOMPTE */}
-            <div className="mt-6 bg-black/30 rounded-3xl p-5 border border-yellow-600/20">
-              <p className="text-[9px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
-                Suivi du solde acompte & impayés
-              </p>
-              <div className="space-y-3">
-
-                {/* Acompte disponible précédent */}
-                {bilan.bilanContent.soldeAcomptesAvant > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/60">💳 Acompte disponible précédent :</span>
-                    <span className="font-bold text-cyan-300">
-                      {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
-                    </span>
-                  </div>
+      {bilan.bilanPeriodType === "semaine" && (
+  <>
+    {/* ── BLOC 1 : FRAIS ── affiché uniquement si frais */}
+    {bilan.bilanContent.fraisDivers.length > 0 && (
+      <div className="mb-4 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
+        <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
+          Frais
+        </p>
+        {[...bilan.bilanContent.fraisDivers]
+          .sort((a, b) => new Date(a.date_frais) - new Date(b.date_frais))
+          .map((f) => (
+            <div key={f.id} className="flex justify-between items-center mb-3 gap-3">
+              <div className="flex-1">
+                <span className="text-sm font-bold opacity-70 uppercase">
+                  {f.description} – {formatDateFR(f.date_frais)}
+                </span>
+              </div>
+              <span className="text-sm font-black text-amber-500">
+                +{formatEuro(f.montant)}
+              </span>
+              <div className="flex gap-2">
+                {!isViewer && (
+                  <>
+                    <button
+                      onClick={() => onFraisEdit(f)}
+                      className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
+                    >✏️</button>
+                    <button
+                      onClick={() => onFraisDelete(f)}
+                      className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
+                    >🗑️</button>
+                  </>
                 )}
-
-                {/* Reçus cette période */}
-                {bilan.bilanContent.acomptesDansPeriode > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-white/60">📥 Reçus cette période :</span>
-                    <span className="font-bold text-cyan-300">
-                      +{formatEuro(bilan.bilanContent.acomptesDansPeriode)}
-                    </span>
-                  </div>
-                )}
-
-                {/* ✅ Consommé = totalAcomptes (affiché seulement si > 0) */}
-                {bilan.bilanContent.totalAcomptes > 0 && (
-  <div className="flex justify-between text-sm">
-    <span className="text-white/60">✂️ Consommé cette période :</span>
-    <span className="font-bold text-red-400">
-      -{formatEuro(bilan.bilanContent.totalAcomptes)}  {/* ✅ = 500€ */}
-    </span>
-  </div>
-)}
-
-                {/* Solde à reporter */}
-                <div className="pt-3 border-t border-white/10 flex justify-between items-center">
-                  <span className="text-[10px] font-black uppercase text-white/80">
-                    Solde restant à reporter :
-                  </span>
-                  <span className={`text-xl font-black ${bilan.bilanContent.soldeAcomptesApres > 0 ? "text-green-400" : "text-white/40"}`}>
-                    {formatEuro(bilan.bilanContent.soldeAcomptesApres)}
-                  </span>
-                </div>
-
               </div>
             </div>
+          ))}
+      </div>
+    )}
+
+    {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── affiché uniquement si données */}
+    {(bilan.bilanContent.acomptesDansPeriode > 0 ||
+      bilan.bilanContent.soldeAcomptesAvant > 0 ||
+      bilan.bilanContent.totalAcomptes > 0) && (
+      <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
+        <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
+          Suivi du solde acompte & impayés
+        </p>
+        <div className="space-y-3">
+
+          {bilan.bilanContent.soldeAcomptesAvant > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-white/60">💳 Acompte disponible précédent :</span>
+              <span className="font-bold text-cyan-300">
+                {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
+              </span>
+            </div>
+          )}
+
+          {bilan.bilanContent.acomptesDansPeriode > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-white/60">📥 Reçus cette période :</span>
+              <span className="font-bold text-cyan-300">
+                +{formatEuro(bilan.bilanContent.acomptesDansPeriode)}
+              </span>
+            </div>
+          )}
+
+          {bilan.bilanContent.totalAcomptes > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-white/60">✂️ Consommé cette période :</span>
+              <span className="font-bold text-red-400">
+                -{formatEuro(bilan.bilanContent.totalAcomptes)}
+              </span>
+            </div>
+          )}
+
+          <div className="pt-3 border-t border-white/10 flex justify-between items-center">
+            <span className="text-[10px] font-black uppercase text-white/80">
+              Solde restant à reporter :
+            </span>
+            <span className={`text-xl font-black ${bilan.bilanContent.soldeAcomptesApres > 0 ? "text-green-400" : "text-white/40"}`}>
+              {formatEuro(bilan.bilanContent.soldeAcomptesApres)}
+            </span>
           </div>
-        )}
+
+        </div>
+      </div>
+    )}
+  </>
+)}
 
       {/* PAIEMENT */}
       {bilan.bilanPeriodType === "semaine" &&
