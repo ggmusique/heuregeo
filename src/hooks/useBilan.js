@@ -147,20 +147,40 @@ export function useBilan({
   const getStatutPaiement = useCallback(
     async (patronId = null) => {
       const pId = effectivePatronId(patronId);
+  
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return false;
-        const { data, error } = await supabase
+  
+        // ✅ Vérifier si l'utilisateur est un viewer
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("role, patron_id")
+          .eq("id", user.id)
+          .single();
+  
+        const isViewer = profileData?.role === "viewer";
+  
+        // ✅ Query adaptée selon le rôle
+        let query = supabase
           .from(TABLE)
           .select("paye")
-          .eq("user_id", user.id)
           .eq("periode_type", bilanPeriodType)
           .eq("periode_value", bilanPeriodValue)
-          .eq("patron_id", pId)
-          .maybeSingle();
+          .eq("patron_id", pId);
+  
+        // ✅ Owner : filtre par user_id
+        // ✅ Viewer : la RLS gère l'accès
+        if (!isViewer) {
+          query = query.eq("user_id", user.id);
+        }
+  
+        const { data, error } = await query.maybeSingle();
+  
         if (error) throw error;
         return data?.paye || false;
-      } catch {
+      } catch (err) {
+        console.error("Erreur getStatutPaiement:", err);
         return false;
       }
     },
