@@ -147,38 +147,44 @@ export function useBilan({
   const getStatutPaiement = useCallback(
     async (patronId = null) => {
       const pId = effectivePatronId(patronId);
-  
+
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return false;
-  
-        // ✅ Vérifier si l'utilisateur est un viewer
+
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("role, patron_id")
+          .select("role")
           .eq("id", user.id)
           .single();
-  
+
         const isViewer = profileData?.role === "viewer";
-  
-        // ✅ Query adaptée selon le rôle
-        let query = supabase
+
+        const baseQuery = supabase
           .from(TABLE)
           .select("paye")
           .eq("periode_type", bilanPeriodType)
           .eq("periode_value", bilanPeriodValue)
           .eq("patron_id", pId);
-  
-        // ✅ Owner : filtre par user_id
-        // ✅ Viewer : la RLS gère l'accès
-        if (!isViewer) {
-          query = query.eq("user_id", user.id);
+
+        if (isViewer) {
+          const { data, error } = await baseQuery.maybeSingle();
+          if (error) throw error;
+          return data?.paye || false;
         }
-  
-        const { data, error } = await query.maybeSingle();
-  
-        if (error) throw error;
-        return data?.paye || false;
+
+        // Owner: priorité au statut rattaché à son user_id.
+        // Fallback legacy: certaines anciennes lignes n'avaient pas user_id renseigné.
+        const { data: ownerData, error: ownerError } = await baseQuery
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (ownerError) throw ownerError;
+        if (typeof ownerData?.paye === "boolean") return ownerData.paye;
+
+        const { data: legacyData, error: legacyError } = await baseQuery.maybeSingle();
+        if (legacyError) throw legacyError;
+        return legacyData?.paye || false;
       } catch (err) {
         console.error("Erreur getStatutPaiement:", err);
         return false;
@@ -287,6 +293,14 @@ export function useBilan({
           triggerAlert?.("Utilisateur non connecté.");
           return false;
         }
+
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        const isViewerUser = profileData?.role === "viewer";
 
         // 1) Missions filtrées
         const filtered = getMissionsByPeriod(
@@ -548,7 +562,7 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
             : (bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0),
         };
 
-        if (!isGlobalPatronId(patronId)) {
+        if (!isViewerUser && !isGlobalPatronId(patronId)) {
           const { error: upsertError } = await supabase.from(TABLE).upsert(dataToSave, {
             onConflict: "periode_type,periode_value,patron_id",
           });
