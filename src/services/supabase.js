@@ -9,32 +9,8 @@ const configError = {
 };
 
 if (!isConfigured) {
-  console.error(configError.message);
+  console.error("❌ Variables Supabase manquantes ! Vérifie ton .env");
 }
-
-const createThenableResponse = () => ({ data: null, error: configError, count: null });
-
-const createQueryBuilderFallback = () => {
-  const target = {};
-
-  return new Proxy(target, {
-    get(_, prop) {
-      if (prop === "then") {
-        return (resolve) => Promise.resolve(resolve(createThenableResponse()));
-      }
-
-      if (prop === "single" || prop === "maybeSingle") {
-        return async () => ({ data: null, error: configError });
-      }
-
-      if (prop === "throwOnError") {
-        return () => createQueryBuilderFallback();
-      }
-
-      return () => createQueryBuilderFallback();
-    },
-  });
-};
 
 const createFallbackClient = () => ({
   auth: {
@@ -51,26 +27,6 @@ const createFallbackClient = () => ({
       },
     }),
   },
-  from: () => createQueryBuilderFallback(),
-  rpc: async () => ({ data: null, error: configError }),
-  storage: {
-    from: () => ({
-      upload: async () => ({ data: null, error: configError }),
-      download: async () => ({ data: null, error: configError }),
-      remove: async () => ({ data: null, error: configError }),
-      getPublicUrl: () => ({ data: { publicUrl: "" } }),
-    }),
-  },
-  functions: {
-    invoke: async () => ({ data: null, error: configError }),
-  },
-  channel: () => ({
-    on: () => ({ subscribe: () => ({}) }),
-    subscribe: () => ({}),
-    unsubscribe: () => {},
-  }),
-  removeChannel: () => {},
-  removeAllChannels: () => {},
 });
 
 export const supabase = isConfigured
