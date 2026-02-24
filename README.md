@@ -99,3 +99,31 @@ Quand tu veux, on fera :
 - soit un **mode “sécurité maximale”** (impossible de tout casser)
 
  git pull origin main
+
+## 🔐 Supabase : ce qui est modifié, et ce que tu dois faire
+
+Quand je modifie la configuration Supabase, je dois te dire explicitement :
+
+- **ce que j’ai changé** (fichier + variables concernées),
+- **pourquoi** je l’ai fait,
+- **si une action est requise de ton côté**.
+
+### Fichiers et rôle
+- `.env.example` : modèle de configuration (référence).
+- `.env` : configuration locale réelle utilisée par ton app en développement.
+
+### Règle pratique
+- Si je touche seulement `.env.example`, **tu n’as généralement rien à faire** si ton `.env` est déjà correct.
+- Si une variable Supabase change réellement (URL ou clé), je dois te le signaler et te dire :
+  1. de remettre/mettre à jour `VITE_SUPABASE_URL`,
+  2. de remettre/mettre à jour `VITE_SUPABASE_ANON_KEY`,
+  3. puis de redémarrer `npm run dev`.
+
+### Vérification rapide
+Tu peux vérifier la config avec :
+
+```bash
+cat .env
+```
+
+Si les deux variables Supabase sont présentes et correctes, l’app doit utiliser ta configuration.
