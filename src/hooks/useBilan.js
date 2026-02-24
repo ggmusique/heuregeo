@@ -288,14 +288,6 @@ export function useBilan({
           return false;
         }
 
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        const isViewerUser = profileData?.role === "viewer";
-
         // 1) Missions filtrées
         const filtered = getMissionsByPeriod(
           bilanPeriodType,
@@ -556,7 +548,7 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
             : (bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0),
         };
 
-        if (!isViewerUser && !isGlobalPatronId(patronId)) {
+        if (!isGlobalPatronId(patronId)) {
           const { error: upsertError } = await supabase.from(TABLE).upsert(dataToSave, {
             onConflict: "periode_type,periode_value,patron_id",
           });
