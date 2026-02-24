@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 src/buildInfo.js
 dev-dist/
+# Environment secrets
+.env
+.env.*
+!.env.example
