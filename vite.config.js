@@ -16,7 +16,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["favicon.ico", "apple-touch-icon.png", "icons/*.png"],
+      includeAssets: ["icons/apple-touch-icon.png", "icons/*.png", "icons/icon.svg"],
       manifest: {
         name: "Heures de Geo",
         short_name: "HdGeo",
