@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useRegisterSW } from "virtual:pwa-register/react";
 
 const LS_CURRENT_VERSION = "pwa-current-version";
 const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "?";
@@ -16,6 +17,38 @@ export function UpdatePrompt() {
       setState("just-updated");
       const t = setTimeout(() => setState(null), 4000);
       return () => clearTimeout(t);
+  // 'update-ready' | 'just-updated' | null
+  const [state, setState] = useState(null);
+  const hideTimerRef = useRef(null);
+
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    immediate: true,
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration) return;
+      const interval = setInterval(() => {
+        registration.update().catch(() => {});
+      }, 60 * 1000);
+      window.addEventListener(
+        "beforeunload",
+        () => clearInterval(interval),
+        { once: true }
+      );
+    },
+  });
+
+  useEffect(() => {
+    const storedVersion = localStorage.getItem(LS_CURRENT_VERSION);
+
+    if (storedVersion && storedVersion !== APP_VERSION) {
+      localStorage.setItem(LS_CURRENT_VERSION, APP_VERSION);
+      setState("just-updated");
+      hideTimerRef.current = setTimeout(() => setState(null), 4000);
+      return () => {
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      };
     }
 
     if (!storedVersion) {
@@ -93,6 +126,21 @@ export function UpdatePrompt() {
     });
   };
 
+    return undefined;
+  }, []);
+
+  useEffect(() => {
+    if (needRefresh) {
+      setState("update-ready");
+    }
+  }, [needRefresh]);
+
+  const handleUpdate = async () => {
+    setNeedRefresh(false);
+    setState(null);
+    await updateServiceWorker(true);
+  };
+
   if (state === "just-updated") {
     return (
       <div className="fixed top-4 left-4 right-4 z-[2000]">
@@ -125,7 +173,10 @@ export function UpdatePrompt() {
           </div>
           <div className="flex gap-2 shrink-0">
             <button
-              onClick={() => setState(null)}
+              onClick={() => {
+                setNeedRefresh(false);
+                setState(null);
+              }}
               className="px-3 py-2 rounded-xl text-white/40 text-xs font-medium border border-white/10 active:scale-95"
             >
               Plus tard
