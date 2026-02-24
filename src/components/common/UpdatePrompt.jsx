@@ -1,99 +1,99 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from "react";
 
-const LS_WAITING_VERSION = 'pwa-waiting-version'
-const LS_CURRENT_VERSION = 'pwa-current-version'
-const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '?'
+const LS_CURRENT_VERSION = "pwa-current-version";
+const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "?";
 
 export function UpdatePrompt() {
-  // 'update-ready' | 'just-updated' | null
-  const [state, setState] = useState(null)
-  const waitingWorkerRef = useRef(null)
+  const [state, setState] = useState(null); // 'update-ready' | 'just-updated' | null
+  const waitingWorkerRef = useRef(null);
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator)) return
+    if (!("serviceWorker" in navigator)) return;
 
-    // ── Cas 1 : l'appli vient de se mettre à jour silencieusement ──
-    const storedVersion = localStorage.getItem(LS_CURRENT_VERSION)
+    const storedVersion = localStorage.getItem(LS_CURRENT_VERSION);
     if (storedVersion && storedVersion !== APP_VERSION) {
-      // La version a changé depuis le dernier lancement → MAJ silencieuse détectée
-      localStorage.setItem(LS_CURRENT_VERSION, APP_VERSION)
-      localStorage.removeItem(LS_WAITING_VERSION)
-      setState('just-updated')
-      // Auto-fermer après 4s
-      const t = setTimeout(() => setState(null), 4000)
-      return () => clearTimeout(t)
+      localStorage.setItem(LS_CURRENT_VERSION, APP_VERSION);
+      setState("just-updated");
+      const t = setTimeout(() => setState(null), 4000);
+      return () => clearTimeout(t);
     }
 
-    // Enregistrer la version actuelle si pas encore fait
     if (!storedVersion) {
-      localStorage.setItem(LS_CURRENT_VERSION, APP_VERSION)
+      localStorage.setItem(LS_CURRENT_VERSION, APP_VERSION);
     }
 
-    // ── Cas 2 : détecter un SW en attente ──
-    let cancelled = false
-    let interval = null
+    let cancelled = false;
+    let interval = null;
 
     const showUpdateBanner = (worker) => {
-      if (cancelled) return
-      waitingWorkerRef.current = worker
-      localStorage.setItem(LS_WAITING_VERSION, APP_VERSION)
-      setState('update-ready')
-    }
+      if (cancelled) return;
+      waitingWorkerRef.current = worker;
+      setState("update-ready");
+    };
 
-    const handleUpdateFound = (registration) => {
-      const newWorker = registration.installing
-      if (!newWorker) return
-      newWorker.addEventListener('statechange', function onStateChange() {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller && !cancelled) {
-          showUpdateBanner(newWorker)
+    const watchInstallingWorker = (registration) => {
+      const newWorker = registration.installing;
+      if (!newWorker) return;
+
+      const onStateChange = () => {
+        if (
+          newWorker.state === "installed" &&
+          navigator.serviceWorker.controller &&
+          !cancelled
+        ) {
+          showUpdateBanner(newWorker);
         }
-        if (newWorker.state === 'installed' || newWorker.state === 'redundant') {
-          newWorker.removeEventListener('statechange', onStateChange)
+
+        if (newWorker.state === "installed" || newWorker.state === "redundant") {
+          newWorker.removeEventListener("statechange", onStateChange);
         }
-      })
+      };
+
+      newWorker.addEventListener("statechange", onStateChange);
+    };
+
+    navigator.serviceWorker.ready.then((registration) => {
+      if (cancelled) return;
+
+      if (registration.waiting && navigator.serviceWorker.controller) {
+        showUpdateBanner(registration.waiting);
+      }
+
+      registration.addEventListener("updatefound", () => watchInstallingWorker(registration));
+
+      interval = setInterval(() => {
+        registration.update().catch(() => {});
+      }, 60 * 1000);
+    });
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
+  const handleUpdate = () => {
+    const doUpdate = (worker) => {
+      setState(null);
+      worker.postMessage({ type: "SKIP_WAITING" });
+      navigator.serviceWorker.addEventListener(
+        "controllerchange",
+        () => window.location.reload(),
+        { once: true }
+      );
+    };
+
+    if (waitingWorkerRef.current) {
+      doUpdate(waitingWorkerRef.current);
+      return;
     }
 
     navigator.serviceWorker.ready.then((registration) => {
-      if (cancelled) return
+      if (registration.waiting) doUpdate(registration.waiting);
+    });
+  };
 
-      if (registration.waiting && navigator.serviceWorker.controller) {
-        showUpdateBanner(registration.waiting)
-      }
-
-      registration.addEventListener('updatefound', () => handleUpdateFound(registration))
-
-      interval = setInterval(() => {
-        registration.update().catch(() => {})
-      }, 60 * 1000)
-    })
-
-    return () => {
-      cancelled = true
-      if (interval) clearInterval(interval)
-    }
-  }, [])
-
-  const handleUpdate = () => {
-    const worker = waitingWorkerRef.current
-    const doUpdate = (w) => {
-      localStorage.removeItem(LS_WAITING_VERSION)
-      setState(null)
-      w.postMessage({ type: 'SKIP_WAITING' })
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload()
-      }, { once: true })
-    }
-    if (worker) {
-      doUpdate(worker)
-    } else {
-      navigator.serviceWorker.ready.then((reg) => {
-        if (reg.waiting) doUpdate(reg.waiting)
-      })
-    }
-  }
-
-  // ── Toast "mise à jour appliquée" ──
-  if (state === 'just-updated') {
+  if (state === "just-updated") {
     return (
       <div className="fixed top-4 left-4 right-4 z-[2000]">
         <div className="bg-gradient-to-r from-emerald-900 to-emerald-800 border border-emerald-500/50 rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-3">
@@ -101,22 +101,18 @@ export function UpdatePrompt() {
             <span className="text-2xl">✅</span>
             <div>
               <p className="text-white font-bold text-sm">Mise à jour appliquée</p>
-              <p className="text-white/60 text-xs">v{APP_VERSION} — L'appli est à jour</p>
+              <p className="text-white/60 text-xs">v{APP_VERSION} — L'app est à jour</p>
             </div>
           </div>
-          <button
-            onClick={() => setState(null)}
-            className="text-white/40 text-xl px-2"
-          >
+          <button onClick={() => setState(null)} className="text-white/40 text-xl px-2">
             ✕
           </button>
         </div>
       </div>
-    )
+    );
   }
 
-  // ── Bannière "mise à jour disponible" ──
-  if (state === 'update-ready') {
+  if (state === "update-ready") {
     return (
       <div className="fixed top-4 left-4 right-4 z-[2000]">
         <div className="bg-gradient-to-r from-[#0A1628] to-[#020818] border border-yellow-600/50 rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-3">
@@ -143,8 +139,8 @@ export function UpdatePrompt() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
-  return null
+  return null;
 }

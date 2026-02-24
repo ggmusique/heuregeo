@@ -175,8 +175,11 @@ export function useBilan({
           query = query.eq("user_id", user.id);
         }
   
-        const { data, error } = await query.maybeSingle();
-  
+        const { data, error } = await query
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         if (error) throw error;
         return data?.paye || false;
       } catch (err) {
@@ -194,16 +197,29 @@ export function useBilan({
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return 0;
-  
-        const { data, error } = await supabase
+
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        const isViewerUser = profileData?.role === "viewer";
+
+        let query = supabase
           .from(TABLE)
           .select("periode_index, ca_brut_periode, acompte_consomme")
-          .eq("user_id", user.id)
           .eq("periode_type", PERIOD_TYPES.SEMAINE)
           .eq("patron_id", pId)
           .eq("paye", false)
           .lt("periode_index", currentIndex)
           .order("periode_index", { ascending: true });
+
+        if (!isViewerUser) {
+          query = query.eq("user_id", user.id);
+        }
+
+        const { data, error } = await query;
   
         if (error) throw error;
   
@@ -407,13 +423,26 @@ export function useBilan({
           // Somme des acompte_consomme des bilans précédents sauvegardés
           let acomptesDejaUtilises = 0;
           try {
-            const { data: bilansPrecedents } = await supabase
+            const { data: profileData } = await supabase
+              .from("profiles")
+              .select("role")
+              .eq("id", user.id)
+              .single();
+
+            const isViewerUser = profileData?.role === "viewer";
+
+            let bilansPrecedentsQuery = supabase
               .from(TABLE)
               .select("acompte_consomme")
-              .eq("user_id", user.id)
               .eq("patron_id", pId)
               .eq("periode_type", "semaine")
               .lt("periode_index", parseInt(bilanPeriodValue, 10));
+
+            if (!isViewerUser) {
+              bilansPrecedentsQuery = bilansPrecedentsQuery.eq("user_id", user.id);
+            }
+
+            const { data: bilansPrecedents } = await bilansPrecedentsQuery;
 
             if (bilansPrecedents) {
               acomptesDejaUtilises = bilansPrecedents.reduce((sum, b) => {
@@ -523,14 +552,6 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
 
         // 11) Sauvegarde Supabase
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
-        const { data: bilanExistant } = await supabase
-          .from(TABLE)
-          .select("acompte_consomme, paye")
-          .eq("user_id", user.id)
-          .eq("periode_type", bilanPeriodType)
-          .eq("periode_value", bilanPeriodValue)
-          .eq("patron_id", pId)
-          .maybeSingle();
 
         const dataToSave = {
           user_id: user.id,
@@ -542,10 +563,11 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
           date_paiement: statutPaye ? new Date().toISOString() : null,
           reste_a_percevoir: resteCettePeriode,
           ca_brut_periode: caBrutPeriode,
-          // ✅ Sauvegarde le petit acompteConsomme (cette période uniquement)
-          acompte_consomme: (bilanExistant?.acompte_consomme > 0)
-            ? bilanExistant.acompte_consomme
-            : (bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0),
+          // ✅ Sauvegarde uniquement l'acompte consommé sur CETTE période
+          acompte_consomme:
+            bilanPeriodType === PERIOD_TYPES.SEMAINE
+              ? Math.min(caBrutPeriode, Math.max(0, acompteConsomme))
+              : 0,
         };
 
         if (!isGlobalPatronId(patronId)) {
@@ -589,14 +611,27 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
 
         console.log("🔵 AUTO-PAIEMENT DÉMARRÉ", { patronId: pId, montantAcompte });
 
-        const { data: bilansImpayes, error } = await supabase
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+
+        const isViewerUser = profileData?.role === "viewer";
+
+        let bilansImpayesQuery = supabase
           .from(TABLE)
           .select("*")
-          .eq("user_id", user.id)
           .eq("patron_id", pId)
           .eq("periode_type", "semaine")
           .eq("paye", false)
           .order("periode_index", { ascending: true });
+
+        if (!isViewerUser) {
+          bilansImpayesQuery = bilansImpayesQuery.eq("user_id", user.id);
+        }
+
+        const { data: bilansImpayes, error } = await bilansImpayesQuery;
 
         if (error) throw error;
         console.log("🟡 Bilans impayés trouvés:", bilansImpayes);
@@ -665,7 +700,10 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
           date_paiement: new Date().toISOString(),
           reste_a_percevoir: reste,
           ca_brut_periode: bilanContent.totalE || 0,
-          acompte_consomme: bilanContent.totalAcomptes || 0,
+          acompte_consomme: Math.min(
+            bilanContent.totalE || 0,
+            Math.max(0, bilanContent.totalAcomptes || 0)
+          ),
         };
 
         const { error } = await supabase.from(TABLE).upsert(dataToSave, {
