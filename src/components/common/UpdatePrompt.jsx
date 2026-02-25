@@ -3,9 +3,10 @@ import { registerSW } from "virtual:pwa-register";
 
 export function UpdatePrompt() {
   const [needRefresh, setNeedRefresh] = useState(false);
+  const [updateSW, setUpdateSW] = useState(null);
 
   useEffect(() => {
-    const updateSW = registerSW({
+    const triggerUpdate = registerSW({
       immediate: true,
       onNeedRefresh() {
         setNeedRefresh(true);
@@ -15,12 +16,20 @@ export function UpdatePrompt() {
       },
     });
 
-    return () => {
-      if (typeof updateSW === "function") {
-        updateSW(false);
-      }
-    };
+    setUpdateSW(() => triggerUpdate);
   }, []);
+
+  const handleUpdate = async () => {
+    try {
+      if (typeof updateSW === "function") {
+        await updateSW(true);
+      } else {
+        window.location.reload();
+      }
+    } finally {
+      setNeedRefresh(false);
+    }
+  };
 
   if (!needRefresh) return null;
 
@@ -32,7 +41,7 @@ export function UpdatePrompt() {
         </p>
         <button
           type="button"
-          onClick={() => window.location.reload()}
+          onClick={handleUpdate}
           className="rounded-lg bg-yellow-500 px-3 py-1.5 text-xs font-black uppercase text-slate-900"
         >
           Mettre à jour

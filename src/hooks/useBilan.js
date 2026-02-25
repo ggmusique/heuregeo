@@ -151,29 +151,16 @@ export function useBilan({
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return false;
-  
-        // ✅ Vérifier si l'utilisateur est un viewer
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("role, patron_id")
-          .eq("id", user.id)
-          .single();
-  
-        const isViewer = profileData?.role === "viewer";
-  
-        // ✅ Query adaptée selon le rôle
+
+        // ✅ Le statut payé est partagé par période/patron.
+        // On ne filtre donc pas par user_id pour éviter les écrasements
+        // lors d'un changement de rôle (viewer <-> owner).
         let query = supabase
           .from(TABLE)
           .select("paye")
           .eq("periode_type", bilanPeriodType)
           .eq("periode_value", bilanPeriodValue)
           .eq("patron_id", pId);
-  
-        // ✅ Owner : filtre par user_id
-        // ✅ Viewer : la RLS gère l'accès
-        if (!isViewer) {
-          query = query.eq("user_id", user.id);
-        }
   
         const { data, error } = await query.maybeSingle();
   
@@ -195,14 +182,6 @@ export function useBilan({
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return 0;
 
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        const isViewerUser = profileData?.role === "viewer";
-
         let query = supabase
           .from(TABLE)
           .select("periode_index, ca_brut_periode, acompte_consomme")
@@ -211,10 +190,6 @@ export function useBilan({
           .eq("paye", false)
           .lt("periode_index", currentIndex)
           .order("periode_index", { ascending: true });
-
-        if (!isViewerUser) {
-          query = query.eq("user_id", user.id);
-        }
 
         const { data, error } = await query;
   
@@ -242,21 +217,12 @@ export function useBilan({
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { impayes: [], payes: [], all: [] };
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("role, patron_id")
-          .eq("id", user.id)
-          .single();
-        const isViewerUser = profileData?.role === "viewer";
         let query = supabase
           .from(TABLE)
           .select("id, periode_type, periode_value, periode_index, patron_id, paye, date_paiement, reste_a_percevoir, ca_brut_periode, acompte_consomme, created_at")
           .eq("patron_id", pId)
           .eq("periode_type", "semaine")
           .order("periode_index", { ascending: false });
-        if (!isViewerUser) {
-          query = query.eq("user_id", user.id);
-        }
         const { data, error } = await query;
         if (error) throw error;
         const rows = (data || []).map((r) => {
@@ -420,13 +386,6 @@ export function useBilan({
           // Somme des acompte_consomme des bilans précédents sauvegardés
           let acomptesDejaUtilises = 0;
           try {
-            const { data: profileData } = await supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", user.id)
-              .single();
-
-            const isViewerUser = profileData?.role === "viewer";
 
             let bilansPrecedentsQuery = supabase
               .from(TABLE)
@@ -434,10 +393,6 @@ export function useBilan({
               .eq("patron_id", pId)
               .eq("periode_type", "semaine")
               .lt("periode_index", parseInt(bilanPeriodValue, 10));
-
-            if (!isViewerUser) {
-              bilansPrecedentsQuery = bilansPrecedentsQuery.eq("user_id", user.id);
-            }
 
             const { data: bilansPrecedents } = await bilansPrecedentsQuery;
 
@@ -552,7 +507,6 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
         const { data: bilanExistant } = await supabase
           .from(TABLE)
           .select("acompte_consomme, paye")
-          .eq("user_id", user.id)
           .eq("periode_type", bilanPeriodType)
           .eq("periode_value", bilanPeriodValue)
           .eq("patron_id", pId)
@@ -618,7 +572,6 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
         const { data: bilansImpayes, error } = await supabase
           .from(TABLE)
           .select("*")
-          .eq("user_id", user.id)
           .eq("patron_id", pId)
           .eq("periode_type", "semaine")
           .eq("paye", false)
