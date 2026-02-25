@@ -10,7 +10,8 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   server: {
-    allowedHosts: "all",
+    host: true,
+    allowedHosts: process.env.REPL_ID ? true : undefined,
   },
   plugins: [
     react(),
