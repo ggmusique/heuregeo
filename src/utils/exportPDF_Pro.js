@@ -166,7 +166,7 @@ const drawMetrics = (doc, bilanContent, periodType, startY) => {
       metrics.push({ label: "Frais Divers", value: formatEuro(bilanContent.totalFrais || 0), accent: COLORS.warning });
     }
     if (periodType === "semaine" && (bilanContent.impayePrecedent || 0) > 0) {
-      metrics.push({ label: "Report semaine précédente", value: `+${formatEuro(bilanContent.impayePrecedent)}`, accent: COLORS.warning });
+      metrics.push({ label: "Impayé reporté", value: `+${formatEuro(bilanContent.impayePrecedent)}`, accent: COLORS.warning });
     }
     if (periodType === "semaine" && (bilanContent.totalAcomptes || 0) > 0) {
       metrics.push({ label: "Acomptes déduits", value: `-${formatEuro(bilanContent.totalAcomptes || 0)}`, accent: COLORS.danger });
