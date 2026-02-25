@@ -153,6 +153,16 @@ const drawProfileSection = (doc, profile, startY) => {
 // ─────────────────────────────────────────────
 const drawMetrics = (doc, bilanContent, periodType, startY) => {
   try {
+    const getFittedFontSize = (text, maxWidth, initialSize, minSize = 7) => {
+      let size = initialSize;
+      doc.setFontSize(size);
+      while (size > minSize && doc.getTextWidth(text) > maxWidth) {
+        size -= 0.5;
+        doc.setFontSize(size);
+      }
+      return size;
+    };
+
     const netValue = bilanContent.resteAPercevoir !== undefined
       ? bilanContent.resteAPercevoir
       : bilanContent.totalE || 0;
@@ -214,13 +224,14 @@ const drawMetrics = (doc, bilanContent, periodType, startY) => {
         doc.text(line, cx, y + 9 + i * 3.5, { align: "center" });
       });
 
-      // Valeur — plus grande et plus basse pour RAP
-     // Valeur — plus grande et plus basse pour RAP
-doc.setFontSize(isRAP ? 18 : 9.5);
-doc.setFont(undefined, isRAP ? "bold" : "bold");
-doc.setTextColor(...m.accent);
-// Pour RAP : on le centre mieux dans la carte
-doc.text(m.value, cx, y + (isRAP ? 20 : 18), { align: "center" });
+      // Valeur (avec réduction auto si le montant dépasse la largeur de carte)
+      const baseValueSize = isRAP ? 18 : 9.5;
+      const valueMaxWidth = cardW - 6;
+      const fittedValueSize = getFittedFontSize(m.value, valueMaxWidth, baseValueSize, isRAP ? 10 : 7);
+      doc.setFontSize(fittedValueSize);
+      doc.setFont(undefined, "bold");
+      doc.setTextColor(...m.accent);
+      doc.text(m.value, cx, y + (isRAP ? 20 : 18), { align: "center" });
       x += cardW + gap;
     });
 
