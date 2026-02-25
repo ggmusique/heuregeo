@@ -140,7 +140,7 @@ export default function App({ user }) {
 
   useEffect(() => {
     if (isViewer && !profileLoading) {
-      setActiveTab("histo");
+      setActiveTab("bilan");
     }
   }, [isViewer, profileLoading]);
 
@@ -454,7 +454,7 @@ export default function App({ user }) {
           />  
         )}  
 
-        {activeTab === "histo" && (
+        {activeTab === "bilan" && (
           <BilanTab
             bilan={bilan} bilanPatronId={bilanPatronId} currentWeek={currentWeek} missionsThisWeek={missionsThisWeek}
             darkMode={darkMode} patrons={patrons} getPatronNom={getPatronNom} getPatronColor={getPatronColor}
@@ -498,7 +498,14 @@ export default function App({ user }) {
 
       <LieuModal show={showLieuModal} editMode={!!editingLieuId} initialData={editingLieuData} onSubmit={handleLieuSubmit} onCancel={() => { setShowLieuModal(false); resetLieuForm(); }} loading={loading} darkMode={darkMode} />  
 
-      <nav className="fixed bottom-6 left-6 right-6 z-[100]">  
+      <nav
+        className="fixed z-[100]"
+        style={{
+          bottom: "max(1.5rem, env(safe-area-inset-bottom))",
+          left: "max(1.5rem, env(safe-area-inset-left))",
+          right: "max(1.5rem, env(safe-area-inset-right))",
+        }}
+      >  
         <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">  
           {!isViewer && (
             <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>
@@ -507,7 +514,7 @@ export default function App({ user }) {
             <button onClick={() => setActiveTab("donnees")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "donnees" ? "bg-gradient-to-br from-green-600 to-green-800 text-white" : "text-white/30")}>Donnees</button>
           )}
           <button onClick={() => { setActiveTab("historique"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "historique" ? "bg-gradient-to-br from-cyan-600 to-cyan-800 text-white" : "text-white/30")}>Historique</button>  
-          <button onClick={() => { setActiveTab("histo"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "histo" ? "bg-gradient-to-br from-[#C9A84C] to-[#A07830] text-white" : "text-white/30")}>Bilan</button>  
+          <button onClick={() => { setActiveTab("bilan"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "bilan" ? "bg-gradient-to-br from-[#C9A84C] to-[#A07830] text-white" : "text-white/30")}>Bilan</button>  
           {!isViewer ? (
             <button onClick={() => setActiveTab("compte")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "compte" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>
               <span>Compte</span>
