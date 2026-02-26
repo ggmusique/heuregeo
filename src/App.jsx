@@ -176,7 +176,7 @@ export default function App({ user }) {
         const kmExpense = buildKmExpenseFromMission({
           kmSettings,
           lieu: selectedLieu,
-          patronId: createdMission?.patron_id || missionData?.patron_id,
+          patronId: createdMission?.patron_id || missionData?.patron_id || selectedPatronId,
           dateIso: createdMission?.date_iso || missionData?.date_iso,
         });
 
