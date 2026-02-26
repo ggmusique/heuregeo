@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { AdminPage } from "./AdminPage";
+import { COUNTRY_RATE_PRESETS, normalizeKmSettings, serializeKmSettings } from "../utils/kmUtils";
 
 export function ParametresTab({
   profile,
@@ -10,6 +11,7 @@ export function ParametresTab({
   userEmail,
   darkMode,
   isAdmin,
+  isPro,
   patrons,
   clients,
   lieux,
@@ -29,6 +31,12 @@ export function ParametresTab({
   onToggleMissionRateEditor = () => {},
 }) {
   const [activePanel, setActivePanel] = useState(null);
+  const [kmSettings, setKmSettings] = useState(() => normalizeKmSettings(profile?.features));
+  const [kmSaveMsg, setKmSaveMsg] = useState("");
+
+  useEffect(() => {
+    setKmSettings(normalizeKmSettings(profile?.features));
+  }, [profile?.features]);
 
   const sections = useMemo(
     () => [
@@ -43,6 +51,12 @@ export function ParametresTab({
         icon: "🗂️",
         title: "Donnees",
         subtitle: `${patrons.length} patrons • ${clients.length} clients • ${lieux.length} lieux`,
+      },
+      {
+        key: "extra-pro",
+        icon: "✨",
+        title: "Extra option payante (Pro)",
+        subtitle: "Fonctionnalites avancees reservees aux comptes Pro",
       },
       ...(isAdmin
         ? [
@@ -65,6 +79,21 @@ export function ParametresTab({
       setActivePanel(null);
     }
   }, [sections, activePanel]);
+
+  const saveKmSettings = async () => {
+    setKmSaveMsg("");
+    const existingFeatures = profile?.features || {};
+    const payload = {
+      ...existingFeatures,
+      km_settings: serializeKmSettings(kmSettings),
+    };
+    const res = await saveProfile({ features: payload });
+    if (res?.error) {
+      setKmSaveMsg(`❌ ${res.error}`);
+      return;
+    }
+    setKmSaveMsg("✅ Paramètres kilométrage enregistrés.");
+  };
 
   return (
     <section className="space-y-4">
@@ -93,7 +122,7 @@ export function ParametresTab({
             Hub central: choisissez une section dans le menu de gauche pour ouvrir une fenetre dediee.
           </p>
           <div className="rounded-xl border border-dashed border-white/20 p-4 text-white/55 text-sm">
-            Exemples: Profil, Donnees, Admin.
+            Exemples: Profil, Donnees, Extra option payante (Pro), Admin.
           </div>
         </div>
       </div>
@@ -117,8 +146,21 @@ export function ParametresTab({
             <div className="flex-1 overflow-auto p-3 sm:p-4">
               {activePanel === "profil" && (
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-2">Saisie mission</p>
+                  <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={userEmail} />
+                </div>
+              )}
+
+              {activePanel === "extra-pro" && (
+                <div className="space-y-4">
+                  {!isPro && (
+                    <div className="rounded-2xl border border-orange-500/35 bg-orange-500/10 p-4 text-sm text-orange-200">
+                      🔒 Ces options sont prévues pour les comptes Pro. Tu peux les préparer maintenant.
+                    </div>
+                  )}
+
+                  <div className="rounded-2xl border border-yellow-500/25 bg-yellow-500/5 p-4 space-y-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/80">Extra option payante (Pro)</p>
+
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm text-white/70">Afficher le sélecteur "taux du jour" dans Saisie</p>
                       <button
@@ -129,8 +171,110 @@ export function ParametresTab({
                         {showMissionRateEditor ? "Activé" : "Désactivé"}
                       </button>
                     </div>
+
+                    <div className="pt-2 border-t border-yellow-400/15 space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-cyan-300/90">Kilométrage GPS (phase 1/2/3)</p>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm text-white/70">Activer le calcul auto des frais déplacement</p>
+                        <button
+                          type="button"
+                          onClick={() => setKmSettings((prev) => ({ ...prev, enabled: !prev.enabled }))}
+                          className={"px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " + (kmSettings.enabled ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10" : "border-white/20 text-white/60") }
+                        >
+                          {kmSettings.enabled ? "Activé" : "Désactivé"}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label className="text-xs text-white/70 space-y-1">
+                          <span>Pays (phase 3)</span>
+                          <select
+                            value={kmSettings.countryCode}
+                            onChange={(e) => {
+                              const nextCountry = e.target.value;
+                              setKmSettings((prev) => ({
+                                ...prev,
+                                countryCode: nextCountry,
+                                ratePerKm: COUNTRY_RATE_PRESETS[nextCountry]?.ratePerKm ?? prev.ratePerKm,
+                              }));
+                            }}
+                            className="w-full p-2 rounded-lg bg-black/30 border border-white/20 text-white"
+                          >
+                            {Object.entries(COUNTRY_RATE_PRESETS).map(([code, preset]) => (
+                              <option key={code} value={code}>{preset.label}</option>
+                            ))}
+                          </select>
+                        </label>
+
+                        <label className="text-xs text-white/70 space-y-1">
+                          <span>Taux €/km (Belgique par défaut)</span>
+                          <input
+                            type="number"
+                            step="0.0001"
+                            value={kmSettings.ratePerKm}
+                            onChange={(e) => setKmSettings((prev) => ({ ...prev, ratePerKm: e.target.value }))}
+                            className="w-full p-2 rounded-lg bg-black/30 border border-white/20 text-white"
+                          />
+                        </label>
+                      </div>
+
+                      <label className="text-xs text-white/70 space-y-1 block">
+                        <span>Adresse domicile (libellé)</span>
+                        <input
+                          type="text"
+                          value={kmSettings.homeLabel}
+                          onChange={(e) => setKmSettings((prev) => ({ ...prev, homeLabel: e.target.value }))}
+                          placeholder="Ex: Rue de l'Exemple 12, Namur"
+                          className="w-full p-2 rounded-lg bg-black/30 border border-white/20 text-white"
+                        />
+                      </label>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label className="text-xs text-white/70 space-y-1">
+                          <span>Latitude domicile</span>
+                          <input
+                            type="number"
+                            step="any"
+                            value={kmSettings.homeLat ?? ""}
+                            onChange={(e) => setKmSettings((prev) => ({ ...prev, homeLat: e.target.value }))}
+                            className="w-full p-2 rounded-lg bg-black/30 border border-white/20 text-white"
+                          />
+                        </label>
+                        <label className="text-xs text-white/70 space-y-1">
+                          <span>Longitude domicile</span>
+                          <input
+                            type="number"
+                            step="any"
+                            value={kmSettings.homeLng ?? ""}
+                            onChange={(e) => setKmSettings((prev) => ({ ...prev, homeLng: e.target.value }))}
+                            className="w-full p-2 rounded-lg bg-black/30 border border-white/20 text-white"
+                          />
+                        </label>
+                      </div>
+
+                      <label className="flex items-center gap-2 text-xs text-white/70">
+                        <input
+                          type="checkbox"
+                          checked={kmSettings.roundTrip}
+                          onChange={(e) => setKmSettings((prev) => ({ ...prev, roundTrip: e.target.checked }))}
+                        />
+                        Aller-retour automatique (maison → travail → maison)
+                      </label>
+
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] text-white/55">Phase 2: visible dans les bilans • Phase 3: base multi-pays prête</p>
+                        <button
+                          type="button"
+                          onClick={saveKmSettings}
+                          className="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border border-cyan-400/40 text-cyan-200 bg-cyan-500/10"
+                        >
+                          Enregistrer km
+                        </button>
+                      </div>
+                      {!!kmSaveMsg && <p className="text-xs text-white/80">{kmSaveMsg}</p>}
+                    </div>
                   </div>
-                  <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={userEmail} />
                 </div>
               )}
 
