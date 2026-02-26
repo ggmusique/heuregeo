@@ -187,6 +187,7 @@ export default function App({ user }) {
               montant: kmExpense.montant,
               date_frais: kmExpense.date_frais,
               patron_id: kmExpense.patron_id,
+              user_id: createdMission?.user_id || user?.id,
             });
             triggerAlert(`Mission enregistree + frais km auto (${kmExpense.kmMeta.billedKm} km)`);
           } catch (kmErr) {

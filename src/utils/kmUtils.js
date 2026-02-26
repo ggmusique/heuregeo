@@ -111,11 +111,11 @@ export const parseKmExpense = (frais) => {
   const description = (frais?.description || "").trim();
   if (!description) return null;
 
-  const isKmCandidate = description.startsWith("[KM]") || /\bkm\b/i.test(description);
+  const isKmCandidate = description.startsWith("[KM]") || /\b(km|klm|kilometr(?:e|es)?|kilom[eé]tr(?:e|es)?)\b/i.test(description);
   if (!isKmCandidate) return null;
 
   const montant = Number(frais.montant) || 0;
-  const kmMatch = description.match(/(\d+(?:[.,]\d+)?)\s*km/i);
+  const kmMatch = description.match(/(\d+(?:[.,]\d+)?)\s*(?:km|klm|kilometr(?:e|es)?|kilom[eé]tr(?:e|es)?)/i);
   const rateMatch = description.match(/(?:x|@)?\s*(\d+(?:[.,]\d+)?)\s*€\/?km/i);
   const countryMatch = description.match(/^\[KM\]\s*([^\d]+)/i);
 
