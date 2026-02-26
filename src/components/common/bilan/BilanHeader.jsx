@@ -66,6 +66,15 @@ export const BilanHeader = ({
               {bilanContent.selectedPatronNom}
             </p>
           )}
+
+          {bilanContent.kmExpenseTotal > 0 && (
+            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-cyan-300/35 bg-cyan-500/15 text-cyan-100 text-[11px] font-black uppercase tracking-wide">
+              <span>🚗 KM</span>
+              <span>{bilanContent.kmDistanceTotal} km</span>
+              <span>•</span>
+              <span>{formatEuro(bilanContent.kmExpenseTotal)}</span>
+            </div>
+          )}
         </div>
 
         {/* ----------- Bloc droite : 2 cartes de stats ----------- */}
