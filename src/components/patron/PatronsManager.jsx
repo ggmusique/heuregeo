@@ -164,7 +164,7 @@ export function PatronsManager({
                         {stats.nbMissions} mission{stats.nbMissions > 1 ? "s" : ""}
                       </span>
 
-                      <span className="text-[10px] font-bold text-green-400">
+                      <span className="text-[10px] font-bold text-green-400 amount-safe">
                         {formatEuro(stats.caBrut)}
                       </span>
                     </div>
@@ -223,7 +223,7 @@ export function PatronsManager({
                         <p className="text-[9px] font-black uppercase opacity-50">
                           Montant missions
                         </p>
-                        <p className="text-lg font-black text-purple-400">
+                        <p className="text-lg font-black text-purple-400 amount-safe">
                           {formatEuro(stats.totalMontant)}
                         </p>
                       </div>
@@ -236,7 +236,7 @@ export function PatronsManager({
                         <p className="text-[9px] font-black uppercase opacity-50">
                           Frais
                         </p>
-                        <p className="text-lg font-black text-amber-400">
+                        <p className="text-lg font-black text-amber-400 amount-safe">
                           {formatEuro(stats.totalFrais)}
                         </p>
                       </div>
@@ -249,7 +249,7 @@ export function PatronsManager({
                         <p className="text-[9px] font-black uppercase opacity-50">
                           Acomptes
                         </p>
-                        <p className="text-lg font-black text-cyan-400">
+                        <p className="text-lg font-black text-cyan-400 amount-safe">
                           {formatEuro(stats.totalAcomptes)}
                         </p>
                       </div>
@@ -260,7 +260,7 @@ export function PatronsManager({
                       <p className="text-[9px] font-black uppercase opacity-60 mb-1">
                         Reste à percevoir
                       </p>
-                      <p className="text-2xl font-black text-green-300">
+                      <p className="text-2xl font-black text-green-300 amount-safe">
                         {formatEuro(stats.reste)}
                       </p>
                     </div>
