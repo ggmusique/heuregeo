@@ -335,11 +335,13 @@ export default function App({ user }) {
   const missionsThisWeek = getMissionsByWeek(currentWeek).filter((m) => m && m.date_iso);
   const isProNavigationMode = isPro && !isViewer;
 
-  const proNavItems = [
-    { key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
-        { key: "historique", label: "Historique", icon: "📚", activeClass: "from-cyan-600 to-cyan-800", onClick: () => bilan.setShowBilan(false) },
+  const navItems = [
+    ...(!isViewer ? [{ key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" }] : []),
+    ...(!isViewer ? [{ key: "donnees", label: "Donnees", icon: "🧾", activeClass: "from-green-600 to-green-800" }] : []),
+    { key: "historique", label: "Historique", icon: "📚", activeClass: "from-cyan-600 to-cyan-800", onClick: () => bilan.setShowBilan(false) },
     { key: "histo", label: "Bilan", icon: "📊", activeClass: "from-[#C9A84C] to-[#A07830]", onClick: () => bilan.setShowBilan(false) },
-    { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
+    ...(!isViewer ? [{ key: "compte", label: "Compte", icon: "👤", activeClass: "from-indigo-600 to-purple-700" }] : []),
+    ...(isAdmin ? [{ key: "admin", label: "Admin", icon: "⚙️", activeClass: "from-purple-600 to-purple-800" }] : []),
   ];
 
   const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || loadingHistorique;
@@ -514,46 +516,34 @@ export default function App({ user }) {
       <LieuModal show={showLieuModal} editMode={!!editingLieuId} initialData={editingLieuData} onSubmit={handleLieuSubmit} onCancel={() => { setShowLieuModal(false); resetLieuForm(); }} loading={loading} darkMode={darkMode} />  
 
       <nav className="fixed bottom-6 left-6 right-6 z-[100]">  
-        {isProNavigationMode ? (
-          <div className="bg-[#030d22]/95 border-yellow-500/30 backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1">  
-            {proNavItems.map((item) => {
-              const isActive = activeTab === item.key;
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => {
-                    setActiveTab(item.key);
-                    if (typeof item.onClick === "function") item.onClick();
-                  }}
-                  className={
-                    "flex-1 rounded-[28px] font-black uppercase tracking-widest flex flex-col items-center justify-center py-2 text-[9px] gap-0.5 transition-all duration-200 " +
-                    (isActive ? `bg-gradient-to-br ${item.activeClass} text-white shadow-lg` : "text-white/35")
-                  }
-                >
-                  <span className="text-[14px] leading-none">{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">  
-            {!isViewer && (
-              <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>
-            )}
-            <button onClick={() => { setActiveTab("historique"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "historique" ? "bg-gradient-to-br from-cyan-600 to-cyan-800 text-white" : "text-white/30")}>Historique</button>  
-            <button onClick={() => { setActiveTab("histo"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "histo" ? "bg-gradient-to-br from-[#C9A84C] to-[#A07830] text-white" : "text-white/30")}>Bilan</button>  
-            {!isViewer ? (
-              <button onClick={() => setActiveTab("parametres")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "parametres" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>
-                <span>Parametres</span>
+        <div className={(isProNavigationMode ? "bg-[#030d22]/95 border-yellow-500/30" : "bg-[#020818]/90 border-yellow-600/20") + " backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1"}>  
+          {navItems.map((item) => {
+            const isActive = activeTab === item.key;
+            return (
+              <button
+                key={item.key}
+                onClick={() => {
+                  setActiveTab(item.key);
+                  if (typeof item.onClick === "function") item.onClick();
+                }}
+                className={
+                  "flex-1 rounded-[28px] font-black uppercase tracking-widest flex flex-col items-center justify-center transition-all duration-200 " +
+                  (isProNavigationMode ? "py-2 text-[9px] gap-0.5 " : "py-4 text-[10px] ") +
+                  (isActive ? `bg-gradient-to-br ${item.activeClass} text-white shadow-lg` : "text-white/35")
+                }
+              >
+                {isProNavigationMode && <span className="text-[14px] leading-none">{item.icon}</span>}
+                <span>{item.label}</span>
               </button>
-            ) : (
-              <button onClick={() => supabase.auth.signOut()} className="flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 text-white/30">
-                <span>🚪</span>
-              </button>
-            )}
-          </div>
-        )}
+            );
+          })}
+          {isViewer && (
+            <button onClick={() => supabase.auth.signOut()} className={"flex-1 rounded-[28px] font-black uppercase tracking-widest flex flex-col items-center justify-center transition-all duration-200 " + (isProNavigationMode ? "py-2 text-[9px] gap-0.5 text-white/50" : "py-4 text-[10px] text-white/30")}>
+              <span className="text-[14px] leading-none">🚪</span>
+              {isProNavigationMode && <span>Sortie</span>}
+            </button>
+          )}
+        </div>  
       </nav>  
     </div>  
   );
