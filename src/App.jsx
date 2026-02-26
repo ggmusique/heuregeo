@@ -34,6 +34,7 @@ import "./fix-time-pickers-emergency.css";
 import "./fix-selects.css";
 
 import { getWeekNumber } from "./utils/dateUtils";
+import { buildKmExpenseFromMission, normalizeKmSettings } from "./utils/kmUtils";
 
 export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
@@ -107,7 +108,7 @@ export default function App({ user }) {
   );
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert });
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV } = useProfile(user);
+  const { profile, features, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV } = useProfile(user);
 
   useEffect(() => {
     document.title = "Heures de Geo";
@@ -164,8 +165,33 @@ export default function App({ user }) {
     if (!missionData?.debut || !missionData?.fin) { triggerAlert("Veuillez remplir debut et fin"); return; }
     try {
       setLoading(true);
-      if (editingMissionId) { await updateMission(editingMissionId, missionData); triggerAlert("Mission mise a jour !"); }
-      else { await createMission(missionData); triggerAlert("Mission enregistree !"); }
+      if (editingMissionId) {
+        await updateMission(editingMissionId, missionData);
+        triggerAlert("Mission mise a jour !");
+      }
+      else {
+        const createdMission = await createMission(missionData);
+        const kmSettings = normalizeKmSettings(features);
+        const selectedLieu = lieux.find((l) => l.id === (createdMission?.lieu_id || missionData?.lieu_id));
+        const kmExpense = buildKmExpenseFromMission({
+          kmSettings,
+          lieu: selectedLieu,
+          patronId: createdMission?.patron_id || missionData?.patron_id,
+          dateIso: createdMission?.date_iso || missionData?.date_iso,
+        });
+
+        if (kmExpense) {
+          await createFrais({
+            description: kmExpense.description,
+            montant: kmExpense.montant,
+            date_frais: kmExpense.date_frais,
+            patron_id: kmExpense.patron_id,
+          });
+          triggerAlert(`Mission enregistree + frais km auto (${kmExpense.kmMeta.billedKm} km)`);
+        } else {
+          triggerAlert("Mission enregistree !");
+        }
+      }
       resetMissionForm();
     } catch (err) { triggerAlert("Erreur : " + (err?.message || "Operation echouee")); }
     finally { setLoading(false); }
@@ -505,6 +531,7 @@ export default function App({ user }) {
             userEmail={user?.email}
             darkMode={darkMode}
             isAdmin={isAdmin}
+            isPro={isPro}
             patrons={patrons}
             clients={clients}
             lieux={lieux}
