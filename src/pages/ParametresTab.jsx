@@ -135,6 +135,9 @@ export function ParametresTab({
                   onLieuEdit={onLieuEdit}
                   onLieuDelete={onLieuDelete}
                   onLieuAdd={onLieuAdd}
+                  defaultOpenPatrons={false}
+                  allowClientActions={false}
+                  allowLieuActions={false}
                 />
               )}
 
