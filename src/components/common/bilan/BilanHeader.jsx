@@ -87,7 +87,7 @@ export const BilanHeader = ({
             <p className="text-[11px] md:text-sm font-black uppercase text-white/70 mb-1">
               Total Net
             </p>
-            <p className="text-2xl md:text-3xl font-black text-green-400">
+            <p className="text-2xl md:text-3xl font-black text-green-400 amount-safe">
               {/* formatEuro = transforme 1234.5 en "1 234,50 €" */}
               {formatEuro(bilanContent.totalE)}
             </p>
@@ -130,7 +130,7 @@ export const BilanHeader = ({
           {/* Export Excel */}
           <button
             onClick={onExportExcel}
-            className="px-5 py-2.5 bg-green-600/30 hover:bg-green-600/50 rounded-xl text-sm font-black text-green-300 border border-green-500/40 transition-all active:scale-95"
+            className="px-5 py-2.5 bg-green-600/30 hover:bg-green-600/50 rounded-xl text-sm font-black text-green-300 amount-safe border border-green-500/40 transition-all active:scale-95"
           >
             Excel
           </button>
@@ -159,7 +159,7 @@ export const BilanHeader = ({
           {hasFrais && bilanPeriodType === "semaine" && (
             <button
               onClick={onExportCSVWithFrais}
-              className="px-5 py-2.5 bg-cyan-600/30 hover:bg-cyan-600/50 rounded-xl text-sm font-black text-cyan-300 border border-cyan-500/40 transition-all active:scale-95"
+              className="px-5 py-2.5 bg-cyan-600/30 hover:bg-cyan-600/50 rounded-xl text-sm font-black text-cyan-300 amount-safe border border-cyan-500/40 transition-all active:scale-95"
             >
               CSV + Frais
             </button>

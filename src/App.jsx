@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
-import { DonneesTab } from "./pages/DonneesTab";
-import { HistoriqueTab } from "./pages/HistoriqueTab";
-import { BilanTab } from "./pages/BilanTab";
-import { CompteTab } from "./pages/CompteTab";
-import { AdminPage } from "./pages/AdminPage";
+import { SuiviTab } from "./pages/SuiviTab";
+import { ParametresTab } from "./pages/ParametresTab";
 
 import { useClients } from "./hooks/useClients";
 import { useMissions } from "./hooks/useMissions";
@@ -48,6 +45,10 @@ export default function App({ user }) {
   const [customAlert, setCustomAlert] = useState({ show: false, message: "" });
   const [isIOS, setIsIOS] = useState(false);
   const [liveTime, setLiveTime] = useState("");
+  const [showMissionRateEditor, setShowMissionRateEditor] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("showMissionRateEditor") !== "false";
+  });
 
   const [showFraisModal, setShowFraisModal] = useState(false);
   const [fraisDescription, setFraisDescription] = useState("");
@@ -83,6 +84,7 @@ export default function App({ user }) {
   const [loadingHistorique, setLoadingHistorique] = useState(false);
   const [historiquePatronId, setHistoriquePatronId] = useState(null);
   const [historiqueTab, setHistoriqueTab] = useState("impayes");
+  const [suiviDefaultView, setSuiviDefaultView] = useState("historique");
 
   const [bilanPatronId, setBilanPatronId] = useState(null);
   const [bilanClientId, setBilanClientId] = useState(null);
@@ -138,9 +140,17 @@ export default function App({ user }) {
     if (bilan.showPeriodModal) bilan.calculerPeriodesDisponibles();
   }, [bilan.showPeriodModal, bilan.bilanPeriodType, missions]);
 
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("showMissionRateEditor", showMissionRateEditor ? "true" : "false");
+    }
+  }, [showMissionRateEditor]);
+
   useEffect(() => {
     if (isViewer && !profileLoading) {
-      setActiveTab("histo");
+      setActiveTab("suivi");
+      setSuiviDefaultView("bilan");
     }
   }, [isViewer, profileLoading]);
 
@@ -335,6 +345,13 @@ export default function App({ user }) {
 
   const currentWeek = getWeekNumber(new Date());
   const missionsThisWeek = getMissionsByWeek(currentWeek).filter((m) => m && m.date_iso);
+  const isProNavigationMode = isPro && !isViewer;
+
+  const proNavItems = [
+    { key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
+    { key: "suivi", label: "Suivi", icon: "📊", activeClass: "from-cyan-600 to-indigo-700" },
+    { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
+  ];
 
   const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || loadingHistorique;
 
@@ -430,48 +447,82 @@ export default function App({ user }) {
             }}  
             onShowLieuModal={() => { resetLieuForm(); setShowLieuModal(true); }}  
             onShowClientModal={() => { resetClientForm(); setShowClientModal(true); }}  
+            onShowPatronModal={() => { resetPatronForm(); setShowPatronModal(true); }}
             onShowFraisModal={() => setShowFraisModal(true)}  
             onShowAcompteModal={() => setShowAcompteModal(true)}  
+            showMissionRateEditor={showMissionRateEditor}
           />  
         )}  
 
-        {activeTab === "donnees" && (  
-          <DonneesTab  
-            patrons={patrons} clients={clients} lieux={lieux} missions={missions} fraisDivers={fraisDivers} acomptes={listeAcomptes} darkMode={darkMode}  
-            onPatronEdit={handlePatronEdit} onPatronDelete={handlePatronDelete} onPatronAdd={() => { resetPatronForm(); setShowPatronModal(true); }}  
-            onClientEdit={handleClientEdit} onClientDelete={handleClientDelete} onClientAdd={() => { resetClientForm(); setShowClientModal(true); }}  
-            onLieuEdit={handleLieuEdit} onLieuDelete={handleLieuDelete} onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}  
-          />  
-        )}  
-
-        {activeTab === "historique" && (  
-          <HistoriqueTab  
-            historique={historique} historiquePatronId={historiquePatronId} historiqueTab={historiqueTab} loadingHistorique={loadingHistorique}  
-            darkMode={darkMode} patrons={patrons} missions={missions} listeAcomptes={listeAcomptes}  
-            onPatronFilterChange={(patronId) => { setHistoriquePatronId(patronId); chargerHistorique(patronId); }}  
-            onTabChange={setHistoriqueTab} onLoadHistorique={chargerHistorique}  
-            isViewer={isViewer} viewerPatronId={viewerPatronId}  
-          />  
-        )}  
-
-        {activeTab === "histo" && (
-          <BilanTab
-            bilan={bilan} bilanPatronId={bilanPatronId} currentWeek={currentWeek} missionsThisWeek={missionsThisWeek}
-            darkMode={darkMode} patrons={patrons} getPatronNom={getPatronNom} getPatronColor={getPatronColor}
-            onMarquerCommePaye={handleMarquerCommePaye} onFraisEdit={handleFraisEdit} onFraisDelete={handleFraisDelete}
-            onMissionEdit={handleMissionEdit} onMissionDelete={handleMissionDelete} profile={profile}
-            isViewer={isViewer}
-            canBilanMois={canBilanMois} canBilanAnnee={canBilanAnnee}
-            canExportPDF={canExportPDF} canExportExcel={canExportExcel} canExportCSV={canExportCSV}
+        {activeTab === "suivi" && (
+          <SuiviTab
+            defaultView={isViewer ? "bilan" : suiviDefaultView}
+            historiqueProps={{
+              historique,
+              historiquePatronId,
+              historiqueTab,
+              loadingHistorique,
+              darkMode,
+              patrons,
+              missions,
+              listeAcomptes,
+              onPatronFilterChange: (patronId) => { setHistoriquePatronId(patronId); chargerHistorique(patronId); },
+              onTabChange: setHistoriqueTab,
+              onLoadHistorique: chargerHistorique,
+              isViewer,
+              viewerPatronId,
+            }}
+            bilanProps={{
+              bilan,
+              bilanPatronId,
+              currentWeek,
+              missionsThisWeek,
+              darkMode,
+              patrons,
+              getPatronNom,
+              getPatronColor,
+              onMarquerCommePaye: handleMarquerCommePaye,
+              onFraisEdit: handleFraisEdit,
+              onFraisDelete: handleFraisDelete,
+              onMissionEdit: handleMissionEdit,
+              onMissionDelete: handleMissionDelete,
+              profile,
+              isViewer,
+              canBilanMois,
+              canBilanAnnee,
+              canExportPDF,
+              canExportExcel,
+              canExportCSV,
+            }}
           />
         )}
 
-        {activeTab === "compte" && (
-          <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={user?.email} />
-        )}
-
-        {activeTab === "admin" && isAdmin && (
-          <AdminPage darkMode={darkMode} />
+        {activeTab === "parametres" && !isViewer && (
+          <ParametresTab
+            profile={profile}
+            profileSaving={profileSaving}
+            saveProfile={saveProfile}
+            userEmail={user?.email}
+            darkMode={darkMode}
+            isAdmin={isAdmin}
+            patrons={patrons}
+            clients={clients}
+            lieux={lieux}
+            missions={missions}
+            fraisDivers={fraisDivers}
+            acomptes={listeAcomptes}
+            onPatronEdit={handlePatronEdit}
+            onPatronDelete={handlePatronDelete}
+            onPatronAdd={() => { resetPatronForm(); setShowPatronModal(true); }}
+            onClientEdit={handleClientEdit}
+            onClientDelete={handleClientDelete}
+            onClientAdd={() => { resetClientForm(); setShowClientModal(true); }}
+            onLieuEdit={handleLieuEdit}
+            onLieuDelete={handleLieuDelete}
+            onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}
+            showMissionRateEditor={showMissionRateEditor}
+            onToggleMissionRateEditor={setShowMissionRateEditor}
+          />
         )}
       </main>  
 
@@ -499,30 +550,45 @@ export default function App({ user }) {
       <LieuModal show={showLieuModal} editMode={!!editingLieuId} initialData={editingLieuData} onSubmit={handleLieuSubmit} onCancel={() => { setShowLieuModal(false); resetLieuForm(); }} loading={loading} darkMode={darkMode} />  
 
       <nav className="fixed bottom-6 left-6 right-6 z-[100]">  
-        <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">  
-          {!isViewer && (
-            <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>
-          )}
-          {!isViewer && (
-            <button onClick={() => setActiveTab("donnees")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "donnees" ? "bg-gradient-to-br from-green-600 to-green-800 text-white" : "text-white/30")}>Donnees</button>
-          )}
-          <button onClick={() => { setActiveTab("historique"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "historique" ? "bg-gradient-to-br from-cyan-600 to-cyan-800 text-white" : "text-white/30")}>Historique</button>  
-          <button onClick={() => { setActiveTab("histo"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "histo" ? "bg-gradient-to-br from-[#C9A84C] to-[#A07830] text-white" : "text-white/30")}>Bilan</button>  
-          {!isViewer ? (
-            <button onClick={() => setActiveTab("compte")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "compte" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>
-              <span>Compte</span>
-            </button>
-          ) : (
-            <button onClick={() => supabase.auth.signOut()} className="flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 text-white/30">
-              <span>🚪</span>
-            </button>
-          )}
-          {isAdmin && (
-            <button onClick={() => setActiveTab("admin")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "admin" ? "bg-gradient-to-br from-purple-600 to-purple-800 text-white" : "text-white/20")}>
-              <span>⚙️</span>
-            </button>
-          )}
-        </div>  
+        {isProNavigationMode ? (
+          <div className="bg-[#030d22]/95 border-yellow-500/30 backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1">  
+            {proNavItems.map((item) => {
+              const isActive = activeTab === item.key;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => {
+                    setActiveTab(item.key);
+                    if (typeof item.onClick === "function") item.onClick();
+                  }}
+                  className={
+                    "flex-1 rounded-[28px] font-black uppercase tracking-widest flex flex-col items-center justify-center py-2 text-[9px] gap-0.5 transition-all duration-200 " +
+                    (isActive ? `bg-gradient-to-br ${item.activeClass} text-white shadow-lg` : "text-white/35")
+                  }
+                >
+                  <span className="text-[14px] leading-none">{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">  
+            {!isViewer && (
+              <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>
+            )}
+            <button onClick={() => setActiveTab("suivi")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "suivi" ? "bg-gradient-to-br from-cyan-600 to-indigo-700 text-white" : "text-white/30")}>Suivi</button>  
+            {!isViewer ? (
+              <button onClick={() => setActiveTab("parametres")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "parametres" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>
+                <span>Parametres</span>
+              </button>
+            ) : (
+              <button onClick={() => supabase.auth.signOut()} className="flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 text-white/30">
+                <span>🚪</span>
+              </button>
+            )}
+          </div>
+        )}
       </nav>  
     </div>  
   );
