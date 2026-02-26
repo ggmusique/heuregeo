@@ -20,6 +20,9 @@ export const DonneesTab = ({
   onLieuEdit,
   onLieuDelete,
   onLieuAdd,
+  defaultOpenPatrons = false,
+  allowClientActions = true,
+  allowLieuActions = true,
 }) => {
   const AccordionSection = React.memo(({
     title,
@@ -81,7 +84,7 @@ export const DonneesTab = ({
         id="patrons-section"
         title="👔 Patrons"
         count={patrons.length}
-        defaultOpen={true}
+        defaultOpen={defaultOpenPatrons}
       >
         <PatronsManager
           patrons={patrons}
@@ -106,6 +109,7 @@ export const DonneesTab = ({
           onEdit={onClientEdit}
           onDelete={onClientDelete}
           onAdd={onClientAdd}
+          allowActions={allowClientActions}
           darkMode={darkMode}
           missions={missions}
         />
@@ -124,6 +128,7 @@ export const DonneesTab = ({
           onAdd={onLieuAdd}
           onEdit={onLieuEdit}
           onDelete={onLieuDelete}
+          allowActions={allowLieuActions}
         />
       </AccordionSection>
     </div>

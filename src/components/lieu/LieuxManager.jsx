@@ -19,6 +19,7 @@ export const LieuxManager = ({
   onAdd = () => {},
   darkMode = true,
   missions = [],
+  allowActions = true,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -313,6 +314,7 @@ export const LieuxManager = ({
                   </div>
 
                   {/* Boutons d'action */}
+                  {allowActions && (
                   <div className="flex gap-2">
                     <button
                       onClick={() => onEdit(lieu)}
@@ -338,6 +340,7 @@ export const LieuxManager = ({
                       🗑️
                     </button>
                   </div>
+                  )}
                 </div>
               </div>
             );

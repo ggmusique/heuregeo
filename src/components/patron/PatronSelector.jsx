@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 export function PatronSelector({
   patrons = [],
@@ -102,7 +102,9 @@ export function PatronSelectorCompact({
   onAddNew,
 }) {
   const [search, setSearch] = useState("");
-  const [open, setOpen] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const selectedPatron = useMemo(
     () => patrons.find((p) => p.id === selectedPatronId),
@@ -115,121 +117,153 @@ export function PatronSelectorCompact({
     }
   }, [required, selectedPatronId, patrons, onSelect]);
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return patrons;
-    return patrons.filter((p) =>
-      p.nom.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [patrons, search]);
+  const filteredPatrons = patrons.filter((patron) =>
+    patron.nom.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const handleSelect = (id) => {
-    onSelect?.(id);
-    setOpen(false);
+  useEffect(() => {
+    if (selectedPatron && !showDropdown) {
+      setSearch(selectedPatron.nom);
+    }
+  }, [selectedPatron, showDropdown]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target)
+      ) {
+        setShowDropdown(false);
+        setSearch(selectedPatron ? selectedPatron.nom : "");
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [selectedPatron]);
+
+  const handleSelect = (patron) => {
+    onSelect?.(patron.id);
+    setSearch(patron.nom);
+    setShowDropdown(false);
+  };
+
+  const handleInputChange = (e) => {
+    setSearch(e.target.value);
+    setShowDropdown(true);
+    if (!e.target.value) onSelect?.(null);
+  };
+
+  const handleInputFocus = () => {
+    if (disabled) return;
+    setShowDropdown(true);
     setSearch("");
   };
 
   return (
-    <div className={`relative ${className}`}> 
-      <label className="block text-[10px] font-black uppercase opacity-60 mb-2 tracking-wider">
-        Patron {required && "*"}
+    <div className={`relative ${className}`}>
+      <label className="block text-[10px] font-black uppercase mb-2 text-indigo-300 tracking-wider opacity-80">
+        Patron {required && <span className="text-red-400">*</span>}
       </label>
 
-      <div
-        className={`flex items-center gap-2 px-4 py-3 rounded-[20px] border-2 transition-all cursor-pointer ${
-          darkMode
-            ? "bg-white/10 border-white/20 hover:border-indigo-400"
-            : "bg-slate-100 border-slate-300 hover:border-indigo-500"
-        } ${open ? (darkMode ? "border-indigo-400" : "border-indigo-500") : ""}`} 
-        onClick={() => !disabled && setOpen((v) => !v)}
-      >
-        {selectedPatron ? (
-          <div
-            className="w-4 h-4 rounded-full flex-shrink-0 shadow"
-            style={{ backgroundColor: selectedPatron.couleur || "#8b5cf6" }}
-          />
-        ) : (
-          <span className="text-lg">👤</span>
-        )}
-
-        <span className={`flex-1 text-sm font-semibold truncate ${!selectedPatron ? "opacity-40" : ""}`}> 
-          {selectedPatron
-            ? `${selectedPatron.nom}${selectedPatron.taux_horaire != null ? ` — ${selectedPatron.taux_horaire}€/h` : ""}`
-            : required ? "Rechercher ou sélectionner un patron *" : "Rechercher ou sélectionner un patron"}
-        </span>
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="👔 Rechercher ou sélectionner..."
+          className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all ${
+            darkMode
+              ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
+              : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"
+          } backdrop-blur-md placeholder:text-white/40 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          value={search}
+          onChange={handleInputChange}
+          onFocus={handleInputFocus}
+          disabled={disabled}
+        />
 
         {onAddNew && (
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); onAddNew(); }}
-            className="w-8 h-8 rounded-xl bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white font-black text-lg transition-all active:scale-90 flex-shrink-0"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddNew();
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-indigo-600 hover:bg-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-lg transition-all active:scale-90"
+            title="Nouveau patron"
+            disabled={disabled}
           >
             +
           </button>
         )}
-
-        <svg
-          className={`w-4 h-4 opacity-50 transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`}
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
       </div>
 
-      {open && (
+      {showDropdown && !disabled && (
         <div
-          className={`absolute z-50 mt-2 w-full rounded-[20px] shadow-2xl border overflow-hidden ${
-            darkMode ? "bg-[#1a1f2e] border-white/15" : "bg-white border-slate-200"
-          }`}
+          ref={dropdownRef}
+          className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${
+            darkMode
+              ? "bg-[#1a1f2e] border-indigo-500/40"
+              : "bg-white border-slate-300"
+          } backdrop-blur-xl`}
         >
-          <div className="p-3 border-b border-white/10">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher..."
-              autoFocus
-              className={`w-full px-3 py-2 rounded-xl text-sm outline-none ${
-                darkMode
-                  ? "bg-white/10 text-white placeholder-white/40 border border-white/10"
-                  : "bg-slate-100 text-slate-900 placeholder-slate-400 border border-slate-200"
-              }`}
-            />
-          </div>
-
-          <div className="max-h-48 overflow-y-auto">
-            {filtered.length === 0 ? (
-              <div className="px-4 py-3 text-sm opacity-50 text-center">Aucun résultat</div>
-            ) : (
-              filtered.map((patron) => (
-                <button
-                  key={patron.id}
-                  type="button"
-                  onClick={() => handleSelect(patron.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all ${
-                    selectedPatronId === patron.id
-                      ? darkMode ? "bg-indigo-600/40" : "bg-indigo-100"
-                      : darkMode ? "hover:bg-white/10" : "hover:bg-slate-100"
-                  }`}
-                >
+          {filteredPatrons.length > 0 ? (
+            filteredPatrons.map((patron) => (
+              <button
+                key={patron.id}
+                type="button"
+                className={`w-full p-4 text-left transition-all border-b border-white/5 last:border-b-0 ${
+                  selectedPatronId === patron.id
+                    ? darkMode
+                      ? "bg-indigo-600/30"
+                      : "bg-indigo-100"
+                    : darkMode
+                    ? "hover:bg-white/10"
+                    : "hover:bg-slate-100"
+                }`}
+                onClick={() => handleSelect(patron)}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-black text-sm uppercase truncate">{patron.nom}</div>
+                    <div className="text-[10px] opacity-60">
+                      {patron.taux_horaire != null ? `${patron.taux_horaire}€/h` : "Taux non défini"}
+                    </div>
+                  </div>
                   <div
-                    className="w-4 h-4 rounded-full flex-shrink-0 shadow"
+                    className="w-4 h-4 rounded-full flex-shrink-0 shadow-lg"
                     style={{ backgroundColor: patron.couleur || "#8b5cf6" }}
                   />
-                  <div className="flex-1">
-                    <div className="text-sm font-bold">{patron.nom}</div>
-                    {patron.taux_horaire != null && (
-                      <div className="text-[10px] opacity-50">{patron.taux_horaire}€/h</div>
-                    )}
-                  </div>
-                  {selectedPatronId === patron.id && (
-                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs">✓</span>
-                    </div>
-                  )}
-                </button>
-              ))
-            )}
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="p-4 text-center text-sm opacity-60">
+              {search ? "Aucun patron trouvé" : "Aucun patron disponible"}
+            </div>
+          )}
+        </div>
+      )}
+
+      {selectedPatron && !showDropdown && (
+        <div
+          className={`mt-3 p-3 rounded-xl border ${
+            darkMode ? "bg-indigo-900/20 border-indigo-500/20" : "bg-indigo-50 border-indigo-200"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <div
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: selectedPatron.couleur || "#8b5cf6" }}
+            />
+            <span className="text-[10px] font-black uppercase opacity-60 tracking-wider">Patron sélectionné</span>
           </div>
+          <p className="text-sm font-black mt-1 uppercase">{selectedPatron.nom}</p>
+          {selectedPatron.taux_horaire != null && (
+            <p className="text-[11px] opacity-70 mt-1">Taux horaire : {selectedPatron.taux_horaire}€/h</p>
+          )}
         </div>
       )}
     </div>
