@@ -175,6 +175,25 @@ export const BilanTab = ({
       </div>
     )}
 
+    {bilan.bilanContent.kmExpenseItems?.length > 0 && (
+      <div className="mb-4 p-6 bg-[#0A1628]/60 rounded-[35px] border border-cyan-500/25 backdrop-blur-md">
+        <p className="text-[10px] font-black uppercase text-cyan-300/80 mb-4 tracking-[0.2em]">
+          🚗 Frais kilométriques
+        </p>
+        {bilan.bilanContent.kmExpenseItems.map((item) => (
+          <div key={item.id || `${item.dateFrais}-${item.description}`} className="flex justify-between items-center mb-3 gap-3">
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-bold opacity-80 uppercase">
+                {item.countryLabel || "KM"} • {item.billedKm} km @ {item.ratePerKm || 0} €/km
+              </span>
+              <p className="text-[11px] opacity-60 mt-0.5">{formatDateFR(item.dateFrais)}</p>
+            </div>
+            <span className="text-sm font-black text-cyan-300">+{formatEuro(item.montant)}</span>
+          </div>
+        ))}
+      </div>
+    )}
+
     {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── affiché uniquement si données */}
     {(bilan.bilanContent.acomptesDansPeriode > 0 ||
       bilan.bilanContent.soldeAcomptesAvant > 0 ||
@@ -307,7 +326,7 @@ export const BilanTab = ({
           {canExportCSV ? "CSV Missions" : "🔒 CSV Missions"}
         </button>
 
-        {bilan.bilanPeriodType === "semaine" && bilan.bilanContent.fraisDivers.length > 0 && (
+        {bilan.bilanPeriodType === "semaine" && (bilan.bilanContent.fraisDivers.length > 0 || (bilan.bilanContent.kmExpenseItems?.length || 0) > 0) && (
           <button
             onClick={() => canExportCSV && exportToCSV(
               bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true

@@ -334,13 +334,19 @@ export function useBilan({
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           fraisFiltres = getFraisByWeek(parseInt(bilanPeriodValue, 10), patronId);
         }
-        const totalFrais = getTotalFrais(fraisFiltres);
+
         const kmParsed = fraisFiltres
-          .map((f) => parseKmExpense(f))
-          .filter(Boolean);
-        const kmExpenseTotal = kmParsed.reduce((sum, item) => sum + (Number(item.montant) || 0), 0);
-        const kmDistanceTotal = kmParsed.reduce((sum, item) => sum + (Number(item.billedKm) || 0), 0);
-        const kmExpenseItems = kmParsed.sort((a, b) => (b.dateFrais || "").localeCompare(a.dateFrais || ""));
+          .map((f) => ({ raw: f, parsed: parseKmExpense(f) }))
+          .filter((x) => Boolean(x.parsed));
+        const kmExpenseItems = kmParsed
+          .map((x) => ({ ...x.parsed, raw: x.raw }))
+          .sort((a, b) => (b.dateFrais || "").localeCompare(a.dateFrais || ""));
+        const fraisNonKm = fraisFiltres.filter((f) => !parseKmExpense(f));
+
+        const totalFrais = getTotalFrais(fraisNonKm);
+        const kmExpenseTotal = kmExpenseItems.reduce((sum, item) => sum + (Number(item.montant) || 0), 0);
+        const kmDistanceTotal = kmExpenseItems.reduce((sum, item) => sum + (Number(item.billedKm) || 0), 0);
+
         const kmByCountryMap = kmExpenseItems.reduce((acc, item) => {
           const key = item.countryLabel || "Autre";
           if (!acc[key]) acc[key] = { countryLabel: key, totalKm: 0, totalAmount: 0, count: 0 };
@@ -378,7 +384,7 @@ export function useBilan({
         }
 
         // 5) CA brut
-        const caBrutPeriode = totalMissions + totalFrais;
+        const caBrutPeriode = totalMissions + totalFrais + kmExpenseTotal;
 
         if (caBrutPeriode === 0 && filtered.length === 0) {
           triggerAlert?.(`⚠️ Aucune mission pour ${resolvePatronNom(patronId) || "ce patron"} en ${formatPeriodLabel(bilanPeriodValue)}`);
@@ -504,7 +510,7 @@ export function useBilan({
           filteredData: filteredWithWeather,
           groupedData,
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
-          fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
+          fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisNonKm : [],
           kmExpenseTotal: bilanPeriodType === PERIOD_TYPES.SEMAINE ? Number(kmExpenseTotal.toFixed(2)) : 0,
           kmDistanceTotal: bilanPeriodType === PERIOD_TYPES.SEMAINE ? Number(kmDistanceTotal.toFixed(2)) : 0,
           kmExpenseItems: bilanPeriodType === PERIOD_TYPES.SEMAINE ? kmExpenseItems : [],
