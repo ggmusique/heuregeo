@@ -1,11 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
-import { DonneesTab } from "./pages/DonneesTab";
 import { HistoriqueTab } from "./pages/HistoriqueTab";
 import { BilanTab } from "./pages/BilanTab";
-import { CompteTab } from "./pages/CompteTab";
-import { AdminPage } from "./pages/AdminPage";
+import { ParametresTab } from "./pages/ParametresTab";
 
 import { useClients } from "./hooks/useClients";
 import { useMissions } from "./hooks/useMissions";
@@ -445,15 +443,6 @@ export default function App({ user }) {
           />  
         )}  
 
-        {activeTab === "donnees" && (  
-          <DonneesTab  
-            patrons={patrons} clients={clients} lieux={lieux} missions={missions} fraisDivers={fraisDivers} acomptes={listeAcomptes} darkMode={darkMode}  
-            onPatronEdit={handlePatronEdit} onPatronDelete={handlePatronDelete} onPatronAdd={() => { resetPatronForm(); setShowPatronModal(true); }}  
-            onClientEdit={handleClientEdit} onClientDelete={handleClientDelete} onClientAdd={() => { resetClientForm(); setShowClientModal(true); }}  
-            onLieuEdit={handleLieuEdit} onLieuDelete={handleLieuDelete} onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}  
-          />  
-        )}  
-
         {activeTab === "historique" && (  
           <HistoriqueTab  
             historique={historique} historiquePatronId={historiquePatronId} historiqueTab={historiqueTab} loadingHistorique={loadingHistorique}  
@@ -476,12 +465,30 @@ export default function App({ user }) {
           />
         )}
 
-        {activeTab === "compte" && (
-          <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={user?.email} />
-        )}
-
-        {activeTab === "admin" && isAdmin && (
-          <AdminPage darkMode={darkMode} />
+        {activeTab === "parametres" && !isViewer && (
+          <ParametresTab
+            profile={profile}
+            profileSaving={profileSaving}
+            saveProfile={saveProfile}
+            userEmail={user?.email}
+            darkMode={darkMode}
+            isAdmin={isAdmin}
+            patrons={patrons}
+            clients={clients}
+            lieux={lieux}
+            missions={missions}
+            fraisDivers={fraisDivers}
+            acomptes={listeAcomptes}
+            onPatronEdit={handlePatronEdit}
+            onPatronDelete={handlePatronDelete}
+            onPatronAdd={() => { resetPatronForm(); setShowPatronModal(true); }}
+            onClientEdit={handleClientEdit}
+            onClientDelete={handleClientDelete}
+            onClientAdd={() => { resetClientForm(); setShowClientModal(true); }}
+            onLieuEdit={handleLieuEdit}
+            onLieuDelete={handleLieuDelete}
+            onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}
+          />
         )}
       </main>  
 
