@@ -29,6 +29,7 @@ export const SaisieTab = ({
   onLieuChange,
   onPatronChange,
   onClientChange,
+  onShowPatronModal,
   onShowLieuModal,
   onShowClientModal,
   onShowFraisModal,
@@ -53,6 +54,7 @@ export const SaisieTab = ({
         missions={missions}
         selectedPatronId={selectedPatronId}
         onPatronChange={onPatronChange}
+        onAddNewPatron={() => onShowPatronModal()}
         clients={clients}
         selectedClientId={selectedClientId}
         onClientChange={onClientChange}
