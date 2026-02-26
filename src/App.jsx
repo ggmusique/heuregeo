@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
-import { HistoriqueTab } from "./pages/HistoriqueTab";
-import { BilanTab } from "./pages/BilanTab";
+import { SuiviTab } from "./pages/SuiviTab";
 import { ParametresTab } from "./pages/ParametresTab";
 
 import { useClients } from "./hooks/useClients";
@@ -81,6 +80,7 @@ export default function App({ user }) {
   const [loadingHistorique, setLoadingHistorique] = useState(false);
   const [historiquePatronId, setHistoriquePatronId] = useState(null);
   const [historiqueTab, setHistoriqueTab] = useState("impayes");
+  const [suiviDefaultView, setSuiviDefaultView] = useState("historique");
 
   const [bilanPatronId, setBilanPatronId] = useState(null);
   const [bilanClientId, setBilanClientId] = useState(null);
@@ -138,7 +138,8 @@ export default function App({ user }) {
 
   useEffect(() => {
     if (isViewer && !profileLoading) {
-      setActiveTab("histo");
+      setActiveTab("suivi");
+      setSuiviDefaultView("bilan");
     }
   }, [isViewer, profileLoading]);
 
@@ -337,8 +338,7 @@ export default function App({ user }) {
 
   const proNavItems = [
     { key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
-        { key: "historique", label: "Historique", icon: "📚", activeClass: "from-cyan-600 to-cyan-800", onClick: () => bilan.setShowBilan(false) },
-    { key: "histo", label: "Bilan", icon: "📊", activeClass: "from-[#C9A84C] to-[#A07830]", onClick: () => bilan.setShowBilan(false) },
+    { key: "suivi", label: "Suivi", icon: "📊", activeClass: "from-cyan-600 to-indigo-700" },
     { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
   ];
 
@@ -441,25 +441,46 @@ export default function App({ user }) {
           />  
         )}  
 
-        {activeTab === "historique" && (  
-          <HistoriqueTab  
-            historique={historique} historiquePatronId={historiquePatronId} historiqueTab={historiqueTab} loadingHistorique={loadingHistorique}  
-            darkMode={darkMode} patrons={patrons} missions={missions} listeAcomptes={listeAcomptes}  
-            onPatronFilterChange={(patronId) => { setHistoriquePatronId(patronId); chargerHistorique(patronId); }}  
-            onTabChange={setHistoriqueTab} onLoadHistorique={chargerHistorique}  
-            isViewer={isViewer} viewerPatronId={viewerPatronId}  
-          />  
-        )}  
-
-        {activeTab === "histo" && (
-          <BilanTab
-            bilan={bilan} bilanPatronId={bilanPatronId} currentWeek={currentWeek} missionsThisWeek={missionsThisWeek}
-            darkMode={darkMode} patrons={patrons} getPatronNom={getPatronNom} getPatronColor={getPatronColor}
-            onMarquerCommePaye={handleMarquerCommePaye} onFraisEdit={handleFraisEdit} onFraisDelete={handleFraisDelete}
-            onMissionEdit={handleMissionEdit} onMissionDelete={handleMissionDelete} profile={profile}
-            isViewer={isViewer}
-            canBilanMois={canBilanMois} canBilanAnnee={canBilanAnnee}
-            canExportPDF={canExportPDF} canExportExcel={canExportExcel} canExportCSV={canExportCSV}
+        {activeTab === "suivi" && (
+          <SuiviTab
+            defaultView={isViewer ? "bilan" : suiviDefaultView}
+            historiqueProps={{
+              historique,
+              historiquePatronId,
+              historiqueTab,
+              loadingHistorique,
+              darkMode,
+              patrons,
+              missions,
+              listeAcomptes,
+              onPatronFilterChange: (patronId) => { setHistoriquePatronId(patronId); chargerHistorique(patronId); },
+              onTabChange: setHistoriqueTab,
+              onLoadHistorique: chargerHistorique,
+              isViewer,
+              viewerPatronId,
+            }}
+            bilanProps={{
+              bilan,
+              bilanPatronId,
+              currentWeek,
+              missionsThisWeek,
+              darkMode,
+              patrons,
+              getPatronNom,
+              getPatronColor,
+              onMarquerCommePaye: handleMarquerCommePaye,
+              onFraisEdit: handleFraisEdit,
+              onFraisDelete: handleFraisDelete,
+              onMissionEdit: handleMissionEdit,
+              onMissionDelete: handleMissionDelete,
+              profile,
+              isViewer,
+              canBilanMois,
+              canBilanAnnee,
+              canExportPDF,
+              canExportExcel,
+              canExportCSV,
+            }}
           />
         )}
 
@@ -541,8 +562,7 @@ export default function App({ user }) {
             {!isViewer && (
               <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>
             )}
-            <button onClick={() => { setActiveTab("historique"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "historique" ? "bg-gradient-to-br from-cyan-600 to-cyan-800 text-white" : "text-white/30")}>Historique</button>  
-            <button onClick={() => { setActiveTab("histo"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "histo" ? "bg-gradient-to-br from-[#C9A84C] to-[#A07830] text-white" : "text-white/30")}>Bilan</button>  
+            <button onClick={() => setActiveTab("suivi")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "suivi" ? "bg-gradient-to-br from-cyan-600 to-indigo-700 text-white" : "text-white/30")}>Suivi</button>  
             {!isViewer ? (
               <button onClick={() => setActiveTab("parametres")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "parametres" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>
                 <span>Parametres</span>
