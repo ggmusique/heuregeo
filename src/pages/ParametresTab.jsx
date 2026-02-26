@@ -208,7 +208,7 @@ export function ParametresTab({
                         </label>
 
                         <label className="text-xs text-white/70 space-y-1">
-                          <span>Taux €/km (Belgique par défaut)</span>
+                          <span>Taux €/km (modulable)</span>
                           <input
                             type="number"
                             step="0.0001"
@@ -217,6 +217,23 @@ export function ParametresTab({
                             className="w-full p-2 rounded-lg bg-black/30 border border-white/20 text-white"
                           />
                         </label>
+                      </div>
+
+                      <div className="rounded-xl border border-cyan-400/20 bg-cyan-950/20 p-3">
+                        <p className="text-[10px] uppercase tracking-widest font-black text-cyan-200/80 mb-2">Barème multi-pays (phase 3)</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {Object.entries(COUNTRY_RATE_PRESETS).map(([code, preset]) => (
+                            <button
+                              key={code}
+                              type="button"
+                              onClick={() => setKmSettings((prev) => ({ ...prev, countryCode: code, ratePerKm: preset.ratePerKm }))}
+                              className="text-left px-2.5 py-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-xs text-white/80"
+                            >
+                              <span className="font-black">{preset.label}</span>
+                              <span className="opacity-70"> • {preset.ratePerKm.toFixed(4)} €/km</span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       <label className="text-xs text-white/70 space-y-1 block">

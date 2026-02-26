@@ -1,9 +1,9 @@
 export const COUNTRY_RATE_PRESETS = {
-  BE: {
-    label: "Belgique",
-    ratePerKm: 0.4269,
-    currency: "EUR",
-  },
+  BE: { label: "Belgique", ratePerKm: 0.4269, currency: "EUR" },
+  FR: { label: "France", ratePerKm: 0.6010, currency: "EUR" },
+  LU: { label: "Luxembourg", ratePerKm: 0.5000, currency: "EUR" },
+  NL: { label: "Pays-Bas", ratePerKm: 0.2300, currency: "EUR" },
+  DE: { label: "Allemagne", ratePerKm: 0.3000, currency: "EUR" },
 };
 
 export const DEFAULT_KM_SETTINGS = {
@@ -128,4 +128,11 @@ export const parseKmExpense = (frais) => {
     ratePerKm: Number.isFinite(parsedRate) ? parsedRate : 0,
     countryLabel,
   };
+};
+
+
+export const getCountryRateLabel = (countryCode) => {
+  const preset = COUNTRY_RATE_PRESETS[countryCode];
+  if (!preset) return countryCode || "-";
+  return `${preset.label} (${preset.ratePerKm.toFixed(4)} €/km)`;
 };

@@ -223,6 +223,20 @@ export const BilanDetail = ({
               </div>
             )}
 
+            {Array.isArray(bilanContent.kmExpenseByCountry) && bilanContent.kmExpenseByCountry.length > 0 && (
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-950/20 p-3">
+                <p className="text-[10px] uppercase font-black tracking-widest text-cyan-200/80 mb-2">Répartition par pays (phase 3)</p>
+                <div className="space-y-1.5">
+                  {bilanContent.kmExpenseByCountry.map((row) => (
+                    <div key={row.countryLabel} className="flex justify-between gap-3 text-xs">
+                      <span className="text-white/65">{row.countryLabel} • {row.totalKm} km • {row.count} trajet(s)</span>
+                      <span className="font-black text-cyan-300 shrink-0">+{formatEuro(row.totalAmount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {bilanContent.soldeAcomptesAvant !== 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">Solde avant période :</span>
