@@ -333,18 +333,18 @@ export const MissionForm = ({
           onAddNew={onAddNewPatron}
         />
 
-        <div className={`mt-3 p-3 rounded-xl border ${darkMode ? "bg-emerald-900/15 border-emerald-500/20" : "bg-emerald-50 border-emerald-200"}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-black uppercase opacity-60 tracking-wider">Taux mission</p>
-              <p className="text-sm font-black text-emerald-300">
-                {Number.isFinite(currentRate) ? `${currentRate.toFixed(2)} €/h` : "Non défini"}
-              </p>
-              {patronRate != null && (
-                <p className="text-[10px] opacity-70">Taux patron: {Number(patronRate).toFixed(2)} €/h</p>
-              )}
-            </div>
-            {showRateEditorControl && (
+        {showRateEditorControl && (
+          <div className={`mt-3 p-3 rounded-xl border ${darkMode ? "bg-emerald-900/15 border-emerald-500/20" : "bg-emerald-50 border-emerald-200"}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase opacity-60 tracking-wider">Taux mission</p>
+                <p className="text-sm font-black text-emerald-300">
+                  {Number.isFinite(currentRate) ? `${currentRate.toFixed(2)} €/h` : "Non défini"}
+                </p>
+                {patronRate != null && (
+                  <p className="text-[10px] opacity-70">Taux patron: {Number(patronRate).toFixed(2)} €/h</p>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => setShowRateEditor((v) => !v)}
@@ -352,35 +352,35 @@ export const MissionForm = ({
               >
                 {showRateEditor ? "Fermer" : "Modifier le taux du jour"}
               </button>
+            </div>
+
+            {isCustomRate && (
+              <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                Taux personnalisé actif
+              </p>
+            )}
+
+            {showRateEditor && (
+              <div className="mt-3">
+                <select
+                  value={tarifHoraire}
+                  onChange={(e) => setTarifHoraire(e.target.value)}
+                  className={`w-full p-3 rounded-xl font-black text-sm border-2 outline-none ${
+                    darkMode
+                      ? "bg-black/30 border-emerald-500/30 text-white"
+                      : "bg-white border-emerald-300 text-slate-900"
+                  }`}
+                >
+                  {TARIF_OPTIONS.map((val) => (
+                    <option key={val} value={val}>
+                      {val.toFixed(2)} €/h
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
-
-          {isCustomRate && (
-            <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-amber-300">
-              Taux personnalisé actif
-            </p>
-          )}
-
-          {showRateEditorControl && showRateEditor && (
-            <div className="mt-3">
-              <select
-                value={tarifHoraire}
-                onChange={(e) => setTarifHoraire(e.target.value)}
-                className={`w-full p-3 rounded-xl font-black text-sm border-2 outline-none ${
-                  darkMode
-                    ? "bg-black/30 border-emerald-500/30 text-white"
-                    : "bg-white border-emerald-300 text-slate-900"
-                }`}
-              >
-                {TARIF_OPTIONS.map((val) => (
-                  <option key={val} value={val}>
-                    {val.toFixed(2)} €/h
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       <div className="mb-6">
