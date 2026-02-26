@@ -109,12 +109,23 @@ export const buildKmExpenseFromMission = ({ kmSettings, lieu, patronId, dateIso 
 
 export const parseKmExpense = (frais) => {
   if (!frais?.description?.startsWith?.("[KM]")) return null;
+
   const montant = Number(frais.montant) || 0;
   const kmMatch = frais.description.match(/(\d+(?:[.,]\d+)?)\s*km/i);
+  const rateMatch = frais.description.match(/x\s*(\d+(?:[.,]\d+)?)\s*€\/km/i);
+  const countryMatch = frais.description.match(/^\[KM\]\s*([^\d]+)/i);
+
   const parsedKm = kmMatch ? Number(kmMatch[1].replace(",", ".")) : null;
+  const parsedRate = rateMatch ? Number(rateMatch[1].replace(",", ".")) : null;
+  const countryLabel = countryMatch ? countryMatch[1].trim() : "";
 
   return {
+    id: frais.id,
+    dateFrais: frais.date_frais,
+    description: frais.description,
     montant,
     billedKm: Number.isFinite(parsedKm) ? parsedKm : 0,
+    ratePerKm: Number.isFinite(parsedRate) ? parsedRate : 0,
+    countryLabel,
   };
 };

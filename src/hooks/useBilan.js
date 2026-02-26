@@ -73,6 +73,7 @@ export function useBilan({
     totalAcomptes: 0,          // ✅ consommé affiché (cumul)
     kmExpenseTotal: 0,
     kmDistanceTotal: 0,
+    kmExpenseItems: [],
     selectedPatronId: null,
     selectedPatronNom: "Tous les patrons (Global)",
   });
@@ -338,6 +339,7 @@ export function useBilan({
           .filter(Boolean);
         const kmExpenseTotal = kmParsed.reduce((sum, item) => sum + (Number(item.montant) || 0), 0);
         const kmDistanceTotal = kmParsed.reduce((sum, item) => sum + (Number(item.billedKm) || 0), 0);
+        const kmExpenseItems = kmParsed.sort((a, b) => (b.dateFrais || "").localeCompare(a.dateFrais || ""));
 
         // 4) Dates début/fin
         let debutPeriode = "";
@@ -489,6 +491,7 @@ export function useBilan({
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
           kmExpenseTotal: bilanPeriodType === PERIOD_TYPES.SEMAINE ? Number(kmExpenseTotal.toFixed(2)) : 0,
           kmDistanceTotal: bilanPeriodType === PERIOD_TYPES.SEMAINE ? Number(kmDistanceTotal.toFixed(2)) : 0,
+          kmExpenseItems: bilanPeriodType === PERIOD_TYPES.SEMAINE ? kmExpenseItems : [],
 
          // ✅ N'afficher le bloc que si un acompte a été consommé sur CETTE période
 totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0 

@@ -207,6 +207,22 @@ export const BilanDetail = ({
               </div>
             )}
 
+            {Array.isArray(bilanContent.kmExpenseItems) && bilanContent.kmExpenseItems.length > 0 && (
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-950/20 p-3">
+                <p className="text-[10px] uppercase font-black tracking-widest text-cyan-200/80 mb-2">Détail kilométrage</p>
+                <div className="space-y-2">
+                  {bilanContent.kmExpenseItems.slice(0, 8).map((item) => (
+                    <div key={item.id || `${item.dateFrais}-${item.description}`} className="flex justify-between gap-3 text-xs">
+                      <span className="text-white/65 truncate">
+                        {item.dateFrais || "—"} • {item.countryLabel || "KM"} • {item.billedKm} km @ {item.ratePerKm} €/km
+                      </span>
+                      <span className="font-black text-cyan-300 shrink-0">+{formatEuro(item.montant)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {bilanContent.soldeAcomptesAvant !== 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">Solde avant période :</span>
