@@ -177,6 +177,7 @@ export const BilanDetail = ({
          ====================================================== */}
       {(bilanContent.fraisDivers?.length > 0 ||
         bilanContent.impayePrecedent > 0 ||
+        bilanContent.kmExpenseTotal > 0 ||
         bilanContent.soldeAcomptesAvant > 0 ||
         bilanContent.acomptesDansPeriode > 0 ||
         bilanContent.totalAcomptes > 0 ||
@@ -194,6 +195,45 @@ export const BilanDetail = ({
                 <span className="font-bold text-orange-400">
                   +{formatEuro(bilanContent.impayePrecedent)}
                 </span>
+              </div>
+            )}
+
+            {bilanContent.kmExpenseTotal > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60">🚗 Frais kilométriques ({bilanContent.kmDistanceTotal || 0} km) :</span>
+                <span className="font-bold text-cyan-300 amount-safe">
+                  +{formatEuro(bilanContent.kmExpenseTotal)}
+                </span>
+              </div>
+            )}
+
+            {Array.isArray(bilanContent.kmExpenseItems) && bilanContent.kmExpenseItems.length > 0 && (
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-950/20 p-3">
+                <p className="text-[10px] uppercase font-black tracking-widest text-cyan-200/80 mb-2">Détail kilométrage</p>
+                <div className="space-y-2">
+                  {bilanContent.kmExpenseItems.slice(0, 8).map((item) => (
+                    <div key={item.id || `${item.dateFrais}-${item.description}`} className="flex justify-between gap-3 text-xs">
+                      <span className="text-white/65 truncate">
+                        {item.dateFrais || "—"} • {item.countryLabel || "KM"} • {item.billedKm} km @ {item.ratePerKm} €/km
+                      </span>
+                      <span className="font-black text-cyan-300 shrink-0">+{formatEuro(item.montant)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {Array.isArray(bilanContent.kmExpenseByCountry) && bilanContent.kmExpenseByCountry.length > 0 && (
+              <div className="rounded-2xl border border-cyan-400/20 bg-cyan-950/20 p-3">
+                <p className="text-[10px] uppercase font-black tracking-widest text-cyan-200/80 mb-2">Répartition par pays (phase 3)</p>
+                <div className="space-y-1.5">
+                  {bilanContent.kmExpenseByCountry.map((row) => (
+                    <div key={row.countryLabel} className="flex justify-between gap-3 text-xs">
+                      <span className="text-white/65">{row.countryLabel} • {row.totalKm} km • {row.count} trajet(s)</span>
+                      <span className="font-black text-cyan-300 shrink-0">+{formatEuro(row.totalAmount)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
