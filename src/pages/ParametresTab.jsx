@@ -44,6 +44,12 @@ export function ParametresTab({
         title: "Donnees",
         subtitle: `${patrons.length} patrons • ${clients.length} clients • ${lieux.length} lieux`,
       },
+      {
+        key: "extra-pro",
+        icon: "✨",
+        title: "Extra option payante (Pro)",
+        subtitle: "Fonctionnalites avancees reservees aux comptes Pro",
+      },
       ...(isAdmin
         ? [
             {
@@ -93,7 +99,7 @@ export function ParametresTab({
             Hub central: choisissez une section dans le menu de gauche pour ouvrir une fenetre dediee.
           </p>
           <div className="rounded-xl border border-dashed border-white/20 p-4 text-white/55 text-sm">
-            Exemples: Profil, Donnees, Admin.
+            Exemples: Profil, Donnees, Extra option payante (Pro), Admin.
           </div>
         </div>
       </div>
@@ -117,8 +123,14 @@ export function ParametresTab({
             <div className="flex-1 overflow-auto p-3 sm:p-4">
               {activePanel === "profil" && (
                 <div className="space-y-4">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-2">Saisie mission</p>
+                  <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={userEmail} />
+                </div>
+              )}
+
+              {activePanel === "extra-pro" && (
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-yellow-500/25 bg-yellow-500/5 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/80 mb-2">Extra option payante (Pro)</p>
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm text-white/70">Afficher le sélecteur "taux du jour" dans Saisie</p>
                       <button
@@ -130,7 +142,6 @@ export function ParametresTab({
                       </button>
                     </div>
                   </div>
-                  <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={userEmail} />
                 </div>
               )}
 
