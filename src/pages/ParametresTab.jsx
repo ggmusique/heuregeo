@@ -33,6 +33,7 @@ export function ParametresTab({
   const [activePanel, setActivePanel] = useState(null);
   const [kmSettings, setKmSettings] = useState(() => normalizeKmSettings(profile?.features));
   const [kmSaveMsg, setKmSaveMsg] = useState("");
+  const [locatingHome, setLocatingHome] = useState(false);
 
   useEffect(() => {
     setKmSettings(normalizeKmSettings(profile?.features));
@@ -95,6 +96,69 @@ export function ParametresTab({
     setKmSaveMsg("✅ Paramètres kilométrage enregistrés.");
   };
 
+
+  const useCurrentPositionForHome = async () => {
+    if (!navigator?.geolocation) {
+      setKmSaveMsg("❌ Géolocalisation non supportée sur cet appareil.");
+      return;
+    }
+
+    setLocatingHome(true);
+    setKmSaveMsg("");
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lng = Number(pos.coords.longitude.toFixed(6));
+
+        setKmSettings((prev) => ({
+          ...prev,
+          homeLat: lat,
+          homeLng: lng,
+        }));
+
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            {
+              headers: {
+                "Accept-Language": "fr",
+                "User-Agent": "HeuresDeGeo/1.0",
+              },
+            }
+          );
+
+          if (res.ok) {
+            const data = await res.json();
+            const addr = data?.address || {};
+            const label =
+              (addr.road && (addr.city || addr.town || addr.village))
+                ? `${addr.road}, ${addr.city || addr.town || addr.village}`
+                : data?.display_name?.split(", ").slice(0, 3).join(", ");
+
+            if (label) {
+              setKmSettings((prev) => ({ ...prev, homeLabel: label }));
+            }
+          }
+        } catch {
+          // noop: coordonnées déjà remplies même sans adresse textuelle
+        } finally {
+          setLocatingHome(false);
+          setKmSaveMsg("✅ Position domicile récupérée automatiquement.");
+        }
+      },
+      (err) => {
+        const errors = {
+          1: "❌ Autorise la géolocalisation pour utiliser cette fonction.",
+          2: "❌ Position indisponible.",
+          3: "❌ Délai de géolocalisation dépassé.",
+        };
+        setKmSaveMsg(errors[err.code] || "❌ Erreur géolocalisation.");
+        setLocatingHome(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
   return (
     <section className="space-y-4">
       <div className="grid grid-cols-1 lg:grid-cols-[250px_minmax(0,1fr)] gap-4 items-start">
@@ -246,6 +310,15 @@ export function ParametresTab({
                           className="w-full p-2 rounded-lg bg-black/30 border border-white/20 text-white"
                         />
                       </label>
+
+                      <button
+                        type="button"
+                        onClick={useCurrentPositionForHome}
+                        disabled={locatingHome}
+                        className="w-full md:w-auto px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border border-cyan-400/40 text-cyan-200 bg-cyan-500/10 disabled:opacity-50"
+                      >
+                        {locatingHome ? "📍 Localisation..." : "📍 Utiliser ma position actuelle"}
+                      </button>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <label className="text-xs text-white/70 space-y-1">
