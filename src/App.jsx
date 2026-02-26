@@ -171,7 +171,13 @@ export default function App({ user }) {
       }
       else {
         const createdMission = await createMission(missionData);
-        const kmSettings = normalizeKmSettings(features);
+        let kmSettings = normalizeKmSettings(features);
+        if (!kmSettings?.enabled) {
+          try {
+            const rawLocalKm = window?.localStorage?.getItem("km-settings-local");
+            if (rawLocalKm) kmSettings = normalizeKmSettings({ km_settings: JSON.parse(rawLocalKm) });
+          } catch {}
+        }
         const selectedLieu = lieux.find((l) => l.id === (createdMission?.lieu_id || missionData?.lieu_id));
         const kmExpense = buildKmExpenseFromMission({
           kmSettings,

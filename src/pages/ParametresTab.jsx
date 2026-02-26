@@ -31,12 +31,27 @@ export function ParametresTab({
   onToggleMissionRateEditor = () => {},
 }) {
   const [activePanel, setActivePanel] = useState(null);
-  const [kmSettings, setKmSettings] = useState(() => normalizeKmSettings(profile?.features));
+  const KM_SETTINGS_LOCAL_KEY = "km-settings-local";
+  const [kmSettings, setKmSettings] = useState(() => {
+    if (profile?.features) return normalizeKmSettings(profile.features);
+    try {
+      const raw = window?.localStorage?.getItem(KM_SETTINGS_LOCAL_KEY);
+      if (raw) return normalizeKmSettings({ km_settings: JSON.parse(raw) });
+    } catch {}
+    return normalizeKmSettings();
+  });
   const [kmSaveMsg, setKmSaveMsg] = useState("");
   const [locatingHome, setLocatingHome] = useState(false);
 
   useEffect(() => {
-    setKmSettings(normalizeKmSettings(profile?.features));
+    if (profile?.features) {
+      setKmSettings(normalizeKmSettings(profile.features));
+      return;
+    }
+    try {
+      const raw = window?.localStorage?.getItem(KM_SETTINGS_LOCAL_KEY);
+      if (raw) setKmSettings(normalizeKmSettings({ km_settings: JSON.parse(raw) }));
+    } catch {}
   }, [profile?.features]);
 
   const sections = useMemo(
@@ -82,6 +97,10 @@ export function ParametresTab({
   }, [sections, activePanel]);
 
   const persistKmSettings = async (nextSettings) => {
+    try {
+      window?.localStorage?.setItem(KM_SETTINGS_LOCAL_KEY, JSON.stringify(serializeKmSettings(nextSettings)));
+    } catch {}
+
     const existingFeatures = profile?.features || {};
     const payload = {
       ...existingFeatures,
@@ -94,7 +113,7 @@ export function ParametresTab({
     setKmSaveMsg("");
     const res = await persistKmSettings(kmSettings);
     if (res?.error) {
-      setKmSaveMsg(`❌ ${res.error}`);
+      setKmSaveMsg(`⚠️ Sauvé en local uniquement (${res.error})`);
       return;
     }
     setKmSaveMsg("✅ Paramètres kilométrage enregistrés.");
@@ -153,7 +172,7 @@ export function ParametresTab({
         const saveRes = await persistKmSettings(nextSettings);
         setLocatingHome(false);
         if (saveRes?.error) {
-          setKmSaveMsg(`⚠️ Position récupérée, mais sauvegarde impossible: ${saveRes.error}`);
+          setKmSaveMsg(`⚠️ Position sauvegardée en local (${saveRes.error})`);
         } else {
           setKmSaveMsg("✅ Position domicile récupérée et enregistrée.");
         }
