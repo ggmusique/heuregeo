@@ -18,6 +18,7 @@ export const ClientsManager = ({
   onAdd = () => {},
   darkMode = true,
   missions = [],
+  allowActions = true,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -390,6 +391,7 @@ export const ClientsManager = ({
                 </div>
 
                 {/* Actions */}
+                {allowActions && (
                 <div className="flex gap-2">
                   <button
                     onClick={() => onEdit(client)}
@@ -414,6 +416,7 @@ export const ClientsManager = ({
                     🗑️
                   </button>
                 </div>
+                )}
               </div>
             </div>
           ))
