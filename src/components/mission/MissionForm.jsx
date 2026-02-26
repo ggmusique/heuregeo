@@ -24,6 +24,7 @@ export const MissionForm = ({
   patrons = [],
   selectedPatronId = null,
   onPatronChange = () => {},
+  onAddNewPatron = () => {},
   clients = [],
   selectedClientId = null,
   onClientChange = () => {},
@@ -319,6 +320,7 @@ export const MissionForm = ({
             onSelect={onPatronChange}
             required={true}
             darkMode={darkMode}
+            onAddNew={onAddNewPatron}
           />
         </div>
         <div

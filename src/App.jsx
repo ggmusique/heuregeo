@@ -436,6 +436,7 @@ export default function App({ user }) {
             }}  
             onShowLieuModal={() => { resetLieuForm(); setShowLieuModal(true); }}  
             onShowClientModal={() => { resetClientForm(); setShowClientModal(true); }}  
+            onShowPatronModal={() => { resetPatronForm(); setShowPatronModal(true); }}
             onShowFraisModal={() => setShowFraisModal(true)}  
             onShowAcompteModal={() => setShowAcompteModal(true)}  
           />  
