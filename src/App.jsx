@@ -181,13 +181,19 @@ export default function App({ user }) {
         });
 
         if (kmExpense) {
-          await createFrais({
-            description: kmExpense.description,
-            montant: kmExpense.montant,
-            date_frais: kmExpense.date_frais,
-            patron_id: kmExpense.patron_id,
-          });
-          triggerAlert(`Mission enregistree + frais km auto (${kmExpense.kmMeta.billedKm} km)`);
+          try {
+            await createFrais({
+              description: kmExpense.description,
+              montant: kmExpense.montant,
+              date_frais: kmExpense.date_frais,
+              patron_id: kmExpense.patron_id,
+            });
+            triggerAlert(`Mission enregistree + frais km auto (${kmExpense.kmMeta.billedKm} km)`);
+          } catch (kmErr) {
+            triggerAlert(`Mission enregistree, mais frais km non cree (${kmErr?.message || "erreur"})`);
+          }
+        } else if (kmSettings.enabled) {
+          triggerAlert("Mission enregistree. Astuce km: verifie les coords domicile et du lieu.");
         } else {
           triggerAlert("Mission enregistree !");
         }

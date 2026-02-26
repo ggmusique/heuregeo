@@ -81,14 +81,18 @@ export function ParametresTab({
     }
   }, [sections, activePanel]);
 
-  const saveKmSettings = async () => {
-    setKmSaveMsg("");
+  const persistKmSettings = async (nextSettings) => {
     const existingFeatures = profile?.features || {};
     const payload = {
       ...existingFeatures,
-      km_settings: serializeKmSettings(kmSettings),
+      km_settings: serializeKmSettings(nextSettings),
     };
-    const res = await saveProfile({ features: payload });
+    return saveProfile({ features: payload });
+  };
+
+  const saveKmSettings = async () => {
+    setKmSaveMsg("");
+    const res = await persistKmSettings(kmSettings);
     if (res?.error) {
       setKmSaveMsg(`❌ ${res.error}`);
       return;
@@ -111,11 +115,12 @@ export function ParametresTab({
         const lat = Number(pos.coords.latitude.toFixed(6));
         const lng = Number(pos.coords.longitude.toFixed(6));
 
-        setKmSettings((prev) => ({
-          ...prev,
+        let nextSettings = {
+          ...kmSettings,
           homeLat: lat,
           homeLng: lng,
-        }));
+        };
+        setKmSettings(nextSettings);
 
         try {
           const res = await fetch(
@@ -137,14 +142,20 @@ export function ParametresTab({
                 : data?.display_name?.split(", ").slice(0, 3).join(", ");
 
             if (label) {
-              setKmSettings((prev) => ({ ...prev, homeLabel: label }));
+              nextSettings = { ...nextSettings, homeLabel: label };
+              setKmSettings(nextSettings);
             }
           }
         } catch {
           // noop: coordonnées déjà remplies même sans adresse textuelle
-        } finally {
-          setLocatingHome(false);
-          setKmSaveMsg("✅ Position domicile récupérée automatiquement.");
+        }
+
+        const saveRes = await persistKmSettings(nextSettings);
+        setLocatingHome(false);
+        if (saveRes?.error) {
+          setKmSaveMsg(`⚠️ Position récupérée, mais sauvegarde impossible: ${saveRes.error}`);
+        } else {
+          setKmSaveMsg("✅ Position domicile récupérée et enregistrée.");
         }
       },
       (err) => {
