@@ -48,6 +48,7 @@ export const MissionForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [weather, setWeather] = useState(null);
   const [weatherCity, setWeatherCity] = useState("");
+  const [showRateEditor, setShowRateEditor] = useState(false);
 
   const selectedClient = useMemo(() => {
     if (!selectedClientId) return null;
@@ -60,6 +61,15 @@ export const MissionForm = ({
     if (!selectedLieuId) return null;
     return (Array.isArray(lieux) ? lieux : []).find((l) => l.id === selectedLieuId);
   }, [lieux, selectedLieuId]);
+
+  const selectedPatron = useMemo(() => {
+    if (!selectedPatronId) return null;
+    return (Array.isArray(patrons) ? patrons : []).find((p) => p.id === selectedPatronId) || null;
+  }, [patrons, selectedPatronId]);
+
+  const patronRate = selectedPatron?.taux_horaire != null ? Number(selectedPatron.taux_horaire) : null;
+  const currentRate = Number.parseFloat(tarifHoraire);
+  const isCustomRate = Number.isFinite(currentRate) && patronRate != null && currentRate !== patronRate;
 
   useEffect(() => {
     if (!editMode || !initialData) return;
@@ -312,39 +322,61 @@ export const MissionForm = ({
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-6">
-        <div className="flex-1">
-          <PatronSelectorCompact
-            patrons={patrons}
-            selectedPatronId={selectedPatronId}
-            onSelect={onPatronChange}
-            required={true}
-            darkMode={darkMode}
-            onAddNew={onAddNewPatron}
-          />
-        </div>
-        <div
-          className={`shrink-0 w-[64px] h-[64px] rounded-2xl border-2 flex items-center justify-center relative overflow-hidden transition-all active:scale-90 mt-5 ${
-            darkMode
-              ? "bg-green-900/20 border-green-700/60 text-green-300 hover:border-green-500"
-              : "bg-green-100/70 border-green-300 text-green-700 hover:border-green-500"
-          }`}
-        >
-          <div className="text-2xl">€</div>
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity text-xs font-bold text-green-200 pointer-events-none">
-            {tarifHoraire}€/h
+      <div className="mb-6">
+        <PatronSelectorCompact
+          patrons={patrons}
+          selectedPatronId={selectedPatronId}
+          onSelect={onPatronChange}
+          required={true}
+          darkMode={darkMode}
+          onAddNew={onAddNewPatron}
+        />
+
+        <div className={`mt-3 p-3 rounded-xl border ${darkMode ? "bg-emerald-900/15 border-emerald-500/20" : "bg-emerald-50 border-emerald-200"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase opacity-60 tracking-wider">Taux mission</p>
+              <p className="text-sm font-black text-emerald-300">
+                {Number.isFinite(currentRate) ? `${currentRate.toFixed(2)} €/h` : "Non défini"}
+              </p>
+              {patronRate != null && (
+                <p className="text-[10px] opacity-70">Taux patron: {Number(patronRate).toFixed(2)} €/h</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowRateEditor((v) => !v)}
+              className="px-3 py-2 rounded-lg border border-emerald-400/30 text-emerald-300 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500/10 transition-all"
+            >
+              {showRateEditor ? "Fermer" : "Modifier le taux du jour"}
+            </button>
           </div>
-          <select
-            value={tarifHoraire}
-            onChange={(e) => setTarifHoraire(e.target.value)}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-          >
-            {TARIF_OPTIONS.map((val) => (
-              <option key={val} value={val}>
-                {val.toFixed(2)} €
-              </option>
-            ))}
-          </select>
+
+          {isCustomRate && (
+            <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-amber-300">
+              Taux personnalisé actif
+            </p>
+          )}
+
+          {showRateEditor && (
+            <div className="mt-3">
+              <select
+                value={tarifHoraire}
+                onChange={(e) => setTarifHoraire(e.target.value)}
+                className={`w-full p-3 rounded-xl font-black text-sm border-2 outline-none ${
+                  darkMode
+                    ? "bg-black/30 border-emerald-500/30 text-white"
+                    : "bg-white border-emerald-300 text-slate-900"
+                }`}
+              >
+                {TARIF_OPTIONS.map((val) => (
+                  <option key={val} value={val}>
+                    {val.toFixed(2)} €/h
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
