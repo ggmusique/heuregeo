@@ -177,6 +177,7 @@ export const BilanDetail = ({
          ====================================================== */}
       {(bilanContent.fraisDivers?.length > 0 ||
         bilanContent.impayePrecedent > 0 ||
+        bilanContent.kmExpenseTotal > 0 ||
         bilanContent.soldeAcomptesAvant > 0 ||
         bilanContent.acomptesDansPeriode > 0 ||
         bilanContent.totalAcomptes > 0 ||
@@ -193,6 +194,15 @@ export const BilanDetail = ({
                 <span className="text-white/60">Impayé précédent :</span>
                 <span className="font-bold text-orange-400">
                   +{formatEuro(bilanContent.impayePrecedent)}
+                </span>
+              </div>
+            )}
+
+            {bilanContent.kmExpenseTotal > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60">🚗 Frais kilométriques ({bilanContent.kmDistanceTotal || 0} km) :</span>
+                <span className="font-bold text-cyan-300 amount-safe">
+                  +{formatEuro(bilanContent.kmExpenseTotal)}
                 </span>
               </div>
             )}
