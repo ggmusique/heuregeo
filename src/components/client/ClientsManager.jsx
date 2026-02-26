@@ -365,7 +365,7 @@ export const ClientsManager = ({
                       <div className="text-[9px] font-black uppercase opacity-40">
                         Heures
                       </div>
-                      <div className="text-base font-black text-cyan-400 amount-safe">
+                      <div className="text-base font-black text-cyan-400">
                         {formatHeures(client.totalHeures)}
                       </div>
                     </div>
@@ -373,7 +373,7 @@ export const ClientsManager = ({
                       <div className="text-[9px] font-black uppercase opacity-40">
                         CA
                       </div>
-                      <div className="text-base font-black text-green-400 amount-safe">
+                      <div className="text-base font-black text-green-400">
                         {formatEuro(client.totalCA)}
                       </div>
                     </div>
