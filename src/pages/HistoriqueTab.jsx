@@ -170,7 +170,7 @@ export const HistoriqueTab = ({
                   <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
                     Semaines payées
                   </p>
-                  <p className="text-2xl font-black text-green-300">
+                  <p className="text-2xl font-black text-green-300 amount-safe">
                     {historique.payes.length} ✅
                   </p>
                 </div>
@@ -204,7 +204,7 @@ export const HistoriqueTab = ({
                     <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
                       Dernier acompte reçu
                     </p>
-                    <p className="text-xl font-black text-cyan-300">
+                    <p className="text-xl font-black text-cyan-300 amount-safe">
                       {formatEuro(dernierAcompte.montant)}
                     </p>
                     <p className="text-[10px] opacity-50 mt-1">
@@ -293,7 +293,7 @@ export const HistoriqueTab = ({
                         </p>
                       </div>
                       <div className="text-right">
-                      <p className="text-lg font-black text-orange-400">
+                      <p className="text-lg font-black text-orange-400 amount-safe">
   {formatEuro(row.ca_brut_periode || 0)}  {/* ✅ au lieu de reste_a_percevoir */}
 </p>
                         <p className="text-[9px] uppercase opacity-40 tracking-wider">
@@ -307,7 +307,7 @@ export const HistoriqueTab = ({
                     <p className="text-[10px] font-black uppercase opacity-60">
                       Total
                     </p>
-                    <p className="text-xl font-black text-orange-400">
+                    <p className="text-xl font-black text-orange-400 amount-safe">
                     {formatEuro(
   historique.impayes.reduce(
     (s, r) => s + (r.ca_brut_periode || 0),  // ✅ au lieu de reste_a_percevoir
@@ -357,7 +357,7 @@ export const HistoriqueTab = ({
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-black text-green-400">
+                        <p className="text-lg font-black text-green-400 amount-safe">
                           {formatEuro(row.ca_brut_periode || 0)}
                         </p>
                         <p className="text-[9px] opacity-40">
