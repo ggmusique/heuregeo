@@ -45,6 +45,10 @@ export default function App({ user }) {
   const [customAlert, setCustomAlert] = useState({ show: false, message: "" });
   const [isIOS, setIsIOS] = useState(false);
   const [liveTime, setLiveTime] = useState("");
+  const [showMissionRateEditor, setShowMissionRateEditor] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("showMissionRateEditor") !== "false";
+  });
 
   const [showFraisModal, setShowFraisModal] = useState(false);
   const [fraisDescription, setFraisDescription] = useState("");
@@ -135,6 +139,13 @@ export default function App({ user }) {
   useEffect(() => {
     if (bilan.showPeriodModal) bilan.calculerPeriodesDisponibles();
   }, [bilan.showPeriodModal, bilan.bilanPeriodType, missions]);
+
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("showMissionRateEditor", showMissionRateEditor ? "true" : "false");
+    }
+  }, [showMissionRateEditor]);
 
   useEffect(() => {
     if (isViewer && !profileLoading) {
@@ -439,6 +450,7 @@ export default function App({ user }) {
             onShowPatronModal={() => { resetPatronForm(); setShowPatronModal(true); }}
             onShowFraisModal={() => setShowFraisModal(true)}  
             onShowAcompteModal={() => setShowAcompteModal(true)}  
+            showMissionRateEditor={showMissionRateEditor}
           />  
         )}  
 
@@ -508,6 +520,8 @@ export default function App({ user }) {
             onLieuEdit={handleLieuEdit}
             onLieuDelete={handleLieuDelete}
             onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}
+            showMissionRateEditor={showMissionRateEditor}
+            onToggleMissionRateEditor={setShowMissionRateEditor}
           />
         )}
       </main>  

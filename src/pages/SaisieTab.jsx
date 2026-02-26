@@ -34,6 +34,7 @@ export const SaisieTab = ({
   onShowClientModal,
   onShowFraisModal,
   onShowAcompteModal,
+  showMissionRateEditor = true,
 }) => {
   return (
     <div className="animate-in fade-in duration-500">
@@ -59,6 +60,7 @@ export const SaisieTab = ({
         selectedClientId={selectedClientId}
         onClientChange={onClientChange}
         onAddNewClient={() => onShowClientModal()}
+        showRateEditorControl={showMissionRateEditor}
       />
 
       {/* Boutons rapides */}

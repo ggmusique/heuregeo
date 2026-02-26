@@ -25,6 +25,7 @@ export const MissionForm = ({
   selectedPatronId = null,
   onPatronChange = () => {},
   onAddNewPatron = () => {},
+  showRateEditorControl = true,
   clients = [],
   selectedClientId = null,
   onClientChange = () => {},
@@ -343,13 +344,15 @@ export const MissionForm = ({
                 <p className="text-[10px] opacity-70">Taux patron: {Number(patronRate).toFixed(2)} €/h</p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => setShowRateEditor((v) => !v)}
-              className="px-3 py-2 rounded-lg border border-emerald-400/30 text-emerald-300 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500/10 transition-all"
-            >
-              {showRateEditor ? "Fermer" : "Modifier le taux du jour"}
-            </button>
+            {showRateEditorControl && (
+              <button
+                type="button"
+                onClick={() => setShowRateEditor((v) => !v)}
+                className="px-3 py-2 rounded-lg border border-emerald-400/30 text-emerald-300 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500/10 transition-all"
+              >
+                {showRateEditor ? "Fermer" : "Modifier le taux du jour"}
+              </button>
+            )}
           </div>
 
           {isCustomRate && (
@@ -358,7 +361,7 @@ export const MissionForm = ({
             </p>
           )}
 
-          {showRateEditor && (
+          {showRateEditorControl && showRateEditor && (
             <div className="mt-3">
               <select
                 value={tarifHoraire}

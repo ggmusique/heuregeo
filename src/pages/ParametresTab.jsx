@@ -25,6 +25,8 @@ export function ParametresTab({
   onLieuEdit,
   onLieuDelete,
   onLieuAdd,
+  showMissionRateEditor = true,
+  onToggleMissionRateEditor = () => {},
 }) {
   const [activePanel, setActivePanel] = useState(null);
 
@@ -114,7 +116,22 @@ export function ParametresTab({
 
             <div className="flex-1 overflow-auto p-3 sm:p-4">
               {activePanel === "profil" && (
-                <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={userEmail} />
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white/60 mb-2">Saisie mission</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm text-white/70">Afficher le sélecteur "taux du jour" dans Saisie</p>
+                      <button
+                        type="button"
+                        onClick={() => onToggleMissionRateEditor((prev) => !prev)}
+                        className={"px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " + (showMissionRateEditor ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10" : "border-white/20 text-white/60") }
+                      >
+                        {showMissionRateEditor ? "Activé" : "Désactivé"}
+                      </button>
+                    </div>
+                  </div>
+                  <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={userEmail} />
+                </div>
               )}
 
               {activePanel === "donnees" && (
