@@ -66,16 +66,43 @@ export function ParametresTab({
 
   return (
     <section className="space-y-4">
-      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-4 sm:p-5 space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-white">Parametres</h2>
-            <p className="text-xs sm:text-sm text-white/60">Organisation simplifiee: profil, donnees et administration.</p>
-          </div>
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] px-2 py-1 rounded-full border border-white/15 text-white/50">Hub</span>
+      <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-4 sm:p-5 space-y-3">
+        <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-white">Parametres</h2>
+        <p className="text-xs sm:text-sm text-white/60">Navigation laterale a droite sur grand ecran, compacte sur mobile.</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px] gap-4 items-start">
+        <div className="min-w-0">
+          {section === "profil" && (
+            <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={userEmail} />
+          )}
+
+          {section === "donnees" && (
+            <DonneesTab
+              patrons={patrons}
+              clients={clients}
+              lieux={lieux}
+              missions={missions}
+              fraisDivers={fraisDivers}
+              acomptes={acomptes}
+              darkMode={darkMode}
+              onPatronEdit={onPatronEdit}
+              onPatronDelete={onPatronDelete}
+              onPatronAdd={onPatronAdd}
+              onClientEdit={onClientEdit}
+              onClientDelete={onClientDelete}
+              onClientAdd={onClientAdd}
+              onLieuEdit={onLieuEdit}
+              onLieuDelete={onLieuDelete}
+              onLieuAdd={onLieuAdd}
+            />
+          )}
+
+          {section === "admin" && isAdmin && <AdminPage darkMode={darkMode} />}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <aside className="lg:sticky lg:top-24 rounded-2xl border border-white/10 bg-black/25 backdrop-blur-xl p-3 space-y-2 order-first lg:order-last">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 px-2">Sections</p>
           {sections.map((item) => {
             const isActive = item.key === section;
             return (
@@ -85,10 +112,10 @@ export function ParametresTab({
                 aria-pressed={isActive}
                 aria-label={`Ouvrir section ${item.title}`}
                 className={
-                  "text-left rounded-xl border px-3 py-3 transition-all " +
+                  "w-full text-left rounded-xl border px-3 py-3 transition-all " +
                   (isActive
                     ? "bg-indigo-500/20 border-indigo-400/40 shadow-lg"
-                    : "bg-black/20 border-white/10 hover:border-white/25")
+                    : "bg-white/5 border-white/10 hover:border-white/25")
                 }
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -99,44 +126,17 @@ export function ParametresTab({
               </button>
             );
           })}
-        </div>
 
-        {activeSection && (
-          <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-            <p className="text-[11px] text-white/70">
-              <span className="font-black uppercase tracking-widest mr-1">Section active:</span>
-              {activeSection.icon} {activeSection.title}
-            </p>
-          </div>
-        )}
+          {activeSection && (
+            <div className="rounded-xl border border-white/10 bg-black/25 px-3 py-2 mt-2">
+              <p className="text-[11px] text-white/70">
+                <span className="font-black uppercase tracking-widest mr-1">Active:</span>
+                {activeSection.icon} {activeSection.title}
+              </p>
+            </div>
+          )}
+        </aside>
       </div>
-
-      {section === "profil" && (
-        <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={userEmail} />
-      )}
-
-      {section === "donnees" && (
-        <DonneesTab
-          patrons={patrons}
-          clients={clients}
-          lieux={lieux}
-          missions={missions}
-          fraisDivers={fraisDivers}
-          acomptes={acomptes}
-          darkMode={darkMode}
-          onPatronEdit={onPatronEdit}
-          onPatronDelete={onPatronDelete}
-          onPatronAdd={onPatronAdd}
-          onClientEdit={onClientEdit}
-          onClientDelete={onClientDelete}
-          onClientAdd={onClientAdd}
-          onLieuEdit={onLieuEdit}
-          onLieuDelete={onLieuDelete}
-          onLieuAdd={onLieuAdd}
-        />
-      )}
-
-      {section === "admin" && isAdmin && <AdminPage darkMode={darkMode} />}
     </section>
   );
 }
