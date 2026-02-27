@@ -14,6 +14,7 @@ import { useConfirm } from "./hooks/useConfirm";
 import { useGeolocation } from "./hooks/useGeolocation";
 import { useLieux } from "./hooks/useLieux";
 import { useProfile } from "./hooks/useProfile";
+import { useFraisKm } from "./hooks/useFraisKm";
 
 import { FraisModal } from "./components/common/frais/FraisModal";
 import { AcompteModal } from "./components/common/acompte/AcompteModal";
@@ -34,6 +35,7 @@ import "./fix-time-pickers-emergency.css";
 import "./fix-selects.css";
 
 import { getWeekNumber } from "./utils/dateUtils";
+import { buildKmExpenseFromMission, normalizeKmSettings } from "./utils/kmUtils";
 
 export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
@@ -98,6 +100,7 @@ export default function App({ user }) {
   const { missions, loading: missionsLoading, fetchMissions, createMission, updateMission, deleteMission, getMissionsByWeek, getMissionsByPeriod } = useMissions(triggerAlert);
   const { lieux, loading: lieuxLoading, fetchLieux, createLieu, updateLieu, deleteLieu } = useLieux(triggerAlert);
   const { fraisDivers, loading: fraisLoading, fetchFrais, createFrais, updateFrais, deleteFrais, getFraisByWeek, getTotalFrais } = useFrais(triggerAlert);
+  const { fraisKm, loading: fraisKmLoading, fetchFraisKm, createFraisKm } = useFraisKm(triggerAlert);
   const { listeAcomptes, loading: acomptesLoading, fetchAcomptes, createAcompte, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua } = useAcomptes(missions, fraisDivers, triggerAlert);
   const { patrons, loading: patronsLoading, createPatron, updatePatron, deletePatron, getPatronNom, getPatronColor } = usePatrons(triggerAlert);
   const { clients, loading: clientsLoading, createClient, updateClient, deleteClient, getClientNom } = useClients(triggerAlert);
@@ -106,17 +109,18 @@ export default function App({ user }) {
     (error) => triggerAlert(error)
   );
 
-  const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert });
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV } = useProfile(user);
+  const bilan = useBilan({ missions, fraisDivers, fraisKm, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert });
+  const { profile, features, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV } = useProfile(user);
 
   useEffect(() => {
     document.title = "Heures de Geo";
     setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
     fetchMissions();
     fetchFrais();
+    fetchFraisKm();
     fetchAcomptes();
     fetchLieux();
-  }, [fetchMissions, fetchFrais, fetchAcomptes, fetchLieux]);
+  }, [fetchMissions, fetchFrais, fetchFraisKm, fetchAcomptes, fetchLieux]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -164,8 +168,52 @@ export default function App({ user }) {
     if (!missionData?.debut || !missionData?.fin) { triggerAlert("Veuillez remplir debut et fin"); return; }
     try {
       setLoading(true);
-      if (editingMissionId) { await updateMission(editingMissionId, missionData); triggerAlert("Mission mise a jour !"); }
-      else { await createMission(missionData); triggerAlert("Mission enregistree !"); }
+      if (editingMissionId) {
+        await updateMission(editingMissionId, missionData);
+        triggerAlert("Mission mise a jour !");
+      }
+      else {
+        const createdMission = await createMission(missionData);
+        let kmSettings = normalizeKmSettings(features);
+        if (!kmSettings?.enabled) {
+          try {
+            const rawLocalKm = window?.localStorage?.getItem("km-settings-local");
+            if (rawLocalKm) kmSettings = normalizeKmSettings({ km_settings: JSON.parse(rawLocalKm) });
+          } catch {}
+        }
+        const selectedLieu = lieux.find((l) => l.id === (createdMission?.lieu_id || missionData?.lieu_id));
+        const kmExpense = buildKmExpenseFromMission({
+          kmSettings,
+          lieu: selectedLieu,
+          patronId: createdMission?.patron_id || missionData?.patron_id || selectedPatronId,
+          dateIso: createdMission?.date_iso || missionData?.date_iso,
+        });
+
+        if (kmExpense) {
+          try {
+            await createFraisKm({
+              mission_id: createdMission?.id || null,
+              patron_id: kmExpense.patron_id,
+              date_frais: kmExpense.date_frais,
+              country_code: kmExpense?.kmMeta?.countryCode || "BE",
+              distance_km: kmExpense?.kmMeta?.billedKm || 0,
+              rate_per_km: kmExpense?.kmMeta?.rate || 0,
+              amount: kmExpense.montant,
+              notes: kmExpense.description,
+              source: "auto",
+              user_id: createdMission?.user_id || user?.id,
+            });
+
+            triggerAlert(`Mission enregistree + frais km auto (${kmExpense.kmMeta.billedKm} km)`);
+          } catch (kmErr) {
+            triggerAlert(`Mission enregistree, mais frais km non cree (${kmErr?.message || "erreur"})`);
+          }
+        } else if (kmSettings.enabled) {
+          triggerAlert("Mission enregistree. Astuce km: verifie les coords domicile et du lieu.");
+        } else {
+          triggerAlert("Mission enregistree !");
+        }
+      }
       resetMissionForm();
     } catch (err) { triggerAlert("Erreur : " + (err?.message || "Operation echouee")); }
     finally { setLoading(false); }
@@ -192,6 +240,43 @@ export default function App({ user }) {
   };
 
   const resetMissionForm = () => { setEditingMissionId(null); setEditingMissionData(null); setSelectedClientId(null); setSelectedLieuId(null); setSelectedPatronId(null); };
+
+  const runKmRuntimeInsertTest = async () => {
+    try {
+      const fallbackPatronId = patrons?.[0]?.id || null;
+      const patronId = selectedPatronId || fallbackPatronId;
+      if (!patronId) {
+        throw new Error("Aucun patron disponible pour créer un frais_km de test");
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+      const amount = 1.23;
+      const row = await createFraisKm({
+        mission_id: null,
+        patron_id: patronId,
+        date_frais: today,
+        country_code: "BE",
+        distance_km: 3,
+        rate_per_km: 0.41,
+        amount,
+        notes: "[RUNTIME-TEST] Insertion test depuis Paramètres",
+        source: "manual_test",
+        user_id: user?.id,
+      });
+
+      return {
+        ok: true,
+        message: `✅ Test OK: ligne créée (${row?.id || "id inconnu"})`,
+        row,
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        message: `❌ Test KO: ${err?.message || "erreur inconnue"}`,
+        error: err,
+      };
+    }
+  };
 
   const copierDerniereMission = () => {
     if (!missions.length) return triggerAlert("Aucune mission precedente.");
@@ -353,7 +438,7 @@ export default function App({ user }) {
     { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
   ];
 
-  const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || loadingHistorique;
+  const isLoading = loading || missionsLoading || fraisLoading || fraisKmLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || loadingHistorique;
 
   if (user && !profileLoading && !isViewer && !isProfileComplete) {
     return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
@@ -505,6 +590,7 @@ export default function App({ user }) {
             userEmail={user?.email}
             darkMode={darkMode}
             isAdmin={isAdmin}
+            isPro={isPro}
             patrons={patrons}
             clients={clients}
             lieux={lieux}
@@ -522,6 +608,7 @@ export default function App({ user }) {
             onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}
             showMissionRateEditor={showMissionRateEditor}
             onToggleMissionRateEditor={setShowMissionRateEditor}
+            onRunKmRuntimeTest={runKmRuntimeInsertTest}
           />
         )}
       </main>  
