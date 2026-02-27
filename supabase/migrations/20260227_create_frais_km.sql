@@ -2,7 +2,7 @@
 create table if not exists public.frais_km (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  mission_id uuid null references public.missions(id) on delete set null,
+  mission_id bigint null references public.missions(id) on delete set null,
   patron_id uuid not null references public.patrons(id) on delete cascade,
   date_frais date not null,
   country_code text not null default 'BE',
