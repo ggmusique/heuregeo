@@ -241,6 +241,43 @@ export default function App({ user }) {
 
   const resetMissionForm = () => { setEditingMissionId(null); setEditingMissionData(null); setSelectedClientId(null); setSelectedLieuId(null); setSelectedPatronId(null); };
 
+  const runKmRuntimeInsertTest = async () => {
+    try {
+      const fallbackPatronId = patrons?.[0]?.id || null;
+      const patronId = selectedPatronId || fallbackPatronId;
+      if (!patronId) {
+        throw new Error("Aucun patron disponible pour créer un frais_km de test");
+      }
+
+      const today = new Date().toISOString().split("T")[0];
+      const amount = 1.23;
+      const row = await createFraisKm({
+        mission_id: null,
+        patron_id: patronId,
+        date_frais: today,
+        country_code: "BE",
+        distance_km: 3,
+        rate_per_km: 0.41,
+        amount,
+        notes: "[RUNTIME-TEST] Insertion test depuis Paramètres",
+        source: "manual_test",
+        user_id: user?.id,
+      });
+
+      return {
+        ok: true,
+        message: `✅ Test OK: ligne créée (${row?.id || "id inconnu"})`,
+        row,
+      };
+    } catch (err) {
+      return {
+        ok: false,
+        message: `❌ Test KO: ${err?.message || "erreur inconnue"}`,
+        error: err,
+      };
+    }
+  };
+
   const copierDerniereMission = () => {
     if (!missions.length) return triggerAlert("Aucune mission precedente.");
     const derniere = [...missions].sort((a, b) => b.date_iso.localeCompare(a.date_iso))[0];
@@ -571,6 +608,7 @@ export default function App({ user }) {
             onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}
             showMissionRateEditor={showMissionRateEditor}
             onToggleMissionRateEditor={setShowMissionRateEditor}
+            onRunKmRuntimeTest={runKmRuntimeInsertTest}
           />
         )}
       </main>  

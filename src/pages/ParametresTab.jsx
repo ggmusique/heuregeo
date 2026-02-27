@@ -29,6 +29,7 @@ export function ParametresTab({
   onLieuAdd,
   showMissionRateEditor = true,
   onToggleMissionRateEditor = () => {},
+  onRunKmRuntimeTest = null,
 }) {
   const [activePanel, setActivePanel] = useState(null);
   const KM_SETTINGS_LOCAL_KEY = "km-settings-local";
@@ -42,6 +43,8 @@ export function ParametresTab({
   });
   const [kmSaveMsg, setKmSaveMsg] = useState("");
   const [locatingHome, setLocatingHome] = useState(false);
+  const [kmRuntimeMsg, setKmRuntimeMsg] = useState("");
+  const [kmRuntimeLoading, setKmRuntimeLoading] = useState(false);
 
   useEffect(() => {
     if (profile?.features) {
@@ -119,6 +122,31 @@ export function ParametresTab({
     setKmSaveMsg("✅ Paramètres kilométrage enregistrés.");
   };
 
+
+  const handleRunKmRuntimeTest = async () => {
+    if (typeof onRunKmRuntimeTest !== "function") {
+      setKmRuntimeMsg("❌ Test runtime indisponible (handler manquant).");
+      return;
+    }
+
+    setKmRuntimeLoading(true);
+    setKmRuntimeMsg("");
+
+    try {
+      const result = await onRunKmRuntimeTest();
+      if (result?.ok) {
+        setKmRuntimeMsg(`${result.message}`);
+      } else {
+        const extra = result?.error?.code ? ` (code: ${result.error.code})` : "";
+        setKmRuntimeMsg(`${result?.message || "❌ Test KO"}${extra}`);
+      }
+    } catch (err) {
+      const code = err?.code ? ` (code: ${err.code})` : "";
+      setKmRuntimeMsg(`❌ Exception test runtime: ${err?.message || "inconnue"}${code}`);
+    } finally {
+      setKmRuntimeLoading(false);
+    }
+  };
 
   const useCurrentPositionForHome = async () => {
     if (!navigator?.geolocation) {
@@ -392,6 +420,20 @@ export function ParametresTab({
                           Enregistrer km
                         </button>
                       </div>
+                      <div className="rounded-xl border border-amber-300/20 bg-amber-950/20 p-3 space-y-2">
+                        <p className="text-[10px] uppercase tracking-widest font-black text-amber-200/80">Diagnostic insertion Supabase</p>
+                        <p className="text-xs text-white/70">Clique pour insérer une ligne test dans <code>frais_km</code> et voir l'erreur exacte si ça échoue.</p>
+                        <button
+                          type="button"
+                          onClick={handleRunKmRuntimeTest}
+                          disabled={kmRuntimeLoading}
+                          className="px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border border-amber-300/40 text-amber-200 bg-amber-500/10 disabled:opacity-50"
+                        >
+                          {kmRuntimeLoading ? "Test en cours..." : "Lancer test runtime frais_km"}
+                        </button>
+                        {!!kmRuntimeMsg && <p className="text-xs text-white/85 break-words">{kmRuntimeMsg}</p>}
+                      </div>
+
                       {!!kmSaveMsg && <p className="text-xs text-white/80">{kmSaveMsg}</p>}
                     </div>
                   </div>
