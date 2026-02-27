@@ -188,13 +188,25 @@ export default function App({ user }) {
 
         if (kmExpense) {
           try {
-            await createFrais({
+            const kmPayload = {
               description: kmExpense.description,
               montant: kmExpense.montant,
               date_frais: kmExpense.date_frais,
               patron_id: kmExpense.patron_id,
               user_id: createdMission?.user_id || user?.id,
-            });
+            };
+
+            try {
+              await createFrais(kmPayload);
+            } catch (insertErr) {
+              const msg = (insertErr?.message || "").toLowerCase();
+              const missingUserIdColumn = msg.includes("user_id") && (msg.includes("column") || msg.includes("schema cache"));
+              if (!missingUserIdColumn) throw insertErr;
+
+              const { user_id, ...fallbackPayload } = kmPayload;
+              await createFrais(fallbackPayload);
+            }
+
             triggerAlert(`Mission enregistree + frais km auto (${kmExpense.kmMeta.billedKm} km)`);
           } catch (kmErr) {
             triggerAlert(`Mission enregistree, mais frais km non cree (${kmErr?.message || "erreur"})`);
