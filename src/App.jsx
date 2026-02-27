@@ -34,6 +34,7 @@ import "./fix-time-pickers-emergency.css";
 import "./fix-selects.css";
 
 import { getWeekNumber } from "./utils/dateUtils";
+import { buildKmExpenseFromMission, normalizeKmSettings } from "./utils/kmUtils";
 
 export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
@@ -107,7 +108,7 @@ export default function App({ user }) {
   );
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert });
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV } = useProfile(user);
+  const { profile, features, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV } = useProfile(user);
 
   useEffect(() => {
     document.title = "Heures de Geo";
@@ -164,8 +165,58 @@ export default function App({ user }) {
     if (!missionData?.debut || !missionData?.fin) { triggerAlert("Veuillez remplir debut et fin"); return; }
     try {
       setLoading(true);
-      if (editingMissionId) { await updateMission(editingMissionId, missionData); triggerAlert("Mission mise a jour !"); }
-      else { await createMission(missionData); triggerAlert("Mission enregistree !"); }
+      if (editingMissionId) {
+        await updateMission(editingMissionId, missionData);
+        triggerAlert("Mission mise a jour !");
+      }
+      else {
+        const createdMission = await createMission(missionData);
+        let kmSettings = normalizeKmSettings(features);
+        if (!kmSettings?.enabled) {
+          try {
+            const rawLocalKm = window?.localStorage?.getItem("km-settings-local");
+            if (rawLocalKm) kmSettings = normalizeKmSettings({ km_settings: JSON.parse(rawLocalKm) });
+          } catch {}
+        }
+        const selectedLieu = lieux.find((l) => l.id === (createdMission?.lieu_id || missionData?.lieu_id));
+        const kmExpense = buildKmExpenseFromMission({
+          kmSettings,
+          lieu: selectedLieu,
+          patronId: createdMission?.patron_id || missionData?.patron_id || selectedPatronId,
+          dateIso: createdMission?.date_iso || missionData?.date_iso,
+        });
+
+        if (kmExpense) {
+          try {
+            const kmPayload = {
+              description: kmExpense.description,
+              montant: kmExpense.montant,
+              date_frais: kmExpense.date_frais,
+              patron_id: kmExpense.patron_id,
+              user_id: createdMission?.user_id || user?.id,
+            };
+
+            try {
+              await createFrais(kmPayload);
+            } catch (insertErr) {
+              const msg = (insertErr?.message || "").toLowerCase();
+              const missingUserIdColumn = msg.includes("user_id") && (msg.includes("column") || msg.includes("schema cache"));
+              if (!missingUserIdColumn) throw insertErr;
+
+              const { user_id, ...fallbackPayload } = kmPayload;
+              await createFrais(fallbackPayload);
+            }
+
+            triggerAlert(`Mission enregistree + frais km auto (${kmExpense.kmMeta.billedKm} km)`);
+          } catch (kmErr) {
+            triggerAlert(`Mission enregistree, mais frais km non cree (${kmErr?.message || "erreur"})`);
+          }
+        } else if (kmSettings.enabled) {
+          triggerAlert("Mission enregistree. Astuce km: verifie les coords domicile et du lieu.");
+        } else {
+          triggerAlert("Mission enregistree !");
+        }
+      }
       resetMissionForm();
     } catch (err) { triggerAlert("Erreur : " + (err?.message || "Operation echouee")); }
     finally { setLoading(false); }
@@ -505,6 +556,7 @@ export default function App({ user }) {
             userEmail={user?.email}
             darkMode={darkMode}
             isAdmin={isAdmin}
+            isPro={isPro}
             patrons={patrons}
             clients={clients}
             lieux={lieux}
