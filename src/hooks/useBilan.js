@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { supabase } from "../services/supabase";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
+import { parseKmExpense } from "../utils/kmUtils";
 
 const fetchHistoricalWeather = async (dateIso) => {
   try {
@@ -70,6 +71,10 @@ export function useBilan({
     soldeAcomptesApres: 0,
     acomptesDansPeriode: 0,   // ✅ acomptes reçus cette période
     totalAcomptes: 0,          // ✅ consommé affiché (cumul)
+    kmExpenseTotal: 0,
+    kmDistanceTotal: 0,
+    kmExpenseItems: [],
+    kmExpenseByCountry: [],
     selectedPatronId: null,
     selectedPatronNom: "Tous les patrons (Global)",
   });
@@ -329,7 +334,34 @@ export function useBilan({
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           fraisFiltres = getFraisByWeek(parseInt(bilanPeriodValue, 10), patronId);
         }
-        const totalFrais = getTotalFrais(fraisFiltres);
+
+        const kmParsed = fraisFiltres
+          .map((f) => ({ raw: f, parsed: parseKmExpense(f) }))
+          .filter((x) => Boolean(x.parsed));
+        const kmExpenseItems = kmParsed
+          .map((x) => ({ ...x.parsed, raw: x.raw }))
+          .sort((a, b) => (b.dateFrais || "").localeCompare(a.dateFrais || ""));
+        const fraisNonKm = fraisFiltres.filter((f) => !parseKmExpense(f));
+
+        const totalFrais = getTotalFrais(fraisNonKm);
+        const kmExpenseTotal = kmExpenseItems.reduce((sum, item) => sum + (Number(item.montant) || 0), 0);
+        const kmDistanceTotal = kmExpenseItems.reduce((sum, item) => sum + (Number(item.billedKm) || 0), 0);
+
+        const kmByCountryMap = kmExpenseItems.reduce((acc, item) => {
+          const key = item.countryLabel || "Autre";
+          if (!acc[key]) acc[key] = { countryLabel: key, totalKm: 0, totalAmount: 0, count: 0 };
+          acc[key].totalKm += Number(item.billedKm) || 0;
+          acc[key].totalAmount += Number(item.montant) || 0;
+          acc[key].count += 1;
+          return acc;
+        }, {});
+        const kmExpenseByCountry = Object.values(kmByCountryMap)
+          .map((row) => ({
+            ...row,
+            totalKm: Number(row.totalKm.toFixed(2)),
+            totalAmount: Number(row.totalAmount.toFixed(2)),
+          }))
+          .sort((a, b) => b.totalAmount - a.totalAmount);
 
         // 4) Dates début/fin
         let debutPeriode = "";
@@ -352,7 +384,7 @@ export function useBilan({
         }
 
         // 5) CA brut
-        const caBrutPeriode = totalMissions + totalFrais;
+        const caBrutPeriode = totalMissions + totalFrais + kmExpenseTotal;
 
         if (caBrutPeriode === 0 && filtered.length === 0) {
           triggerAlert?.(`⚠️ Aucune mission pour ${resolvePatronNom(patronId) || "ce patron"} en ${formatPeriodLabel(bilanPeriodValue)}`);
@@ -478,7 +510,11 @@ export function useBilan({
           filteredData: filteredWithWeather,
           groupedData,
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
-          fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
+          fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisNonKm : [],
+          kmExpenseTotal: bilanPeriodType === PERIOD_TYPES.SEMAINE ? Number(kmExpenseTotal.toFixed(2)) : 0,
+          kmDistanceTotal: bilanPeriodType === PERIOD_TYPES.SEMAINE ? Number(kmDistanceTotal.toFixed(2)) : 0,
+          kmExpenseItems: bilanPeriodType === PERIOD_TYPES.SEMAINE ? kmExpenseItems : [],
+          kmExpenseByCountry: bilanPeriodType === PERIOD_TYPES.SEMAINE ? kmExpenseByCountry : [],
 
          // ✅ N'afficher le bloc que si un acompte a été consommé sur CETTE période
 totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0 
