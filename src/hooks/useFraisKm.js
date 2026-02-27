@@ -16,7 +16,7 @@ export const useFraisKm = (onError) => {
       setFraisKm(rows || []);
       return rows || [];
     } catch (err) {
-      onError?.("Erreur chargement frais kilométriques");
+      onError?.("Erreur chargement frais kilométriques : " + (err?.message || "inconnue"));
       throw err;
     } finally {
       setLoading(false);
@@ -31,7 +31,7 @@ export const useFraisKm = (onError) => {
       if (created) setFraisKm((prev) => [...prev, created].sort((a,b)=>(a.date_frais||"").localeCompare(b.date_frais||"")));
       return created;
     } catch (err) {
-      onError?.("Erreur création frais kilométrique");
+      onError?.("Erreur création frais kilométrique : " + (err?.message || "inconnue"));
       throw err;
     } finally {
       setLoading(false);
