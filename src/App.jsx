@@ -14,6 +14,7 @@ import { useConfirm } from "./hooks/useConfirm";
 import { useGeolocation } from "./hooks/useGeolocation";
 import { useLieux } from "./hooks/useLieux";
 import { useProfile } from "./hooks/useProfile";
+import { useFraisKm } from "./hooks/useFraisKm";
 
 import { FraisModal } from "./components/common/frais/FraisModal";
 import { AcompteModal } from "./components/common/acompte/AcompteModal";
@@ -99,6 +100,7 @@ export default function App({ user }) {
   const { missions, loading: missionsLoading, fetchMissions, createMission, updateMission, deleteMission, getMissionsByWeek, getMissionsByPeriod } = useMissions(triggerAlert);
   const { lieux, loading: lieuxLoading, fetchLieux, createLieu, updateLieu, deleteLieu } = useLieux(triggerAlert);
   const { fraisDivers, loading: fraisLoading, fetchFrais, createFrais, updateFrais, deleteFrais, getFraisByWeek, getTotalFrais } = useFrais(triggerAlert);
+  const { fraisKm, loading: fraisKmLoading, fetchFraisKm, createFraisKm } = useFraisKm(triggerAlert);
   const { listeAcomptes, loading: acomptesLoading, fetchAcomptes, createAcompte, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua } = useAcomptes(missions, fraisDivers, triggerAlert);
   const { patrons, loading: patronsLoading, createPatron, updatePatron, deletePatron, getPatronNom, getPatronColor } = usePatrons(triggerAlert);
   const { clients, loading: clientsLoading, createClient, updateClient, deleteClient, getClientNom } = useClients(triggerAlert);
@@ -107,7 +109,7 @@ export default function App({ user }) {
     (error) => triggerAlert(error)
   );
 
-  const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert });
+  const bilan = useBilan({ missions, fraisDivers, fraisKm, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert });
   const { profile, features, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV } = useProfile(user);
 
   useEffect(() => {
@@ -115,9 +117,10 @@ export default function App({ user }) {
     setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
     fetchMissions();
     fetchFrais();
+    fetchFraisKm();
     fetchAcomptes();
     fetchLieux();
-  }, [fetchMissions, fetchFrais, fetchAcomptes, fetchLieux]);
+  }, [fetchMissions, fetchFrais, fetchFraisKm, fetchAcomptes, fetchLieux]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -188,24 +191,18 @@ export default function App({ user }) {
 
         if (kmExpense) {
           try {
-            const kmPayload = {
-              description: kmExpense.description,
-              montant: kmExpense.montant,
-              date_frais: kmExpense.date_frais,
+            await createFraisKm({
+              mission_id: createdMission?.id || null,
               patron_id: kmExpense.patron_id,
+              date_frais: kmExpense.date_frais,
+              country_code: kmExpense?.kmMeta?.countryCode || "BE",
+              distance_km: kmExpense?.kmMeta?.billedKm || 0,
+              rate_per_km: kmExpense?.kmMeta?.rate || 0,
+              amount: kmExpense.montant,
+              notes: kmExpense.description,
+              source: "auto",
               user_id: createdMission?.user_id || user?.id,
-            };
-
-            try {
-              await createFrais(kmPayload);
-            } catch (insertErr) {
-              const msg = (insertErr?.message || "").toLowerCase();
-              const missingUserIdColumn = msg.includes("user_id") && (msg.includes("column") || msg.includes("schema cache"));
-              if (!missingUserIdColumn) throw insertErr;
-
-              const { user_id, ...fallbackPayload } = kmPayload;
-              await createFrais(fallbackPayload);
-            }
+            });
 
             triggerAlert(`Mission enregistree + frais km auto (${kmExpense.kmMeta.billedKm} km)`);
           } catch (kmErr) {
@@ -404,7 +401,7 @@ export default function App({ user }) {
     { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
   ];
 
-  const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || loadingHistorique;
+  const isLoading = loading || missionsLoading || fraisLoading || fraisKmLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || loadingHistorique;
 
   if (user && !profileLoading && !isViewer && !isProfileComplete) {
     return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;

@@ -39,6 +39,7 @@ const TABLE = "bilans_status_v2";
 export function useBilan({
   missions,
   fraisDivers,
+  fraisKm = [],
   patrons = [],
   getMissionsByWeek,
   getMissionsByPeriod,
@@ -338,9 +339,33 @@ export function useBilan({
         const kmParsed = fraisFiltres
           .map((f) => ({ raw: f, parsed: parseKmExpense(f) }))
           .filter((x) => Boolean(x.parsed));
-        const kmExpenseItems = kmParsed
-          .map((x) => ({ ...x.parsed, raw: x.raw }))
+
+        const kmItemsFromLegacyFrais = kmParsed.map((x) => ({ ...x.parsed, raw: x.raw }));
+
+        const kmItemsFromTable = bilanPeriodType === PERIOD_TYPES.SEMAINE
+          ? (fraisKm || [])
+              .filter((row) => {
+                if (!row?.date_frais) return false;
+                const weekOk = getWeekNumber(new Date(row.date_frais)) === parseInt(bilanPeriodValue, 10);
+                const patronOk = !patronId || row?.patron_id === patronId;
+                return weekOk && patronOk;
+              })
+              .map((row) => ({
+                id: row.id,
+                dateFrais: row.date_frais,
+                countryCode: row.country_code || "BE",
+                countryLabel: (row.country_code || "BE").toUpperCase(),
+                billedKm: Number(row.distance_km) || 0,
+                rate: Number(row.rate_per_km) || 0,
+                montant: Number(row.amount) || 0,
+                description: row.notes || "Frais kilométriques",
+                raw: row,
+              }))
+          : [];
+
+        const kmExpenseItems = [...kmItemsFromTable, ...kmItemsFromLegacyFrais]
           .sort((a, b) => (b.dateFrais || "").localeCompare(a.dateFrais || ""));
+
         const fraisNonKm = fraisFiltres.filter((f) => !parseKmExpense(f));
 
         const totalFrais = getTotalFrais(fraisNonKm);
