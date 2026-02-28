@@ -326,7 +326,7 @@ export const BilanTab = ({
           {canExportCSV ? "CSV Missions" : "🔒 CSV Missions"}
         </button>
 
-        {bilan.bilanPeriodType === "semaine" && (bilan.bilanContent.fraisDivers.length > 0 || (bilan.bilanContent.kmExpenseItems?.length || 0) > 0) && (
+        {(bilan.bilanContent.fraisDivers.length > 0 || (bilan.bilanContent.kmExpenseItems?.length || 0) > 0) && (
           <button
             onClick={() => canExportCSV && exportToCSV(
               bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true

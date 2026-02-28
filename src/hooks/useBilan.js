@@ -114,6 +114,26 @@ export function useBilan({
     return 0;
   };
 
+  const isDateInSelectedPeriod = useCallback((dateIso, periodType, periodValue) => {
+    if (!dateIso || !periodValue) return false;
+    const d = new Date(dateIso);
+    if (Number.isNaN(d.getTime())) return false;
+
+    if (periodType === PERIOD_TYPES.SEMAINE) {
+      return getWeekNumber(d) === parseInt(periodValue, 10);
+    }
+
+    if (periodType === PERIOD_TYPES.MOIS) {
+      return dateIso.substring(0, 7) === periodValue;
+    }
+
+    if (periodType === PERIOD_TYPES.ANNEE) {
+      return dateIso.substring(0, 4) === periodValue;
+    }
+
+    return false;
+  }, []);
+
   const formatPeriodLabel = useCallback(
     (val) => {
       if (!val) return "";
@@ -132,23 +152,30 @@ export function useBilan({
 
   const calculerPeriodesDisponibles = useCallback(() => {
     const periods = new Set();
-    missions.forEach((m) => {
-      if (!m?.date_iso) return;
-      const d = new Date(m.date_iso);
+
+    const addPeriodFromDate = (dateIso) => {
+      if (!dateIso) return;
+      const d = new Date(dateIso);
+      if (Number.isNaN(d.getTime())) return;
+
       if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
         periods.add(getWeekNumber(d));
       } else if (bilanPeriodType === PERIOD_TYPES.MOIS) {
-        periods.add(m.date_iso.substring(0, 7));
+        periods.add(dateIso.substring(0, 7));
       } else if (bilanPeriodType === PERIOD_TYPES.ANNEE) {
-        periods.add(m.date_iso.substring(0, 4));
+        periods.add(dateIso.substring(0, 4));
       }
-    });
+    };
+
+    missions.forEach((m) => addPeriodFromDate(m?.date_iso));
+    (fraisKm || []).forEach((row) => addPeriodFromDate(row?.date_frais));
+
     const sorted = Array.from(periods).sort().reverse();
     setAvailablePeriods(sorted);
     if (sorted.length > 0) {
       setBilanPeriodValue(sorted[0].toString());
     }
-  }, [missions, bilanPeriodType]);
+  }, [missions, fraisKm, bilanPeriodType]);
 
   const getStatutPaiement = useCallback(
     async (patronId = null) => {
@@ -334,6 +361,12 @@ export function useBilan({
         let fraisFiltres = [];
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           fraisFiltres = getFraisByWeek(parseInt(bilanPeriodValue, 10), patronId);
+        } else {
+          fraisFiltres = (fraisDivers || []).filter((f) => {
+            const dateOk = isDateInSelectedPeriod(f?.date_frais, bilanPeriodType, bilanPeriodValue);
+            const patronOk = !patronId || f?.patron_id === patronId;
+            return dateOk && patronOk;
+          });
         }
 
         const kmParsed = fraisFiltres
@@ -342,26 +375,23 @@ export function useBilan({
 
         const kmItemsFromLegacyFrais = kmParsed.map((x) => ({ ...x.parsed, raw: x.raw }));
 
-        const kmItemsFromTable = bilanPeriodType === PERIOD_TYPES.SEMAINE
-          ? (fraisKm || [])
-              .filter((row) => {
-                if (!row?.date_frais) return false;
-                const weekOk = getWeekNumber(new Date(row.date_frais)) === parseInt(bilanPeriodValue, 10);
-                const patronOk = !patronId || row?.patron_id === patronId;
-                return weekOk && patronOk;
-              })
-              .map((row) => ({
-                id: row.id,
-                dateFrais: row.date_frais,
-                countryCode: row.country_code || "BE",
-                countryLabel: (row.country_code || "BE").toUpperCase(),
-                billedKm: Number(row.distance_km) || 0,
-                rate: Number(row.rate_per_km) || 0,
-                montant: Number(row.amount) || 0,
-                description: row.notes || "Frais kilométriques",
-                raw: row,
-              }))
-          : [];
+        const kmItemsFromTable = (fraisKm || [])
+          .filter((row) => {
+            const dateOk = isDateInSelectedPeriod(row?.date_frais, bilanPeriodType, bilanPeriodValue);
+            const patronOk = !patronId || row?.patron_id === patronId;
+            return dateOk && patronOk;
+          })
+          .map((row) => ({
+            id: row.id,
+            dateFrais: row.date_frais,
+            countryCode: row.country_code || "BE",
+            countryLabel: (row.country_code || "BE").toUpperCase(),
+            billedKm: Number(row.distance_km) || 0,
+            ratePerKm: Number(row.rate_per_km) || 0,
+            montant: Number(row.amount) || 0,
+            description: row.notes || "Frais kilométriques",
+            raw: row,
+          }));
 
         const kmExpenseItems = [...kmItemsFromTable, ...kmItemsFromLegacyFrais]
           .sort((a, b) => (b.dateFrais || "").localeCompare(a.dateFrais || ""));
@@ -534,12 +564,12 @@ export function useBilan({
           totalH,
           filteredData: filteredWithWeather,
           groupedData,
-          totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
-          fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisNonKm : [],
-          kmExpenseTotal: bilanPeriodType === PERIOD_TYPES.SEMAINE ? Number(kmExpenseTotal.toFixed(2)) : 0,
-          kmDistanceTotal: bilanPeriodType === PERIOD_TYPES.SEMAINE ? Number(kmDistanceTotal.toFixed(2)) : 0,
-          kmExpenseItems: bilanPeriodType === PERIOD_TYPES.SEMAINE ? kmExpenseItems : [],
-          kmExpenseByCountry: bilanPeriodType === PERIOD_TYPES.SEMAINE ? kmExpenseByCountry : [],
+          totalFrais: Number(totalFrais.toFixed(2)),
+          fraisDivers: fraisNonKm,
+          kmExpenseTotal: Number(kmExpenseTotal.toFixed(2)),
+          kmDistanceTotal: Number(kmDistanceTotal.toFixed(2)),
+          kmExpenseItems,
+          kmExpenseByCountry,
 
          // ✅ N'afficher le bloc que si un acompte a été consommé sur CETTE période
 totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0 
