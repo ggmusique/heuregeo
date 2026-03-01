@@ -81,8 +81,6 @@ export const LieuModal = ({
       latitude: lat ? parseFloat(lat) : null,
       longitude: lng ? parseFloat(lng) : null,
       notes: formData.notes.trim() || null,
-      // coords_missing: true when user chose "Enregistrer quand même" without coords
-      coords_missing: forceMissing,
     };
     onSubmit(dataToSubmit);
   };
