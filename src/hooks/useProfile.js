@@ -73,12 +73,22 @@ export const useProfile = (user) => {
   const canMultiPatron = isPro || features?.multi_patron === true
   const canViewerMode = isPro || features?.viewer_enabled === true
   const canHistoriqueComplet = isPro || features?.historique_complet === true
+  const canKilometrage = isPro || features?.kilometrage === true
 
   return {
     profile, loading, saving, error, saveProfile, fetchProfile,
     isProfileComplete, isViewer, viewerPatronId,
     isAdmin, features, isPro,
     canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV,
-    canMultiPatron, canViewerMode, canHistoriqueComplet,
+    canMultiPatron, canViewerMode, canHistoriqueComplet, canKilometrage,
   }
+}
+
+// Migration: si kmRate sans countryCode => FR + CUSTOM
+export const migrateKmSettings = (profile) => {
+  if (!profile) return {};
+  if (profile.km_rate && !profile.km_country_code) {
+    return { km_country_code: "FR", km_rate_mode: "CUSTOM", km_rate: profile.km_rate };
+  }
+  return {};
 }

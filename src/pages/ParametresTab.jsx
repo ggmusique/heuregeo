@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { AdminPage } from "./AdminPage";
+import { EUROPE_COUNTRIES, KM_RATES } from "../utils/kmRatesByCountry";
 
 export function ParametresTab({
   profile,
@@ -10,6 +11,7 @@ export function ParametresTab({
   userEmail,
   darkMode,
   isAdmin,
+  isPro = false,
   patrons,
   clients,
   lieux,
@@ -142,6 +144,9 @@ export function ParametresTab({
                       </button>
                     </div>
                   </div>
+
+                  {/* Frais kilométriques */}
+                  <KmSettingsPanel profile={profile} saveProfile={saveProfile} isPro={isPro} />
                 </div>
               )}
 
@@ -175,5 +180,165 @@ export function ParametresTab({
         </div>
       )}
     </section>
+  );
+}
+
+function KmSettingsPanel({ profile, saveProfile, isPro }) {
+  const [saving, setSaving] = useState(false);
+  const [kmEnable, setKmEnable] = useState(() => profile?.km_enable || false);
+  const [kmIncludeRetour, setKmIncludeRetour] = useState(() => profile?.km_include_retour || false);
+  const [kmDomicileAdresse, setKmDomicileAdresse] = useState(() => profile?.km_domicile_adresse || "");
+  const [kmCountryCode, setKmCountryCode] = useState(() => profile?.km_country_code || "FR");
+  const [kmRateMode, setKmRateMode] = useState(() => profile?.km_rate_mode || "AUTO_BY_COUNTRY");
+  const [kmRate, setKmRate] = useState(() => profile?.km_rate || "");
+
+  useEffect(() => {
+    setKmEnable(profile?.km_enable || false);
+    setKmIncludeRetour(profile?.km_include_retour || false);
+    setKmDomicileAdresse(profile?.km_domicile_adresse || "");
+    setKmCountryCode(profile?.km_country_code || "FR");
+    setKmRateMode(profile?.km_rate_mode || "AUTO_BY_COUNTRY");
+    setKmRate(profile?.km_rate || "");
+  }, [profile]);
+
+  const recommendedRate = KM_RATES[kmCountryCode] || 0.42;
+  const countryLabel = EUROPE_COUNTRIES.find((c) => c.code === kmCountryCode)?.label || kmCountryCode;
+
+  const hasDomicileInProfile = !!(profile?.adresse || profile?.ville);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await saveProfile({
+      km_enable: kmEnable,
+      km_include_retour: kmIncludeRetour,
+      km_domicile_adresse: kmDomicileAdresse || null,
+      km_country_code: kmCountryCode,
+      km_rate_mode: kmRateMode,
+      km_rate: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
+    });
+    setSaving(false);
+  };
+
+  return (
+    <div className="rounded-2xl border border-blue-500/25 bg-blue-500/5 p-4 space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-blue-200/80 mb-1">🚗 Frais kilométriques</p>
+          {!isPro && (
+            <p className="text-[10px] text-yellow-400/80">Fonctionnalité Pro</p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setKmEnable((v) => !v)}
+          disabled={!isPro}
+          className={"px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " + (kmEnable ? "border-blue-400/40 text-blue-300 bg-blue-500/10" : "border-white/20 text-white/60") + (!isPro ? " opacity-50 cursor-not-allowed" : "")}
+        >
+          {kmEnable ? "Activé" : "Désactivé"}
+        </button>
+      </div>
+
+      {kmEnable && isPro && (
+        <div className="space-y-3">
+          {/* Aller/Retour */}
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-white/70">Inclure le trajet retour (aller-retour)</p>
+            <button
+              type="button"
+              onClick={() => setKmIncludeRetour((v) => !v)}
+              className={"px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " + (kmIncludeRetour ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10" : "border-white/20 text-white/60")}
+            >
+              {kmIncludeRetour ? "Aller-Retour" : "Aller seul"}
+            </button>
+          </div>
+
+          {/* Domicile */}
+          <div>
+            <label className="block text-[10px] font-black uppercase mb-1 text-blue-300/80 tracking-wider">
+              Adresse domicile
+            </label>
+            {hasDomicileInProfile ? (
+              <p className="text-sm text-white/60 italic">
+                Utilisée depuis le profil : {[profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ")}
+              </p>
+            ) : (
+              <input
+                type="text"
+                value={kmDomicileAdresse}
+                onChange={(e) => setKmDomicileAdresse(e.target.value)}
+                placeholder="Ex: Rue de la Paix 1, 75001 Paris"
+                className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-black/20 border-white/10 text-white focus:border-blue-500 backdrop-blur-md placeholder:text-white/30"
+              />
+            )}
+          </div>
+
+          {/* Pays */}
+          <div>
+            <label className="block text-[10px] font-black uppercase mb-1 text-blue-300/80 tracking-wider">
+              Pays
+            </label>
+            <select
+              value={kmCountryCode}
+              onChange={(e) => { setKmCountryCode(e.target.value); setKmRateMode("AUTO_BY_COUNTRY"); }}
+              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-black/20 border-white/10 text-white focus:border-blue-500 backdrop-blur-md"
+            >
+              {EUROPE_COUNTRIES.map((c) => (
+                <option key={c.code} value={c.code}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Taux */}
+          <div>
+            <label className="block text-[10px] font-black uppercase mb-1 text-blue-300/80 tracking-wider">
+              Taux kilométrique
+            </label>
+            {kmRateMode === "AUTO_BY_COUNTRY" ? (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/10">
+                <span className="text-sm text-white/70">
+                  Taux recommandé : <strong className="text-blue-300">{recommendedRate} €/km</strong> ({countryLabel})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { setKmRateMode("CUSTOM"); setKmRate(recommendedRate); }}
+                  className="text-[10px] font-black uppercase text-purple-300 hover:text-purple-100 transition-all ml-2"
+                >
+                  Personnaliser
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={kmRate}
+                  onChange={(e) => setKmRate(e.target.value)}
+                  placeholder={`${recommendedRate}`}
+                  className="flex-1 p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-black/20 border-white/10 text-white focus:border-blue-500 backdrop-blur-md placeholder:text-white/30"
+                />
+                <span className="text-white/60 text-sm">€/km</span>
+                <button
+                  type="button"
+                  onClick={() => setKmRateMode("AUTO_BY_COUNTRY")}
+                  className="text-[10px] font-black uppercase text-white/50 hover:text-white transition-all"
+                >
+                  Auto
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-black uppercase text-[11px] text-white transition-all disabled:opacity-50"
+          >
+            {saving ? "Enregistrement..." : "Enregistrer les réglages km"}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
