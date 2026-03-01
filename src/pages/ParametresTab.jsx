@@ -187,21 +187,39 @@ export function ParametresTab({
 function KmSettingsPanel({ profile, saveProfile, isPro }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  const [kmEnable, setKmEnable] = useState(() => profile?.features?.km_enabled ?? profile?.features?.km_enable ?? false);
-  const [kmIncludeRetour, setKmIncludeRetour] = useState(() => profile?.features?.km_include_retour || false);
-  const [kmDomicileAdresse, setKmDomicileAdresse] = useState(() => profile?.features?.km_domicile_address || "");
-  const [kmCountryCode, setKmCountryCode] = useState(() => profile?.features?.km_country || "FR");
+  const [kmEnable, setKmEnable] = useState(() => {
+    const f = profile?.features ?? {};
+    const ks = f.km_settings ?? {};
+    return f.km_enabled ?? f.km_enable ?? ks.enabled ?? false;
+  });
+  const [kmIncludeRetour, setKmIncludeRetour] = useState(() => {
+    const f = profile?.features ?? {};
+    const ks = f.km_settings ?? {};
+    return f.km_include_retour ?? ks.roundTrip ?? false;
+  });
+  const [kmDomicileAdresse, setKmDomicileAdresse] = useState(() => {
+    const f = profile?.features ?? {};
+    const ks = f.km_settings ?? {};
+    return f.km_domicile_address || ks.homeLabel || "";
+  });
+  const [kmCountryCode, setKmCountryCode] = useState(() => {
+    const f = profile?.features ?? {};
+    const ks = f.km_settings ?? {};
+    return f.km_country || ks.countryCode || "FR";
+  });
   const [kmRateMode, setKmRateMode] = useState(() => profile?.features?.km_rate_mode || "AUTO_BY_COUNTRY");
   const [kmRate, setKmRate] = useState(() => profile?.features?.km_rate_custom ?? "");
 
   useEffect(() => {
     if (!profile) return;
-    setKmEnable(profile.features?.km_enabled ?? profile.features?.km_enable ?? false);
-    setKmIncludeRetour(profile.features?.km_include_retour || false);
-    setKmDomicileAdresse(profile.features?.km_domicile_address || "");
-    setKmCountryCode(profile.features?.km_country || "FR");
-    setKmRateMode(profile.features?.km_rate_mode || "AUTO_BY_COUNTRY");
-    setKmRate(profile.features?.km_rate_custom ?? "");
+    const f = profile.features ?? {};
+    const ks = f.km_settings ?? {};
+    setKmEnable(f.km_enabled ?? f.km_enable ?? ks.enabled ?? false);
+    setKmIncludeRetour(f.km_include_retour ?? ks.roundTrip ?? false);
+    setKmDomicileAdresse(f.km_domicile_address || ks.homeLabel || "");
+    setKmCountryCode(f.km_country || ks.countryCode || "FR");
+    setKmRateMode(f.km_rate_mode || "AUTO_BY_COUNTRY");
+    setKmRate(f.km_rate_custom ?? "");
   }, [profile]);
 
   const recommendedRate = KM_RATES[kmCountryCode] || 0.42;

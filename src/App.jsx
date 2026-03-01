@@ -114,13 +114,14 @@ export default function App({ user }) {
   const kmSettings = useMemo(() => {
     if (!profile) return null;
     const f = profile.features ?? {};
+    const ks = f.km_settings ?? {};
     return {
-      km_enable: f.km_enabled ?? f.km_enable ?? false,
-      km_include_retour: f.km_include_retour || false,
-      km_domicile_adresse: f.km_domicile_address || "",
-      km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : null,
-      km_domicile_lng: f.km_domicile_lng != null ? Number(f.km_domicile_lng) : null,
-      km_country_code: f.km_country || "FR",
+      km_enable: f.km_enabled ?? f.km_enable ?? ks.enabled ?? false,
+      km_include_retour: f.km_include_retour ?? ks.roundTrip ?? false,
+      km_domicile_adresse: f.km_domicile_address || ks.homeLabel || "",
+      km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null),
+      km_domicile_lng: f.km_domicile_lng != null ? Number(f.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null),
+      km_country_code: f.km_country || ks.countryCode || "FR",
       km_rate_mode: f.km_rate_mode || "AUTO_BY_COUNTRY",
       km_rate: f.km_rate_custom || 0,
     };
@@ -147,6 +148,30 @@ export default function App({ user }) {
       }
     });
   }, [kmSettings?.km_enable, kmSettings?.km_domicile_lat, kmSettings?.km_domicile_lng, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.code_postal, profile?.ville, saveProfile]);
+
+  // One-shot migration: copy old km_settings schema to flat keys
+  useEffect(() => {
+    if (!profile) return;
+    const f = profile.features ?? {};
+    const ks = f.km_settings ?? {};
+    if (ks.homeLat != null && ks.homeLng != null &&
+        (f.km_domicile_lat == null || f.km_domicile_lng == null)) {
+      const nextFeatures = {
+        ...f,
+        km_enabled: f.km_enabled ?? f.km_enable ?? ks.enabled ?? false,
+        km_enable: undefined,
+        km_country: f.km_country || ks.countryCode || "BE",
+        km_rate_mode: f.km_rate_mode || "AUTO_BY_COUNTRY",
+        km_include_retour: f.km_include_retour ?? ks.roundTrip ?? false,
+        km_domicile_lat: Number(ks.homeLat),
+        km_domicile_lng: Number(ks.homeLng),
+        km_domicile_address: ks.homeLabel ?? f.km_domicile_address ?? null,
+        ...(ks.ratePerKm != null && !f.km_rate_custom ? { km_rate_custom: ks.ratePerKm, km_rate_mode: "CUSTOM" } : {}),
+      };
+      saveProfile({ features: nextFeatures });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, profile?.features?.km_settings?.homeLat, profile?.features?.km_domicile_lat]);
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
 
