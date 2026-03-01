@@ -115,7 +115,7 @@ export default function App({ user }) {
     if (!profile) return null;
     const f = profile.features ?? {};
     return {
-      km_enable: f.km_enabled || false,
+      km_enable: f.km_enabled ?? f.km_enable ?? false,
       km_include_retour: f.km_include_retour || false,
       km_domicile_adresse: f.km_domicile_address || "",
       km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : null,
@@ -138,10 +138,15 @@ export default function App({ user }) {
     const addr = (kmSettings.km_domicile_adresse || "").trim() ||
       [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
     if (!addr) return;
+    const featuresSnapshot = profile?.features ?? {};
     geocodeAddress(addr).then((result) => {
-      if (result) setDomicileLatLng({ lat: result.lat, lng: result.lng });
+      if (result) {
+        setDomicileLatLng({ lat: result.lat, lng: result.lng });
+        // Persist coords to profile features so they survive reload and avoid timing issues
+        saveProfile({ features: { ...featuresSnapshot, km_domicile_lat: result.lat, km_domicile_lng: result.lng } });
+      }
     });
-  }, [kmSettings?.km_enable, kmSettings?.km_domicile_lat, kmSettings?.km_domicile_lng, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.ville]);
+  }, [kmSettings?.km_enable, kmSettings?.km_domicile_lat, kmSettings?.km_domicile_lng, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.code_postal, profile?.ville, saveProfile]);
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
 
