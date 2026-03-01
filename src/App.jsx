@@ -387,7 +387,14 @@ export default function App({ user }) {
 
   const kmFraisThisWeek = useMemo(() => {
     const empty = { items: [], totalKm: 0, totalAmount: 0 };
-    if (!kmSettings?.km_enable || !domicileLatLng?.lat || !domicileLatLng?.lng) return empty;
+    if (!kmSettings?.km_enable) return empty;
+    // Use domicileLatLng state first, fall back to coords stored directly in kmSettings
+    const effectiveDomicile = domicileLatLng ?? (
+      Number.isFinite(kmSettings.km_domicile_lat) && Number.isFinite(kmSettings.km_domicile_lng)
+        ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
+        : null
+    );
+    if (!effectiveDomicile?.lat || !effectiveDomicile?.lng) return empty;
     const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
       ? (parseFloat(kmSettings.km_rate) || 0)
       : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
@@ -398,7 +405,7 @@ export default function App({ user }) {
       const latLieu = Number(lieu?.latitude);
       const lngLieu = Number(lieu?.longitude);
       if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
-        const kmOneWay = haversineKm(domicileLatLng.lat, domicileLatLng.lng, latLieu, lngLieu);
+        const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
         const kmTot = kmOneWay * multiplicateur;
         const amount = kmTot * kmRateEffectif;
         result.items.push({

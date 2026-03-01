@@ -479,7 +479,14 @@ export function useBilan({
         // 10) Objet final UI
         // Frais kilométriques
         let fraisKm = { items: [], totalKm: 0, totalAmount: 0 };
-        if (kmSettings?.km_enable && bilanPeriodType === PERIOD_TYPES.SEMAINE && domicileLatLng?.lat && domicileLatLng?.lng) {
+        // Use domicileLatLng state first, fall back to coords stored directly in kmSettings
+        const effectiveDomicile = domicileLatLng ?? (
+          Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng)
+            ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
+            : null
+        );
+        console.debug("🚗 KM bilan debug", { km_enable: kmSettings?.km_enable, bilanPeriodType, domicileLat: effectiveDomicile?.lat, domicileLng: effectiveDomicile?.lng, source: domicileLatLng ? "state" : "kmSettings" });
+        if (kmSettings?.km_enable && bilanPeriodType === PERIOD_TYPES.SEMAINE && effectiveDomicile?.lat && effectiveDomicile?.lng) {
           const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
             ? (parseFloat(kmSettings.km_rate) || 0)
             : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
@@ -489,10 +496,12 @@ export function useBilan({
             const lieu = lieux.find((l) => l.id === m.lieu_id);
             const latLieu = Number(lieu?.latitude);
             const lngLieu = Number(lieu?.longitude);
+            console.debug("🚗 KM mission", { missionId: m.id, lieu_id: m.lieu_id, lieuNom: lieu?.nom, latLieu, lngLieu, hasCoords: Number.isFinite(latLieu) && Number.isFinite(lngLieu) });
             if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
-              const kmOneWay = haversineKm(domicileLatLng.lat, domicileLatLng.lng, latLieu, lngLieu);
+              const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
               const kmTotal = kmOneWay * multiplicateur;
               const amount = kmTotal * kmRateEffectif;
+              console.debug("🚗 KM calcul", { missionId: m.id, kmOneWay, kmTotal, amount });
               fraisKm.items.push({
                 missionId: m.id,
                 date: m.date_iso,

@@ -175,6 +175,9 @@ const drawMetrics = (doc, bilanContent, periodType, startY) => {
     if (periodType === "semaine" && (bilanContent.totalFrais || 0) > 0) {
       metrics.push({ label: "Frais Divers", value: formatEuro(bilanContent.totalFrais || 0), accent: COLORS.warning });
     }
+    if (periodType === "semaine" && (bilanContent.fraisKilometriques?.totalAmount || 0) > 0) {
+      metrics.push({ label: "Frais Km", value: formatEuro(bilanContent.fraisKilometriques.totalAmount), accent: COLORS.navyLight });
+    }
     if (periodType === "semaine" && (bilanContent.impayePrecedent || 0) > 0) {
       metrics.push({ label: "Impayé reporté", value: `+${formatEuro(bilanContent.impayePrecedent)}`, accent: COLORS.warning });
     }
