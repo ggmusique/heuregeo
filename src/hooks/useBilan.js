@@ -2,14 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { supabase } from "../services/supabase";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
-
-const haversineDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
+import { haversineKm } from "../utils/calculators";
 
 const fetchHistoricalWeather = async (dateIso) => {
   try {
@@ -495,7 +488,7 @@ export function useBilan({
           filtered.forEach((m) => {
             const lieu = lieux.find((l) => l.id === m.lieu_id);
             if (lieu?.latitude && lieu?.longitude) {
-              const kmOneWay = haversineDistance(domicileLatLng.lat, domicileLatLng.lng, lieu.latitude, lieu.longitude);
+              const kmOneWay = haversineKm(domicileLatLng.lat, domicileLatLng.lng, lieu.latitude, lieu.longitude);
               const kmTotal = kmOneWay * multiplicateur;
               const amount = kmTotal * kmRateEffectif;
               fraisKm.items.push({
