@@ -118,6 +118,8 @@ export default function App({ user }) {
       km_enable: f.km_enabled || false,
       km_include_retour: f.km_include_retour || false,
       km_domicile_adresse: f.km_domicile_address || "",
+      km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : null,
+      km_domicile_lng: f.km_domicile_lng != null ? Number(f.km_domicile_lng) : null,
       km_country_code: f.km_country || "FR",
       km_rate_mode: f.km_rate_mode || "AUTO_BY_COUNTRY",
       km_rate: f.km_rate_custom || 0,
@@ -127,13 +129,19 @@ export default function App({ user }) {
   const [domicileLatLng, setDomicileLatLng] = useState(null);
   useEffect(() => {
     if (!kmSettings?.km_enable) return;
-    const addr = kmSettings.km_domicile_adresse ||
+    // Primary: use coords already stored in profile features
+    if (Number.isFinite(kmSettings.km_domicile_lat) && Number.isFinite(kmSettings.km_domicile_lng)) {
+      setDomicileLatLng({ lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng });
+      return;
+    }
+    // Fallback: geocode text address
+    const addr = (kmSettings.km_domicile_adresse || "").trim() ||
       [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
     if (!addr) return;
     geocodeAddress(addr).then((result) => {
       if (result) setDomicileLatLng({ lat: result.lat, lng: result.lng });
     });
-  }, [kmSettings?.km_enable, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.ville]);
+  }, [kmSettings?.km_enable, kmSettings?.km_domicile_lat, kmSettings?.km_domicile_lng, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.ville]);
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
 
@@ -387,8 +395,10 @@ export default function App({ user }) {
     const result = { items: [], totalKm: 0, totalAmount: 0 };
     missionsThisWeek.forEach((m) => {
       const lieu = lieux.find((l) => l.id === m.lieu_id);
-      if (lieu?.latitude && lieu?.longitude) {
-        const kmOneWay = haversineKm(domicileLatLng.lat, domicileLatLng.lng, lieu.latitude, lieu.longitude);
+      const latLieu = Number(lieu?.latitude);
+      const lngLieu = Number(lieu?.longitude);
+      if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+        const kmOneWay = haversineKm(domicileLatLng.lat, domicileLatLng.lng, latLieu, lngLieu);
         const kmTot = kmOneWay * multiplicateur;
         const amount = kmTot * kmRateEffectif;
         result.items.push({
@@ -563,6 +573,7 @@ export default function App({ user }) {
               canExportCSV,
               kmSettings,
               kmFraisThisWeek,
+              domicileLatLng,
             }}
           />
         )}

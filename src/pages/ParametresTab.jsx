@@ -3,6 +3,7 @@ import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { AdminPage } from "./AdminPage";
 import { EUROPE_COUNTRIES, KM_RATES } from "../utils/kmRatesByCountry";
+import { geocodeAddress } from "../utils/geocode";
 
 export function ParametresTab({
   profile,
@@ -212,6 +213,19 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     setSaving(true);
     setSaveError(null);
     const prevFeatures = profile?.features ?? {};
+
+    // Geocode the domicile address and persist coords to avoid re-geocoding on every load
+    let kmDomicileLat = prevFeatures.km_domicile_lat ?? null;
+    let kmDomicileLng = prevFeatures.km_domicile_lng ?? null;
+    const addr = (kmDomicileAdresse || "").trim() || [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
+    if (addr) {
+      const geoResult = await geocodeAddress(addr);
+      if (geoResult) {
+        kmDomicileLat = geoResult.lat;
+        kmDomicileLng = geoResult.lng;
+      }
+    }
+
     const nextFeatures = {
       ...prevFeatures,
       km_enabled: kmEnable,
@@ -220,8 +234,8 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
       km_rate_custom: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
       km_include_retour: kmIncludeRetour,
       km_domicile_address: kmDomicileAdresse || null,
-      km_domicile_lat: prevFeatures.km_domicile_lat ?? null,
-      km_domicile_lng: prevFeatures.km_domicile_lng ?? null,
+      km_domicile_lat: kmDomicileLat,
+      km_domicile_lng: kmDomicileLng,
     };
     const result = await saveProfile({ features: nextFeatures });
     if (result?.error) {

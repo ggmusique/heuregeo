@@ -29,6 +29,7 @@ export const BilanTab = ({
   canExportCSV = true,
   kmSettings = null,
   kmFraisThisWeek = null,
+  domicileLatLng = null,
 }) => {
   const sortedBilanMissions = useMemo(() => {
     if (!bilan.bilanContent?.filteredData) return [];
@@ -114,7 +115,10 @@ export const BilanTab = ({
               </div>
             ) : (
               <div className="mt-2 p-4 bg-[#0A1628]/40 rounded-[25px] border border-blue-600/10 text-sm text-white/40 italic">
-                🚗 Frais kilométriques — adresse domicile ou coordonnées des lieux manquantes
+                🚗 Frais kilométriques —{" "}
+                {!domicileLatLng
+                  ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"
+                  : "coordonnées GPS manquantes pour les lieux de mission"}
               </div>
             )
           )}
@@ -257,7 +261,10 @@ export const BilanTab = ({
     {kmSettings?.km_enable && bilan.bilanPeriodType === "semaine" &&
       !bilan.bilanContent.fraisKilometriques?.items?.length && (
       <div className="mb-4 p-4 bg-[#0A1628]/40 rounded-[25px] border border-blue-600/10 text-sm text-white/40 italic">
-        🚗 Frais kilométriques — adresse domicile ou coordonnées des lieux manquantes
+        🚗 Frais kilométriques —{" "}
+        {!domicileLatLng
+          ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"
+          : "coordonnées GPS manquantes pour les lieux de mission"}
       </div>
     )}
 
