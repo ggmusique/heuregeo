@@ -185,20 +185,22 @@ export function ParametresTab({
 
 function KmSettingsPanel({ profile, saveProfile, isPro }) {
   const [saving, setSaving] = useState(false);
-  const [kmEnable, setKmEnable] = useState(() => profile?.km_enable || false);
-  const [kmIncludeRetour, setKmIncludeRetour] = useState(() => profile?.km_include_retour || false);
-  const [kmDomicileAdresse, setKmDomicileAdresse] = useState(() => profile?.km_domicile_adresse || "");
-  const [kmCountryCode, setKmCountryCode] = useState(() => profile?.km_country_code || "FR");
-  const [kmRateMode, setKmRateMode] = useState(() => profile?.km_rate_mode || "AUTO_BY_COUNTRY");
-  const [kmRate, setKmRate] = useState(() => profile?.km_rate || "");
+  const [saveError, setSaveError] = useState(null);
+  const [kmEnable, setKmEnable] = useState(() => profile?.features?.km_enabled || false);
+  const [kmIncludeRetour, setKmIncludeRetour] = useState(() => profile?.features?.km_include_retour || false);
+  const [kmDomicileAdresse, setKmDomicileAdresse] = useState(() => profile?.features?.km_domicile_address || "");
+  const [kmCountryCode, setKmCountryCode] = useState(() => profile?.features?.km_country || "FR");
+  const [kmRateMode, setKmRateMode] = useState(() => profile?.features?.km_rate_mode || "AUTO_BY_COUNTRY");
+  const [kmRate, setKmRate] = useState(() => profile?.features?.km_rate_custom ?? "");
 
   useEffect(() => {
-    setKmEnable(profile?.km_enable || false);
-    setKmIncludeRetour(profile?.km_include_retour || false);
-    setKmDomicileAdresse(profile?.km_domicile_adresse || "");
-    setKmCountryCode(profile?.km_country_code || "FR");
-    setKmRateMode(profile?.km_rate_mode || "AUTO_BY_COUNTRY");
-    setKmRate(profile?.km_rate || "");
+    if (!profile) return;
+    setKmEnable(profile.features?.km_enabled || false);
+    setKmIncludeRetour(profile.features?.km_include_retour || false);
+    setKmDomicileAdresse(profile.features?.km_domicile_address || "");
+    setKmCountryCode(profile.features?.km_country || "FR");
+    setKmRateMode(profile.features?.km_rate_mode || "AUTO_BY_COUNTRY");
+    setKmRate(profile.features?.km_rate_custom ?? "");
   }, [profile]);
 
   const recommendedRate = KM_RATES[kmCountryCode] || 0.42;
@@ -208,14 +210,25 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
 
   const handleSave = async () => {
     setSaving(true);
-    await saveProfile({
-      km_enable: kmEnable,
-      km_include_retour: kmIncludeRetour,
-      km_domicile_adresse: kmDomicileAdresse || null,
-      km_country_code: kmCountryCode,
+    setSaveError(null);
+    const prevFeatures = profile?.features ?? {};
+    const nextFeatures = {
+      ...prevFeatures,
+      km_enabled: kmEnable,
+      km_country: kmCountryCode,
       km_rate_mode: kmRateMode,
-      km_rate: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
-    });
+      km_rate_custom: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
+      km_include_retour: kmIncludeRetour,
+      km_domicile_address: kmDomicileAdresse || null,
+      km_domicile_lat: prevFeatures.km_domicile_lat ?? null,
+      km_domicile_lng: prevFeatures.km_domicile_lng ?? null,
+    };
+    const result = await saveProfile({ features: nextFeatures });
+    if (result?.error) {
+      setSaveError(result.error);
+      // Revert toggle state to what was in profile
+      setKmEnable(profile?.features?.km_enabled || false);
+    }
     setSaving(false);
   };
 
@@ -329,6 +342,9 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
             )}
           </div>
 
+          {saveError && (
+            <p className="text-red-400 text-xs font-bold">{saveError}</p>
+          )}
           <button
             type="button"
             onClick={handleSave}

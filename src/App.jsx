@@ -111,13 +111,14 @@ export default function App({ user }) {
 
   const kmSettings = useMemo(() => {
     if (!profile) return null;
+    const f = profile.features ?? {};
     return {
-      km_enable: profile.km_enable || false,
-      km_include_retour: profile.km_include_retour || false,
-      km_domicile_adresse: profile.km_domicile_adresse || "",
-      km_country_code: profile.km_country_code || "FR",
-      km_rate_mode: profile.km_rate_mode || (profile.km_rate && !profile.km_country_code ? "CUSTOM" : "AUTO_BY_COUNTRY"),
-      km_rate: profile.km_rate || 0,
+      km_enable: f.km_enabled || false,
+      km_include_retour: f.km_include_retour || false,
+      km_domicile_adresse: f.km_domicile_address || "",
+      km_country_code: f.km_country || "FR",
+      km_rate_mode: f.km_rate_mode || "AUTO_BY_COUNTRY",
+      km_rate: f.km_rate_custom || 0,
     };
   }, [profile]);
 

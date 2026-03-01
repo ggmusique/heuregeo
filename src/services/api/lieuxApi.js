@@ -4,6 +4,12 @@ import { supabase } from "../supabase";
  * API pour les lieux
  */
 
+// Colonnes autorisées sur la table lieux (whitelist anti colonne inconnue)
+const LIEUX_COLUMNS = ["nom", "adresse_complete", "latitude", "longitude", "notes", "user_id"];
+
+const sanitizeLieu = (data) =>
+  Object.fromEntries(Object.entries(data).filter(([k]) => LIEUX_COLUMNS.includes(k)));
+
 // ========= FETCH (READ) =========
 export const fetchLieux = async () => {
   const { data: { user } } = await supabase.auth.getUser();
@@ -27,7 +33,7 @@ export const createLieu = async (lieuData) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Utilisateur non connecté");
 
-  const payload = { ...lieuData, user_id: user.id };
+  const payload = sanitizeLieu({ ...lieuData, user_id: user.id });
 
   const { data, error } = await supabase
     .from("lieux")
@@ -49,7 +55,7 @@ export const createLieu = async (lieuData) => {
 export const updateLieu = async (id, lieuData) => {
   const { data, error } = await supabase
     .from("lieux")
-    .update(lieuData)
+    .update(sanitizeLieu(lieuData))
     .eq("id", id)
     .select();
 
