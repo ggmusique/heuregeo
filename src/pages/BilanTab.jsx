@@ -95,20 +95,20 @@ export const BilanTab = ({
                         <span className="text-white/50 ml-2">{item.labelLieuOuClient}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-blue-300/80 text-xs">{item.kmTotal} km</span>
+                        <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal * 10) / 10} km</span>
                         <span className="font-bold text-blue-300 ml-2">{formatEuro(item.amount)}</span>
                       </div>
                     </div>
                   ))}
                   {kmFraisThisWeek.items.filter((item) => item.amount === null).map((item, i) => (
                     <div key={`missing-${i}`} className="text-sm text-white/40 italic">
-                      {formatDateFR(item.date)} — {item.labelLieuOuClient} : coordonnées manquantes
+                      {formatDateFR(item.date)} — {item.labelLieuOuClient}
                     </div>
                   ))}
                 </div>
                 {kmFraisThisWeek.totalAmount > 0 && (
                   <div className="pt-2 border-t border-white/10 flex justify-between">
-                    <span className="text-white/60 text-sm">{kmFraisThisWeek.totalKm} km total</span>
+                    <span className="text-white/60 text-sm">{Math.round(kmFraisThisWeek.totalKm * 10) / 10} km total</span>
                     <span className="font-black text-blue-300">{formatEuro(kmFraisThisWeek.totalAmount)}</span>
                   </div>
                 )}
@@ -237,7 +237,7 @@ export const BilanTab = ({
                   <span className="text-white/50 ml-2">{item.labelLieuOuClient}</span>
                 </div>
                 <div className="text-right">
-                  <span className="text-blue-300/80 text-xs">{item.kmTotal} km</span>
+                  <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal * 10) / 10} km</span>
                   <span className="font-bold text-blue-300 ml-2">{formatEuro(item.amount)}</span>
                 </div>
               </div>
@@ -246,12 +246,12 @@ export const BilanTab = ({
             .filter((item) => item.amount === null)
             .map((item, i) => (
               <div key={`missing-${i}`} className="text-sm text-white/40 italic">
-                {formatDateFR(item.date)} — {item.labelLieuOuClient} : coordonnées manquantes
+                {formatDateFR(item.date)} — {item.labelLieuOuClient}
               </div>
             ))}
         </div>
         <div className="pt-3 border-t border-white/10 flex justify-between">
-          <span className="text-white/60 text-sm">{bilan.bilanContent.fraisKilometriques.totalKm} km total</span>
+          <span className="text-white/60 text-sm">{Math.round(bilan.bilanContent.fraisKilometriques.totalKm * 10) / 10} km total</span>
           <span className="font-black text-blue-300">{formatEuro(bilan.bilanContent.fraisKilometriques.totalAmount)}</span>
         </div>
       </div>

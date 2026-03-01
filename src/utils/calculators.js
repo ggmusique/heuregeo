@@ -77,6 +77,19 @@ export const haversineKm = (lat1, lon1, lat2, lon2) => {
 };
 
 /**
+ * getLieuLabel(lieu, mission)
+ * Returns the display label for a KM item based on lieu resolution status:
+ * - lieu found: use lieu.nom (or mission client as fallback)
+ * - lieu not found but mission has a lieu text: "KM indisponible (lieu non lié)"
+ * - no lieu info at all: mission client name
+ */
+export const getLieuLabel = (lieu, mission) => {
+  if (lieu) return lieu.nom || mission.client || "";
+  if (mission.lieu) return "KM indisponible (lieu non lié)";
+  return mission.client || "";
+};
+
+/**
  * ==========================================================
  * 2) calculerSoldeAcomptesAvant(dateReferenceIso, acomptes, missions, frais)
  * ==========================================================================================================

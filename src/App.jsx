@@ -36,7 +36,7 @@ import "./fix-selects.css";
 
 import { getWeekNumber } from "./utils/dateUtils";
 import { KM_RATES } from "./utils/kmRatesByCountry";
-import { haversineKm } from "./utils/calculators";
+import { haversineKm, getLieuLabel } from "./utils/calculators";
 
 export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
@@ -114,13 +114,14 @@ export default function App({ user }) {
   const kmSettings = useMemo(() => {
     if (!profile) return null;
     const f = profile.features ?? {};
+    const ks = f.km_settings ?? {};
     return {
-      km_enable: f.km_enabled ?? f.km_enable ?? false,
-      km_include_retour: f.km_include_retour || false,
-      km_domicile_adresse: f.km_domicile_address || "",
-      km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : null,
-      km_domicile_lng: f.km_domicile_lng != null ? Number(f.km_domicile_lng) : null,
-      km_country_code: f.km_country || "FR",
+      km_enable: f.km_enabled ?? f.km_enable ?? ks.enabled ?? false,
+      km_include_retour: f.km_include_retour ?? ks.roundTrip ?? false,
+      km_domicile_adresse: f.km_domicile_address || ks.homeLabel || "",
+      km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null),
+      km_domicile_lng: f.km_domicile_lng != null ? Number(f.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null),
+      km_country_code: f.km_country || ks.countryCode || "FR",
       km_rate_mode: f.km_rate_mode || "AUTO_BY_COUNTRY",
       km_rate: f.km_rate_custom || 0,
     };
@@ -147,6 +148,34 @@ export default function App({ user }) {
       }
     });
   }, [kmSettings?.km_enable, kmSettings?.km_domicile_lat, kmSettings?.km_domicile_lng, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.code_postal, profile?.ville, saveProfile]);
+
+  // One-shot migration: copy old km_settings schema to flat keys
+  useEffect(() => {
+    if (!profile) return;
+    const f = profile.features ?? {};
+    const ks = f.km_settings ?? {};
+    if (ks.homeLat != null && ks.homeLng != null &&
+        (f.km_domicile_lat == null || f.km_domicile_lng == null)) {
+      // Rate rule: if km_settings had a custom ratePerKm and no flat custom rate yet, migrate as CUSTOM.
+      // Otherwise keep AUTO_BY_COUNTRY (or whatever is already set).
+      const migratedRateMode = ks.ratePerKm != null && !f.km_rate_custom ? "CUSTOM" : (f.km_rate_mode || "AUTO_BY_COUNTRY");
+      const migratedRateCustom = ks.ratePerKm != null && !f.km_rate_custom ? ks.ratePerKm : (f.km_rate_custom ?? null);
+      const nextFeatures = {
+        ...f,
+        km_enabled: f.km_enabled ?? f.km_enable ?? ks.enabled ?? false,
+        km_enable: undefined,
+        km_country: f.km_country || ks.countryCode || "FR",
+        km_rate_mode: migratedRateMode,
+        km_rate_custom: migratedRateCustom,
+        km_include_retour: f.km_include_retour ?? ks.roundTrip ?? false,
+        km_domicile_lat: Number(ks.homeLat),
+        km_domicile_lng: Number(ks.homeLng),
+        km_domicile_address: ks.homeLabel ?? f.km_domicile_address ?? null,
+      };
+      saveProfile({ features: nextFeatures });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, profile?.features?.km_settings?.homeLat, profile?.features?.km_domicile_lat]);
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
 
@@ -400,38 +429,50 @@ export default function App({ user }) {
         : null
     );
     if (!effectiveDomicile?.lat || !effectiveDomicile?.lng) return empty;
+    // Rate: AUTO uses table, CUSTOM uses km_rate_custom
     const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
       ? (parseFloat(kmSettings.km_rate) || 0)
       : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
     const multiplicateur = kmSettings.km_include_retour ? 2 : 1;
     const result = { items: [], totalKm: 0, totalAmount: 0 };
     missionsThisWeek.forEach((m) => {
-      const lieu = lieux.find((l) => l.id === m.lieu_id);
+      // Lieu lookup: by id first, then by name (case-insensitive) as fallback
+      const lieuById = lieux.find((l) => l.id === m.lieu_id);
+      const lieuByName = !lieuById && m.lieu
+        ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
+        : null;
+      const lieu = lieuById || lieuByName;
       const latLieu = Number(lieu?.latitude);
       const lngLieu = Number(lieu?.longitude);
       if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+        // distance_km is in km (haversineKm returns km)
         const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
-        const kmTot = kmOneWay * multiplicateur;
-        const amount = kmTot * kmRateEffectif;
+        const kmTot = kmOneWay * multiplicateur; // × 2 if aller-retour
+        const amount = kmTot * kmRateEffectif;   // no rounding: exact value stored
+        console.debug("🚗 KM debug (semaine en cours)", {
+          missionId: m.id, date: m.date_iso,
+          domicileLat: effectiveDomicile.lat, domicileLng: effectiveDomicile.lng,
+          lieuLat: latLieu, lieuLng: lngLieu,
+          lieuSource: lieuById ? "id" : "nom",
+          distance_km: kmOneWay, include_retour: kmSettings.km_include_retour,
+          rate: kmRateEffectif, montant: amount,
+        });
         result.items.push({
           missionId: m.id, date: m.date_iso,
-          labelLieuOuClient: lieu.nom || m.client || "",
-          kmOneWay: Math.round(kmOneWay * 10) / 10,
-          kmTotal: Math.round(kmTot * 10) / 10,
-          amount: Math.round(amount * 100) / 100,
+          labelLieuOuClient: getLieuLabel(lieu, m),
+          kmOneWay, kmTotal: kmTot, amount,   // exact, rounded only at display
         });
         result.totalKm += kmTot;
         result.totalAmount += amount;
       } else {
         result.items.push({
           missionId: m.id, date: m.date_iso,
-          labelLieuOuClient: lieu?.nom || m.client || "",
+          labelLieuOuClient: getLieuLabel(lieu, m),
           kmOneWay: null, kmTotal: null, amount: null,
         });
       }
     });
-    result.totalKm = Math.round(result.totalKm * 10) / 10;
-    result.totalAmount = Math.round(result.totalAmount * 100) / 100;
+    // totals kept exact; display layer applies rounding
     return result;
   }, [kmSettings, domicileLatLng, missionsThisWeek, lieux]);
 

@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { supabase } from "../services/supabase";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
-import { haversineKm } from "../utils/calculators";
+import { haversineKm, getLieuLabel } from "../utils/calculators";
 
 const fetchHistoricalWeather = async (dateIso) => {
   try {
@@ -487,28 +487,39 @@ export function useBilan({
         );
         console.debug("🚗 KM bilan debug", { km_enable: kmSettings?.km_enable, bilanPeriodType, domicileLat: effectiveDomicile?.lat, domicileLng: effectiveDomicile?.lng, source: domicileLatLng ? "state" : "kmSettings" });
         if (kmSettings?.km_enable && bilanPeriodType === PERIOD_TYPES.SEMAINE && effectiveDomicile?.lat && effectiveDomicile?.lng) {
+          // Rate: AUTO uses table, CUSTOM uses km_rate_custom
           const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
             ? (parseFloat(kmSettings.km_rate) || 0)
             : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
           const multiplicateur = kmSettings.km_include_retour ? 2 : 1;
 
           filtered.forEach((m) => {
-            const lieu = lieux.find((l) => l.id === m.lieu_id);
+            // Lieu lookup: by id first, then by name (case-insensitive) as fallback
+            const lieuById = lieux.find((l) => l.id === m.lieu_id);
+            const lieuByName = !lieuById && m.lieu
+              ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
+              : null;
+            const lieu = lieuById || lieuByName;
             const latLieu = Number(lieu?.latitude);
             const lngLieu = Number(lieu?.longitude);
-            console.debug("🚗 KM mission", { missionId: m.id, lieu_id: m.lieu_id, lieuNom: lieu?.nom, latLieu, lngLieu, hasCoords: Number.isFinite(latLieu) && Number.isFinite(lngLieu) });
             if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+              // distance_km is in km (haversineKm returns km)
               const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
-              const kmTotal = kmOneWay * multiplicateur;
-              const amount = kmTotal * kmRateEffectif;
-              console.debug("🚗 KM calcul", { missionId: m.id, kmOneWay, kmTotal, amount });
+              const kmTotal = kmOneWay * multiplicateur; // × 2 if aller-retour
+              const amount = kmTotal * kmRateEffectif;   // no rounding: exact value stored
+              console.debug("🚗 KM debug (bilan)", {
+                missionId: m.id, date: m.date_iso,
+                domicileLat: effectiveDomicile.lat, domicileLng: effectiveDomicile.lng,
+                lieuLat: latLieu, lieuLng: lngLieu,
+                lieuSource: lieuById ? "id" : "nom",
+                distance_km: kmOneWay, include_retour: kmSettings.km_include_retour,
+                rate: kmRateEffectif, montant: amount,
+              });
               fraisKm.items.push({
                 missionId: m.id,
                 date: m.date_iso,
-                labelLieuOuClient: lieu.nom || m.client || "",
-                kmOneWay: Math.round(kmOneWay * 10) / 10,
-                kmTotal: Math.round(kmTotal * 10) / 10,
-                amount: Math.round(amount * 100) / 100,
+                labelLieuOuClient: getLieuLabel(lieu, m),
+                kmOneWay, kmTotal, amount,   // exact, rounded only at display
               });
               fraisKm.totalKm += kmTotal;
               fraisKm.totalAmount += amount;
@@ -516,15 +527,14 @@ export function useBilan({
               fraisKm.items.push({
                 missionId: m.id,
                 date: m.date_iso,
-                labelLieuOuClient: lieu?.nom || m.client || "",
+                labelLieuOuClient: getLieuLabel(lieu, m),
                 kmOneWay: null,
                 kmTotal: null,
                 amount: null,
               });
             }
           });
-          fraisKm.totalKm = Math.round(fraisKm.totalKm * 10) / 10;
-          fraisKm.totalAmount = Math.round(fraisKm.totalAmount * 100) / 100;
+          // totals kept exact; display layer applies rounding
 
           resteAPercevoir = Math.max(0, resteAPercevoir + fraisKm.totalAmount);
           resteCettePeriode = resteAPercevoir;
