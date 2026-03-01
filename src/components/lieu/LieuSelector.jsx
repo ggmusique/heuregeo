@@ -288,8 +288,15 @@ export const LieuSelector = ({
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-bold">{lieu.nom}</div>
-                          <div className="text-xs bg-green-600/30 px-2 py-0.5 rounded-full">
-                            {getMissionCount(idStr)}x
+                          <div className="flex items-center gap-1">
+                            {lieu.latitude != null && lieu.longitude != null ? (
+                              <span className="text-[9px] text-emerald-400" title="GPS disponible">📍</span>
+                            ) : (
+                              <span className="text-[9px] text-orange-400" title="GPS non renseigné">⚠️</span>
+                            )}
+                            <div className="text-xs bg-green-600/30 px-2 py-0.5 rounded-full">
+                              {getMissionCount(idStr)}x
+                            </div>
                           </div>
                         </div>
 
@@ -328,7 +335,14 @@ export const LieuSelector = ({
                             : "hover:bg-slate-100 text-slate-900"
                         }`}
                       >
-                        <div className="font-bold">{lieu.nom}</div>
+                        <div className="flex items-center justify-between">
+                          <div className="font-bold">{lieu.nom}</div>
+                          {lieu.latitude != null && lieu.longitude != null ? (
+                            <span className="text-[9px] text-emerald-400" title="GPS disponible">📍</span>
+                          ) : (
+                            <span className="text-[9px] text-orange-400" title="GPS non renseigné">⚠️</span>
+                          )}
+                        </div>
                         {lieu.adresse_complete && (
                           <div className="text-xs opacity-60 mt-1 line-clamp-1">
                             📍 {lieu.adresse_complete}
