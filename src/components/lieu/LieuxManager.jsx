@@ -26,7 +26,7 @@ export const LieuxManager = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [backfillRunning, setBackfillRunning] = useState(false);
   const [backfillProgress, setBackfillProgress] = useState(null); // { done, total }
-  const [backfillResult, setBackfillResult] = useState(null); // { updated, errors: [{nom}] }
+  const [backfillResult, setBackfillResult] = useState(null); // { updated, errors: [{id, nom}] }
 
   const lieuxSansCoords = useMemo(() => {
     return lieux.filter((l) => !l.latitude || !l.longitude);
@@ -48,10 +48,10 @@ export const LieuxManager = ({
           await onEdit({ ...lieu, latitude: result.lat, longitude: result.lng });
           updated++;
         } catch {
-          errors.push({ nom: lieu.nom });
+          errors.push({ id: lieu.id, nom: lieu.nom });
         }
       } else {
-        errors.push({ nom: lieu.nom });
+        errors.push({ id: lieu.id, nom: lieu.nom });
       }
       setBackfillProgress({ done: i + 1, total: lieuxSansCoords.length });
     }
@@ -176,7 +176,7 @@ export const LieuxManager = ({
                 <div key={i} className="flex items-center gap-2">
                   <span className="text-red-400 text-xs">{e.nom}</span>
                   <button
-                    onClick={() => onLieuEdit(lieux.find((l) => l.nom === e.nom))}
+                    onClick={() => onLieuEdit(lieux.find((l) => l.id === e.id))}
                     className="text-[10px] font-black uppercase text-purple-300 hover:text-purple-100 transition-all"
                   >
                     Modifier

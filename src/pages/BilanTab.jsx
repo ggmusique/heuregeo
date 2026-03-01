@@ -212,7 +212,8 @@ export const BilanTab = ({
       </div>
     )}
 
-    {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── affiché uniquement si données */}    {(bilan.bilanContent.acomptesDansPeriode > 0 ||
+    {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── affiché uniquement si données */}
+    {(bilan.bilanContent.acomptesDansPeriode > 0 ||
       bilan.bilanContent.soldeAcomptesAvant > 0 ||
       bilan.bilanContent.totalAcomptes > 0) && (
       <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">

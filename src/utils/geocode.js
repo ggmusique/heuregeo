@@ -17,7 +17,7 @@ export const geocodeAddress = async (address) => {
     const res = await fetch(url, {
       headers: {
         "Accept-Language": "fr",
-        "User-Agent": "HeuresDeGeo/1.0",
+        "User-Agent": "HeuresDeGeo/1.0 (https://github.com/ggmusique/heuregeo)",
       },
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
