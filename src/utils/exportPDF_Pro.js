@@ -443,6 +443,85 @@ const drawFraisTable = (doc, bilanContent, startY) => {
 };
 
 // ─────────────────────────────────────────────
+// FRAIS KILOMÉTRIQUES
+// ─────────────────────────────────────────────
+const drawKmFeesTable = (doc, bilanContent, startY) => {
+  const km = bilanContent.fraisKilometriques;
+  if (!km?.totalAmount || km.totalAmount <= 0) return startY;
+  const validItems = (km.items || []).filter((i) => i.amount !== null && i.amount > 0);
+  if (!validItems.length) return startY;
+  try {
+    let y = startY;
+    if (y > 220) { doc.addPage(); y = 20; }
+
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(...COLORS.navy);
+    doc.text("Frais kilométriques", 15, y);
+    doc.setDrawColor(...COLORS.gold);
+    doc.setLineWidth(0.8);
+    doc.line(15, y + 2, 75, y + 2);
+    y += 8;
+
+    const headers = ["Date", "Lieu / Client", "Km (AR)", "Montant"];
+    const colWidths = [30, 85, 30, 40];
+    const startX = 15;
+    const tableW = colWidths.reduce((a, b) => a + b, 0);
+
+    y = drawTableHeader(doc, startX, y, headers, colWidths, COLORS.navyMid);
+
+    validItems.forEach((item, idx) => {
+      if (y > 268) { doc.addPage(); y = 20; }
+      if (idx % 2 === 0) {
+        doc.setFillColor(...COLORS.light);
+        doc.rect(startX, y - 1, tableW, 7.5, "F");
+      }
+      let cx = startX;
+      doc.setFontSize(7);
+
+      doc.setTextColor(...COLORS.textSecondary);
+      doc.setFont(undefined, "normal");
+      doc.text(formatDateFR(item.date) || "-", cx + 2, y + 4);
+      cx += colWidths[0];
+
+      doc.setTextColor(...COLORS.textPrimary);
+      doc.text((item.labelLieuOuClient || "").substring(0, 40), cx + 2, y + 4);
+      cx += colWidths[1];
+
+      doc.setTextColor(...COLORS.navyLight);
+      doc.text(`${item.kmTotal || 0} km`, cx + colWidths[2] / 2, y + 4, { align: "center" });
+      cx += colWidths[2];
+
+      doc.setFont(undefined, "bold");
+      doc.setTextColor(...COLORS.success);
+      doc.text(formatEuro(item.amount || 0), cx + colWidths[3] / 2, y + 4, { align: "center" });
+
+      y += 7.5;
+    });
+
+    y += 3;
+    doc.setDrawColor(...COLORS.border);
+    doc.setLineWidth(0.4);
+    doc.line(startX, y, startX + tableW, y);
+    y += 4;
+
+    doc.setFillColor(...COLORS.navyMid);
+    doc.roundedRect(startX, y, tableW, 8, 2, 2, "F");
+    doc.setFont(undefined, "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(...COLORS.white);
+    doc.text("TOTAL FRAIS KM", startX + 5, y + 5.5);
+    doc.text(`${km.totalKm || 0} km`, startX + tableW - 55, y + 5.5, { align: "center" });
+    doc.text(formatEuro(km.totalAmount || 0), startX + tableW - 5, y + 5.5, { align: "right" });
+
+    return y + 18;
+  } catch (e) {
+    console.error("Erreur drawKmFeesTable:", e);
+    return startY;
+  }
+};
+
+// ─────────────────────────────────────────────
 // SECTION ACOMPTES
 // ─────────────────────────────────────────────
 const drawAcomptesSection = (doc, bilanContent, startY) => {
@@ -740,6 +819,7 @@ export const exportToPDFPro = (
     if (periodType === "semaine") {
       y = drawMissionsTable(doc, bilanContent, y);
       y = drawFraisTable(doc, bilanContent, y);
+      y = drawKmFeesTable(doc, bilanContent, y);
       y = drawAcomptesSection(doc, bilanContent, y);
     } else if (periodType === "mois") {
       y = drawWeeklySummary(doc, bilanContent, y);

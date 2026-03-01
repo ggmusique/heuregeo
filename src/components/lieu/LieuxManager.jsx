@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { formatEuro, formatHeures } from "../../utils/formatters";
+import { geocodeAddress } from "../../utils/geocode";
 
 /**
  * ✅ Gestionnaire complet des lieux avec liste et stats
@@ -17,11 +18,46 @@ export const LieuxManager = ({
   onEdit = () => {},
   onDelete = () => {},
   onAdd = () => {},
+  onLieuEdit = () => {},
   darkMode = true,
   missions = [],
   allowActions = true,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [backfillRunning, setBackfillRunning] = useState(false);
+  const [backfillProgress, setBackfillProgress] = useState(null); // { done, total }
+  const [backfillResult, setBackfillResult] = useState(null); // { updated, errors: [{nom}] }
+
+  const lieuxSansCoords = useMemo(() => {
+    return lieux.filter((l) => !l.latitude || !l.longitude);
+  }, [lieux]);
+
+  const handleBackfillCoords = useCallback(async () => {
+    if (backfillRunning || lieuxSansCoords.length === 0) return;
+    setBackfillRunning(true);
+    setBackfillProgress({ done: 0, total: lieuxSansCoords.length });
+    setBackfillResult(null);
+    let updated = 0;
+    const errors = [];
+    for (let i = 0; i < lieuxSansCoords.length; i++) {
+      const lieu = lieuxSansCoords[i];
+      const query = [lieu.adresse_complete, lieu.nom].filter(Boolean).join(", ");
+      const result = await geocodeAddress(query);
+      if (result) {
+        try {
+          await onEdit({ ...lieu, latitude: result.lat, longitude: result.lng });
+          updated++;
+        } catch {
+          errors.push({ nom: lieu.nom });
+        }
+      } else {
+        errors.push({ nom: lieu.nom });
+      }
+      setBackfillProgress({ done: i + 1, total: lieuxSansCoords.length });
+    }
+    setBackfillResult({ updated, errors });
+    setBackfillRunning(false);
+  }, [backfillRunning, lieuxSansCoords, onEdit]);
 
   /**
    * ✅ Calculer les stats par lieu (synchrone)
@@ -103,6 +139,55 @@ export const LieuxManager = ({
 
   return (
     <div className="space-y-6">
+      {/* Backfill GPS coords */}
+      {lieuxSansCoords.length > 0 && (
+        <div className={`p-4 rounded-2xl border ${
+          darkMode ? "border-blue-500/30 bg-blue-500/5" : "border-blue-300 bg-blue-50"
+        }`}>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-[10px] font-black uppercase text-blue-300 tracking-wider mb-1">
+                📍 Coordonnées GPS manquantes
+              </p>
+              <p className="text-sm text-white/60">
+                {lieuxSansCoords.length} lieu{lieuxSansCoords.length > 1 ? "x" : ""} sans coordonnées GPS
+              </p>
+            </div>
+            <button
+              onClick={handleBackfillCoords}
+              disabled={backfillRunning}
+              className="px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-300 text-[10px] font-black uppercase tracking-wider hover:bg-blue-600/30 disabled:opacity-50 transition-all"
+            >
+              {backfillRunning ? "En cours..." : "🗺️ Compléter les coordonnées GPS"}
+            </button>
+          </div>
+          {backfillProgress && (
+            <p className="mt-2 text-sm text-white/60">
+              {backfillProgress.done} / {backfillProgress.total} lieux traités
+            </p>
+          )}
+          {backfillResult && (
+            <div className="mt-2 space-y-1">
+              <p className="text-sm text-green-400 font-bold">
+                Terminé : {backfillResult.updated} mis à jour
+                {backfillResult.errors.length > 0 && `, ${backfillResult.errors.length} erreur${backfillResult.errors.length > 1 ? "s" : ""}`}
+              </p>
+              {backfillResult.errors.map((e, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-red-400 text-xs">{e.nom}</span>
+                  <button
+                    onClick={() => onLieuEdit(lieux.find((l) => l.nom === e.nom))}
+                    className="text-[10px] font-black uppercase text-purple-300 hover:text-purple-100 transition-all"
+                  >
+                    Modifier
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Header avec bouton ajouter et recherche */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="flex-1 w-full sm:w-auto">

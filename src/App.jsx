@@ -14,6 +14,7 @@ import { useConfirm } from "./hooks/useConfirm";
 import { useGeolocation } from "./hooks/useGeolocation";
 import { useLieux } from "./hooks/useLieux";
 import { useProfile } from "./hooks/useProfile";
+import { geocodeAddress } from "./utils/geocode";
 
 import { FraisModal } from "./components/common/frais/FraisModal";
 import { AcompteModal } from "./components/common/acompte/AcompteModal";
@@ -106,8 +107,32 @@ export default function App({ user }) {
     (error) => triggerAlert(error)
   );
 
-  const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert });
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV } = useProfile(user);
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage } = useProfile(user);
+
+  const kmSettings = useMemo(() => {
+    if (!profile) return null;
+    return {
+      km_enable: profile.km_enable || false,
+      km_include_retour: profile.km_include_retour || false,
+      km_domicile_adresse: profile.km_domicile_adresse || "",
+      km_country_code: profile.km_country_code || "FR",
+      km_rate_mode: profile.km_rate_mode || (profile.km_rate && !profile.km_country_code ? "CUSTOM" : "AUTO_BY_COUNTRY"),
+      km_rate: profile.km_rate || 0,
+    };
+  }, [profile]);
+
+  const [domicileLatLng, setDomicileLatLng] = useState(null);
+  useEffect(() => {
+    if (!kmSettings?.km_enable) return;
+    const addr = kmSettings.km_domicile_adresse ||
+      [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
+    if (!addr) return;
+    geocodeAddress(addr).then((result) => {
+      if (result) setDomicileLatLng({ lat: result.lat, lng: result.lng });
+    });
+  }, [kmSettings?.km_enable, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.ville]);
+
+  const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
 
   useEffect(() => {
     document.title = "Heures de Geo";
@@ -493,6 +518,7 @@ export default function App({ user }) {
               canExportPDF,
               canExportExcel,
               canExportCSV,
+              kmSettings,
             }}
           />
         )}
@@ -505,6 +531,7 @@ export default function App({ user }) {
             userEmail={user?.email}
             darkMode={darkMode}
             isAdmin={isAdmin}
+            isPro={isPro}
             patrons={patrons}
             clients={clients}
             lieux={lieux}

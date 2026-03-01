@@ -27,6 +27,7 @@ export const BilanTab = ({
   canExportPDF = true,
   canExportExcel = true,
   canExportCSV = true,
+  kmSettings = null,
 }) => {
   const sortedBilanMissions = useMemo(() => {
     if (!bilan.bilanContent?.filteredData) return [];
@@ -175,8 +176,43 @@ export const BilanTab = ({
       </div>
     )}
 
-    {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── affiché uniquement si données */}
-    {(bilan.bilanContent.acomptesDansPeriode > 0 ||
+    {/* ── BLOC FRAIS KM ── */}
+    {bilan.bilanContent.fraisKilometriques?.totalAmount > 0 && bilan.bilanPeriodType === "semaine" && (
+      <div className="mb-4 p-6 bg-[#0A1628]/60 rounded-[35px] border border-blue-600/20 backdrop-blur-md">
+        <p className="text-[10px] font-black uppercase text-blue-400/70 mb-4 tracking-[0.2em]">
+          🚗 Frais kilométriques
+        </p>
+        <div className="space-y-2 mb-4">
+          {bilan.bilanContent.fraisKilometriques.items
+            .filter((item) => item.amount !== null)
+            .map((item, i) => (
+              <div key={i} className="flex justify-between items-center text-sm">
+                <div>
+                  <span className="text-white/80 font-bold">{formatDateFR(item.date)}</span>
+                  <span className="text-white/50 ml-2">{item.labelLieuOuClient}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-blue-300/80 text-xs">{item.kmTotal} km</span>
+                  <span className="font-bold text-blue-300 ml-2">{formatEuro(item.amount)}</span>
+                </div>
+              </div>
+            ))}
+          {bilan.bilanContent.fraisKilometriques.items
+            .filter((item) => item.amount === null)
+            .map((item, i) => (
+              <div key={`missing-${i}`} className="text-sm text-white/40 italic">
+                {formatDateFR(item.date)} — {item.labelLieuOuClient} : coordonnées manquantes
+              </div>
+            ))}
+        </div>
+        <div className="pt-3 border-t border-white/10 flex justify-between">
+          <span className="text-white/60 text-sm">{bilan.bilanContent.fraisKilometriques.totalKm} km total</span>
+          <span className="font-black text-blue-300">{formatEuro(bilan.bilanContent.fraisKilometriques.totalAmount)}</span>
+        </div>
+      </div>
+    )}
+
+    {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── affiché uniquement si données */}    {(bilan.bilanContent.acomptesDansPeriode > 0 ||
       bilan.bilanContent.soldeAcomptesAvant > 0 ||
       bilan.bilanContent.totalAcomptes > 0) && (
       <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
