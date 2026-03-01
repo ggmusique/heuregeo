@@ -187,7 +187,7 @@ export function ParametresTab({
 function KmSettingsPanel({ profile, saveProfile, isPro }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  const [kmEnable, setKmEnable] = useState(() => profile?.features?.km_enabled || false);
+  const [kmEnable, setKmEnable] = useState(() => profile?.features?.km_enabled ?? profile?.features?.km_enable ?? false);
   const [kmIncludeRetour, setKmIncludeRetour] = useState(() => profile?.features?.km_include_retour || false);
   const [kmDomicileAdresse, setKmDomicileAdresse] = useState(() => profile?.features?.km_domicile_address || "");
   const [kmCountryCode, setKmCountryCode] = useState(() => profile?.features?.km_country || "FR");
@@ -196,7 +196,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
 
   useEffect(() => {
     if (!profile) return;
-    setKmEnable(profile.features?.km_enabled || false);
+    setKmEnable(profile.features?.km_enabled ?? profile.features?.km_enable ?? false);
     setKmIncludeRetour(profile.features?.km_include_retour || false);
     setKmDomicileAdresse(profile.features?.km_domicile_address || "");
     setKmCountryCode(profile.features?.km_country || "FR");
@@ -229,6 +229,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     const nextFeatures = {
       ...prevFeatures,
       km_enabled: kmEnable,
+      km_enable: undefined, // remove legacy key
       km_country: kmCountryCode,
       km_rate_mode: kmRateMode,
       km_rate_custom: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
@@ -241,7 +242,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     if (result?.error) {
       setSaveError(result.error);
       // Revert toggle state to what was in profile
-      setKmEnable(profile?.features?.km_enabled || false);
+      setKmEnable(profile?.features?.km_enabled ?? profile?.features?.km_enable ?? false);
     }
     setSaving(false);
   };
@@ -284,18 +285,24 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
             <label className="block text-[10px] font-black uppercase mb-1 text-blue-300/80 tracking-wider">
               Adresse domicile
             </label>
-            {hasDomicileInProfile ? (
-              <p className="text-sm text-white/60 italic">
-                Utilisée depuis le profil : {[profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ")}
+            <input
+              type="text"
+              value={kmDomicileAdresse}
+              onChange={(e) => setKmDomicileAdresse(e.target.value)}
+              placeholder={hasDomicileInProfile
+                ? [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ")
+                : "Ex: Rue de la Paix 1, 75001 Paris"}
+              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-black/20 border-white/10 text-white focus:border-blue-500 backdrop-blur-md placeholder:text-white/30"
+            />
+            {hasDomicileInProfile && !kmDomicileAdresse && (
+              <p className="text-[10px] text-white/40 mt-1 italic">
+                Si vide, l&apos;adresse du profil sera utilisée.
               </p>
+            )}
+            {Number.isFinite(Number(profile?.features?.km_domicile_lat)) && Number.isFinite(Number(profile?.features?.km_domicile_lng)) ? (
+              <p className="text-[10px] text-green-400 mt-1">✅ Coordonnées GPS enregistrées</p>
             ) : (
-              <input
-                type="text"
-                value={kmDomicileAdresse}
-                onChange={(e) => setKmDomicileAdresse(e.target.value)}
-                placeholder="Ex: Rue de la Paix 1, 75001 Paris"
-                className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-black/20 border-white/10 text-white focus:border-blue-500 backdrop-blur-md placeholder:text-white/30"
-              />
+              <p className="text-[10px] text-yellow-400/80 mt-1">⚠️ Coordonnées non résolues — enregistrez pour les calculer</p>
             )}
           </div>
 
