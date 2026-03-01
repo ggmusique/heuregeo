@@ -23,7 +23,11 @@ export const fetchLieux = async () => {
 
   if (error) throw error;
 
-  return data || [];
+  return (data || []).map((l) => ({
+    ...l,
+    latitude: l.latitude != null ? Number(l.latitude) : null,
+    longitude: l.longitude != null ? Number(l.longitude) : null,
+  }));
 };
 
 // ========= CREATE =========

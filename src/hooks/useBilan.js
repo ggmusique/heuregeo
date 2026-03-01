@@ -487,8 +487,10 @@ export function useBilan({
 
           filtered.forEach((m) => {
             const lieu = lieux.find((l) => l.id === m.lieu_id);
-            if (lieu?.latitude && lieu?.longitude) {
-              const kmOneWay = haversineKm(domicileLatLng.lat, domicileLatLng.lng, lieu.latitude, lieu.longitude);
+            const latLieu = Number(lieu?.latitude);
+            const lngLieu = Number(lieu?.longitude);
+            if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+              const kmOneWay = haversineKm(domicileLatLng.lat, domicileLatLng.lng, latLieu, lngLieu);
               const kmTotal = kmOneWay * multiplicateur;
               const amount = kmTotal * kmRateEffectif;
               fraisKm.items.push({
