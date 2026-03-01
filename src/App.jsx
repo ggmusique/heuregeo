@@ -36,7 +36,7 @@ import "./fix-time-pickers-emergency.css";
 import "./fix-selects.css";
 
 import { getWeekNumber } from "./utils/dateUtils";
-import { buildKmExpenseFromMission, normalizeKmSettings, COUNTRY_RATE_PRESETS } from "./utils/kmUtils";
+import { buildKmExpenseFromMission, normalizeKmSettings, haversineDistanceKm, COUNTRY_RATE_PRESETS } from "./utils/kmUtils";
 
 export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
@@ -66,6 +66,7 @@ export default function App({ user }) {
   const [fraisKmRatePerKm, setFraisKmRatePerKm] = useState(COUNTRY_RATE_PRESETS.BE.ratePerKm.toString());
   const [fraisKmDate, setFraisKmDate] = useState(new Date().toISOString().split("T")[0]);
   const [fraisKmPatronId, setFraisKmPatronId] = useState(null);
+  const [fraisKmAutoLieuNom, setFraisKmAutoLieuNom] = useState(null);
 
   const [showAcompteModal, setShowAcompteModal] = useState(false);
   const [acompteMontant, setAcompteMontant] = useState("");
@@ -361,6 +362,7 @@ export default function App({ user }) {
     setFraisKmRatePerKm(COUNTRY_RATE_PRESETS.BE.ratePerKm.toString());
     setFraisKmDate(new Date().toISOString().split("T")[0]);
     setFraisKmPatronId(null);
+    setFraisKmAutoLieuNom(null);
   };
 
   const handleAcompteSubmit = async () => {
@@ -577,7 +579,32 @@ export default function App({ user }) {
             onShowClientModal={() => { resetClientForm(); setShowClientModal(true); }}  
             onShowPatronModal={() => { resetPatronForm(); setShowPatronModal(true); }}
             onShowFraisModal={() => setShowFraisModal(true)}  
-            onShowFraisKmModal={() => setShowFraisKmModal(true)}
+            onShowFraisKmModal={() => {
+              const selectedLieu = lieux.find((l) => String(l.id) === String(selectedLieuId));
+              let autoNom = null;
+              if (selectedLieu?.latitude != null && selectedLieu?.longitude != null) {
+                let kmSettings = normalizeKmSettings(features);
+                if (!kmSettings?.homeLat || !kmSettings?.homeLng) {
+                  try {
+                    const rawLocalKm = window?.localStorage?.getItem("km-settings-local");
+                    if (rawLocalKm) kmSettings = normalizeKmSettings({ km_settings: JSON.parse(rawLocalKm) });
+                  } catch {}
+                }
+                if (kmSettings?.homeLat != null && kmSettings?.homeLng != null) {
+                  const oneWayKm = haversineDistanceKm(kmSettings.homeLat, kmSettings.homeLng, selectedLieu.latitude, selectedLieu.longitude);
+                  const billedKm = kmSettings.roundTrip !== false ? oneWayKm * 2 : oneWayKm;
+                  setFraisKmDistanceKm(Number(billedKm.toFixed(2)).toString());
+                  if (kmSettings.countryCode) {
+                    setFraisKmCountryCode(kmSettings.countryCode);
+                    const preset = COUNTRY_RATE_PRESETS[kmSettings.countryCode];
+                    if (preset) setFraisKmRatePerKm(preset.ratePerKm.toString());
+                  }
+                  autoNom = selectedLieu.nom || null;
+                }
+              }
+              setFraisKmAutoLieuNom(autoNom);
+              setShowFraisKmModal(true);
+            }}
             onShowAcompteModal={() => setShowAcompteModal(true)}  
             showMissionRateEditor={showMissionRateEditor}
           />  
@@ -679,6 +706,7 @@ export default function App({ user }) {
         patrons={patrons}
         selectedPatronId={fraisKmPatronId}
         onPatronChange={setFraisKmPatronId}
+        autoCalcLieuNom={fraisKmAutoLieuNom}
       />
 
       <AcompteModal show={showAcompteModal} montant={acompteMontant} setMontant={setAcompteMontant} date={acompteDate} setDate={setAcompteDate} onSubmit={handleAcompteSubmit} onCancel={() => { setShowAcompteModal(false); resetAcompteForm(); }} loading={loading} isIOS={isIOS} patrons={patrons} selectedPatronId={acomptePatronId} onPatronChange={setAcomptePatronId} />  
