@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 /**
  * ✅ LieuModal - VERSION CLEAN
@@ -25,6 +25,8 @@ export const LieuModal = ({
     longitude: "",
     notes: "",
   });
+  const [locating, setLocating] = useState(false);
+  const [gpsMsg, setGpsMsg] = useState("");
 
   // Remplir le formulaire en mode édition
   useEffect(() => {
@@ -45,7 +47,58 @@ export const LieuModal = ({
         notes: initialData?.notes || "",
       });
     }
+    setGpsMsg("");
   }, [show, editMode, initialData]);
+
+  const useCurrentPosition = useCallback(() => {
+    if (!navigator?.geolocation) {
+      setGpsMsg("❌ Géolocalisation non supportée sur cet appareil.");
+      return;
+    }
+    setLocating(true);
+    setGpsMsg("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = parseFloat(pos.coords.latitude.toFixed(6));
+        const lng = parseFloat(pos.coords.longitude.toFixed(6));
+        setFormData((prev) => ({ ...prev, latitude: lat, longitude: lng }));
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+            { headers: { "Accept-Language": "fr", "User-Agent": "HeuresDeGeo/1.0" } }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const addr = data?.address || {};
+            const label =
+              addr.road && (addr.city || addr.town || addr.village)
+                ? `${addr.road}, ${addr.city || addr.town || addr.village}`
+                : data?.display_name?.split(", ").slice(0, 3).join(", ");
+            if (label) {
+              setFormData((prev) => ({
+                ...prev,
+                adresse_complete: prev.adresse_complete || label,
+              }));
+            }
+          }
+        } catch {
+          // coordonnées déjà remplies même sans adresse
+        }
+        setLocating(false);
+        setGpsMsg("✅ Position récupérée");
+      },
+      (err) => {
+        const errors = {
+          1: "❌ Autorise la géolocalisation pour utiliser cette fonction.",
+          2: "❌ Position indisponible.",
+          3: "❌ Délai de géolocalisation dépassé.",
+        };
+        setGpsMsg(errors[err.code] || "❌ Erreur géolocalisation.");
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -121,41 +174,77 @@ export const LieuModal = ({
             />
           </div>
 
-          {/* GPS (Optionnel - pour futur) */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-40">
-                Latitude
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={formData.latitude}
-                onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
-                placeholder="Ex: 50.1234"
-                className={`w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm ${
-                  darkMode
-                    ? "bg-black/20 border-white/5 text-white focus:border-purple-500"
-                    : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"
-                } backdrop-blur-md placeholder:text-white/30`}
-              />
+          {/* GPS (pour frais km automatiques) */}
+          <div className="border border-cyan-400/30 bg-cyan-950/20 rounded-xl p-3 space-y-3">
+            {/* Section header */}
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase text-cyan-300 tracking-wider">
+                📍 Coordonnées GPS (pour frais km auto)
+              </span>
+              {formData.latitude && formData.longitude ? (
+                <span className="px-2 py-0.5 bg-emerald-600/20 border border-emerald-500/30 rounded-lg text-[9px] font-black text-emerald-300 uppercase">
+                  ✅ GPS prêt
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 bg-orange-600/20 border border-orange-500/30 rounded-lg text-[9px] font-black text-orange-300 uppercase">
+                  ⚠️ Non renseigné
+                </span>
+              )}
             </div>
-            <div>
-              <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-40">
-                Longitude
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={formData.longitude}
-                onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
-                placeholder="Ex: 4.5678"
-                className={`w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm ${
-                  darkMode
-                    ? "bg-black/20 border-white/5 text-white focus:border-purple-500"
-                    : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"
-                } backdrop-blur-md placeholder:text-white/30`}
-              />
+
+            {/* Bouton position actuelle */}
+            <button
+              type="button"
+              onClick={useCurrentPosition}
+              disabled={locating}
+              className="w-full px-3 py-2 rounded-lg text-[11px] font-black uppercase tracking-widest border border-cyan-400/40 text-cyan-200 bg-cyan-500/10 disabled:opacity-50 transition-all"
+            >
+              {locating ? "📍 Localisation..." : "📍 Utiliser ma position actuelle"}
+            </button>
+
+            {/* Message de feedback */}
+            {gpsMsg && (
+              <p className={`text-[11px] font-bold ${gpsMsg.startsWith("✅") ? "text-emerald-400" : "text-red-400"}`}>
+                {gpsMsg}
+              </p>
+            )}
+
+            {/* Champs lat/lng */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-2 text-cyan-300 tracking-wider">
+                  Latitude
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.latitude}
+                  onChange={(e) => setFormData({ ...formData, latitude: e.target.value })}
+                  placeholder="Ex: 50.1234"
+                  className={`w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm ${
+                    darkMode
+                      ? "bg-black/20 border-white/5 text-white focus:border-cyan-500"
+                      : "bg-slate-50 border-slate-200 text-slate-900 focus:border-cyan-500"
+                  } backdrop-blur-md placeholder:text-white/30`}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase mb-2 text-cyan-300 tracking-wider">
+                  Longitude
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.longitude}
+                  onChange={(e) => setFormData({ ...formData, longitude: e.target.value })}
+                  placeholder="Ex: 4.5678"
+                  className={`w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm ${
+                    darkMode
+                      ? "bg-black/20 border-white/5 text-white focus:border-cyan-500"
+                      : "bg-slate-50 border-slate-200 text-slate-900 focus:border-cyan-500"
+                  } backdrop-blur-md placeholder:text-white/30`}
+                />
+              </div>
             </div>
           </div>
 
