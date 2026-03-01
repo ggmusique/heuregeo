@@ -24,6 +24,7 @@ export const FraisKmModal = ({
   patrons = [],
   selectedPatronId = null,
   onPatronChange = () => {},
+  autoCalcLieuNom = null,
 }) => {
   if (!show) return null;
 
@@ -100,6 +101,15 @@ export const FraisKmModal = ({
             </option>
           ))}
         </select>
+
+        {/* Auto-calc note */}
+        {autoCalcLieuNom && distanceOk && (
+          <div className="mb-3 p-2 rounded-xl bg-emerald-600/10 border border-emerald-500/20 text-center">
+            <span className="text-[10px] font-black text-emerald-300 uppercase tracking-wider">
+              📍 Distance calculée auto : domicile → {autoCalcLieuNom}
+            </span>
+          </div>
+        )}
 
         {/* Distance */}
         <input
