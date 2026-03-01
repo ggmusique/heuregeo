@@ -67,6 +67,7 @@ export default function App({ user }) {
   const [fraisKmDate, setFraisKmDate] = useState(new Date().toISOString().split("T")[0]);
   const [fraisKmPatronId, setFraisKmPatronId] = useState(null);
   const [fraisKmAutoLieuNom, setFraisKmAutoLieuNom] = useState(null);
+  const [fraisKmNoGpsHint, setFraisKmNoGpsHint] = useState(false);
 
   const [showAcompteModal, setShowAcompteModal] = useState(false);
   const [acompteMontant, setAcompteMontant] = useState("");
@@ -363,6 +364,7 @@ export default function App({ user }) {
     setFraisKmDate(new Date().toISOString().split("T")[0]);
     setFraisKmPatronId(null);
     setFraisKmAutoLieuNom(null);
+    setFraisKmNoGpsHint(false);
   };
 
   const handleAcompteSubmit = async () => {
@@ -579,9 +581,12 @@ export default function App({ user }) {
             onShowClientModal={() => { resetClientForm(); setShowClientModal(true); }}  
             onShowPatronModal={() => { resetPatronForm(); setShowPatronModal(true); }}
             onShowFraisModal={() => setShowFraisModal(true)}  
-            onShowFraisKmModal={() => {
+            onShowFraisKmModal={async () => {
               const selectedLieu = lieux.find((l) => String(l.id) === String(selectedLieuId));
               let autoNom = null;
+              let autoDistanceKm = null;
+              let autoCountryCode = fraisKmCountryCode;
+              let autoRatePerKm = parseFloat(fraisKmRatePerKm) || COUNTRY_RATE_PRESETS.BE.ratePerKm;
               if (selectedLieu?.latitude != null && selectedLieu?.longitude != null) {
                 let kmSettings = normalizeKmSettings(features);
                 if (!kmSettings?.homeLat || !kmSettings?.homeLng) {
@@ -593,16 +598,49 @@ export default function App({ user }) {
                 if (kmSettings?.homeLat != null && kmSettings?.homeLng != null) {
                   const oneWayKm = haversineDistanceKm(kmSettings.homeLat, kmSettings.homeLng, selectedLieu.latitude, selectedLieu.longitude);
                   const billedKm = kmSettings.roundTrip !== false ? oneWayKm * 2 : oneWayKm;
-                  setFraisKmDistanceKm(Number(billedKm.toFixed(2)).toString());
+                  autoDistanceKm = Number(billedKm.toFixed(2));
                   if (kmSettings.countryCode) {
-                    setFraisKmCountryCode(kmSettings.countryCode);
+                    autoCountryCode = kmSettings.countryCode;
                     const preset = COUNTRY_RATE_PRESETS[kmSettings.countryCode];
-                    if (preset) setFraisKmRatePerKm(preset.ratePerKm.toString());
+                    if (preset) autoRatePerKm = preset.ratePerKm;
                   }
                   autoNom = selectedLieu.nom || null;
                 }
               }
+              // If GPS auto-calc succeeded AND patron already selected → create directly, no modal
+              if (autoDistanceKm !== null && selectedPatronId) {
+                const today = new Date().toISOString().split("T")[0];
+                const amount = Number((autoDistanceKm * autoRatePerKm).toFixed(2));
+                try {
+                  setLoading(true);
+                  await createFraisKm({
+                    patron_id: selectedPatronId,
+                    date_frais: today,
+                    country_code: autoCountryCode,
+                    distance_km: autoDistanceKm,
+                    rate_per_km: autoRatePerKm,
+                    amount,
+                    notes: `Frais kilométriques ${autoCountryCode} ${autoDistanceKm} km`,
+                    source: "auto",
+                    user_id: user?.id,
+                  });
+                  triggerAlert(`Frais km enregistré ! (${autoDistanceKm} km × ${autoRatePerKm.toFixed(4)} €/km = ${amount} €)`);
+                } catch (err) {
+                  triggerAlert("Erreur : " + (err?.message || "Opération échouée"));
+                } finally {
+                  setLoading(false);
+                }
+                return;
+              }
+              // Otherwise open modal with pre-filled values
+              setFraisKmDistanceKm(autoDistanceKm !== null ? autoDistanceKm.toString() : "");
+              setFraisKmCountryCode(autoCountryCode);
+              setFraisKmRatePerKm(autoRatePerKm.toString());
+              setFraisKmDate(new Date().toISOString().split("T")[0]);
+              setFraisKmPatronId(selectedPatronId || null);
               setFraisKmAutoLieuNom(autoNom);
+              // Show GPS hint when a lieu is selected but has no GPS coordinates
+              setFraisKmNoGpsHint(!!selectedLieu && autoNom === null);
               setShowFraisKmModal(true);
             }}
             onShowAcompteModal={() => setShowAcompteModal(true)}  
@@ -707,6 +745,7 @@ export default function App({ user }) {
         selectedPatronId={fraisKmPatronId}
         onPatronChange={setFraisKmPatronId}
         autoCalcLieuNom={fraisKmAutoLieuNom}
+        noGpsHint={fraisKmNoGpsHint}
       />
 
       <AcompteModal show={showAcompteModal} montant={acompteMontant} setMontant={setAcompteMontant} date={acompteDate} setDate={setAcompteDate} onSubmit={handleAcompteSubmit} onCancel={() => { setShowAcompteModal(false); resetAcompteForm(); }} loading={loading} isIOS={isIOS} patrons={patrons} selectedPatronId={acomptePatronId} onPatronChange={setAcomptePatronId} />  

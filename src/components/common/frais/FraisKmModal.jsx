@@ -25,6 +25,7 @@ export const FraisKmModal = ({
   selectedPatronId = null,
   onPatronChange = () => {},
   autoCalcLieuNom = null,
+  noGpsHint = false,
 }) => {
   if (!show) return null;
 
@@ -107,6 +108,15 @@ export const FraisKmModal = ({
           <div className="mb-3 p-2 rounded-xl bg-emerald-600/10 border border-emerald-500/20 text-center">
             <span className="text-[10px] font-black text-emerald-300 uppercase tracking-wider">
               📍 Distance calculée auto : domicile → {autoCalcLieuNom}
+            </span>
+          </div>
+        )}
+
+        {/* No-GPS hint */}
+        {noGpsHint && (
+          <div className="mb-3 p-2 rounded-xl bg-orange-600/10 border border-orange-500/20 text-center">
+            <span className="text-[10px] font-black text-orange-300 uppercase tracking-wider">
+              ⚠️ Ajoute les coordonnées GPS au lieu de travail pour calculer la distance automatiquement
             </span>
           </div>
         )}
