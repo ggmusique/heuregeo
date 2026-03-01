@@ -33,6 +33,7 @@ export const SaisieTab = ({
   onShowLieuModal,
   onShowClientModal,
   onShowFraisModal,
+  onShowFraisKmModal,
   onShowAcompteModal,
   showMissionRateEditor = true,
 }) => {
@@ -76,6 +77,12 @@ export const SaisieTab = ({
           className="py-4 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all"
         >
           + Acompte
+        </button>
+        <button
+          onClick={() => onShowFraisKmModal()}
+          className="col-span-2 py-4 bg-teal-600/20 text-teal-300 border border-teal-500/30 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all"
+        >
+          🚗 + Frais kilométriques
         </button>
       </div>
     </div>

@@ -17,6 +17,7 @@ import { useProfile } from "./hooks/useProfile";
 import { useFraisKm } from "./hooks/useFraisKm";
 
 import { FraisModal } from "./components/common/frais/FraisModal";
+import { FraisKmModal } from "./components/common/frais/FraisKmModal";
 import { AcompteModal } from "./components/common/acompte/AcompteModal";
 import { PatronModal } from "./components/patron/PatronModal";
 import { ClientModal } from "./components/client/ClientModal";
@@ -35,7 +36,7 @@ import "./fix-time-pickers-emergency.css";
 import "./fix-selects.css";
 
 import { getWeekNumber } from "./utils/dateUtils";
-import { buildKmExpenseFromMission, normalizeKmSettings } from "./utils/kmUtils";
+import { buildKmExpenseFromMission, normalizeKmSettings, COUNTRY_RATE_PRESETS } from "./utils/kmUtils";
 
 export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
@@ -58,6 +59,13 @@ export default function App({ user }) {
   const [fraisDate, setFraisDate] = useState(new Date().toISOString().split("T")[0]);
   const [editingFraisId, setEditingFraisId] = useState(null);
   const [fraisPatronId, setFraisPatronId] = useState(null);
+
+  const [showFraisKmModal, setShowFraisKmModal] = useState(false);
+  const [fraisKmDistanceKm, setFraisKmDistanceKm] = useState("");
+  const [fraisKmCountryCode, setFraisKmCountryCode] = useState("BE");
+  const [fraisKmRatePerKm, setFraisKmRatePerKm] = useState(COUNTRY_RATE_PRESETS.BE.ratePerKm.toString());
+  const [fraisKmDate, setFraisKmDate] = useState(new Date().toISOString().split("T")[0]);
+  const [fraisKmPatronId, setFraisKmPatronId] = useState(null);
 
   const [showAcompteModal, setShowAcompteModal] = useState(false);
   const [acompteMontant, setAcompteMontant] = useState("");
@@ -320,6 +328,41 @@ export default function App({ user }) {
 
   const resetFraisForm = () => { setFraisDescription(""); setFraisMontant(""); setFraisDate(new Date().toISOString().split("T")[0]); setEditingFraisId(null); setFraisPatronId(null); };
 
+  const handleFraisKmSubmit = async () => {
+    const distance = parseFloat((fraisKmDistanceKm ?? "").toString().replace(",", "."));
+    const rate = parseFloat((fraisKmRatePerKm ?? "").toString().replace(",", "."));
+    if (!Number.isFinite(distance) || distance <= 0) return triggerAlert("Saisis une distance valide");
+    if (!Number.isFinite(rate) || rate <= 0) return triggerAlert("Saisis un taux valide");
+    if (!fraisKmPatronId) return triggerAlert("Selectionne un patron pour ce frais");
+    const amount = Number((distance * rate).toFixed(2));
+    try {
+      setLoading(true);
+      await createFraisKm({
+        patron_id: fraisKmPatronId,
+        date_frais: fraisKmDate,
+        country_code: fraisKmCountryCode,
+        distance_km: distance,
+        rate_per_km: rate,
+        amount,
+        notes: `Frais kilométriques ${fraisKmCountryCode} ${distance} km`,
+        source: "manual",
+        user_id: user?.id,
+      });
+      triggerAlert(`Frais km enregistre ! (${distance} km × ${rate} €/km = ${amount} €)`);
+      resetFraisKmForm();
+      setShowFraisKmModal(false);
+    } catch (err) { triggerAlert("Erreur : " + (err?.message || "Operation echouee")); }
+    finally { setLoading(false); }
+  };
+
+  const resetFraisKmForm = () => {
+    setFraisKmDistanceKm("");
+    setFraisKmCountryCode("BE");
+    setFraisKmRatePerKm(COUNTRY_RATE_PRESETS.BE.ratePerKm.toString());
+    setFraisKmDate(new Date().toISOString().split("T")[0]);
+    setFraisKmPatronId(null);
+  };
+
   const handleAcompteSubmit = async () => {
     const montantNet = parseFloat(acompteMontant?.toString().replace(",", "."));
     if (!acompteMontant || isNaN(montantNet) || montantNet <= 0) return triggerAlert("Veuillez saisir un montant valide");
@@ -534,6 +577,7 @@ export default function App({ user }) {
             onShowClientModal={() => { resetClientForm(); setShowClientModal(true); }}  
             onShowPatronModal={() => { resetPatronForm(); setShowPatronModal(true); }}
             onShowFraisModal={() => setShowFraisModal(true)}  
+            onShowFraisKmModal={() => setShowFraisKmModal(true)}
             onShowAcompteModal={() => setShowAcompteModal(true)}  
             showMissionRateEditor={showMissionRateEditor}
           />  
@@ -616,6 +660,26 @@ export default function App({ user }) {
       <ConfirmModal show={confirmState.show} title={confirmState.title} message={confirmState.message} confirmText={confirmState.confirmText} cancelText={confirmState.cancelText} type={confirmState.type} onConfirm={confirmState.onConfirm} onCancel={hideConfirm} />  
 
       <FraisModal show={showFraisModal} editMode={!!editingFraisId} description={fraisDescription} setDescription={setFraisDescription} montant={fraisMontant} setMontant={setFraisMontant} date={fraisDate} setDate={setFraisDate} onSubmit={handleFraisSubmit} onCancel={() => { setShowFraisModal(false); resetFraisForm(); }} loading={loading} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={fraisPatronId} onPatronChange={setFraisPatronId} />  
+
+      <FraisKmModal
+        show={showFraisKmModal}
+        distanceKm={fraisKmDistanceKm}
+        setDistanceKm={setFraisKmDistanceKm}
+        countryCode={fraisKmCountryCode}
+        setCountryCode={setFraisKmCountryCode}
+        ratePerKm={fraisKmRatePerKm}
+        setRatePerKm={setFraisKmRatePerKm}
+        date={fraisKmDate}
+        setDate={setFraisKmDate}
+        onSubmit={handleFraisKmSubmit}
+        onCancel={() => { setShowFraisKmModal(false); resetFraisKmForm(); }}
+        loading={loading}
+        darkMode={darkMode}
+        isIOS={isIOS}
+        patrons={patrons}
+        selectedPatronId={fraisKmPatronId}
+        onPatronChange={setFraisKmPatronId}
+      />
 
       <AcompteModal show={showAcompteModal} montant={acompteMontant} setMontant={setAcompteMontant} date={acompteDate} setDate={setAcompteDate} onSubmit={handleAcompteSubmit} onCancel={() => { setShowAcompteModal(false); resetAcompteForm(); }} loading={loading} isIOS={isIOS} patrons={patrons} selectedPatronId={acomptePatronId} onPatronChange={setAcomptePatronId} />  
 
