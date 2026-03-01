@@ -460,7 +460,7 @@ export function ParametresTab({
                   onLieuAdd={onLieuAdd}
                   defaultOpenPatrons={false}
                   allowClientActions={false}
-                  allowLieuActions={false}
+                  allowLieuActions={true}
                 />
               )}
 
