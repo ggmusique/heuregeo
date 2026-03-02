@@ -27,6 +27,9 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
   // Ref : évite de relancer fetchAcomptes 2 fois en même temps
   const isFetching = useRef(false);
 
+  // Ref : évite un double-submit sur createAcompte
+  const isCreating = useRef(false);
+
   /**
    * ==========================================
    * 1) Charger tous les acomptes (API)
@@ -58,17 +61,21 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
 
 /**
  * ==========================================
- * 2) Créer un acompte (API) + AUTO-PAIEMENT
+ * 2) Créer un acompte (API) + AUTO-PAIEMENT via RPC
  * ==========================================
  * Utilisé quand tu valides la modal "+ Acompte"
  * => On ajoute direct l'acompte dans la liste (optimiste)
- * => ✅ On déclenche l'auto-paiement des bilans
+ * => La RPC apply_acompte est déclenchée côté DB
  */
 const createAcompte = useCallback(
-  async (acompteData, autoPayerBilans) => { // ✅ Nouveau param
+  async (acompteData) => {
     if (!acompteData) {
       throw new Error("Données de l'acompte manquantes");
     }
+
+    // Protection double-submit
+    if (isCreating.current) return;
+    isCreating.current = true;
 
     try {
       setLoading(true);
@@ -77,14 +84,6 @@ const createAcompte = useCallback(
 
       if (newAcompte) {
         setListeAcomptes((prev) => [newAcompte, ...prev]);
-        
-        // ✅ DÉCLENCHER L'AUTO-PAIEMENT
-        if (autoPayerBilans && typeof autoPayerBilans === 'function') {
-          await autoPayerBilans(
-            acompteData.patron_id,
-            acompteData.montant
-          );
-        }
       }
 
       return newAcompte;
@@ -94,6 +93,7 @@ const createAcompte = useCallback(
       throw err;
     } finally {
       setLoading(false);
+      isCreating.current = false;
     }
   },
   [onError]

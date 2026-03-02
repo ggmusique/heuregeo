@@ -345,10 +345,11 @@ export default function App({ user }) {
     if (!acomptePatronId) return triggerAlert("Selectionne un patron pour cet acompte");
     try {
       setLoading(true);
-      await createAcompte({ montant: montantNet, date_acompte: acompteDate, patron_id: acomptePatronId }, bilan.autoPayerBilans);
+      await createAcompte({ montant: montantNet, date_acompte: acompteDate, patron_id: acomptePatronId });
       triggerAlert("Acompte enregistre !");
       resetAcompteForm();
       setShowAcompteModal(false);
+      await fetchAcomptes();
       if (bilan.showBilan && bilan.bilanPeriodValue) await bilan.genererBilan(bilanPatronId);
       await chargerHistorique(acomptePatronId);
     } catch (err) { triggerAlert("Erreur : " + (err?.message || "Probleme de base de donnees")); }
