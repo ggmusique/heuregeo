@@ -280,7 +280,7 @@ export const BilanTab = ({
     {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── affiché uniquement si données */}
     {(bilan.bilanContent.acomptesDansPeriode > 0 ||
       bilan.bilanContent.soldeAcomptesAvant > 0 ||
-      bilan.bilanContent.totalAcomptes > 0) && (
+      bilan.bilanContent.acompteConsommePeriode > 0) && (
       <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
         <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
           Suivi du solde acompte & impayés
@@ -305,11 +305,11 @@ export const BilanTab = ({
             </div>
           )}
 
-          {bilan.bilanContent.totalAcomptes > 0 && (
+          {bilan.bilanContent.acompteConsommePeriode > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-white/60">✂️ Consommé cette période :</span>
               <span className="font-bold text-red-400">
-                -{formatEuro(bilan.bilanContent.totalAcomptes)}
+                -{formatEuro(bilan.bilanContent.acompteConsommePeriode)}
               </span>
             </div>
           )}

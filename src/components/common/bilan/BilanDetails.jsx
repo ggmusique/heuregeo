@@ -179,7 +179,7 @@ export const BilanDetail = ({
         bilanContent.impayePrecedent > 0 ||
         bilanContent.soldeAcomptesAvant > 0 ||
         bilanContent.acomptesDansPeriode > 0 ||
-        bilanContent.totalAcomptes > 0 ||
+        bilanContent.acompteConsommePeriode > 0 ||
         bilanContent.soldeAcomptesApres > 0) && (
         <div className="mt-10 p-6 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 rounded-[35px] border border-indigo-500/30">
           
@@ -215,11 +215,11 @@ export const BilanDetail = ({
               </div>
             )}
 
-            {bilanContent.totalAcomptes !== 0 && (
+            {bilanContent.acompteConsommePeriode !== 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">Consommé :</span>
                 <span className="font-bold text-cyan-300 amount-safe">
-                  -{formatEuro(bilanContent.totalAcomptes)}
+                  -{formatEuro(bilanContent.acompteConsommePeriode)}
                 </span>
               </div>
             )}

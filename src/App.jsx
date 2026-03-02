@@ -350,6 +350,7 @@ export default function App({ user }) {
       resetAcompteForm();
       setShowAcompteModal(false);
       if (bilan.showBilan && bilan.bilanPeriodValue) await bilan.genererBilan(bilanPatronId);
+      await chargerHistorique(acomptePatronId);
     } catch (err) { triggerAlert("Erreur : " + (err?.message || "Probleme de base de donnees")); }
     finally { setLoading(false); }
   };
