@@ -4,6 +4,7 @@ import { DonneesTab } from "./DonneesTab";
 import { AdminPage } from "./AdminPage";
 import { EUROPE_COUNTRIES, KM_RATES } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
+import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
 
 export function ParametresTab({
   profile,
@@ -187,11 +188,7 @@ export function ParametresTab({
 function KmSettingsPanel({ profile, saveProfile, isPro }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
-  const [kmEnable, setKmEnable] = useState(() => {
-    const f = profile?.features ?? {};
-    const ks = f.km_settings ?? {};
-    return ks.enabled ?? f.km_enabled ?? f.km_enable ?? false;
-  });
+  const [kmEnable, setKmEnable] = useState(() => getKmEnabled(profile?.features));
   const [kmIncludeRetour, setKmIncludeRetour] = useState(() => {
     const f = profile?.features ?? {};
     const ks = f.km_settings ?? {};
@@ -214,7 +211,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     if (!profile) return;
     const f = profile.features ?? {};
     const ks = f.km_settings ?? {};
-    setKmEnable(ks.enabled ?? f.km_enabled ?? f.km_enable ?? false);
+    setKmEnable(getKmEnabled(f));
     setKmIncludeRetour(f.km_include_retour ?? ks.roundTrip ?? false);
     setKmDomicileAdresse(f.km_domicile_address || ks.homeLabel || "");
     setKmCountryCode(f.km_country || ks.countryCode || "FR");
@@ -237,19 +234,11 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     setSaving(true);
     setSaveError(null);
     const prevFeatures = profile?.features ?? {};
-    const nextFeatures = {
-      ...prevFeatures,
-      km_enabled: newEnabled,
-      km_enable: undefined, // remove legacy key
-      km_settings: {
-        ...(prevFeatures.km_settings ?? {}),
-        enabled: newEnabled,
-      },
-    };
+    const nextFeatures = setKmEnabled(prevFeatures, newEnabled);
     const result = await saveProfile({ features: nextFeatures });
     if (result?.error) {
       setSaveError(result.error);
-      setKmEnable(!newEnabled); // revert on error
+      setKmEnable(getKmEnabled(profile?.features)); // revert on error
     }
     setSaving(false);
   };
@@ -272,9 +261,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     }
 
     const nextFeatures = {
-      ...prevFeatures,
-      km_enabled: kmEnable,
-      km_enable: undefined, // remove legacy key
+      ...setKmEnabled(prevFeatures, kmEnable),
       km_country: kmCountryCode,
       km_rate_mode: kmRateMode,
       km_rate_custom: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
@@ -297,7 +284,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     if (result?.error) {
       setSaveError(result.error);
       // Revert toggle state to what was in profile
-      setKmEnable(profile?.features?.km_settings?.enabled ?? profile?.features?.km_enabled ?? profile?.features?.km_enable ?? false);
+      setKmEnable(getKmEnabled(profile?.features));
     }
     setSaving(false);
   };
