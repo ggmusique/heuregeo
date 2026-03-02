@@ -31,6 +31,14 @@ export const BilanTab = ({
   kmFraisThisWeek = null,
   domicileLatLng = null,
 }) => {
+  const exportBilanContent = useMemo(() => {
+    if (kmSettings?.km_enable === true) return bilan.bilanContent;
+    return {
+      ...bilan.bilanContent,
+      fraisKilometriques: { items: [], totalKm: 0, totalAmount: 0 },
+    };
+  }, [bilan.bilanContent, kmSettings?.km_enable]);
+
   const sortedBilanMissions = useMemo(() => {
     if (!bilan.bilanContent?.filteredData) return [];
     return [...bilan.bilanContent.filteredData].sort(
@@ -81,7 +89,7 @@ export const BilanTab = ({
           )}
 
           {/* ── BLOC FRAIS KM – Semaine en cours ── */}
-          {kmSettings?.km_enable && missionsThisWeek.length > 0 && (
+          {kmSettings?.km_enable === true && missionsThisWeek.length > 0 && (
             kmFraisThisWeek?.items?.length > 0 ? (
               <div className="mt-2 p-4 bg-[#0A1628]/60 rounded-[25px] border border-blue-600/20 backdrop-blur-md">
                 <p className="text-[10px] font-black uppercase text-blue-400/70 mb-3 tracking-[0.2em]">
@@ -222,7 +230,7 @@ export const BilanTab = ({
     )}
 
     {/* ── BLOC FRAIS KM ── */}
-    {bilan.bilanContent.fraisKilometriques?.items?.length > 0 && bilan.bilanPeriodType === "semaine" && (
+    {kmSettings?.km_enable === true && bilan.bilanContent.fraisKilometriques?.items?.length > 0 && bilan.bilanPeriodType === "semaine" && (
       <div className="mb-4 p-6 bg-[#0A1628]/60 rounded-[35px] border border-blue-600/20 backdrop-blur-md">
         <p className="text-[10px] font-black uppercase text-blue-400/70 mb-4 tracking-[0.2em]">
           🚗 Frais kilométriques
@@ -258,7 +266,7 @@ export const BilanTab = ({
     )}
 
     {/* ── BLOC FRAIS KM – fallback domicile manquant ── */}
-    {kmSettings?.km_enable && bilan.bilanPeriodType === "semaine" &&
+    {kmSettings?.km_enable === true && bilan.bilanPeriodType === "semaine" &&
       !bilan.bilanContent.fraisKilometriques?.items?.length && (
       <div className="mb-4 p-4 bg-[#0A1628]/40 rounded-[25px] border border-blue-600/10 text-sm text-white/40 italic">
         🚗 Frais kilométriques —{" "}
@@ -364,8 +372,8 @@ export const BilanTab = ({
       <div className="flex flex-wrap gap-3 mb-8">
         <button
           onClick={() => canExportExcel && exportToExcel(
-            bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
-            bilan.bilanContent.titre, bilan.bilanContent.fraisDivers, profile
+            exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
+            exportBilanContent.titre, exportBilanContent.fraisDivers, profile
           )}
           disabled={!canExportExcel}
           title={!canExportExcel ? "Fonctionnalité Pro" : undefined}
@@ -377,7 +385,7 @@ export const BilanTab = ({
 
         <button
           onClick={() => canExportPDF && exportToPDFPro(
-            bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
+            exportBilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
             bilan.bilanPeriodValue, profile
           )}
           disabled={!canExportPDF}
@@ -390,7 +398,7 @@ export const BilanTab = ({
 
         <button
           onClick={() => canExportCSV && exportToCSV(
-            bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false
+            exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false
           )}
           disabled={!canExportCSV}
           title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
@@ -403,7 +411,7 @@ export const BilanTab = ({
         {bilan.bilanPeriodType === "semaine" && bilan.bilanContent.fraisDivers.length > 0 && (
           <button
             onClick={() => canExportCSV && exportToCSV(
-              bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true
+              exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true
             )}
             disabled={!canExportCSV}
             title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
