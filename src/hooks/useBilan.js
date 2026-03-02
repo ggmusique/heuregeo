@@ -134,14 +134,16 @@ export function useBilan({
   const calculerPeriodesDisponibles = useCallback(() => {
     const periods = new Set();
     missions.forEach((m) => {
-      if (!m?.date_iso) return;
-      const d = new Date(m.date_iso);
+      // date_mission en priorité, date_iso en fallback
+      const mDate = m?.date_mission || m?.date_iso;
+      if (!mDate) return;
+      const d = new Date(mDate);
       if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
         periods.add(getWeekNumber(d));
       } else if (bilanPeriodType === PERIOD_TYPES.MOIS) {
-        periods.add(m.date_iso.substring(0, 7));
+        periods.add(mDate.substring(0, 7));
       } else if (bilanPeriodType === PERIOD_TYPES.ANNEE) {
-        periods.add(m.date_iso.substring(0, 4));
+        periods.add(mDate.substring(0, 4));
       }
     });
     const sorted = Array.from(periods).sort((a, b) => computePeriodeIndex(bilanPeriodType, b) - computePeriodeIndex(bilanPeriodType, a));
