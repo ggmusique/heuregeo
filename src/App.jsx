@@ -430,6 +430,85 @@ export default function App({ user }) {
     }
   };
 
+  // Batch geocoding for lieux without coordinates (used by DiagnosticsPage)
+  // Nominatim usage policy requires ≤ 1 request/second; 1100ms gives a safe margin.
+  const NOMINATIM_DELAY_MS = 1100;
+  const handleRegeocoderBatch = useCallback(async (lieuxManquants) => {
+    if (!lieuxManquants?.length) return { message: "Aucun lieu à géocoder" };
+    let count = 0;
+    const errors = [];
+    for (const lieu of lieuxManquants) {
+      const addr = (lieu.adresse_complete || lieu.nom || "").trim();
+      if (!addr) continue;
+      try {
+        // Respect Nominatim rate limit (1 req/s)
+        await new Promise((r) => setTimeout(r, NOMINATIM_DELAY_MS));
+        const result = await geocodeAddress(addr);
+        if (result) {
+          await updateLieu(lieu.id, { latitude: result.lat, longitude: result.lng });
+          count++;
+        }
+      } catch {
+        errors.push(lieu.nom || lieu.id);
+      }
+    }
+    await fetchLieux();
+    if (errors.length > 0) {
+      return { message: `${count} lieu(x) géocodé(s), ${errors.length} erreur(s)` };
+    }
+    return { message: `✅ ${count} lieu(x) géocodé(s)` };
+  }, [updateLieu, fetchLieux]);
+
+  // Recalculate km frais for current week and persist to frais_km table (reuses Ticket-3 logic)
+  const handleRecalculerKmSemaine = useCallback(async () => {
+    const effectiveDomicile = domicileLatLng ?? (
+      Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng)
+        ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
+        : null
+    );
+    if (!effectiveDomicile?.lat || !effectiveDomicile?.lng) {
+      throw new Error("Domicile non configuré. Vérifiez Paramètres → Km.");
+    }
+    if (missionsThisWeek.length === 0) throw new Error("Aucune mission cette semaine");
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) throw new Error("Utilisateur non connecté");
+    const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
+      ? (parseFloat(kmSettings.km_rate) || 0)
+      : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
+    const multiplicateur = kmSettings.km_include_retour ? 2 : 1;
+    const countryCode = kmSettings.km_country_code || "FR";
+    const rows = [];
+    missionsThisWeek.forEach((m) => {
+      const lieuById = lieux.find((l) => l.id === m.lieu_id);
+      const lieuByName = !lieuById && m.lieu
+        ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
+        : null;
+      const lieu = lieuById || lieuByName;
+      const latLieu = Number(lieu?.latitude);
+      const lngLieu = Number(lieu?.longitude);
+      if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+        const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
+        const distanceKm = kmOneWay * multiplicateur;
+        const amount = distanceKm * kmRateEffectif;
+        rows.push({
+          user_id: authUser.id,
+          patron_id: m.patron_id || null,
+          mission_id: m.id,
+          date_frais: m.date_iso,
+          country_code: countryCode,
+          distance_km: distanceKm,
+          rate_per_km: kmRateEffectif,
+          amount,
+          source: "auto",
+        });
+      }
+    });
+    if (rows.length === 0) throw new Error("Aucun lieu géocodé — coordonnées GPS manquantes");
+    const { error } = await supabase.from("frais_km").upsert(rows, { onConflict: "mission_id" });
+    if (error) throw error;
+    return { message: `✅ ${rows.length} ligne(s) km recalculée(s) pour la semaine` };
+  }, [kmSettings, domicileLatLng, missionsThisWeek, lieux]);
+
   const handleLieuDelete = async (lieu) => {
     const confirmed = await showConfirm({ title: "Supprimer ce lieu", message: "Supprimer ce lieu ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
     if (!confirmed) return;
@@ -695,6 +774,11 @@ export default function App({ user }) {
             onToggleMissionRateEditor={setShowMissionRateEditor}
             kmSettings={kmSettings}
             onRegeocoderLieu={handleRegeocoderLieu}
+            domicileLatLng={domicileLatLng}
+            missionsThisWeek={missionsThisWeek}
+            kmFraisThisWeek={kmFraisThisWeek}
+            onRegeocoderBatch={handleRegeocoderBatch}
+            onRecalculerKmSemaine={handleRecalculerKmSemaine}
           />
         )}
       </main>  
