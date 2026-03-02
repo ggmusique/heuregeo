@@ -76,6 +76,7 @@ export function useBilan({
     soldeAcomptesApres: 0,
     acomptesDansPeriode: 0,
     totalAcomptes: 0,
+    acompteConsommePeriode: 0,
     selectedPatronId: null,
     selectedPatronNom: "Tous les patrons (Global)",
     fraisKilometriques: { items: [], totalKm: 0, totalAmount: 0 },
@@ -394,9 +395,10 @@ export function useBilan({
           // without relying on potentially stale bilans_status_v2 snapshots.
           soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
           const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
-          acompteConsomme = Math.min(acompteDisponible, caBrutPeriode);
+          const aRegler = caBrutPeriode + impayePrecedent;
+          acompteConsomme = Math.min(aRegler, acompteDisponible);
           resteCettePeriode = Math.max(0, caBrutPeriode - acompteConsomme);
-          resteAPercevoir = Math.max(0, caBrutPeriode + impayePrecedent - acompteConsomme);
+          resteAPercevoir = Math.max(0, aRegler - acompteConsomme);
           soldeApresPeriode = Math.max(0, acompteDisponible - acompteConsomme);
           acompteConsommeAffiche = acompteConsomme;
 
@@ -501,8 +503,9 @@ export function useBilan({
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
 
          // ✅ N'afficher le bloc que si un acompte a été consommé sur CETTE période
-totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0 
-? acompteConsommeAffiche 
+          acompteConsommePeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
+          totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0 
+? acompteConsomme 
 : 0,
 
           acomptesDansPeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acomptesDansPeriode : 0,
@@ -525,13 +528,6 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
 
         // 11) Sauvegarde Supabase
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
-        const { data: bilanExistant } = await supabase
-          .from(TABLE)
-          .select("acompte_consomme, paye")
-          .eq("periode_type", bilanPeriodType)
-          .eq("periode_value", bilanPeriodValue)
-          .eq("patron_id", pId)
-          .maybeSingle();
 
         const dataToSave = {
           user_id: user.id,
@@ -543,10 +539,8 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
           date_paiement: statutPaye ? new Date().toISOString() : null,
           reste_a_percevoir: resteCettePeriode,
           ca_brut_periode: caBrutPeriode,
-          // ✅ Sauvegarde le petit acompteConsomme (cette période uniquement)
-          acompte_consomme: (bilanExistant?.acompte_consomme > 0)
-            ? bilanExistant.acompte_consomme
-            : (bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0),
+          // ✅ Sauvegarde acompteConsommePeriode (consommation de cette période uniquement)
+          acompte_consomme: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
         };
 
         if (!isGlobalPatronId(patronId)) {
@@ -667,7 +661,7 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
           date_paiement: new Date().toISOString(),
           reste_a_percevoir: reste,
           ca_brut_periode: bilanContent.totalE || 0,
-          acompte_consomme: bilanContent.totalAcomptes || 0,
+          acompte_consomme: bilanContent.acompteConsommePeriode || 0,
         };
 
         const { error } = await supabase.from(TABLE).upsert(dataToSave, {
