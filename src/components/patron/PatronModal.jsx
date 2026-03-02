@@ -98,7 +98,7 @@ export function PatronModal({
 
       {/* Modal */}
       <div
-        className={`relative w-full max-w-md rounded-[35px] p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 ${
+        className={`relative w-full max-w-md rounded-[35px] p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 max-h-[calc(100vh-8rem)] overflow-y-auto ${
           darkMode
             ? "bg-gradient-to-br from-indigo-900/95 to-purple-900/95 text-white"
             : "bg-white text-slate-900"

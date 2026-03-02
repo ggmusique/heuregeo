@@ -154,8 +154,8 @@ export function ParametresTab({
       </div>
 
       {activeSection && (
-        <div className="fixed inset-0 z-[300] bg-black/65 backdrop-blur-sm p-3 pb-28 sm:p-6 sm:pb-28">
-          <div className="max-w-6xl mx-auto h-full rounded-2xl border border-white/15 bg-[#070d1c] shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[300] bg-black/65 backdrop-blur-sm flex flex-col p-3 pb-28 sm:p-6 sm:pb-28">
+          <div className="max-w-6xl w-full mx-auto flex-1 min-h-0 rounded-2xl border border-white/15 bg-[#070d1c] shadow-2xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/30">
               <div className="flex items-center gap-2 text-white">
                 <span>{activeSection.icon}</span>
@@ -169,7 +169,7 @@ export function ParametresTab({
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 pb-4">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4 pb-8">
               {activePanel === "profil" && (
                 <div className="space-y-4">
                   <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={userEmail} />

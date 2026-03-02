@@ -263,8 +263,8 @@ export function useBilan({
         triggerAlert?.("Sélectionnez une période.");
         return false;
       }
-      if (bilanPeriodType === PERIOD_TYPES.SEMAINE && !getTotalAcomptesJusqua) {
-        triggerAlert?.("⚠️ getTotalAcomptesJusqua manquant (useAcomptes).");
+      if (bilanPeriodType === PERIOD_TYPES.SEMAINE && !getSoldeAvant) {
+        triggerAlert?.("⚠️ getSoldeAvant manquant (useAcomptes).");
         return false;
       }
 
@@ -390,58 +390,15 @@ export function useBilan({
             : 0;
 
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
-
-          // Somme des acompte_consomme des bilans précédents sauvegardés
-          let acomptesDejaUtilises = 0;
-          try {
-
-            let bilansPrecedentsQuery = supabase
-              .from(TABLE)
-              .select("acompte_consomme")
-              .eq("patron_id", pId)
-              .eq("periode_type", "semaine")
-              .lt("periode_index", parseInt(bilanPeriodValue, 10));
-
-            const { data: bilansPrecedents } = await bilansPrecedentsQuery;
-
-            if (bilansPrecedents) {
-              acomptesDejaUtilises = bilansPrecedents.reduce((sum, b) => {
-                return sum + (parseFloat(b.acompte_consomme) || 0);
-              }, 0);
-            }
-          } catch (err) {
-            console.error("Erreur calcul acomptes utilisés:", err);
-          }
-
-          // Acomptes disponibles pour cette semaine
-          const acomptesDisponibles = Math.max(0, acomptesCumules - acomptesDejaUtilises);
-
-          // Solde avant = acompte dispo AVANT les acomptes reçus cette période
-          const acomptesAvantPeriode = getTotalAcomptesJusqua(debutPeriode, patronId);
-          soldeAvantPeriode = Math.max(0, acomptesAvantPeriode - acomptesDejaUtilises);
-
-          console.log("💰 DEBUG ACOMPTES", {
-            acomptesCumules,
-            acomptesDejaUtilises,
-            acomptesDisponibles,
-            soldeAvantPeriode,
-            caBrutPeriode,
-            impayePrecedent,
-          });
-
-          // Consommé cette période uniquement (sauvegardé en BDD)
-          acompteConsomme = Math.min(caBrutPeriode, acomptesDisponibles);
-
-          // ✅ Consommé AFFICHÉ = tout ce qui a été utilisé jusqu'ici
-          acompteConsommeAffiche = acomptesDejaUtilises + acompteConsomme;
-
-          // Solde à reporter
-          soldeApresPeriode = Math.max(0, acomptesCumules - acompteConsommeAffiche);
-
-          // Reste à percevoir = CA + impayés - acompte dispo cette période
+          // Pure-function approach: uses acomptes/missions/frais data directly,
+          // without relying on potentially stale bilans_status_v2 snapshots.
+          soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
+          const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
+          acompteConsomme = Math.min(acompteDisponible, caBrutPeriode);
+          resteCettePeriode = Math.max(0, caBrutPeriode - acompteConsomme);
           resteAPercevoir = Math.max(0, caBrutPeriode + impayePrecedent - acompteConsomme);
-          resteCettePeriode = resteAPercevoir;
+          soldeApresPeriode = Math.max(0, acompteDisponible - acompteConsomme);
+          acompteConsommeAffiche = acompteConsomme;
 
         } else {
           // Mode mois/année
@@ -615,7 +572,6 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
       getTotalFrais,
       getSoldeAvant,
       getAcomptesDansPeriode,
-      getTotalAcomptesJusqua,
       getImpayePrecedent,
       getStatutPaiement,
       formatPeriodLabel,
