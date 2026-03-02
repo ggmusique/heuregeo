@@ -15,6 +15,7 @@ import { useGeolocation } from "./hooks/useGeolocation";
 import { useLieux } from "./hooks/useLieux";
 import { useProfile } from "./hooks/useProfile";
 import { geocodeAddress } from "./utils/geocode";
+import { getKmEnabled } from "./utils/kmSettings";
 
 import { FraisModal } from "./components/common/frais/FraisModal";
 import { AcompteModal } from "./components/common/acompte/AcompteModal";
@@ -116,7 +117,7 @@ export default function App({ user }) {
     const f = profile.features ?? {};
     const ks = f.km_settings ?? {};
     return {
-      km_enable: ks.enabled ?? f.km_enabled ?? f.km_enable ?? false,
+      km_enable: getKmEnabled(f),
       km_include_retour: f.km_include_retour ?? ks.roundTrip ?? false,
       km_domicile_adresse: f.km_domicile_address || ks.homeLabel || "",
       km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null),
@@ -155,7 +156,7 @@ export default function App({ user }) {
     const f = profile.features ?? {};
     const ks = f.km_settings ?? {};
 
-    const normalizedEnabled = ks.enabled ?? f.km_enabled ?? f.km_enable ?? false;
+    const normalizedEnabled = getKmEnabled(f);
     const normalizedLat = f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null);
     const normalizedLng = f.km_domicile_lng != null ? Number(f.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null);
     const normalizedAddress = f.km_domicile_address || ks.homeLabel || null;
