@@ -37,6 +37,31 @@ const fetchHistoricalWeather = async (dateIso) => {
 const GLOBAL_PATRON_ID = "00000000-0000-0000-0000-000000000000";
 const TABLE = "bilans_status_v2";
 
+/**
+ * Normalise une ligne bilan pour respecter l'invariant :
+ *   paye <=> reste_a_percevoir === 0  (tolérance 0.01)
+ *   reste_a_percevoir >= 0 toujours
+ *
+ * À utiliser avant toute écriture dans bilans_status_v2.
+ */
+export function normalizeBilanRow({
+  ca_brut_periode = 0,
+  acompte_consomme = 0,
+  reste_a_percevoir = 0,
+  paye = false,
+  date_paiement = null,
+} = {}) {
+  const reste = Math.max(0, Number(reste_a_percevoir) || 0);
+  const isPaye = paye === true || reste <= 0.01;
+  return {
+    ca_brut_periode: Number(ca_brut_periode) || 0,
+    acompte_consomme: Number(acompte_consomme) || 0,
+    reste_a_percevoir: isPaye ? 0 : reste,
+    paye: isPaye,
+    date_paiement: isPaye ? (date_paiement || new Date().toISOString()) : null,
+  };
+}
+
 export function useBilan({
   missions,
   fraisDivers,
@@ -521,28 +546,31 @@ export function useBilan({
           fraisKilometriques: fraisKm,
         };
 
+        // 11) Invariant paye<=>reste=0 : dériver l'état final avant tout write DB
+        const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
+        const isPaid = statutPaye || resteCettePeriode <= 0.01;
+
         setBilanContent(content);
-        setBilanPaye(statutPaye);
+        setBilanPaye(isPaid);
         setShowPeriodModal(false);
         setShowBilan(true);
-        
-        
 
-        // 11) Sauvegarde Supabase
-        const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
+        const acompteConsommeSave = bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0;
 
-        // ✅ Ne jamais écraser paye/date_paiement ici : le calcul du bilan ne doit
-        // pas altérer le statut de paiement. Seules les données financières sont sauvegardées.
         const dataToSave = {
           user_id: user.id,
           periode_type: bilanPeriodType,
           periode_value: bilanPeriodValue,
           periode_index: periodeIndex,
           patron_id: pId,
-          reste_a_percevoir: resteCettePeriode,
           ca_brut_periode: caBrutPeriode,
-          // ✅ Sauvegarde acompteConsommePeriode (consommation de cette période uniquement)
-          acompte_consomme: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
+          acompte_consomme: acompteConsommeSave,
+          // ✅ Toujours écrire paye+reste pour garantir l'invariant à chaque upsert.
+          // isPaid inclut statutPaye donc on ne risque pas de revenir en arrière.
+          reste_a_percevoir: isPaid ? 0 : Math.max(0, resteCettePeriode),
+          paye: isPaid,
+          // date_paiement : fixer uniquement lors du passage initial à payé
+          ...(isPaid && !statutPaye ? { date_paiement: new Date().toISOString() } : {}),
         };
 
         if (!isGlobalPatronId(patronId)) {
@@ -627,7 +655,7 @@ export function useBilan({
             const nouvelAcompteConsomme = acompteDejaConsomme + resteAcompte;
             await supabase.from(TABLE).update({
               acompte_consomme: nouvelAcompteConsomme,
-              reste_a_percevoir: caBrut - nouvelAcompteConsomme,
+              reste_a_percevoir: Math.max(0, caBrut - nouvelAcompteConsomme),
             }).eq("id", bilan.id);
             resteAcompte = 0;
             break;
