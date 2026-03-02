@@ -54,8 +54,8 @@ export const LieuModal = ({
   };
 
   const doGeocode = async () => {
-    const query = [formData.adresse_complete, formData.nom].filter(Boolean).join(", ");
-    if (!query.trim()) {
+    const query = [formData.adresse_complete, formData.nom].map((s) => (s || "").trim()).filter(Boolean).join(", ");
+    if (!query) {
       setGeocodeStatus("error");
       setGeocodeError("Saisir le nom ou l'adresse du lieu.");
       return null;
@@ -64,12 +64,18 @@ export const LieuModal = ({
     setGeocodeError("");
     const result = await geocodeAddress(query);
     if (result) {
-      setFormData((prev) => ({ ...prev, latitude: result.lat.toString(), longitude: result.lng.toString() }));
+      setFormData((prev) => ({
+        ...prev,
+        latitude: result.lat.toString(),
+        longitude: result.lng.toString(),
+        adresse_complete: result.normalizedAddress || prev.adresse_complete,
+      }));
       setGeocodeStatus("ok");
       return result;
     } else {
+      setFormData((prev) => ({ ...prev, latitude: "", longitude: "" }));
       setGeocodeStatus("error");
-      setGeocodeError("Impossible de trouver des coordonnées pour cette adresse. Vérifie l'orthographe, ajoute le code postal ou la ville.");
+      setGeocodeError("Adresse introuvable. Vérifiez l'orthographe ou ajoutez le code postal / la ville.");
       return null;
     }
   };
@@ -183,14 +189,10 @@ export const LieuModal = ({
                 <span className="text-green-400 text-sm font-bold">✅ Coordonnées OK</span>
                 <button
                   type="button"
-                  onClick={async () => {
-                    setFormData((prev) => ({ ...prev, latitude: "", longitude: "" }));
-                    setGeocodeStatus("idle");
-                    await doGeocode();
-                  }}
+                  onClick={doGeocode}
                   className="text-[10px] font-black uppercase text-white/50 hover:text-white transition-all"
                 >
-                  Recalculer
+                  {editMode ? "Mettre à jour GPS" : "Recalculer"}
                 </button>
               </div>
             )}
@@ -202,7 +204,7 @@ export const LieuModal = ({
                   onClick={doGeocode}
                   className="text-[10px] font-black uppercase text-purple-300 hover:text-purple-100 transition-all"
                 >
-                  Chercher les coordonnées
+                  {editMode ? "Mettre à jour GPS" : "Chercher les coordonnées"}
                 </button>
               </div>
             )}
