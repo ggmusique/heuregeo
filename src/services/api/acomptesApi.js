@@ -31,7 +31,7 @@ export const fetchAcomptes = async () => {
 };
 
 // ------------------------------------------------------------
-// 2) CRÉER un acompte (CREATE)
+// 2) CRÉER un acompte (CREATE) + déclencher apply_acompte
 // ------------------------------------------------------------
 export const createAcompte = async (acompteData) => {
   // insert([acompteData]) = ajoute une ligne (entre [] car Supabase attend un tableau)
@@ -44,7 +44,16 @@ export const createAcompte = async (acompteData) => {
   if (error) throw error;
 
   // Supabase renvoie un tableau même pour 1 insertion -> on prend le 1er élément
-  return data[0];
+  const newAcompte = data[0];
+
+  // Déclencher l'auto-paiement côté DB via la fonction SQL apply_acompte
+  const { error: rpcError } = await supabase.rpc("apply_acompte", {
+    p_acompte_id: newAcompte.id,
+  });
+
+  if (rpcError) throw rpcError;
+
+  return newAcompte;
 };
 
 // ------------------------------------------------------------
