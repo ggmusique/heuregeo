@@ -213,11 +213,12 @@ export const useMissions = (onError) => {
 
       const missionsArray = Array.isArray(missions) ? missions : [];
 
-      // Filtre semaine ISO
+      // Filtre semaine ISO (date_mission en priorité, date_iso en fallback)
       let filtered = missionsArray.filter((m) => {
-        if (!m?.date_iso) return false;
+        const mDate = m?.date_mission || m?.date_iso;
+        if (!mDate) return false;
         try {
-          return getWeekNumber(new Date(m.date_iso)) === weekNumber;
+          return getWeekNumber(new Date(mDate)) === weekNumber;
         } catch {
           return false;
         }
@@ -247,14 +248,16 @@ export const useMissions = (onError) => {
       const missionsArray = Array.isArray(missions) ? missions : [];
 
       let filtered = missionsArray.filter((m) => {
-        if (!m?.date_iso) return false;
+        // date_mission en priorité, date_iso en fallback
+        const mDate = m?.date_mission || m?.date_iso;
+        if (!mDate) return false;
 
         try {
           if (periodType === "semaine") {
-            return getWeekNumber(new Date(m.date_iso)) === parseInt(periodValue);
+            return getWeekNumber(new Date(mDate)) === parseInt(periodValue);
           }
           // mois "YYYY-MM" ou année "YYYY"
-          return m.date_iso.startsWith(periodValue);
+          return mDate.startsWith(periodValue);
         } catch {
           return false;
         }

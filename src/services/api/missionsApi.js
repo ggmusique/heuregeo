@@ -30,6 +30,7 @@ export const fetchMissions = async () => {
   let query = supabase
     .from("missions")
     .select("*")
+    .order("date_mission", { ascending: false, nullsFirst: false })
     .order("date_iso", { ascending: false });
 
   // Viewer : la RLS Supabase gère déjà le filtrage par patron_id
@@ -67,6 +68,10 @@ export const createMission = async (missionData) => {
   if (!user) throw new Error("Utilisateur non connecté");
 
   const payload = { ...missionData, user_id: user.id };
+  // Populate date_mission from date_iso so the new column stays in sync
+  if (payload.date_iso && !payload.date_mission) {
+    payload.date_mission = payload.date_iso;
+  }
 
   const { data, error } = await supabase
     .from("missions")
@@ -105,9 +110,15 @@ export const updateMission = async (id, missionData) => {
     },
   });
 
+  const payload = { ...missionData };
+  // Always keep date_mission in sync with date_iso when date_iso is updated
+  if (payload.date_iso) {
+    payload.date_mission = payload.date_iso;
+  }
+
   const { data, error } = await supabase
     .from("missions")
-    .update(missionData)
+    .update(payload)
     .eq("id", id)
     .select();
 
