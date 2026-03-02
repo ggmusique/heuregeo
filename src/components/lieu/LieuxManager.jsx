@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { formatEuro, formatHeures } from "../../utils/formatters";
 import { geocodeAddress } from "../../utils/geocode";
+import { isSuspectLieu } from "../../utils/suspectCoords";
 
 /**
  * ✅ Gestionnaire complet des lieux avec liste et stats
@@ -22,11 +23,15 @@ export const LieuxManager = ({
   darkMode = true,
   missions = [],
   allowActions = true,
+  kmSettings = null,
+  onRegeocoderLieu = null,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [backfillRunning, setBackfillRunning] = useState(false);
   const [backfillProgress, setBackfillProgress] = useState(null); // { done, total }
   const [backfillResult, setBackfillResult] = useState(null); // { updated, errors: [{id, nom}] }
+  const [regeocodingId, setRegeocodingId] = useState(null); // id currently being re-geocoded
+  const [regeocodingErrors, setRegeocodingErrors] = useState({}); // id -> error message
 
   const lieuxSansCoords = useMemo(() => {
     return lieux.filter((l) => !l.latitude || !l.longitude);
@@ -136,6 +141,41 @@ export const LieuxManager = ({
    * ✅ Helper : vérifier GPS valide
    */
   const isValidNumber = (v) => typeof v === "number" && !Number.isNaN(v);
+
+  // Coordonnées et label du domicile (issues de kmSettings)
+  const homeLat = kmSettings?.km_domicile_lat ?? null;
+  const homeLng = kmSettings?.km_domicile_lng ?? null;
+  const homeLabel = kmSettings?.km_domicile_adresse ?? null;
+
+  /**
+   * Re-géocoder un lieu individuel depuis son nom/adresse
+   */
+  const handleRegeocoderLieu = useCallback(async (lieu) => {
+    if (regeocodingId || !onRegeocoderLieu) return;
+    const query = [lieu.adresse_complete, lieu.nom].filter(Boolean).join(", ");
+    if (!query.trim()) return;
+    setRegeocodingId(lieu.id);
+    setRegeocodingErrors((prev) => { const { [lieu.id]: _, ...rest } = prev; return rest; }); // eslint-disable-line no-unused-vars
+    const result = await geocodeAddress(query);
+    if (result) {
+      try {
+        await onRegeocoderLieu(lieu.id, {
+          latitude: result.lat,
+          longitude: result.lng,
+          adresse_complete: result.normalizedAddress || lieu.adresse_complete,
+        });
+      } catch (err) {
+        console.error("Erreur re-géocodage lieu:", err);
+        setRegeocodingErrors((prev) => ({ ...prev, [lieu.id]: "Erreur lors de la sauvegarde des coordonnées." }));
+      }
+    } else {
+      setRegeocodingErrors((prev) => ({
+        ...prev,
+        [lieu.id]: "Impossible de trouver les coordonnées. Vérifie l'orthographe ou l'adresse.",
+      }));
+    }
+    setRegeocodingId(null);
+  }, [regeocodingId, onRegeocoderLieu]);
 
   return (
     <div className="space-y-6">
@@ -296,12 +336,20 @@ export const LieuxManager = ({
           sortedLieux.map((lieu) => {
             const hasGps =
               isValidNumber(lieu?.latitude) && isValidNumber(lieu?.longitude);
+            const suspect = isSuspectLieu(lieu, homeLat, homeLng, homeLabel);
+            const needsRegeocode = suspect || !hasGps;
+            const isRegeocoding = regeocodingId === lieu.id;
+            const regeoError = regeocodingErrors[lieu.id];
 
             return (
               <div
                 key={lieu.id}
                 className={`p-5 rounded-[25px] backdrop-blur-md border-2 ${
-                  darkMode
+                  suspect
+                    ? darkMode
+                      ? "bg-amber-900/10 border-amber-500/40 hover:border-amber-400/60"
+                      : "bg-amber-50 border-amber-300 hover:border-amber-400"
+                    : darkMode
                     ? "bg-white/5 border-white/10 hover:border-purple-500/40"
                     : "bg-white border-slate-200 hover:border-purple-300"
                 } transition-all`}
@@ -309,7 +357,7 @@ export const LieuxManager = ({
                 <div className="flex items-start justify-between gap-4">
                   {/* Infos lieu */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-lg font-black text-white truncate">
                         {lieu?.nom || "Lieu"}
                       </h3>
@@ -320,8 +368,15 @@ export const LieuxManager = ({
                         </span>
                       )}
 
-                      {/* ✅ Badge GPS OK */}
-                      {hasGps && (
+                      {/* Badge coordonnées suspectes */}
+                      {suspect && (
+                        <span className="px-2 py-1 bg-amber-600/20 border border-amber-500/40 rounded-lg text-[9px] font-black text-amber-300 uppercase">
+                          ⚠️ Coordonnées suspectes
+                        </span>
+                      )}
+
+                      {/* ✅ Badge GPS OK (uniquement si pas suspect) */}
+                      {hasGps && !suspect && (
                         <span className="px-2 py-1 bg-emerald-600/20 border border-emerald-500/30 rounded-lg text-[9px] font-black text-emerald-300 uppercase">
                           GPS OK ✓
                         </span>
@@ -353,6 +408,26 @@ export const LieuxManager = ({
                         <div className="text-xs text-white/60 flex items-start gap-2">
                           <span className="shrink-0">📝</span>
                           <span className="line-clamp-2">{lieu.notes}</span>
+                        </div>
+                      )}
+
+                      {/* Bouton Re-géocoder (suspect ou coords manquantes) */}
+                      {needsRegeocode && onRegeocoderLieu && (
+                        <div className="mt-1">
+                          <button
+                            onClick={() => handleRegeocoderLieu(lieu)}
+                            disabled={!!regeocodingId}
+                            className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50 ${
+                              suspect
+                                ? "bg-amber-600/20 border border-amber-500/40 text-amber-300 hover:bg-amber-600/30"
+                                : "bg-blue-600/20 border border-blue-500/40 text-blue-300 hover:bg-blue-600/30"
+                            }`}
+                          >
+                            {isRegeocoding ? "🔄 Recherche…" : "🗺️ Re-géocoder"}
+                          </button>
+                          {regeoError && (
+                            <p className="mt-1 text-[10px] text-red-400">{regeoError}</p>
+                          )}
                         </div>
                       )}
                     </div>

@@ -31,6 +31,8 @@ export function ParametresTab({
   onLieuAdd,
   showMissionRateEditor = true,
   onToggleMissionRateEditor = () => {},
+  kmSettings = null,
+  onRegeocoderLieu = null,
 }) {
   const [activePanel, setActivePanel] = useState(null);
 
@@ -173,6 +175,8 @@ export function ParametresTab({
                   defaultOpenPatrons={false}
                   allowClientActions={false}
                   allowLieuActions={false}
+                  kmSettings={kmSettings}
+                  onRegeocoderLieu={onRegeocoderLieu}
                 />
               )}
 
