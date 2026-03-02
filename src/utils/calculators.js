@@ -64,7 +64,77 @@ export const calculerDuree = (debut, fin, pause = 0) => {
 
 /**
  * ==========================================================
- * 3) haversineKm(lat1, lon1, lat2, lon2)
+ * 3) calculerAcomptesBilan(acomptes, missions, frais, debutPeriode, finPeriode, patronId)
+ * ==========================================================
+ * Pure function for computing acompte values for a billing period.
+ * Returns:
+ *   - acomptes_verses:    acomptes received during [debutPeriode, finPeriode]
+ *   - acomptes_consommes: portion of available acomptes consumed by ca_brut
+ *   - solde_avant:        acompte balance before debutPeriode (wallet simulation)
+ *   - solde_apres:        remaining balance after this period
+ *
+ * Used by useBilan to replace the bilans_status_v2-based approach.
+ */
+export const calculerAcomptesBilan = (
+  acomptes = [],
+  missions = [],
+  frais = [],
+  debutPeriode,
+  finPeriode,
+  patronId = null
+) => {
+  if (!debutPeriode || !finPeriode) {
+    return { acomptes_verses: 0, acomptes_consommes: 0, solde_avant: 0, solde_apres: 0 };
+  }
+
+  const filteredAcomptes = patronId
+    ? acomptes.filter((a) => a?.patron_id === patronId)
+    : acomptes;
+  const filteredMissions = patronId
+    ? missions.filter((m) => m?.patron_id === patronId)
+    : missions;
+  const filteredFrais = patronId
+    ? frais.filter((f) => f?.patron_id === patronId)
+    : frais;
+
+  // Wallet simulation (strictly before debutPeriode)
+  const solde_avant = calculerSoldeAcomptesAvant(
+    debutPeriode,
+    filteredAcomptes,
+    filteredMissions,
+    filteredFrais
+  );
+
+  // Acomptes received during the period [debutPeriode, finPeriode]
+  const acomptes_verses = filteredAcomptes
+    .filter(
+      (a) =>
+        a?.date_acompte &&
+        a.date_acompte >= debutPeriode &&
+        a.date_acompte <= finPeriode
+    )
+    .reduce((sum, a) => sum + (parseFloat(a.montant) || 0), 0);
+
+  // CA brut for the period
+  const ca_brut = filteredMissions
+    .filter(
+      (m) =>
+        m?.date_iso &&
+        m.date_iso >= debutPeriode &&
+        m.date_iso <= finPeriode
+    )
+    .reduce((sum, m) => sum + (m.montant || 0), 0);
+
+  const disponible = solde_avant + acomptes_verses;
+  const acomptes_consommes = Math.min(disponible, ca_brut);
+  const solde_apres = Math.max(0, disponible - acomptes_consommes);
+
+  return { acomptes_verses, acomptes_consommes, solde_avant, solde_apres };
+};
+
+/**
+ * ==========================================================
+ * 4) haversineKm(lat1, lon1, lat2, lon2)
  * ==========================================================
  * Calcule la distance à vol d'oiseau entre deux coordonnées GPS (en km).
  */
