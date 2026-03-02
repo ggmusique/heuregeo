@@ -23,6 +23,8 @@ export const DonneesTab = ({
   defaultOpenPatrons = false,
   allowClientActions = true,
   allowLieuActions = true,
+  kmSettings = null,
+  onRegeocoderLieu = null,
 }) => {
   const AccordionSection = React.memo(({
     title,
@@ -129,6 +131,8 @@ export const DonneesTab = ({
           onEdit={onLieuEdit}
           onDelete={onLieuDelete}
           allowActions={allowLieuActions}
+          kmSettings={kmSettings}
+          onRegeocoderLieu={onRegeocoderLieu}
         />
       </AccordionSection>
     </div>

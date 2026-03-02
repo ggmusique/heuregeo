@@ -421,6 +421,15 @@ export default function App({ user }) {
 
   const handleLieuEdit = (lieu) => { setEditingLieuId(lieu.id); setEditingLieuData(lieu); setShowLieuModal(true); };
 
+  const handleRegeocoderLieu = async (id, coords) => {
+    try {
+      await updateLieu(id, coords);
+      triggerAlert("Coordonnées mises à jour !");
+    } catch (err) {
+      triggerAlert("Erreur : " + (err?.message || "Mise à jour échouée"));
+    }
+  };
+
   const handleLieuDelete = async (lieu) => {
     const confirmed = await showConfirm({ title: "Supprimer ce lieu", message: "Supprimer ce lieu ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
     if (!confirmed) return;
@@ -683,6 +692,8 @@ export default function App({ user }) {
             onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}
             showMissionRateEditor={showMissionRateEditor}
             onToggleMissionRateEditor={setShowMissionRateEditor}
+            kmSettings={kmSettings}
+            onRegeocoderLieu={handleRegeocoderLieu}
           />
         )}
       </main>  
