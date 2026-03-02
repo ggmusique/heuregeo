@@ -143,7 +143,7 @@ export function useBilan({
         periods.add(m.date_iso.substring(0, 4));
       }
     });
-    const sorted = Array.from(periods).sort().reverse();
+    const sorted = Array.from(periods).sort((a, b) => computePeriodeIndex(bilanPeriodType, b) - computePeriodeIndex(bilanPeriodType, a));
     setAvailablePeriods(sorted);
     if (sorted.length > 0) {
       setBilanPeriodValue(sorted[0].toString());
@@ -485,8 +485,7 @@ export function useBilan({
             ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
             : null
         );
-        console.debug("🚗 KM bilan debug", { km_enable: kmSettings?.km_enable, bilanPeriodType, domicileLat: effectiveDomicile?.lat, domicileLng: effectiveDomicile?.lng, source: domicileLatLng ? "state" : "kmSettings" });
-        if (kmSettings?.km_enable && bilanPeriodType === PERIOD_TYPES.SEMAINE && effectiveDomicile?.lat && effectiveDomicile?.lng) {
+        if (kmSettings?.km_enable === true && bilanPeriodType === PERIOD_TYPES.SEMAINE && effectiveDomicile?.lat && effectiveDomicile?.lng) {
           // Rate: AUTO uses table, CUSTOM uses km_rate_custom
           const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
             ? (parseFloat(kmSettings.km_rate) || 0)
@@ -507,14 +506,6 @@ export function useBilan({
               const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
               const kmTotal = kmOneWay * multiplicateur; // × 2 if aller-retour
               const amount = kmTotal * kmRateEffectif;   // no rounding: exact value stored
-              console.debug("🚗 KM debug (bilan)", {
-                missionId: m.id, date: m.date_iso,
-                domicileLat: effectiveDomicile.lat, domicileLng: effectiveDomicile.lng,
-                lieuLat: latLieu, lieuLng: lngLieu,
-                lieuSource: lieuById ? "id" : "nom",
-                distance_km: kmOneWay, include_retour: kmSettings.km_include_retour,
-                rate: kmRateEffectif, montant: amount,
-              });
               fraisKm.items.push({
                 missionId: m.id,
                 date: m.date_iso,

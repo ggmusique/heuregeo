@@ -116,7 +116,7 @@ export default function App({ user }) {
     const f = profile.features ?? {};
     const ks = f.km_settings ?? {};
     return {
-      km_enable: f.km_enabled ?? f.km_enable ?? ks.enabled ?? false,
+      km_enable: ks.enabled ?? f.km_enabled ?? f.km_enable ?? false,
       km_include_retour: f.km_include_retour ?? ks.roundTrip ?? false,
       km_domicile_adresse: f.km_domicile_address || ks.homeLabel || "",
       km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null),
@@ -149,33 +149,66 @@ export default function App({ user }) {
     });
   }, [kmSettings?.km_enable, kmSettings?.km_domicile_lat, kmSettings?.km_domicile_lng, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.code_postal, profile?.ville, saveProfile]);
 
-  // One-shot migration: copy old km_settings schema to flat keys
+  // One-shot migration/sync: km_settings is source of truth, keep legacy flat keys aligned
   useEffect(() => {
     if (!profile) return;
     const f = profile.features ?? {};
     const ks = f.km_settings ?? {};
-    if (ks.homeLat != null && ks.homeLng != null &&
-        (f.km_domicile_lat == null || f.km_domicile_lng == null)) {
-      // Rate rule: if km_settings had a custom ratePerKm and no flat custom rate yet, migrate as CUSTOM.
-      // Otherwise keep AUTO_BY_COUNTRY (or whatever is already set).
-      const migratedRateMode = ks.ratePerKm != null && !f.km_rate_custom ? "CUSTOM" : (f.km_rate_mode || "AUTO_BY_COUNTRY");
-      const migratedRateCustom = ks.ratePerKm != null && !f.km_rate_custom ? ks.ratePerKm : (f.km_rate_custom ?? null);
-      const nextFeatures = {
-        ...f,
-        km_enabled: f.km_enabled ?? f.km_enable ?? ks.enabled ?? false,
-        km_enable: undefined,
-        km_country: f.km_country || ks.countryCode || "FR",
-        km_rate_mode: migratedRateMode,
-        km_rate_custom: migratedRateCustom,
-        km_include_retour: f.km_include_retour ?? ks.roundTrip ?? false,
-        km_domicile_lat: Number(ks.homeLat),
-        km_domicile_lng: Number(ks.homeLng),
-        km_domicile_address: ks.homeLabel ?? f.km_domicile_address ?? null,
-      };
-      saveProfile({ features: nextFeatures });
-    }
+
+    const normalizedEnabled = ks.enabled ?? f.km_enabled ?? f.km_enable ?? false;
+    const normalizedLat = f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null);
+    const normalizedLng = f.km_domicile_lng != null ? Number(f.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null);
+    const normalizedAddress = f.km_domicile_address || ks.homeLabel || null;
+    const normalizedCountry = f.km_country || ks.countryCode || "FR";
+    const normalizedRoundTrip = f.km_include_retour ?? ks.roundTrip ?? false;
+    const normalizedRateMode = f.km_rate_mode || (ks.ratePerKm != null ? "CUSTOM" : "AUTO_BY_COUNTRY");
+    const normalizedRateCustom = f.km_rate_custom ?? (ks.ratePerKm ?? null);
+
+    const needsSync =
+      ks.enabled !== normalizedEnabled ||
+      ks.homeLat !== normalizedLat ||
+      ks.homeLng !== normalizedLng ||
+      ks.homeLabel !== normalizedAddress ||
+      ks.countryCode !== normalizedCountry ||
+      ks.roundTrip !== normalizedRoundTrip ||
+      (ks.ratePerKm ?? null) !== (normalizedRateCustom ?? null) ||
+      f.km_enabled !== normalizedEnabled ||
+      f.km_enable !== undefined ||
+      f.km_domicile_lat !== normalizedLat ||
+      f.km_domicile_lng !== normalizedLng ||
+      (f.km_domicile_address || null) !== normalizedAddress ||
+      (f.km_country || "FR") !== normalizedCountry ||
+      (f.km_include_retour ?? false) !== normalizedRoundTrip ||
+      (f.km_rate_mode || "AUTO_BY_COUNTRY") !== normalizedRateMode ||
+      (f.km_rate_custom ?? null) !== (normalizedRateCustom ?? null);
+
+    if (!needsSync) return;
+
+    const nextFeatures = {
+      ...f,
+      km_enabled: normalizedEnabled,
+      km_enable: undefined,
+      km_country: normalizedCountry,
+      km_rate_mode: normalizedRateMode,
+      km_rate_custom: normalizedRateCustom,
+      km_include_retour: normalizedRoundTrip,
+      km_domicile_lat: normalizedLat,
+      km_domicile_lng: normalizedLng,
+      km_domicile_address: normalizedAddress,
+      km_settings: {
+        ...ks,
+        enabled: normalizedEnabled,
+        homeLat: normalizedLat,
+        homeLng: normalizedLng,
+        homeLabel: normalizedAddress,
+        ratePerKm: normalizedRateCustom,
+        roundTrip: normalizedRoundTrip,
+        countryCode: normalizedCountry,
+      },
+    };
+    saveProfile({ features: nextFeatures });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.id, profile?.features?.km_settings?.homeLat, profile?.features?.km_domicile_lat]);
+  }, [profile?.id, profile?.features]);
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
 
@@ -449,14 +482,6 @@ export default function App({ user }) {
         const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
         const kmTot = kmOneWay * multiplicateur; // × 2 if aller-retour
         const amount = kmTot * kmRateEffectif;   // no rounding: exact value stored
-        console.debug("🚗 KM debug (semaine en cours)", {
-          missionId: m.id, date: m.date_iso,
-          domicileLat: effectiveDomicile.lat, domicileLng: effectiveDomicile.lng,
-          lieuLat: latLieu, lieuLng: lngLieu,
-          lieuSource: lieuById ? "id" : "nom",
-          distance_km: kmOneWay, include_retour: kmSettings.km_include_retour,
-          rate: kmRateEffectif, montant: amount,
-        });
         result.items.push({
           missionId: m.id, date: m.date_iso,
           labelLieuOuClient: getLieuLabel(lieu, m),

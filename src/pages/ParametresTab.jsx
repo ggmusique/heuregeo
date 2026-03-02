@@ -190,7 +190,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
   const [kmEnable, setKmEnable] = useState(() => {
     const f = profile?.features ?? {};
     const ks = f.km_settings ?? {};
-    return f.km_enabled ?? f.km_enable ?? ks.enabled ?? false;
+    return ks.enabled ?? f.km_enabled ?? f.km_enable ?? false;
   });
   const [kmIncludeRetour, setKmIncludeRetour] = useState(() => {
     const f = profile?.features ?? {};
@@ -214,7 +214,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     if (!profile) return;
     const f = profile.features ?? {};
     const ks = f.km_settings ?? {};
-    setKmEnable(f.km_enabled ?? f.km_enable ?? ks.enabled ?? false);
+    setKmEnable(ks.enabled ?? f.km_enabled ?? f.km_enable ?? false);
     setKmIncludeRetour(f.km_include_retour ?? ks.roundTrip ?? false);
     setKmDomicileAdresse(f.km_domicile_address || ks.homeLabel || "");
     setKmCountryCode(f.km_country || ks.countryCode || "FR");
@@ -255,12 +255,22 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
       km_domicile_address: kmDomicileAdresse || null,
       km_domicile_lat: kmDomicileLat,
       km_domicile_lng: kmDomicileLng,
+      km_settings: {
+        ...(prevFeatures.km_settings ?? {}),
+        enabled: kmEnable,
+        homeLat: kmDomicileLat,
+        homeLng: kmDomicileLng,
+        homeLabel: kmDomicileAdresse || null,
+        ratePerKm: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
+        roundTrip: kmIncludeRetour,
+        countryCode: kmCountryCode,
+      },
     };
     const result = await saveProfile({ features: nextFeatures });
     if (result?.error) {
       setSaveError(result.error);
       // Revert toggle state to what was in profile
-      setKmEnable(profile?.features?.km_enabled ?? profile?.features?.km_enable ?? false);
+      setKmEnable(profile?.features?.km_settings?.enabled ?? profile?.features?.km_enabled ?? profile?.features?.km_enable ?? false);
     }
     setSaving(false);
   };
