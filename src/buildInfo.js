@@ -1,6 +1,6 @@
 // AUTO-GENERATED. Do not edit by hand.
 export const BUILD_INFO = {
-  branch: "refonte",
-  commit: "cc58291",
-  date: "2026-02-26T09:25:05.437Z",
+  branch: "copilot/add-preset-and-duplication",
+  commit: "dc3da56",
+  date: "2026-03-02T11:41:13.364Z",
 };

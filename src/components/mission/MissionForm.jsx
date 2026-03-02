@@ -10,6 +10,16 @@ import { calculerDuree } from "../../utils/calculators";
 import { ClientSelector } from "../client/ClientSelector";
 import { LieuSelector } from "../lieu/LieuSelector";
 
+const JOURNEE_TYPE = { debut: "08:00", fin: "17:00", pause: 30 };
+const MAX_TIME_MINUTES = 23 * 60 + 45;
+const MAX_PAUSE_MINUTES = 180;
+
+const adjustTime = (time, deltaMinutes) => {
+  const [h, m] = time.split(":").map(Number);
+  const total = Math.max(0, Math.min(MAX_TIME_MINUTES, h * 60 + m + deltaMinutes));
+  return `${Math.floor(total / 60).toString().padStart(2, "0")}:${(total % 60).toString().padStart(2, "0")}`;
+};
+
 export const MissionForm = ({
   editMode = false,
   initialData = null,
@@ -206,6 +216,10 @@ export const MissionForm = ({
   const getMonthName = () => safeDate.toLocaleString("fr-FR", { month: "long" }).toUpperCase();
   const getDay = () => safeDate.getDate().toString().padStart(2, "0");
   const getYear = () => safeDate.getFullYear();
+
+  const adjustBtnClass = darkMode
+    ? "flex-1 py-1 rounded-xl text-[11px] font-black border transition-all active:scale-95 bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+    : "flex-1 py-1 rounded-xl text-[11px] font-black border transition-all active:scale-95 bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200";
 
   return (
     <section
@@ -412,53 +426,102 @@ export const MissionForm = ({
         />
       </div>
 
+      {/* Preset + Duplicate row */}
+      <div className="flex gap-2 mb-3">
+        <button
+          type="button"
+          onClick={() => { setDebut(JOURNEE_TYPE.debut); setFin(JOURNEE_TYPE.fin); setPause(JOURNEE_TYPE.pause); }}
+          className={`flex-1 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider border transition-all active:scale-95 ${
+            darkMode
+              ? "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
+              : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+          }`}
+        >
+          ☀️ Journée type
+        </button>
+        {onCopyLast && (
+          <button
+            type="button"
+            onClick={onCopyLast}
+            className={`flex-1 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider border transition-all active:scale-95 ${
+              darkMode
+                ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20"
+                : "bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100"
+            }`}
+          >
+            📋 Dupliquer
+          </button>
+        )}
+      </div>
+
       <div className="grid grid-cols-3 gap-3 mb-10">
-        <div
-          className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
-            darkMode ? "border-slate-700" : "border-slate-300"
-          } backdrop-blur-md`}
-        >
-          <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Début</span>
-          <span className="text-xl font-black text-indigo-400">{debut}</span>
-          <select
-            value={debut}
-            onChange={(e) => setDebut(e.target.value)}
-            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+        {/* Début */}
+        <div className="flex flex-col gap-1">
+          <div
+            className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
+              darkMode ? "border-slate-700" : "border-slate-300"
+            } backdrop-blur-md`}
           >
-            {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
-          </select>
+            <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Début</span>
+            <span className="text-xl font-black text-indigo-400">{debut}</span>
+            <select
+              value={debut}
+              onChange={(e) => setDebut(e.target.value)}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            >
+              {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
+            </select>
+          </div>
+          <div className="flex gap-1">
+            <button type="button" onClick={() => setDebut(adjustTime(debut, -15))} className={adjustBtnClass}>−</button>
+            <button type="button" onClick={() => setDebut(adjustTime(debut, 15))} className={adjustBtnClass}>+</button>
+          </div>
         </div>
 
-        <div
-          className={`p-4 bg-black/40 rounded-[28px] border-2 relative flex flex-col items-center justify-center text-center min-h-[90px] ${
-            darkMode ? "border-slate-700" : "border-slate-300"
-          } backdrop-blur-md`}
-        >
-          <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Pause</span>
-          <div className="font-black text-xl text-indigo-400">{pause}m</div>
-          <select
-            value={pause}
-            onChange={(e) => setPause(parseInt(e.target.value, 10))}
-            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+        {/* Pause */}
+        <div className="flex flex-col gap-1">
+          <div
+            className={`p-4 bg-black/40 rounded-[28px] border-2 relative flex flex-col items-center justify-center text-center min-h-[90px] ${
+              darkMode ? "border-slate-700" : "border-slate-300"
+            } backdrop-blur-md`}
           >
-            {PAUSE_OPTIONS.map((val) => (<option key={val} value={val}>{val} min</option>))}
-          </select>
+            <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Pause</span>
+            <div className="font-black text-xl text-indigo-400">{pause}m</div>
+            <select
+              value={pause}
+              onChange={(e) => setPause(parseInt(e.target.value, 10))}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            >
+              {PAUSE_OPTIONS.map((val) => (<option key={val} value={val}>{val} min</option>))}
+            </select>
+          </div>
+          <div className="flex gap-1">
+            <button type="button" onClick={() => setPause((p) => Math.max(0, p - 15))} className={adjustBtnClass}>−</button>
+            <button type="button" onClick={() => setPause((p) => Math.min(MAX_PAUSE_MINUTES, p + 15))} className={adjustBtnClass}>+</button>
+          </div>
         </div>
 
-        <div
-          className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
-            darkMode ? "border-slate-700" : "border-slate-300"
-          } backdrop-blur-md`}
-        >
-          <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Fin</span>
-          <span className="text-xl font-black text-purple-400">{fin}</span>
-          <select
-            value={fin}
-            onChange={(e) => setFin(e.target.value)}
-            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+        {/* Fin */}
+        <div className="flex flex-col gap-1">
+          <div
+            className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
+              darkMode ? "border-slate-700" : "border-slate-300"
+            } backdrop-blur-md`}
           >
-            {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
-          </select>
+            <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Fin</span>
+            <span className="text-xl font-black text-purple-400">{fin}</span>
+            <select
+              value={fin}
+              onChange={(e) => setFin(e.target.value)}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            >
+              {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
+            </select>
+          </div>
+          <div className="flex gap-1">
+            <button type="button" onClick={() => setFin(adjustTime(fin, -15))} className={adjustBtnClass}>−</button>
+            <button type="button" onClick={() => setFin(adjustTime(fin, 15))} className={adjustBtnClass}>+</button>
+          </div>
         </div>
       </div>
 
