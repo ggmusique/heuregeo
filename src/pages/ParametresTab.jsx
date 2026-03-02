@@ -227,6 +227,33 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
 
   const hasDomicileInProfile = !!(profile?.adresse || profile?.ville);
 
+  // Auto-save the enabled/disabled state when the toggle is clicked.
+  // The full-form save button is only shown when km is enabled, so without this
+  // the "disable" action would never be persisted (toggle reverts on navigation).
+  const handleToggleEnable = async () => {
+    if (!isPro) return;
+    const newEnabled = !kmEnable;
+    setKmEnable(newEnabled);
+    setSaving(true);
+    setSaveError(null);
+    const prevFeatures = profile?.features ?? {};
+    const nextFeatures = {
+      ...prevFeatures,
+      km_enabled: newEnabled,
+      km_enable: undefined, // remove legacy key
+      km_settings: {
+        ...(prevFeatures.km_settings ?? {}),
+        enabled: newEnabled,
+      },
+    };
+    const result = await saveProfile({ features: nextFeatures });
+    if (result?.error) {
+      setSaveError(result.error);
+      setKmEnable(!newEnabled); // revert on error
+    }
+    setSaving(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setSaveError(null);
@@ -286,8 +313,8 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
         </div>
         <button
           type="button"
-          onClick={() => setKmEnable((v) => !v)}
-          disabled={!isPro}
+          onClick={handleToggleEnable}
+          disabled={!isPro || saving}
           className={"px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " + (kmEnable ? "border-blue-400/40 text-blue-300 bg-blue-500/10" : "border-white/20 text-white/60") + (!isPro ? " opacity-50 cursor-not-allowed" : "")}
         >
           {kmEnable ? "Activé" : "Désactivé"}
