@@ -165,17 +165,19 @@ export function useBilan({
         // ✅ Le statut payé est partagé par période/patron.
         // On ne filtre donc pas par user_id pour éviter les écrasements
         // lors d'un changement de rôle (viewer <-> owner).
-        let query = supabase
+        // On prend la ligne la plus récente pour survivre aux éventuels doublons.
+        const { data, error } = await supabase
           .from(TABLE)
           .select("paye")
           .eq("periode_type", bilanPeriodType)
           .eq("periode_value", bilanPeriodValue)
-          .eq("patron_id", pId);
-  
-        const { data, error } = await query.maybeSingle();
+          .eq("patron_id", pId)
+          .order("created_at", { ascending: false })
+          .limit(1);
   
         if (error) throw error;
-        return data?.paye || false;
+        if (!data || data.length === 0) return false;
+        return data[0]?.paye || false;
       } catch (err) {
         console.error("Erreur getStatutPaiement:", err);
         return false;
@@ -529,14 +531,14 @@ export function useBilan({
         // 11) Sauvegarde Supabase
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
 
+        // ✅ Ne jamais écraser paye/date_paiement ici : le calcul du bilan ne doit
+        // pas altérer le statut de paiement. Seules les données financières sont sauvegardées.
         const dataToSave = {
           user_id: user.id,
           periode_type: bilanPeriodType,
           periode_value: bilanPeriodValue,
           periode_index: periodeIndex,
           patron_id: pId,
-          paye: statutPaye,
-          date_paiement: statutPaye ? new Date().toISOString() : null,
           reste_a_percevoir: resteCettePeriode,
           ca_brut_periode: caBrutPeriode,
           // ✅ Sauvegarde acompteConsommePeriode (consommation de cette période uniquement)
@@ -647,9 +649,15 @@ export function useBilan({
     async (patronId = null) => {
       try {
         const pId = effectivePatronId(patronId);
-        const reste = bilanContent.resteCettePeriode || 0;
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Utilisateur non connecté");
+
+        const caBrut = bilanContent.totalE || 0;
+        // ✅ Clamp acompte_consomme pour ne pas dépasser ca_brut_periode
+        const acompteConsomme = Math.min(
+          bilanContent.acompteConsommePeriode || 0,
+          caBrut
+        );
 
         const dataToSave = {
           user_id: user.id,
@@ -659,9 +667,10 @@ export function useBilan({
           patron_id: pId,
           paye: true,
           date_paiement: new Date().toISOString(),
-          reste_a_percevoir: reste,
-          ca_brut_periode: bilanContent.totalE || 0,
-          acompte_consomme: bilanContent.acompteConsommePeriode || 0,
+          // ✅ reste_a_percevoir = 0 quand payé (cohérence)
+          reste_a_percevoir: 0,
+          ca_brut_periode: caBrut,
+          acompte_consomme: acompteConsomme,
         };
 
         const { error } = await supabase.from(TABLE).upsert(dataToSave, {
