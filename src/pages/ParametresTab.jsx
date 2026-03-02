@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Component, useEffect, useMemo, useState } from "react";
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { AdminPage } from "./AdminPage";
@@ -6,6 +6,36 @@ import { DiagnosticsPage } from "./DiagnosticsPage";
 import { EUROPE_COUNTRIES, KM_RATES } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
+
+class DiagnosticsErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-4 rounded-2xl border border-red-500/30 bg-red-500/10 space-y-3">
+          <p className="text-sm font-black text-red-400 uppercase tracking-widest">Erreur diagnostics</p>
+          <p className="text-xs text-white/60">{this.state.error?.message || "Erreur inconnue"}</p>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="px-3 py-2 rounded-lg border border-white/20 text-xs font-black uppercase tracking-widest text-white/70 hover:text-white"
+          >
+            Réessayer
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export function ParametresTab({
   profile,
@@ -195,16 +225,18 @@ export function ParametresTab({
               {activePanel === "admin" && isAdmin && <AdminPage darkMode={darkMode} />}
 
               {activePanel === "diagnostics" && isAdmin && (
-                <DiagnosticsPage
-                  profile={profile}
-                  kmSettings={kmSettings}
-                  domicileLatLng={domicileLatLng}
-                  lieux={lieux}
-                  missionsThisWeek={missionsThisWeek}
-                  kmFraisThisWeek={kmFraisThisWeek ?? undefined}
-                  onRegeocoderBatch={onRegeocoderBatch}
-                  onRecalculerKmSemaine={onRecalculerKmSemaine}
-                />
+                <DiagnosticsErrorBoundary>
+                  <DiagnosticsPage
+                    profile={profile}
+                    kmSettings={kmSettings}
+                    domicileLatLng={domicileLatLng}
+                    lieux={lieux}
+                    missionsThisWeek={missionsThisWeek}
+                    kmFraisThisWeek={kmFraisThisWeek ?? undefined}
+                    onRegeocoderBatch={onRegeocoderBatch}
+                    onRecalculerKmSemaine={onRecalculerKmSemaine}
+                  />
+                </DiagnosticsErrorBoundary>
               )}
             </div>
           </div>

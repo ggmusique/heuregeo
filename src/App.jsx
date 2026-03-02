@@ -430,6 +430,15 @@ export default function App({ user }) {
     }
   };
 
+  // Declared here (before handleRecalculerKmSemaine) to avoid TDZ error:
+  // useCallback deps arrays are evaluated at declaration time, so missionsThisWeek
+  // must be initialized before it appears in any dependency array.
+  const currentWeek = getWeekNumber(new Date());
+  const missionsThisWeek = useMemo(
+    () => getMissionsByWeek(currentWeek).filter((m) => m && m.date_iso),
+    [getMissionsByWeek, currentWeek]
+  );
+
   // Batch geocoding for lieux without coordinates (used by DiagnosticsPage)
   // Nominatim usage policy requires ≤ 1 request/second; 1100ms gives a safe margin.
   const NOMINATIM_DELAY_MS = 1100;
@@ -534,12 +543,6 @@ export default function App({ user }) {
     } catch { triggerAlert("Erreur chargement historique"); }
     finally { setLoadingHistorique(false); }
   };
-
-  const currentWeek = getWeekNumber(new Date());
-  const missionsThisWeek = useMemo(
-    () => getMissionsByWeek(currentWeek).filter((m) => m && m.date_iso),
-    [getMissionsByWeek, currentWeek]
-  );
 
   const kmFraisThisWeek = useMemo(() => {
     const empty = { items: [], totalKm: 0, totalAmount: 0 };
