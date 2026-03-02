@@ -30,6 +30,7 @@ export const BilanTab = ({
   kmSettings = null,
   kmFraisThisWeek = null,
   domicileLatLng = null,
+  onRecalculerFraisKm = null,
 }) => {
   const exportBilanContent = useMemo(() => {
     if (kmSettings?.km_enable === true) return bilan.bilanContent;
@@ -422,6 +423,22 @@ export const BilanTab = ({
           </button>
         )}
       </div>
+
+      {/* RECALCUL KM */}
+      {kmSettings?.km_enable === true && !isViewer && onRecalculerFraisKm && (
+        <div className="mb-8">
+          <button
+            onClick={onRecalculerFraisKm}
+            disabled={bilan.isRecalculatingKm}
+            className={"w-full py-4 rounded-2xl font-black text-[11px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
+              (bilan.isRecalculatingKm
+                ? "bg-white/5 text-white/30 border-white/10 cursor-not-allowed"
+                : "bg-blue-600/20 text-blue-400 border-blue-600/30 hover:bg-blue-600/30")}
+          >
+            {bilan.isRecalculatingKm ? "⏳ Recalcul en cours…" : "🚗 Recalculer KM"}
+          </button>
+        </div>
+      )}
 
       {/* DÉTAIL MISSIONS OU REGROUPEMENT */}
       {bilan.bilanPeriodType === "semaine" ? (

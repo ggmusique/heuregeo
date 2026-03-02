@@ -662,6 +662,7 @@ export default function App({ user }) {
               kmSettings,
               kmFraisThisWeek,
               domicileLatLng,
+              onRecalculerFraisKm: () => bilan.recalculerFraisKm(bilanPatronId),
             }}
           />
         )}
