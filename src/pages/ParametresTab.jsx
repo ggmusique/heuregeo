@@ -1,11 +1,12 @@
-import React, { Component, useEffect, useMemo, useState } from "react";
+import React, { Component, Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { AdminPage } from "./AdminPage";
-import { DiagnosticsPage } from "./DiagnosticsPage";
 import { EUROPE_COUNTRIES, KM_RATES } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
+
+const DiagnosticsPage = lazy(() => import("./DiagnosticsPage").then((m) => ({ default: m.DiagnosticsPage })));
 
 class DiagnosticsErrorBoundary extends Component {
   constructor(props) {
@@ -226,16 +227,18 @@ export function ParametresTab({
 
               {activePanel === "diagnostics" && isAdmin && (
                 <DiagnosticsErrorBoundary>
-                  <DiagnosticsPage
-                    profile={profile}
-                    kmSettings={kmSettings}
-                    domicileLatLng={domicileLatLng}
-                    lieux={lieux}
-                    missionsThisWeek={missionsThisWeek}
-                    kmFraisThisWeek={kmFraisThisWeek ?? undefined}
-                    onRegeocoderBatch={onRegeocoderBatch}
-                    onRecalculerKmSemaine={onRecalculerKmSemaine}
-                  />
+                  <Suspense fallback={<div className="py-8 text-center text-white/40 text-sm">Chargement diagnostics…</div>}>
+                    <DiagnosticsPage
+                      profile={profile}
+                      kmSettings={kmSettings}
+                      domicileLatLng={domicileLatLng}
+                      lieux={lieux}
+                      missionsThisWeek={missionsThisWeek}
+                      kmFraisThisWeek={kmFraisThisWeek ?? undefined}
+                      onRegeocoderBatch={onRegeocoderBatch}
+                      onRecalculerKmSemaine={onRecalculerKmSemaine}
+                    />
+                  </Suspense>
                 </DiagnosticsErrorBoundary>
               )}
             </div>
