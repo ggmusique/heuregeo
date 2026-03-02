@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { AdminPage } from "./AdminPage";
+import { DiagnosticsPage } from "./DiagnosticsPage";
 import { EUROPE_COUNTRIES, KM_RATES } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
@@ -33,6 +34,11 @@ export function ParametresTab({
   onToggleMissionRateEditor = () => {},
   kmSettings = null,
   onRegeocoderLieu = null,
+  domicileLatLng = null,
+  missionsThisWeek = [],
+  kmFraisThisWeek = null,
+  onRegeocoderBatch = null,
+  onRecalculerKmSemaine = null,
 }) {
   const [activePanel, setActivePanel] = useState(null);
 
@@ -63,6 +69,12 @@ export function ParametresTab({
               icon: "🛡️",
               title: "Admin",
               subtitle: "Configuration avancee et supervision",
+            },
+            {
+              key: "diagnostics",
+              icon: "🔍",
+              title: "Diagnostics KM/GPS",
+              subtitle: "Vue dev · km, coords, lieux manquants",
             },
           ]
         : []),
@@ -181,6 +193,19 @@ export function ParametresTab({
               )}
 
               {activePanel === "admin" && isAdmin && <AdminPage darkMode={darkMode} />}
+
+              {activePanel === "diagnostics" && isAdmin && (
+                <DiagnosticsPage
+                  profile={profile}
+                  kmSettings={kmSettings}
+                  domicileLatLng={domicileLatLng}
+                  lieux={lieux}
+                  missionsThisWeek={missionsThisWeek}
+                  kmFraisThisWeek={kmFraisThisWeek ?? undefined}
+                  onRegeocoderBatch={onRegeocoderBatch}
+                  onRecalculerKmSemaine={onRecalculerKmSemaine}
+                />
+              )}
             </div>
           </div>
         </div>
