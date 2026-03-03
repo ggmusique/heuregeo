@@ -354,6 +354,9 @@ export default function App({ user }) {
       resetAcompteForm();
       setShowAcompteModal(false);
       await fetchAcomptes();
+      if (typeof bilan.fetchHistoriqueBilans === "function") {
+        await bilan.fetchHistoriqueBilans(acomptePatronId);
+      }
       if (bilan.showBilan && bilan.bilanPeriodValue) await bilan.genererBilan(bilanPatronId);
       await chargerHistorique(acomptePatronId);
     } catch (err) { triggerAlert("Erreur : " + (err?.message || "Probleme de base de donnees")); }
