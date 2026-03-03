@@ -248,6 +248,35 @@ export function useBilan({
     []
   );
 
+  const getAcompteAllocations = useCallback(
+    async (weekNum, patronId = null) => {
+      const pId = effectivePatronId(patronId);
+      const weekIndex = parseInt(weekNum, 10) || 0;
+
+      if (!weekIndex) return 0;
+
+      try {
+        const { data, error } = await supabase
+          .from("acompte_allocations")
+          .select("amount")
+          .eq("patron_id", pId)
+          .eq("periode_type", PERIOD_TYPES.SEMAINE)
+          .eq("periode_index", weekIndex);
+
+        if (error) throw error;
+
+        return (data || []).reduce(
+          (sum, row) => sum + (parseFloat(row?.amount) || 0),
+          0
+        );
+      } catch (err) {
+        console.error("Erreur getAcompteAllocations:", err);
+        return 0;
+      }
+    },
+    []
+  );
+
   const fetchHistoriqueBilans = useCallback(
     async (patronId = null) => {
       const pId = effectivePatronId(patronId);
@@ -410,7 +439,6 @@ export function useBilan({
         let soldeAvantPeriode = 0;
         let soldeApresPeriode = 0;
         let acompteConsomme = 0;
-        let acompteConsommeAffiche = 0; // ✅ total affiché (inclut semaines précédentes)
 
         const acomptesDansPeriode =
           bilanPeriodType === PERIOD_TYPES.SEMAINE
@@ -418,16 +446,14 @@ export function useBilan({
             : 0;
 
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          // Pure-function approach: uses acomptes/missions/frais data directly,
-          // without relying on potentially stale bilans_status_v2 snapshots.
+          const weekNum = parseInt(bilanPeriodValue, 10);
+          const acompteAlloueSemaine = await getAcompteAllocations(weekNum, patronId);
           soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
           const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
-          const aRegler = caBrutPeriode + impayePrecedent;
-          acompteConsomme = Math.min(aRegler, acompteDisponible);
+          acompteConsomme = Math.min(acompteAlloueSemaine, caBrutPeriode, acompteDisponible);
           resteCettePeriode = Math.max(0, caBrutPeriode - acompteConsomme);
-          resteAPercevoir = Math.max(0, aRegler - acompteConsomme);
+          resteAPercevoir = Math.max(0, impayePrecedent + resteCettePeriode);
           soldeApresPeriode = Math.max(0, acompteDisponible - acompteConsomme);
-          acompteConsommeAffiche = acompteConsomme;
 
         } else {
           // Mode mois/année
@@ -437,7 +463,6 @@ export function useBilan({
           resteCettePeriode = caBrutPeriode - acompteConsomme;
           resteAPercevoir = resteCettePeriode;
           soldeApresPeriode = acompteDisponible - acompteConsomme;
-          acompteConsommeAffiche = acompteConsomme;
         }
 
         // 7) Statut payé
@@ -597,6 +622,7 @@ export function useBilan({
       getSoldeAvant,
       getAcomptesDansPeriode,
       getImpayePrecedent,
+      getAcompteAllocations,
       getStatutPaiement,
       formatPeriodLabel,
       triggerAlert,
