@@ -223,7 +223,7 @@ export function useBilan({
 
         let query = supabase
           .from(TABLE)
-          .select("periode_index, ca_brut_periode, acompte_consomme, reste_a_percevoir")
+          .select("periode_index, ca_brut_periode, acompte_consomme, reste_a_percevoir, paye")
           .eq("periode_type", PERIOD_TYPES.SEMAINE)
           .eq("patron_id", pId)
           .lt("periode_index", currentIndex)
@@ -236,7 +236,11 @@ export function useBilan({
         // ✅ Impayé = somme de (CA brut - acompte consommé) par semaine
         const total = (data || []).reduce((sum, row) => {
           const resteStocke = parseFloat(row?.reste_a_percevoir ?? 0);
+          // Si la ligne est marquée payée ET reste <= 0.01, on skip
+          if (row?.paye === true && resteStocke <= 0.01) return sum;
+          // Si reste stocké fiable, on l'utilise
           if (resteStocke > 0.01) return sum + resteStocke;
+          // Sinon fallback calcul
           const ca = parseFloat(row?.ca_brut_periode ?? 0);
           const acompte = parseFloat(row?.acompte_consomme ?? 0);
           const reste = Math.max(0, ca - acompte);
@@ -256,7 +260,7 @@ export function useBilan({
       if (!dateDebut) return 0;
 
       const pId = effectivePatronId(patronId);
-      const fromIso = `${dateDebut}T00:00:00.000Z`;
+      const fromIso = dateDebut;
 
       try {
         const { data, error } = await supabase
@@ -439,6 +443,7 @@ export function useBilan({
         let soldeAvantPeriode = 0;
         let soldeApresPeriode = 0;
         let acompteConsomme = 0;
+        let acompteConsommePeriode = 0;
 
         const acomptesDansPeriode =
           bilanPeriodType === PERIOD_TYPES.SEMAINE
