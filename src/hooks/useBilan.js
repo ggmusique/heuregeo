@@ -621,7 +621,7 @@ export function useBilan({
           .select("*")
           .eq("patron_id", pId)
           .eq("periode_type", "semaine")
-          .eq("paye", false)
+          .or("paye.is.null,paye.eq.false")
           .order("periode_index", { ascending: true });
 
         if (error) throw error;

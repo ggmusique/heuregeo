@@ -345,8 +345,12 @@ export default function App({ user }) {
     if (!acomptePatronId) return triggerAlert("Selectionne un patron pour cet acompte");
     try {
       setLoading(true);
-      await createAcompte({ montant: montantNet, date_acompte: acompteDate, patron_id: acomptePatronId });
-      triggerAlert("Acompte enregistre !");
+      const result = await createAcompte({ montant: montantNet, date_acompte: acompteDate, patron_id: acomptePatronId });
+      if (result?.autoPayApplied === false) {
+        triggerAlert("Acompte enregistre, mais l'auto-paiement n'a pas ete applique automatiquement.");
+      } else {
+        triggerAlert("Acompte enregistre !");
+      }
       resetAcompteForm();
       setShowAcompteModal(false);
       await fetchAcomptes();
