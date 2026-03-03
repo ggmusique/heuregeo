@@ -119,15 +119,35 @@ export const AdminPage = ({ darkMode = true }) => {
     }
   };
 
+  const getSynPatronId = async () => {
+    const { data: patronData, error: patronError } = await supabase
+      .from("patrons")
+      .select("id, nom")
+      .ilike("nom", "%Syn%")
+      .limit(1);
+    if (patronError || !patronData?.length) throw new Error("Patron Syn introuvable");
+    return patronData[0].id;
+  };
+
   const supprimerTousAcomptes = async () => {
     setResetLoading(true);
     setResetMessage(null);
     try {
-      const { error: e1 } = await supabase.from("acompte_allocations").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      const synPatronId = await getSynPatronId();
+
+      const { error: e1 } = await supabase
+        .from("acompte_allocations")
+        .delete()
+        .eq("patron_id", synPatronId);
       if (e1) throw e1;
-      const { error: e2 } = await supabase.from("acomptes").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+      const { error: e2 } = await supabase
+        .from("acomptes")
+        .delete()
+        .eq("patron_id", synPatronId);
       if (e2) throw e2;
-      setResetMessage({ type: "success", text: "✅ Tous les acomptes ont été supprimés." });
+
+      setResetMessage({ type: "success", text: "✅ Acomptes de Syn supprimés." });
     } catch (err) {
       setResetMessage({ type: "error", text: `❌ Erreur : ${err.message}` });
     } finally {
@@ -140,27 +160,28 @@ export const AdminPage = ({ darkMode = true }) => {
     setResetLoading(true);
     setResetMessage(null);
     try {
-      const { data: rows, error: fetchError } = await supabase
+      const synPatronId = await getSynPatronId();
+
+      const { data: bilans, error: fetchError } = await supabase
         .from("bilans_status_v2")
-        .select("id, ca_brut_periode");
+        .select("id, ca_brut_periode")
+        .eq("patron_id", synPatronId);
       if (fetchError) throw fetchError;
 
-      const updates = (rows || []).map((row) => ({
-        id: row.id,
-        paye: false,
-        acompte_consomme: 0,
-        date_paiement: null,
-        reste_a_percevoir: parseFloat(row.ca_brut_periode) || 0,
-      }));
-
-      if (updates.length > 0) {
-        const { error: upsertError } = await supabase
+      for (const bilan of bilans || []) {
+        const { error: updateError } = await supabase
           .from("bilans_status_v2")
-          .upsert(updates);
-        if (upsertError) throw upsertError;
+          .update({
+            paye: false,
+            acompte_consomme: 0,
+            reste_a_percevoir: parseFloat(bilan.ca_brut_periode) || 0,
+            date_paiement: null,
+          })
+          .eq("id", bilan.id);
+        if (updateError) throw updateError;
       }
 
-      setResetMessage({ type: "success", text: "✅ Tous les bilans remis en non payé." });
+      setResetMessage({ type: "success", text: `✅ ${(bilans || []).length} bilans de Syn remis en non payé.` });
     } catch (err) {
       setResetMessage({ type: "error", text: `❌ Erreur : ${err.message}` });
     } finally {
@@ -295,11 +316,11 @@ export const AdminPage = ({ darkMode = true }) => {
         )}
 
         <div className="space-y-3">
-          {/* Bouton 1 — Supprimer tous les acomptes */}
+          {/* Bouton 1 — Supprimer acomptes de Syn */}
           <div className="p-5 rounded-[25px] border border-red-500/20 bg-[#0A1628]/60 backdrop-blur-md">
-            <p className="text-sm font-black text-red-300 mb-1">🗑️ Supprimer tous les acomptes</p>
+            <p className="text-sm font-black text-red-300 mb-1">🗑️ Supprimer acomptes de Syn</p>
             <p className="text-[11px] opacity-50 mb-3">
-              Supprime toutes les lignes des tables <code>acomptes</code> et <code>acompte_allocations</code>.
+              Supprime les lignes du patron "Syn" dans les tables <code>acomptes</code> et <code>acompte_allocations</code>.
             </p>
             {resetAction === "acomptes" ? (
               <div className="flex gap-2">
@@ -323,16 +344,16 @@ export const AdminPage = ({ darkMode = true }) => {
                 onClick={() => { setResetMessage(null); setResetAction("acomptes"); }}
                 className="px-4 py-2 rounded-xl font-black text-[10px] uppercase border bg-red-600/20 border-red-500/40 text-red-300 hover:bg-red-600/30 active:scale-95"
               >
-                Supprimer tous les acomptes
+                Supprimer acomptes de Syn
               </button>
             )}
           </div>
 
-          {/* Bouton 2 — Remettre bilans en non payé */}
+          {/* Bouton 2 — Remettre bilans de Syn en non payé */}
           <div className="p-5 rounded-[25px] border border-orange-500/20 bg-[#0A1628]/60 backdrop-blur-md">
-            <p className="text-sm font-black text-orange-300 mb-1">🔄 Remettre bilans en non payé</p>
+            <p className="text-sm font-black text-orange-300 mb-1">🔄 Remettre bilans de Syn en non payé</p>
             <p className="text-[11px] opacity-50 mb-3">
-              Remet <code>paye = false</code>, <code>acompte_consomme = 0</code>, <code>reste_a_percevoir = ca_brut_periode</code> pour tous les bilans.
+              Remet <code>paye = false</code>, <code>acompte_consomme = 0</code>, <code>reste_a_percevoir = ca_brut_periode</code> pour les bilans du patron "Syn".
             </p>
             {resetAction === "bilans" ? (
               <div className="flex gap-2">
@@ -356,7 +377,7 @@ export const AdminPage = ({ darkMode = true }) => {
                 onClick={() => { setResetMessage(null); setResetAction("bilans"); }}
                 className="px-4 py-2 rounded-xl font-black text-[10px] uppercase border bg-orange-600/20 border-orange-500/40 text-orange-300 hover:bg-orange-600/30 active:scale-95"
               >
-                Remettre bilans en non payé
+                Remettre bilans de Syn en non payé
               </button>
             )}
           </div>
