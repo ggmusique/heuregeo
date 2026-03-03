@@ -471,6 +471,7 @@ export function useBilan({
           soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
           const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
           acompteConsomme = Math.min(acompteDisponible, caBrutPeriode);
+          acompteConsommePeriode = acompteConsomme;
           resteCettePeriode = caBrutPeriode - acompteConsomme;
           resteAPercevoir = resteCettePeriode;
           soldeApresPeriode = acompteDisponible - acompteConsomme;
