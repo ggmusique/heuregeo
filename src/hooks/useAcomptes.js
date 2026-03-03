@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import * as acomptesApi from "../services/api/acomptesApi";
+import { supabase } from "../services/supabase";
 import { calculerSoldeAcomptesAvant } from "../utils/calculators";
 
 /**
@@ -85,9 +86,18 @@ const createAcompte = useCallback(
 
       if (newAcompte) {
         setListeAcomptes((prev) => [newAcompte, ...prev]);
+
+        const { error: applyError } = await supabase.rpc("apply_acompte", {
+          p_acompte_id: newAcompte.id,
+        });
+
+        if (applyError) {
+          console.error("Erreur apply_acompte:", applyError);
+          throw applyError;
+        }
       }
 
-      return result;
+      return { ...result, autoPayApplied: true };
     } catch (err) {
       console.error("Erreur création acompte:", err);
       onError?.("Erreur création acompte");
