@@ -55,9 +55,18 @@ export const createAcompte = async (acompteData) => {
 
   if (rpcError) {
     console.warn("apply_acompte RPC error (non-fatal):", rpcError);
+    return {
+      acompte: newAcompte,
+      autoPayApplied: false,
+      autoPayError: rpcError,
+    };
   }
 
-  return newAcompte;
+  return {
+    acompte: newAcompte,
+    autoPayApplied: true,
+    autoPayError: null,
+  };
 };
 
 // ------------------------------------------------------------

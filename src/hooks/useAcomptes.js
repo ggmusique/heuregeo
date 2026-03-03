@@ -80,13 +80,14 @@ const createAcompte = useCallback(
     try {
       setLoading(true);
 
-      const newAcompte = await acomptesApi.createAcompte(acompteData);
+      const result = await acomptesApi.createAcompte(acompteData);
+      const newAcompte = result?.acompte || null;
 
       if (newAcompte) {
         setListeAcomptes((prev) => [newAcompte, ...prev]);
       }
 
-      return newAcompte;
+      return result;
     } catch (err) {
       console.error("Erreur création acompte:", err);
       onError?.("Erreur création acompte");
