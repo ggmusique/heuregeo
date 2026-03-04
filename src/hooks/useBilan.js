@@ -477,27 +477,34 @@ export function useBilan({
             ? getAcomptesDansPeriode(debutPeriode, finPeriode, patronId)
             : 0;
 
-        if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
+if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
   const weekNum = parseInt(bilanPeriodValue, 10);
   
-  // ✅ NOUVEAU : Total alloué JUSQU'À cette semaine (cumul S1 → S7)
-  const { data: allocsJusqua, error: allocError } = await supabase
+  // Total alloué POUR CETTE semaine uniquement (delta)
+  const { data: allocsCetteSemaine } = await supabase
+    .from("acompte_allocations")
+    .select("amount")
+    .eq("patron_id", pId)
+    .eq("periode_index", weekNum);  // ✅ Juste cette semaine
+
+  const allocCetteSemaine = (allocsCetteSemaine || []).reduce(
+    (sum, a) => sum + (parseFloat(a.amount) || 0), 
+    0
+  );
+
+  // Total alloué JUSQU'À cette semaine (cumul pour solde global)
+  const { data: allocsJusqua } = await supabase
     .from("acompte_allocations")
     .select("amount")
     .eq("patron_id", pId)
     .lte("periode_index", weekNum);
 
-  if (allocError) {
-    console.error("Erreur lecture allocations:", allocError);
-  }
-
-  // Total consommé JUSQU'À cette semaine (inclut semaines précédentes + actuelle)
   const totalAlloueJusqua = (allocsJusqua || []).reduce(
     (sum, a) => sum + (parseFloat(a.amount) || 0), 
     0
   );
 
-  // Total alloué AVANT cette semaine (pour calculer le solde disponible)
+  // Total alloué AVANT cette semaine
   const { data: allocsAvant } = await supabase
     .from("acompte_allocations")
     .select("amount")
@@ -509,31 +516,33 @@ export function useBilan({
     0
   );
 
-  // Acomptes reçus et disponibles
+  // Acomptes reçus
   const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
   const acomptesDansPeriode = getAcomptesDansPeriode(debutPeriode, finPeriode, patronId);
   
-  // Cumul utilisé pour le calcul de reste (dette totale - tout alloué jusqu'ici)
-  acompteConsomme = totalAlloueJusqua;
+  // ✅ acompteConsomme = ce qui a été alloué POUR CETTE semaine
+  acompteConsomme = allocCetteSemaine;
 
-  // ✅ Consommé CETTE période seulement (delta = jusquà - avant)
-  acompteConsommePeriode = Math.max(0, totalAlloueJusqua - totalAlloueAvant);
+  // ✅ Consommé CETTE période seulement (même valeur)
+  acompteConsommePeriode = allocCetteSemaine;
 
-  // Solde avant cette semaine = acomptes cumulés - allocations avant cette semaine
-soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDansPeriode);
+  // Solde avant
+  soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDansPeriode);
   
-  // Solde après = acomptes cumulés - total alloué jusqu'à maintenant
+  // Solde après
   soldeApresPeriode = Math.max(0, acomptesCumules - totalAlloueJusqua);
   
-  // Reste à percevoir (doit être cohérent avec la table bilans_status_v2)
+  // ✅ Reste à percevoir = dette - acompte alloué POUR cette semaine
   const detteTotale = impayePrecedent + caBrutPeriode;
-resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
+  resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
   resteAPercevoir = resteCettePeriode;
 
   console.log("🔵 DEBUG ACOMPTE S" + weekNum, {
     caBrutPeriode,
     impayePrecedent,
+    detteTotale,
     acomptesCumules,
+    allocCetteSemaine,
     totalAlloueJusqua,
     totalAlloueAvant,
     acomptesDansPeriode,
