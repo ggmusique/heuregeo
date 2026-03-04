@@ -46,25 +46,11 @@ export const createAcompte = async (acompteData) => {
   // Supabase renvoie un tableau même pour 1 insertion -> on prend le 1er élément
   const newAcompte = data[0];
 
-  // Déclencher l'auto-paiement côté DB via la fonction SQL apply_acompte.
-  // Non-fatal: si la RPC échoue (ex: fonction absente), l'acompte est quand même
-  // enregistré et l'UI sera rafraîchie par l'appelant.
-  const { error: rpcError } = await supabase.rpc("apply_acompte", {
-    p_acompte_id: newAcompte.id,
-  });
-
-  if (rpcError) {
-    console.warn("apply_acompte RPC error (non-fatal):", rpcError);
-    return {
-      acompte: newAcompte,
-      autoPayApplied: false,
-      autoPayError: rpcError,
-    };
-  }
-
+  // L'auto-paiement (apply_acompte RPC) est géré par l'appelant (useAcomptes)
+  // pour éviter un double appel et permettre un verrou par acompteId.
   return {
     acompte: newAcompte,
-    autoPayApplied: true,
+    autoPayApplied: false,
     autoPayError: null,
   };
 };

@@ -31,6 +31,9 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
   // Ref : évite un double-submit sur createAcompte
   const isCreating = useRef(false);
 
+  // Set : verrou par acompteId pour éviter double apply_acompte sur le même acompte
+  const appliedAcompteIds = useRef(new Set());
+
   /**
    * ==========================================
    * 1) Charger tous les acomptes (API)
@@ -84,20 +87,48 @@ const createAcompte = useCallback(
       const result = await acomptesApi.createAcompte(acompteData);
       const newAcompte = result?.acompte || null;
 
+      let autoPayApplied = false;
+
       if (newAcompte) {
         setListeAcomptes((prev) => [newAcompte, ...prev]);
 
-        const { error: applyError } = await supabase.rpc("apply_acompte", {
-          p_acompte_id: newAcompte.id,
-        });
+        const acompteId = newAcompte.id;
 
-        if (applyError) {
-          console.error("Erreur apply_acompte:", applyError);
-          throw applyError;
+        // Verrou par acompteId : évite de déclencher apply_acompte deux fois
+        // pour le même acompte (ex: re-render, double-appel accidentel)
+        if (appliedAcompteIds.current.has(acompteId)) {
+          console.warn("APPLY_ACOMPTE:skip (already applied)", { acompteId });
+        } else {
+          appliedAcompteIds.current.add(acompteId);
+          console.log("APPLY_ACOMPTE:start", { acompteId });
+
+          const { error: applyError } = await supabase.rpc("apply_acompte", {
+            p_acompte_id: acompteId,
+          });
+
+          if (applyError) {
+            appliedAcompteIds.current.delete(acompteId);
+            console.error("Erreur apply_acompte:", applyError);
+            throw applyError;
+          }
+
+          autoPayApplied = true;
+          console.log("APPLY_ACOMPTE:end", { acompteId });
+
+          // Log de vérification : total_alloue rechargé depuis acompte_allocations
+          const { data: allocations } = await supabase
+            .from("acompte_allocations")
+            .select("amount")
+            .eq("acompte_id", acompteId);
+          const totalAlloue = (allocations || []).reduce(
+            (sum, a) => sum + (parseFloat(a.amount) || 0),
+            0
+          );
+          console.log("APPLY_ACOMPTE:total_alloue", { acompteId, totalAlloue });
         }
       }
 
-      return { ...result, autoPayApplied: true };
+      return { ...result, autoPayApplied };
     } catch (err) {
       console.error("Erreur création acompte:", err);
       onError?.("Erreur création acompte");
