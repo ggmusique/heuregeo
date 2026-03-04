@@ -352,7 +352,11 @@ export const BilanTab = ({
               </span>
               <span className="text-3xl font-black text-orange-400">
                 {formatEuro(
-  (bilan.bilanContent.resteAPercevoir ?? bilan.bilanContent.resteCettePeriode) || 0
+  (() => {
+    const net = Number(bilan.bilanContent?.resteAPercevoir);
+    const net2 = Number(bilan.bilanContent?.resteCettePeriode);
+    return Number.isFinite(net) && net > 0 ? net : Number.isFinite(net2) ? net2 : 0;
+  })()
 )}
               </span>
             </div>

@@ -70,6 +70,7 @@ export function ParametresTab({
   kmFraisThisWeek = null,
   onRegeocoderBatch = null,
   onRecalculerKmSemaine = null,
+  onRebuildBilans = null,
 }) {
   const [activePanel, setActivePanel] = useState(null);
 
@@ -237,6 +238,8 @@ export function ParametresTab({
                       kmFraisThisWeek={kmFraisThisWeek ?? undefined}
                       onRegeocoderBatch={onRegeocoderBatch}
                       onRecalculerKmSemaine={onRecalculerKmSemaine}
+                      onRebuildBilans={onRebuildBilans}
+                      patrons={patrons}
                     />
                   </Suspense>
                 </DiagnosticsErrorBoundary>

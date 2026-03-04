@@ -791,6 +791,7 @@ export default function App({ user }) {
             kmFraisThisWeek={kmFraisThisWeek}
             onRegeocoderBatch={handleRegeocoderBatch}
             onRecalculerKmSemaine={handleRecalculerKmSemaine}
+            onRebuildBilans={bilan.rebuildBilans}
           />
         )}
       </main>  

@@ -17,9 +17,15 @@ export const DiagnosticsPage = ({
   kmFraisThisWeek = { items: [], totalKm: 0, totalAmount: 0 },
   onRegeocoderBatch = null,
   onRecalculerKmSemaine = null,
+  onRebuildBilans = null,
+  patrons = [],
 }) => {
   const [regeoLoading, setRegeoLoading] = useState(false);
   const [recalcLoading, setRecalcLoading] = useState(false);
+  const [rebuildLoading, setRebuildLoading] = useState(false);
+  const [rebuildPatronId, setRebuildPatronId] = useState("");
+  const [rebuildStart, setRebuildStart] = useState("1");
+  const [rebuildEnd, setRebuildEnd] = useState("20");
   const [actionMsg, setActionMsg] = useState(null);
   const [actionIsError, setActionIsError] = useState(false);
 
@@ -61,6 +67,26 @@ export const DiagnosticsPage = ({
   const showMsg = (msg, isError = false) => {
     setActionMsg(msg);
     setActionIsError(isError);
+  };
+
+  const handleRebuildBilans = async () => {
+    if (!onRebuildBilans) return;
+    const start = parseInt(rebuildStart, 10);
+    const end = parseInt(rebuildEnd, 10);
+    if (!start || !end || start > end) {
+      showMsg("Plage de semaines invalide (ex: 3 → 15)", true);
+      return;
+    }
+    setRebuildLoading(true);
+    setActionMsg(null);
+    try {
+      const result = await onRebuildBilans(rebuildPatronId || null, start, end);
+      showMsg(result?.message || "Rebuild terminé", !result?.success);
+    } catch (err) {
+      showMsg("Erreur : " + (err?.message || "Rebuild échoué"), true);
+    } finally {
+      setRebuildLoading(false);
+    }
   };
 
   const handleRegeocoderBatch = async () => {
@@ -196,6 +222,57 @@ export const DiagnosticsPage = ({
           </ul>
         )}
       </Card>
+
+      {/* Rebuild Bilans semaines */}
+      {onRebuildBilans && (
+        <Card title="Rebuild bilans semaines">
+          <p className="text-[10px] text-white/40 mb-2">
+            Reconstruit les bilans en DB dans l&apos;ordre croissant (règle glissante N-1).
+            Utile pour corriger des restes incohérents après un fix.
+          </p>
+          <div className="flex gap-2 mb-2">
+            <div className="flex-1">
+              <label className="text-[10px] uppercase text-white/40 tracking-wider">Patron</label>
+              <select
+                value={rebuildPatronId}
+                onChange={(e) => setRebuildPatronId(e.target.value)}
+                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono"
+              >
+                <option value="">Global</option>
+                {patrons.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nom}</option>
+                ))}
+              </select>
+            </div>
+            <div className="w-16">
+              <label className="text-[10px] uppercase text-white/40 tracking-wider">De S</label>
+              <input
+                type="number" min="1" max="53"
+                value={rebuildStart}
+                onChange={(e) => setRebuildStart(e.target.value)}
+                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono text-center"
+              />
+            </div>
+            <div className="w-16">
+              <label className="text-[10px] uppercase text-white/40 tracking-wider">À S</label>
+              <input
+                type="number" min="1" max="53"
+                value={rebuildEnd}
+                onChange={(e) => setRebuildEnd(e.target.value)}
+                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono text-center"
+              />
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleRebuildBilans}
+            disabled={rebuildLoading}
+            className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-orange-500/40 text-orange-300 bg-orange-600/10 hover:bg-orange-600/20 ${rebuildLoading ? "opacity-50 cursor-wait" : ""}`}
+          >
+            {rebuildLoading ? "Rebuild en cours…" : "🔧 Reconstruire bilans"}
+          </button>
+        </Card>
+      )}
 
       {/* Actions */}
       <Card title="Actions">
