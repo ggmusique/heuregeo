@@ -41,6 +41,13 @@ export const BilanTab = ({
   }, [bilan.bilanContent, kmSettings?.km_enable]);
 
   const sortedBilanMissions = useMemo(() => {
+    console.log("RESTE RAW", {
+  showBilan: bilan.showBilan,
+  periodType: bilan.bilanPeriodType,
+  periodValue: bilan.bilanPeriodValue,
+  resteAPercevoir: bilan?.bilanContent?.resteAPercevoir,
+  resteCettePeriode: bilan?.bilanContent?.resteCettePeriode,
+});
     if (!bilan.bilanContent?.filteredData) return [];
     return [...bilan.bilanContent.filteredData].sort(
       (a, b) => new Date(a.date_iso) - new Date(b.date_iso)
