@@ -78,7 +78,9 @@ const createAcompte = useCallback(
     }
 
     // Protection double-submit
-    if (isCreating.current) return;
+    if (isCreating.current) {
+      throw new Error("Enregistrement d'acompte en cours");
+    }
     isCreating.current = true;
 
     try {
