@@ -279,7 +279,7 @@ export const BilanTab = ({
 
 {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── */}
 {/* ✅ N'afficher QUE si quelque chose s'est passé CETTE semaine */}
-{bilanPeriodType === "semaine" && (
+{bilan.bilanPeriodType === "semaine" && (
   bilan.bilanContent.acomptesDansPeriode > 0 || 
   bilan.bilanContent.soldeAcomptesAvant > 0
 ) && (
