@@ -535,6 +535,15 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
   soldeApresPeriode = acompteDisponible - acompteConsomme;
 }
 
+        const consommeCettePeriode = Math.max(
+          0,
+          (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode
+        );
+
+        if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
+          acompteConsommePeriode = consommeCettePeriode;
+        }
+
         // 7) Statut payé
         const statutPaye = await getStatutPaiement(patronId);
 
@@ -624,11 +633,8 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
 
-         // ✅ N'afficher le bloc que si un acompte a été consommé sur CETTE période (delta uniquement)
           acompteConsommePeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsommePeriode : 0,
-          totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsommePeriode > 0
-            ? acompteConsommePeriode
-            : 0,
+          totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE ? consommeCettePeriode : 0,
 
           acomptesDansPeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acomptesDansPeriode : 0,
           resteCettePeriode,
