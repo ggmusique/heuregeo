@@ -1,15 +1,96 @@
 -- =============================================
 -- FIX: apply_acompte must allocate on real debt (reste_a_percevoir)
+-- + backward-compatible schema guards for acompte_allocations.
 --
 -- Problem:
---   Some legacy rows can be inconsistent: paye=true but reste_a_percevoir > 0.
---   In that case, filtering only on paye=false skips rows that still carry debt,
---   so acompte allocation misses unpaid balances.
+--   Some environments still have legacy column `montant_applique`
+--   instead of `amount`, which breaks apply_acompte at runtime.
 --
--- Fix:
---   Select weekly rows with a positive remaining debt directly:
---     GREATEST(0, COALESCE(reste_a_percevoir, ca_brut_periode - acompte_consomme)) > 0.01
+-- This migration:
+--   1) aligns acompte_allocations schema (rename/add needed columns)
+--   2) recreates apply_acompte(uuid) with debt-based selection
 -- =============================================
+
+-- 0) Schema guard: montant_applique -> amount
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'montant_applique'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'amount'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      RENAME COLUMN montant_applique TO amount;
+  END IF;
+END $$;
+
+-- 1) Ensure expected columns exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'amount'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN amount numeric(12, 2) NOT NULL DEFAULT 0;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'patron_id'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN patron_id uuid;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN user_id uuid;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'periode_index'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN periode_index integer;
+  END IF;
+END $$;
+
+-- 2) Backfill denormalized fields for old rows
+UPDATE public.acompte_allocations aa
+SET
+  patron_id     = COALESCE(aa.patron_id, ac.patron_id),
+  user_id       = COALESCE(aa.user_id, ac.user_id),
+  periode_index = COALESCE(aa.periode_index, b.periode_index)
+FROM public.acomptes ac
+JOIN public.bilans_status_v2 b ON b.id = aa.bilan_id
+WHERE aa.acompte_id = ac.id
+  AND (
+    aa.patron_id IS NULL
+    OR aa.user_id IS NULL
+    OR aa.periode_index IS NULL
+  );
+
+CREATE INDEX IF NOT EXISTS acompte_allocations_patron_periode_idx
+  ON public.acompte_allocations (patron_id, periode_index);
 
 CREATE OR REPLACE FUNCTION public.apply_acompte(p_acompte_id uuid)
 RETURNS void
@@ -61,8 +142,9 @@ BEGIN
   FOR bilan_row IN
     SELECT id, ca_brut_periode, acompte_consomme, reste_a_percevoir, periode_index
     FROM public.bilans_status_v2
-    WHERE patron_id    = v_patron_id
-      AND periode_type = 'semaine'
+    WHERE user_id       = v_user_id
+      AND patron_id     = v_patron_id
+      AND periode_type  = 'semaine'
       AND ca_brut_periode > 0
       AND GREATEST(
             0,
@@ -72,7 +154,13 @@ BEGIN
   LOOP
     EXIT WHEN v_reste <= 0;
 
-    v_besoin := GREATEST(0, COALESCE(bilan_row.reste_a_percevoir, bilan_row.ca_brut_periode - COALESCE(bilan_row.acompte_consomme, 0)));
+    v_besoin := GREATEST(
+      0,
+      COALESCE(
+        bilan_row.reste_a_percevoir,
+        bilan_row.ca_brut_periode - COALESCE(bilan_row.acompte_consomme, 0)
+      )
+    );
 
     CONTINUE WHEN v_besoin <= 0;
 
