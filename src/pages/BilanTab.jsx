@@ -351,7 +351,9 @@ export const BilanTab = ({
                 Reste à percevoir (Net)
               </span>
               <span className="text-3xl font-black text-orange-400">
-                {formatEuro(bilan.bilanContent.resteAPercevoir || 0)}
+                {formatEuro(
+  (bilan.bilanContent.resteAPercevoir ?? bilan.bilanContent.resteCettePeriode) || 0
+)}
               </span>
             </div>
             {!isViewer && (
