@@ -35,21 +35,19 @@ export const fetchAcomptes = async () => {
 // ------------------------------------------------------------
 export const createAcompte = async (acompteData) => {
   // insert([acompteData]) = ajoute une ligne (entre [] car Supabase attend un tableau)
-  // select() = demande à Supabase de renvoyer la ligne créée
+  // select("id") + single() = récupère l'id exact de l'acompte créé
   const { data, error } = await supabase
     .from("acomptes")
     .insert([acompteData])
-    .select();
+    .select("id, montant, date_acompte, patron_id")
+    .single();
 
   if (error) throw error;
-
-  // Supabase renvoie un tableau même pour 1 insertion -> on prend le 1er élément
-  const newAcompte = data[0];
 
   // L'auto-paiement (apply_acompte RPC) est géré par l'appelant (useAcomptes)
   // pour éviter un double appel et permettre un verrou par acompteId.
   return {
-    acompte: newAcompte,
+    acompte: data,
     autoPayApplied: false,
     autoPayError: null,
   };
