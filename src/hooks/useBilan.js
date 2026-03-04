@@ -217,64 +217,35 @@ export function useBilan({
   async (currentWeek, patronId = null) => {
     const pId = effectivePatronId(patronId);
     const currentIndex = parseInt(currentWeek, 10) || 0;
-    const prevIndex = currentIndex - 1;
-    if (prevIndex < 1) return 0;
+    if (currentIndex < 2) return 0;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return 0;
 
-      // 1) Query directe S(N-1)
-      const { data: dataPrev, error: errPrev } = await supabase
-        .from(TABLE)
-        .select("periode_index, paye, reste_a_percevoir, ca_brut_periode, acompte_consomme")
-        .eq("periode_type", PERIOD_TYPES.SEMAINE)
-        .eq("patron_id", pId)
-        .eq("periode_index", prevIndex)
-        .limit(1);
-
-      if (errPrev) throw errPrev;
-
-      const rowPrev = dataPrev?.[0];
-      if (rowPrev) {
-        // ✅ CORRECTION : Lire reste_a_percevoir DIRECTEMENT
-        const reste = parseFloat(rowPrev?.reste_a_percevoir ?? 0);
-        
-        // ✅ Si payé ET reste <= 0.01, impayé = 0
-        if (rowPrev.paye === true && reste <= 0.01) {
-          console.log("🟣 IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "prev-paid", impayePrecedent: 0 });
-          return 0;
-        }
-
-        // ✅ Sinon, retourner le reste stocké
-        if (reste > 0.01) {
-          console.log("🟣 IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "prev-unpaid", impayePrecedent: reste });
-          return reste;
-        }
-      }
-
-      // 2) Fallback : dernière semaine impayée avant currentIndex
-      const { data: dataFallback, error: errFallback } = await supabase
+      const { data, error } = await supabase
         .from(TABLE)
         .select("periode_index, paye, reste_a_percevoir")
         .eq("periode_type", PERIOD_TYPES.SEMAINE)
         .eq("patron_id", pId)
         .lt("periode_index", currentIndex)
-        .gt("reste_a_percevoir", 0.01)  // ✅ Filtrer directement les payées
-        .order("periode_index", { ascending: false })
-        .limit(1);
+        .or("paye.eq.false,reste_a_percevoir.gt.0");
 
-      if (errFallback) throw errFallback;
+      if (error) throw error;
 
-      const rowFallback = dataFallback?.[0];
-      if (rowFallback) {
-        const reste = parseFloat(rowFallback?.reste_a_percevoir ?? 0);
-        console.log("🟣 IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "fallback", fromIndex: rowFallback.periode_index, impayePrecedent: reste });
-        return reste;
-      }
+      const impayePrecedent = (data || []).reduce((sum, row) => {
+        const reste = parseFloat(row?.reste_a_percevoir ?? 0);
+        return sum + (reste > 0 ? reste : 0);
+      }, 0);
 
-      console.log("🟣 IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "none", impayePrecedent: 0 });
-      return 0;
+      console.log("🟣 IMPAYE PRECEDENT", {
+        currentIndex,
+        mode: "sum-all-previous-unpaid",
+        rows: (data || []).length,
+        impayePrecedent,
+      });
+
+      return impayePrecedent;
     } catch (err) {
       console.error("Erreur getImpayePrecedent:", err);
       return 0;
@@ -564,6 +535,15 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
   soldeApresPeriode = acompteDisponible - acompteConsomme;
 }
 
+        const consommeCettePeriode = Math.max(
+          0,
+          (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode
+        );
+
+        if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
+          acompteConsommePeriode = consommeCettePeriode;
+        }
+
         // 7) Statut payé
         const statutPaye = await getStatutPaiement(patronId);
 
@@ -653,11 +633,8 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
 
-         // ✅ N'afficher le bloc que si un acompte a été consommé sur CETTE période (delta uniquement)
           acompteConsommePeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsommePeriode : 0,
-          totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsommePeriode > 0
-            ? acompteConsommePeriode
-            : 0,
+          totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE ? consommeCettePeriode : 0,
 
           acomptesDansPeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acomptesDansPeriode : 0,
           resteCettePeriode,
@@ -688,34 +665,53 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
         setShowPeriodModal(false);
         setShowBilan(true);
 
-        const acompteConsommeSave = bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0;
-        // ✅ Pour semaine : utiliser le net final déjà normalisé dans content
-        const resteAPercevoirSave = bilanPeriodType === PERIOD_TYPES.SEMAINE
-          ? content.resteAPercevoir
-          : resteCettePeriode;
-
-        const dataToSave = {
-          user_id: user.id,
-          periode_type: bilanPeriodType,
-          periode_value: bilanPeriodValue,
-          periode_index: periodeIndex,
-          patron_id: pId,
-          ca_brut_periode: caBrutPeriode,
-          acompte_consomme: acompteConsommeSave,
-          // ✅ Toujours écrire paye+reste pour garantir l'invariant à chaque upsert.
-          // isPaid inclut statutPaye donc on ne risque pas de revenir en arrière.
-          reste_a_percevoir: isPaid ? 0 : Math.max(0, resteAPercevoirSave),
-          paye: isPaid,
-          // date_paiement : fixer uniquement lors du passage initial à payé
-          ...(isPaid && !statutPaye ? { date_paiement: new Date().toISOString() } : {}),
-        };
-
         if (!isGlobalPatronId(patronId)) {
-          const { error: upsertError } = await supabase.from(TABLE).upsert(dataToSave, {
-            onConflict: "periode_type,periode_value,patron_id",
-          });
-          if (upsertError) {
+          const { data: existingBilan, error: lookupError } = await supabase
+            .from(TABLE)
+            .select("id")
+            .eq("periode_type", bilanPeriodType)
+            .eq("periode_value", bilanPeriodValue)
+            .eq("patron_id", pId)
+            .maybeSingle();
+
+          if (lookupError) {
             triggerAlert?.("Erreur sauvegarde bilan.");
+            return false;
+          }
+
+          if (!existingBilan?.id) {
+            const { error: insertError } = await supabase
+              .from(TABLE)
+              .insert({
+                user_id: user.id,
+                periode_type: bilanPeriodType,
+                periode_value: bilanPeriodValue,
+                periode_index: periodeIndex,
+                patron_id: pId,
+                ca_brut_periode: caBrutPeriode,
+                paye: false,
+                date_paiement: null,
+                acompte_consomme: 0,
+                reste_a_percevoir: caBrutPeriode,
+              });
+
+            if (insertError) {
+              triggerAlert?.("Erreur sauvegarde bilan.");
+              return false;
+            }
+          } else {
+            const { error: updateError } = await supabase
+              .from(TABLE)
+              .update({
+                ca_brut_periode: caBrutPeriode,
+                periode_index: periodeIndex,
+              })
+              .eq("id", existingBilan.id);
+
+            if (updateError) {
+              triggerAlert?.("Erreur sauvegarde bilan.");
+              return false;
+            }
           }
         }
 
@@ -748,69 +744,9 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
 
   const autoPayerBilans = useCallback(
     async (patronId, montantAcompte) => {
-      try {
-        const pId = effectivePatronId(patronId);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return false;
-
-        console.log("🔵 AUTO-PAIEMENT DÉMARRÉ", { patronId: pId, montantAcompte });
-
-        const { data: bilansImpayes, error } = await supabase
-          .from(TABLE)
-          .select("*")
-          .eq("patron_id", pId)
-          .eq("periode_type", "semaine")
-          .gt("reste_a_percevoir", 0)
-          .order("periode_index", { ascending: true });
-
-        if (error) throw error;
-        console.log("🟡 Bilans impayés trouvés:", bilansImpayes);
-
-        if (!bilansImpayes || bilansImpayes.length === 0) {
-          console.log("⚠️ Aucun bilan impayé trouvé");
-          return true;
-        }
-
-        let resteAcompte = montantAcompte;
-
-        for (const bilan of bilansImpayes) {
-          if (resteAcompte <= 0) break;
-
-          const caBrut = parseFloat(bilan.ca_brut_periode || 0);
-          const acompteDejaConsomme = parseFloat(bilan.acompte_consomme || 0);
-          const resteDu = Math.max(0, caBrut - acompteDejaConsomme);
-
-          if (resteDu <= 0) continue;
-
-          if (resteAcompte >= resteDu) {
-            await supabase.from(TABLE).update({
-              paye: true,
-              date_paiement: new Date().toISOString(),
-              acompte_consomme: caBrut,
-              reste_a_percevoir: 0,
-            }).eq("id", bilan.id);
-            resteAcompte -= resteDu;
-          } else {
-            const nouvelAcompteConsomme = acompteDejaConsomme + resteAcompte;
-            const nouveauReste = Math.max(0, caBrut - nouvelAcompteConsomme);
-            await supabase.from(TABLE).update({
-              paye: nouveauReste <= 0.01,
-              date_paiement: nouveauReste <= 0.01 ? new Date().toISOString() : null,
-              acompte_consomme: nouvelAcompteConsomme,
-              reste_a_percevoir: nouveauReste,
-            }).eq("id", bilan.id);
-            resteAcompte = 0;
-            break;
-          }
-        }
-
-        console.log("✅ AUTO-PAIEMENT TERMINÉ");
-        return true;
-      } catch (err) {
-        console.error("❌ Erreur auto-paiement bilans:", err);
-        triggerAlert?.("⚠️ Erreur lors de la mise à jour automatique des bilans");
-        return false;
-      }
+      console.warn("autoPayerBilans est neutralisé: utiliser apply_acompte côté DB", { patronId, montantAcompte });
+      triggerAlert?.("ℹ️ Auto-paiement front désactivé (source de vérité côté DB).");
+      return false;
     },
     [triggerAlert]
   );
@@ -822,31 +758,47 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Utilisateur non connecté");
 
-        const caBrut = bilanContent.totalE || 0;
-        // ✅ Clamp acompte_consomme pour ne pas dépasser ca_brut_periode
-        const acompteConsomme = Math.min(
-          bilanContent.acompteConsommePeriode || 0,
-          caBrut
-        );
+        const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
+        const { data: existingBilan, error: lookupError } = await supabase
+          .from(TABLE)
+          .select("id, ca_brut_periode")
+          .eq("periode_type", bilanPeriodType)
+          .eq("periode_value", bilanPeriodValue)
+          .eq("patron_id", pId)
+          .maybeSingle();
 
-        const dataToSave = {
-          user_id: user.id,
-          periode_type: bilanPeriodType,
-          periode_value: bilanPeriodValue,
-          periode_index: computePeriodeIndex(bilanPeriodType, bilanPeriodValue),
-          patron_id: pId,
-          paye: true,
-          date_paiement: new Date().toISOString(),
-          // ✅ reste_a_percevoir = 0 quand payé (cohérence)
-          reste_a_percevoir: 0,
-          ca_brut_periode: caBrut,
-          acompte_consomme: acompteConsomme,
-        };
+        if (lookupError) throw lookupError;
 
-        const { error } = await supabase.from(TABLE).upsert(dataToSave, {
-          onConflict: "periode_type,periode_value,patron_id",
-        });
-        if (error) throw error;
+        if (!existingBilan?.id) {
+          const caBrutPeriode = Number(bilanContent.totalE) || 0;
+          const { error: insertError } = await supabase.from(TABLE).insert({
+            user_id: user.id,
+            periode_type: bilanPeriodType,
+            periode_value: bilanPeriodValue,
+            periode_index: periodeIndex,
+            patron_id: pId,
+            ca_brut_periode: caBrutPeriode,
+            paye: true,
+            date_paiement: new Date().toISOString(),
+            reste_a_percevoir: 0,
+            acompte_consomme: caBrutPeriode,
+          });
+
+          if (insertError) throw insertError;
+        } else {
+          const caBrutPeriode = Number(existingBilan.ca_brut_periode) || 0;
+          const { error: updateError } = await supabase
+            .from(TABLE)
+            .update({
+              paye: true,
+              date_paiement: new Date().toISOString(),
+              reste_a_percevoir: 0,
+              acompte_consomme: caBrutPeriode,
+            })
+            .eq("id", existingBilan.id);
+
+          if (updateError) throw updateError;
+        }
 
         setBilanPaye(true);
         triggerAlert?.("✅ Marqué comme payé !");
@@ -966,35 +918,44 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           // Impayé précédent (règle glissante N-1)
           const impayePrecedent = await getImpayePrecedent(weekNum, patronId);
 
-          // Allocations acomptes jusqu'à cette semaine
-          const { data: allocsJusqua } = await supabase
-            .from("acompte_allocations")
-            .select("amount")
+          console.log(`DEBUG_REBUILD S${weekNum}`, { caBrutPeriode, impayePrecedent });
+
+          const { data: existingBilan, error: lookupError } = await supabase
+            .from(TABLE)
+            .select("id")
+            .eq("periode_type", PERIOD_TYPES.SEMAINE)
+            .eq("periode_value", String(weekNum))
             .eq("patron_id", pId)
-            .lte("periode_index", weekNum);
-          const acompteConsomme = (allocsJusqua || []).reduce(
-            (sum, a) => sum + (parseFloat(a.amount) || 0), 0
-          );
+            .maybeSingle();
 
-          // Reste net final
-          const detteTotale = impayePrecedent + caBrutPeriode;
-          const resteNetFinal = Math.max(0, detteTotale - acompteConsomme);
-          const isPaid = resteNetFinal <= 0.01;
+          if (lookupError) throw lookupError;
 
-          console.log(`DEBUG_REBUILD S${weekNum}`, { caBrutPeriode, impayePrecedent, acompteConsomme, resteNetFinal, isPaid });
+          if (!existingBilan?.id) {
+            const { error: insertError } = await supabase.from(TABLE).insert({
+              user_id: user.id,
+              periode_type: PERIOD_TYPES.SEMAINE,
+              periode_value: String(weekNum),
+              periode_index: weekNum,
+              patron_id: pId,
+              ca_brut_periode: caBrutPeriode,
+              paye: false,
+              date_paiement: null,
+              acompte_consomme: 0,
+              reste_a_percevoir: caBrutPeriode,
+            });
 
-          // Contrainte unique : (periode_type, periode_value, patron_id)
-          await supabase.from(TABLE).upsert({
-            user_id: user.id,
-            periode_type: PERIOD_TYPES.SEMAINE,
-            periode_value: String(weekNum),
-            periode_index: weekNum,
-            patron_id: pId,
-            ca_brut_periode: caBrutPeriode,
-            acompte_consomme: acompteConsomme,
-            reste_a_percevoir: isPaid ? 0 : resteNetFinal,
-            paye: isPaid,
-          }, { onConflict: "periode_type,periode_value,patron_id" });
+            if (insertError) throw insertError;
+          } else {
+            const { error: updateError } = await supabase
+              .from(TABLE)
+              .update({
+                ca_brut_periode: caBrutPeriode,
+                periode_index: weekNum,
+              })
+              .eq("id", existingBilan.id);
+
+            if (updateError) throw updateError;
+          }
 
           rebuilt++;
         }
