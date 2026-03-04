@@ -509,9 +509,12 @@ export function useBilan({
   const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
   const acomptesDansPeriode = getAcomptesDansPeriode(debutPeriode, finPeriode, patronId);
   
-  // ✅ Affichage : Total alloué jusqu'à cette semaine
+  // Cumul utilisé pour le calcul de reste (dette totale - tout alloué jusqu'ici)
   acompteConsomme = totalAlloueJusqua;
-  
+
+  // ✅ Consommé CETTE période seulement (delta = jusquà - avant)
+  acompteConsommePeriode = Math.max(0, totalAlloueJusqua - totalAlloueAvant);
+
   // Solde avant cette semaine = acomptes cumulés - allocations avant cette semaine
 soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDansPeriode);
   
@@ -637,10 +640,10 @@ resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
 
-         // ✅ N'afficher le bloc que si un acompte a été consommé sur CETTE période
-          acompteConsommePeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
-          totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
-            ? acompteConsomme
+         // ✅ N'afficher le bloc que si un acompte a été consommé sur CETTE période (delta uniquement)
+          acompteConsommePeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsommePeriode : 0,
+          totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsommePeriode > 0
+            ? acompteConsommePeriode
             : 0,
 
           acomptesDansPeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acomptesDansPeriode : 0,
