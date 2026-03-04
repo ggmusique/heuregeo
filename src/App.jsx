@@ -65,6 +65,7 @@ export default function App({ user }) {
   const [acompteMontant, setAcompteMontant] = useState("");
   const [acompteDate, setAcompteDate] = useState(new Date().toISOString().split("T")[0]);
   const [acomptePatronId, setAcomptePatronId] = useState(null);
+  const [isSavingAcompte, setIsSavingAcompte] = useState(false);
 
   const [showPatronModal, setShowPatronModal] = useState(false);
   const [editingPatronId, setEditingPatronId] = useState(null);
@@ -340,17 +341,15 @@ export default function App({ user }) {
   const resetFraisForm = () => { setFraisDescription(""); setFraisMontant(""); setFraisDate(new Date().toISOString().split("T")[0]); setEditingFraisId(null); setFraisPatronId(null); };
 
   const handleAcompteSubmit = async () => {
+    if (isSavingAcompte) return;
     const montantNet = parseFloat(acompteMontant?.toString().replace(",", "."));
     if (!acompteMontant || isNaN(montantNet) || montantNet <= 0) return triggerAlert("Veuillez saisir un montant valide");
     if (!acomptePatronId) return triggerAlert("Selectionne un patron pour cet acompte");
     try {
+      setIsSavingAcompte(true);
       setLoading(true);
-      const result = await createAcompte({ montant: montantNet, date_acompte: acompteDate, patron_id: acomptePatronId });
-      if (result?.autoPayApplied === false) {
-        triggerAlert("Acompte enregistre, mais l'auto-paiement n'a pas ete applique automatiquement.");
-      } else {
-        triggerAlert("Acompte enregistre !");
-      }
+      await createAcompte({ montant: montantNet, date_acompte: acompteDate, patron_id: acomptePatronId });
+      triggerAlert("Acompte enregistre !");
       resetAcompteForm();
       setShowAcompteModal(false);
       await fetchAcomptes();
@@ -360,7 +359,10 @@ export default function App({ user }) {
       if (bilan.showBilan && bilan.bilanPeriodValue) await bilan.genererBilan(bilanPatronId);
       await chargerHistorique(acomptePatronId);
     } catch (err) { triggerAlert("Erreur : " + (err?.message || "Probleme de base de donnees")); }
-    finally { setLoading(false); }
+    finally {
+      setLoading(false);
+      setIsSavingAcompte(false);
+    }
   };
 
   const resetAcompteForm = () => { setAcompteMontant(""); setAcompteDate(new Date().toISOString().split("T")[0]); setAcomptePatronId(null); };
@@ -800,7 +802,7 @@ export default function App({ user }) {
 
       <FraisModal show={showFraisModal} editMode={!!editingFraisId} description={fraisDescription} setDescription={setFraisDescription} montant={fraisMontant} setMontant={setFraisMontant} date={fraisDate} setDate={setFraisDate} onSubmit={handleFraisSubmit} onCancel={() => { setShowFraisModal(false); resetFraisForm(); }} loading={loading} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={fraisPatronId} onPatronChange={setFraisPatronId} />  
 
-      <AcompteModal show={showAcompteModal} montant={acompteMontant} setMontant={setAcompteMontant} date={acompteDate} setDate={setAcompteDate} onSubmit={handleAcompteSubmit} onCancel={() => { setShowAcompteModal(false); resetAcompteForm(); }} loading={loading} isIOS={isIOS} patrons={patrons} selectedPatronId={acomptePatronId} onPatronChange={setAcomptePatronId} />  
+      <AcompteModal show={showAcompteModal} montant={acompteMontant} setMontant={setAcompteMontant} date={acompteDate} setDate={setAcompteDate} onSubmit={handleAcompteSubmit} onCancel={() => { setShowAcompteModal(false); resetAcompteForm(); }} loading={loading || isSavingAcompte} isIOS={isIOS} patrons={patrons} selectedPatronId={acomptePatronId} onPatronChange={setAcomptePatronId} />  
 
       <PatronModal show={showPatronModal} editMode={!!editingPatronId} initialData={editingPatronData} onSubmit={handlePatronSubmit} onCancel={() => { setShowPatronModal(false); resetPatronForm(); }} loading={loading} darkMode={darkMode} />  
 
