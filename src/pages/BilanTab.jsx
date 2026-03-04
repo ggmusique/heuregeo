@@ -285,11 +285,11 @@ export const BilanTab = ({
     )}
 
 {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── */}
-{/* ✅ N'afficher QUE si quelque chose s'est passé CETTE semaine */}
 {bilan.bilanPeriodType === "semaine" && (
   bilan.bilanContent.acomptesDansPeriode > 0 || 
   bilan.bilanContent.totalAcomptes > 0 ||
-  bilan.bilanContent.soldeAcomptesAvant > 0
+  bilan.bilanContent.soldeAcomptesAvant > 0 ||
+  bilan.bilanContent.soldeAcomptesApres > 0
 ) && (
   <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
     <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
@@ -297,15 +297,15 @@ export const BilanTab = ({
     </p>
     <div className="space-y-3">
 
-      {bilan.bilanContent.soldeAcomptesAvant > 0 && (
-        <div className="flex justify-between text-sm">
-          <span className="text-white/60">💳 Acompte disponible précédent :</span>
-          <span className="font-bold text-cyan-300">
-            {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
-          </span>
-        </div>
-      )}
+      {/* 💳 Acompte disponible précédent */}
+      <div className="flex justify-between text-sm">
+        <span className="text-white/60">💳 Acompte disponible précédent :</span>
+        <span className="font-bold text-cyan-300">
+          {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
+        </span>
+      </div>
 
+      {/* 📥 Reçus cette période */}
       {bilan.bilanContent.acomptesDansPeriode > 0 && (
         <div className="flex justify-between text-sm">
           <span className="text-white/60">📥 Reçus cette période :</span>
@@ -315,6 +315,7 @@ export const BilanTab = ({
         </div>
       )}
 
+      {/* ✂️ Consommé cette période */}
       {bilan.bilanContent.totalAcomptes > 0 && (
         <div className="flex justify-between text-sm">
           <span className="text-white/60">✂️ Consommé cette période :</span>
@@ -324,17 +325,15 @@ export const BilanTab = ({
         </div>
       )}
 
-      {/* Solde restant - affiché uniquement si > 0 */}
-      {bilan.bilanContent.soldeAcomptesApres > 0 && (
-        <div className="pt-3 border-t border-white/10 flex justify-between items-center">
-          <span className="text-[10px] font-black uppercase text-white/80">
-            Solde restant à reporter :
-          </span>
-          <span className="text-xl font-black text-green-400">
-            {formatEuro(bilan.bilanContent.soldeAcomptesApres)}
-          </span>
-        </div>
-      )}
+      {/* Solde restant à reporter */}
+      <div className="pt-3 border-t border-white/10 flex justify-between items-center">
+        <span className="text-[10px] font-black uppercase text-white/80">
+          Solde restant à reporter :
+        </span>
+        <span className="text-xl font-black text-green-400">
+          {formatEuro(bilan.bilanContent.soldeAcomptesApres)}
+        </span>
+      </div>
 
     </div>
   </div>
