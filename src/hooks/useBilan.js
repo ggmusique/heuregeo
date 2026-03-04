@@ -812,31 +812,47 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Utilisateur non connecté");
 
-        const caBrut = bilanContent.totalE || 0;
-        // ✅ Clamp acompte_consomme pour ne pas dépasser ca_brut_periode
-        const acompteConsomme = Math.min(
-          bilanContent.acompteConsommePeriode || 0,
-          caBrut
-        );
+        const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
+        const { data: existingBilan, error: lookupError } = await supabase
+          .from(TABLE)
+          .select("id, ca_brut_periode")
+          .eq("periode_type", bilanPeriodType)
+          .eq("periode_value", bilanPeriodValue)
+          .eq("patron_id", pId)
+          .maybeSingle();
 
-        const dataToSave = {
-          user_id: user.id,
-          periode_type: bilanPeriodType,
-          periode_value: bilanPeriodValue,
-          periode_index: computePeriodeIndex(bilanPeriodType, bilanPeriodValue),
-          patron_id: pId,
-          paye: true,
-          date_paiement: new Date().toISOString(),
-          // ✅ reste_a_percevoir = 0 quand payé (cohérence)
-          reste_a_percevoir: 0,
-          ca_brut_periode: caBrut,
-          acompte_consomme: acompteConsomme,
-        };
+        if (lookupError) throw lookupError;
 
-        const { error } = await supabase.from(TABLE).upsert(dataToSave, {
-          onConflict: "periode_type,periode_value,patron_id",
-        });
-        if (error) throw error;
+        if (!existingBilan?.id) {
+          const caBrutPeriode = Number(bilanContent.totalE) || 0;
+          const { error: insertError } = await supabase.from(TABLE).insert({
+            user_id: user.id,
+            periode_type: bilanPeriodType,
+            periode_value: bilanPeriodValue,
+            periode_index: periodeIndex,
+            patron_id: pId,
+            ca_brut_periode: caBrutPeriode,
+            paye: true,
+            date_paiement: new Date().toISOString(),
+            reste_a_percevoir: 0,
+            acompte_consomme: caBrutPeriode,
+          });
+
+          if (insertError) throw insertError;
+        } else {
+          const caBrutPeriode = Number(existingBilan.ca_brut_periode) || 0;
+          const { error: updateError } = await supabase
+            .from(TABLE)
+            .update({
+              paye: true,
+              date_paiement: new Date().toISOString(),
+              reste_a_percevoir: 0,
+              acompte_consomme: caBrutPeriode,
+            })
+            .eq("id", existingBilan.id);
+
+          if (updateError) throw updateError;
+        }
 
         setBilanPaye(true);
         triggerAlert?.("✅ Marqué comme payé !");
