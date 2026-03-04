@@ -450,52 +450,78 @@ export function useBilan({
             : 0;
 
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          const weekNum = parseInt(bilanPeriodValue, 10);
-          const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
+  const weekNum = parseInt(bilanPeriodValue, 10);
+  
+  // ✅ NOUVEAU : Total alloué JUSQU'À cette semaine (cumul S1 → S7)
+  const { data: allocsJusqua, error: allocError } = await supabase
+    .from("acompte_allocations")
+    .select("amount")
+    .eq("patron_id", pId)
+    .lte("periode_index", weekNum);
 
-          // Allocations déjà utilisées dans les semaines précédentes
-          const acomptesDejaUtilises = await getAcomptesUtilisesAvantPeriode(weekNum, patronId);
+  if (allocError) {
+    console.error("Erreur lecture allocations:", allocError);
+  }
 
-          // Allocations pour CETTE semaine (depuis acompte_allocations)
-          const { data: allocsCetteSemaine, error: errAllocs } = await supabase
-            .from("acompte_allocations")
-            .select("amount")
-            .eq("patron_id", pId)
-            .eq("periode_index", weekNum);
-          if (errAllocs) console.error("Erreur allocations semaine:", errAllocs);
+  // Total consommé JUSQU'À cette semaine (inclut semaines précédentes + actuelle)
+  const totalAlloueJusqua = (allocsJusqua || []).reduce(
+    (sum, a) => sum + (parseFloat(a.amount) || 0), 
+    0
+  );
 
-          acompteConsomme = (allocsCetteSemaine || []).reduce((sum, a) => sum + (parseFloat(a?.amount) || 0), 0);
+  // Total alloué AVANT cette semaine (pour calculer le solde disponible)
+  const { data: allocsAvant } = await supabase
+    .from("acompte_allocations")
+    .select("amount")
+    .eq("patron_id", pId)
+    .lt("periode_index", weekNum);
 
-          const totalAlloueJusqua = acomptesDejaUtilises + acompteConsomme;
-          const totalDu = caBrutPeriode + impayePrecedent;
+  const totalAlloueAvant = (allocsAvant || []).reduce(
+    (sum, a) => sum + (parseFloat(a.amount) || 0), 
+    0
+  );
 
-          resteAPercevoir = Math.max(0, totalDu - acompteConsomme);
-          resteCettePeriode = resteAPercevoir;
-          soldeAvantPeriode = Math.max(0, acomptesCumules - acomptesDejaUtilises - acomptesDansPeriode);
-          soldeApresPeriode = Math.max(0, acomptesCumules - totalAlloueJusqua);
+  // Acomptes reçus et disponibles
+  const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
+  const acomptesDansPeriode = getAcomptesDansPeriode(debutPeriode, finPeriode, patronId);
+  
+  // ✅ Affichage : Total alloué jusqu'à cette semaine
+  acompteConsomme = totalAlloueJusqua;
+  
+  // Solde avant cette semaine = acomptes cumulés - allocations avant cette semaine
+soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDansPeriode);
+  
+  // Solde après = acomptes cumulés - total alloué jusqu'à maintenant
+  soldeApresPeriode = Math.max(0, acomptesCumules - totalAlloueJusqua);
+  
+  // Reste à percevoir (doit être cohérent avec la table bilans_status_v2)
+  const detteTotale = impayePrecedent + caBrutPeriode;
+resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
 
-          console.log("DEBUG ACOMPTE", {
-            weekNum,
-            totalDu,
-            impayePrecedent,
-            caBrutPeriode,
-            acomptesDejaUtilises,
-            acompteConsomme,
-            totalAlloueJusqua,
-            soldeAvantPeriode,
-            soldeApresPeriode,
-          });
+  console.log("🔵 DEBUG ACOMPTE S" + weekNum, {
+    caBrutPeriode,
+    impayePrecedent,
+    acomptesCumules,
+    totalAlloueJusqua,
+    totalAlloueAvant,
+    acomptesDansPeriode,
+    acompteConsomme,
+    soldeAvantPeriode,
+    soldeApresPeriode,
+    resteCettePeriode,
+    resteAPercevoir,
+  });
 
-        } else {
-          // Mode mois/année
-          soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
-          const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
-          acompteConsomme = Math.min(acompteDisponible, caBrutPeriode);
-          acompteConsommePeriode = acompteConsomme;
-          resteCettePeriode = caBrutPeriode - acompteConsomme;
-          resteAPercevoir = resteCettePeriode;
-          soldeApresPeriode = acompteDisponible - acompteConsomme;
-        }
+} else {
+  // Mode mois/année (inchangé)
+  soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
+  const acomptesDansPeriode = getAcomptesDansPeriode(debutPeriode, finPeriode, patronId);
+  const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
+  acompteConsomme = Math.min(acompteDisponible, caBrutPeriode);
+  resteCettePeriode = caBrutPeriode - acompteConsomme;
+  resteAPercevoir = resteCettePeriode;
+  soldeApresPeriode = acompteDisponible - acompteConsomme;
+}
 
         // 7) Statut payé
         const statutPaye = await getStatutPaiement(patronId);
