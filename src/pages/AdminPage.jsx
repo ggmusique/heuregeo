@@ -160,28 +160,10 @@ export const AdminPage = ({ darkMode = true }) => {
     setResetLoading(true);
     setResetMessage(null);
     try {
-      const synPatronId = await getSynPatronId();
-
-      const { data: bilans, error: fetchError } = await supabase
-        .from("bilans_status_v2")
-        .select("id, ca_brut_periode")
-        .eq("patron_id", synPatronId);
-      if (fetchError) throw fetchError;
-
-      for (const bilan of bilans || []) {
-        const { error: updateError } = await supabase
-          .from("bilans_status_v2")
-          .update({
-            paye: false,
-            acompte_consomme: 0,
-            reste_a_percevoir: parseFloat(bilan.ca_brut_periode) || 0,
-            date_paiement: null,
-          })
-          .eq("id", bilan.id);
-        if (updateError) throw updateError;
-      }
-
-      setResetMessage({ type: "success", text: `✅ ${(bilans || []).length} bilans de Syn remis en non payé.` });
+      setResetMessage({
+        type: "error",
+        text: "⚠️ Action désactivée: les statuts bilans sont gérés par apply_acompte + action manuelle 'Marquer comme payé'.",
+      });
     } catch (err) {
       setResetMessage({ type: "error", text: `❌ Erreur : ${err.message}` });
     } finally {
