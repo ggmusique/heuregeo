@@ -688,34 +688,53 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
         setShowPeriodModal(false);
         setShowBilan(true);
 
-        const acompteConsommeSave = bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0;
-        // ✅ Pour semaine : utiliser le net final déjà normalisé dans content
-        const resteAPercevoirSave = bilanPeriodType === PERIOD_TYPES.SEMAINE
-          ? content.resteAPercevoir
-          : resteCettePeriode;
-
-        const dataToSave = {
-          user_id: user.id,
-          periode_type: bilanPeriodType,
-          periode_value: bilanPeriodValue,
-          periode_index: periodeIndex,
-          patron_id: pId,
-          ca_brut_periode: caBrutPeriode,
-          acompte_consomme: acompteConsommeSave,
-          // ✅ Toujours écrire paye+reste pour garantir l'invariant à chaque upsert.
-          // isPaid inclut statutPaye donc on ne risque pas de revenir en arrière.
-          reste_a_percevoir: isPaid ? 0 : Math.max(0, resteAPercevoirSave),
-          paye: isPaid,
-          // date_paiement : fixer uniquement lors du passage initial à payé
-          ...(isPaid && !statutPaye ? { date_paiement: new Date().toISOString() } : {}),
-        };
-
         if (!isGlobalPatronId(patronId)) {
-          const { error: upsertError } = await supabase.from(TABLE).upsert(dataToSave, {
-            onConflict: "periode_type,periode_value,patron_id",
-          });
-          if (upsertError) {
+          const { data: existingBilan, error: lookupError } = await supabase
+            .from(TABLE)
+            .select("id")
+            .eq("periode_type", bilanPeriodType)
+            .eq("periode_value", bilanPeriodValue)
+            .eq("patron_id", pId)
+            .maybeSingle();
+
+          if (lookupError) {
             triggerAlert?.("Erreur sauvegarde bilan.");
+            return false;
+          }
+
+          if (!existingBilan?.id) {
+            const { error: insertError } = await supabase
+              .from(TABLE)
+              .insert({
+                user_id: user.id,
+                periode_type: bilanPeriodType,
+                periode_value: bilanPeriodValue,
+                periode_index: periodeIndex,
+                patron_id: pId,
+                ca_brut_periode: caBrutPeriode,
+                paye: false,
+                date_paiement: null,
+                acompte_consomme: 0,
+                reste_a_percevoir: caBrutPeriode,
+              });
+
+            if (insertError) {
+              triggerAlert?.("Erreur sauvegarde bilan.");
+              return false;
+            }
+          } else {
+            const { error: updateError } = await supabase
+              .from(TABLE)
+              .update({
+                ca_brut_periode: caBrutPeriode,
+                periode_index: periodeIndex,
+              })
+              .eq("id", existingBilan.id);
+
+            if (updateError) {
+              triggerAlert?.("Erreur sauvegarde bilan.");
+              return false;
+            }
           }
         }
 
