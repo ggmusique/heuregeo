@@ -487,15 +487,28 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
     0
   );
 
+  const periodStartIso = new Date(`${debutPeriode}T00:00:00`).toISOString();
+  const periodEndExclusive = new Date(`${finPeriode}T00:00:00`);
+  periodEndExclusive.setDate(periodEndExclusive.getDate() + 1);
+
+  const { data: allocsCreatedInPeriod } = await supabase
+    .from("acompte_allocations")
+    .select("amount, created_at")
+    .eq("patron_id", pId)
+    .gte("created_at", periodStartIso)
+    .lt("created_at", periodEndExclusive.toISOString());
+
+  acompteConsommePeriode = (allocsCreatedInPeriod || []).reduce(
+    (sum, a) => sum + (parseFloat(a.amount) || 0),
+    0
+  );
+
   // Acomptes reçus
   const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
   const acomptesDansPeriode = getAcomptesDansPeriode(debutPeriode, finPeriode, patronId);
   
   // ✅ acompteConsomme = ce qui a été alloué POUR CETTE semaine
   acompteConsomme = allocCetteSemaine;
-
-  // ✅ Consommé CETTE période seulement (même valeur)
-  acompteConsommePeriode = allocCetteSemaine;
 
   // Solde avant
   soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDansPeriode);
@@ -535,14 +548,9 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
   soldeApresPeriode = acompteDisponible - acompteConsomme;
 }
 
-        const consommeCettePeriode = Math.max(
-          0,
-          (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode
-        );
-
-        if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          acompteConsommePeriode = consommeCettePeriode;
-        }
+        const consommeCettePeriode = bilanPeriodType === PERIOD_TYPES.SEMAINE
+          ? Math.max(0, acompteConsommePeriode)
+          : Math.max(0, (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode);
 
         // 7) Statut payé
         const statutPaye = await getStatutPaiement(patronId);
