@@ -213,71 +213,75 @@ export function useBilan({
     [bilanPeriodType, bilanPeriodValue]
   );
 
-  const getImpayePrecedent = useCallback(
-    async (currentWeek, patronId = null) => {
-      const pId = effectivePatronId(patronId);
-      const currentIndex = parseInt(currentWeek, 10) || 0;
-      const prevIndex = currentIndex - 1;
-      if (prevIndex < 1) return 0;
+ const getImpayePrecedent = useCallback(
+  async (currentWeek, patronId = null) => {
+    const pId = effectivePatronId(patronId);
+    const currentIndex = parseInt(currentWeek, 10) || 0;
+    const prevIndex = currentIndex - 1;
+    if (prevIndex < 1) return 0;
 
-      const rowToImpaye = (row) => {
-        const reste = parseFloat(row?.reste_a_percevoir ?? 0);
-        if (Number.isFinite(reste) && reste > 0.01) return reste;
-        const ca = parseFloat(row?.ca_brut_periode ?? 0);
-        const acompte = parseFloat(row?.acompte_consomme ?? 0);
-        return Math.max(0, ca - acompte);
-      };
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
 
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return 0;
+      // 1) Query directe S(N-1)
+      const { data: dataPrev, error: errPrev } = await supabase
+        .from(TABLE)
+        .select("periode_index, paye, reste_a_percevoir, ca_brut_periode, acompte_consomme")
+        .eq("periode_type", PERIOD_TYPES.SEMAINE)
+        .eq("patron_id", pId)
+        .eq("periode_index", prevIndex)
+        .limit(1);
 
-        // 1) Query directe S(N-1)
-        const { data: dataPrev, error: errPrev } = await supabase
-          .from(TABLE)
-          .select("periode_index, paye, reste_a_percevoir, ca_brut_periode, acompte_consomme")
-          .eq("periode_type", PERIOD_TYPES.SEMAINE)
-          .eq("patron_id", pId)
-          .eq("periode_index", prevIndex)
-          .limit(1);
+      if (errPrev) throw errPrev;
 
-        if (errPrev) throw errPrev;
-
-        const rowPrev = dataPrev?.[0];
-        if (rowPrev && rowPrev.paye === false) {
-          const impayePrecedent = rowToImpaye(rowPrev);
-          console.log("🟣 DEBUG IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "prev", fromIndex: prevIndex, impayePrecedent });
-          return impayePrecedent;
+      const rowPrev = dataPrev?.[0];
+      if (rowPrev) {
+        // ✅ CORRECTION : Lire reste_a_percevoir DIRECTEMENT
+        const reste = parseFloat(rowPrev?.reste_a_percevoir ?? 0);
+        
+        // ✅ Si payé ET reste <= 0.01, impayé = 0
+        if (rowPrev.paye === true && reste <= 0.01) {
+          console.log("🟣 IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "prev-paid", impayePrecedent: 0 });
+          return 0;
         }
 
-        // 2) Fallback : dernière semaine impayée avant currentIndex (gestion des trous / congés)
-        const { data: dataFallback, error: errFallback } = await supabase
-          .from(TABLE)
-          .select("periode_index, paye, reste_a_percevoir, ca_brut_periode, acompte_consomme")
-          .eq("periode_type", PERIOD_TYPES.SEMAINE)
-          .eq("patron_id", pId)
-          .lt("periode_index", currentIndex)
-          .eq("paye", false)
-          .order("periode_index", { ascending: false })
-          .limit(1);
-
-        if (errFallback) throw errFallback;
-
-        const rowFallback = dataFallback?.[0];
-        if (rowFallback) {
-          const impayePrecedent = rowToImpaye(rowFallback);
-          console.log("🟣 DEBUG IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "fallback", fromIndex: rowFallback.periode_index, impayePrecedent });
-          return impayePrecedent;
+        // ✅ Sinon, retourner le reste stocké
+        if (reste > 0.01) {
+          console.log("🟣 IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "prev-unpaid", impayePrecedent: reste });
+          return reste;
         }
-
-        console.log("🟣 DEBUG IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "none", fromIndex: null, impayePrecedent: 0 });
-        return 0;
-      } catch {
-        return 0;
       }
-    },
-    []
-  );
+
+      // 2) Fallback : dernière semaine impayée avant currentIndex
+      const { data: dataFallback, error: errFallback } = await supabase
+        .from(TABLE)
+        .select("periode_index, paye, reste_a_percevoir")
+        .eq("periode_type", PERIOD_TYPES.SEMAINE)
+        .eq("patron_id", pId)
+        .lt("periode_index", currentIndex)
+        .gt("reste_a_percevoir", 0.01)  // ✅ Filtrer directement les payées
+        .order("periode_index", { ascending: false })
+        .limit(1);
+
+      if (errFallback) throw errFallback;
+
+      const rowFallback = dataFallback?.[0];
+      if (rowFallback) {
+        const reste = parseFloat(rowFallback?.reste_a_percevoir ?? 0);
+        console.log("🟣 IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "fallback", fromIndex: rowFallback.periode_index, impayePrecedent: reste });
+        return reste;
+      }
+
+      console.log("🟣 IMPAYE PRECEDENT", { currentIndex, prevIndex, mode: "none", impayePrecedent: 0 });
+      return 0;
+    } catch (err) {
+      console.error("Erreur getImpayePrecedent:", err);
+      return 0;
+    }
+  },
+  []
+);
 
   const getAcomptesUtilisesAvantPeriode = useCallback(
     async (weekNum, patronId = null) => {
