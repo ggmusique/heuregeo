@@ -326,9 +326,9 @@ export const HistoriqueTab = ({
                         </p>
                       </div>
                       <div className="text-right">
-                      <p className="text-lg font-black text-orange-400 amount-safe">
-  {formatEuro(row.ca_brut_periode || 0)}  {/* ✅ au lieu de reste_a_percevoir */}
-</p>
+                        <p className="text-lg font-black text-orange-400 amount-safe">
+                          {formatEuro(row.reste_a_percevoir || 0)}
+                        </p>
                         <p className="text-[9px] uppercase opacity-40 tracking-wider">
                           non payé
                         </p>
@@ -341,12 +341,12 @@ export const HistoriqueTab = ({
                       Total
                     </p>
                     <p className="text-xl font-black text-orange-400 amount-safe">
-                    {formatEuro(
-  filteredImpayes.reduce(
-    (s, r) => s + (r.ca_brut_periode || 0),  // ✅ au lieu de reste_a_percevoir
-    0
-  )
-)}
+                      {formatEuro(
+                        filteredImpayes.reduce(
+                          (s, r) => s + (r.reste_a_percevoir || 0),
+                          0
+                        )
+                      )}
                     </p>
                   </div>
                 </div>
