@@ -217,37 +217,41 @@ export function useBilan({
     async (currentWeek, patronId = null) => {
       const pId = effectivePatronId(patronId);
       const currentIndex = parseInt(currentWeek, 10) || 0;
+      // Règle glissante N-1 : seule la semaine directement précédente compte.
+      // On ne cumule PAS toutes les semaines < N pour éviter le double comptage :
+      // chaque reste stocké en DB inclut déjà l'impayé de la semaine précédente.
+      const prevIndex = currentIndex - 1;
+      if (prevIndex < 1) return 0;
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return 0;
 
-        let query = supabase
+        const { data, error } = await supabase
           .from(TABLE)
-          .select("periode_index, ca_brut_periode, acompte_consomme, reste_a_percevoir, paye")
+          .select("paye, reste_a_percevoir, ca_brut_periode, acompte_consomme")
           .eq("periode_type", PERIOD_TYPES.SEMAINE)
           .eq("patron_id", pId)
-          .lt("periode_index", currentIndex)
-          .order("periode_index", { ascending: true });
+          .eq("periode_index", prevIndex)
+          .limit(1);
 
-        const { data, error } = await query;
-  
         if (error) throw error;
-  
-        // ✅ Impayé = somme de (CA brut - acompte consommé) par semaine
-        const total = (data || []).reduce((sum, row) => {
-          const resteStocke = parseFloat(row?.reste_a_percevoir ?? 0);
-          // Si la ligne est marquée payée ET reste <= 0.01, on skip
-          if (row?.paye === true && resteStocke <= 0.01) return sum;
-          // Si reste stocké fiable, on l'utilise
-          if (resteStocke > 0.01) return sum + resteStocke;
-          // Sinon fallback calcul
-          const ca = parseFloat(row?.ca_brut_periode ?? 0);
-          const acompte = parseFloat(row?.acompte_consomme ?? 0);
-          const reste = Math.max(0, ca - acompte);
-          return sum + reste;
-        }, 0);
-  
-        return total;
+
+        const row = data?.[0];
+        const prevPaye = row?.paye === true;
+        const prevReste = parseFloat(row?.reste_a_percevoir ?? 0);
+        let impayePrecedent = 0;
+        if (row && !prevPaye) {
+          if (Number.isFinite(prevReste) && prevReste > 0.01) {
+            impayePrecedent = prevReste;
+          } else {
+            // Fallback : recalcul depuis ca_brut - acompte_consomme
+            const ca = parseFloat(row.ca_brut_periode ?? 0);
+            const acompte = parseFloat(row.acompte_consomme ?? 0);
+            impayePrecedent = Math.max(0, ca - acompte);
+          }
+        }
+        console.log("DEBUG_IMPAYE_GLISSANT", { currentIndex, prevIndex, prevPaye, prevReste, impayePrecedent });
+        return impayePrecedent;
       } catch {
         return 0;
       }
@@ -497,6 +501,7 @@ soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDan
   // Reste à percevoir (doit être cohérent avec la table bilans_status_v2)
   const detteTotale = impayePrecedent + caBrutPeriode;
 resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
+  resteAPercevoir = resteCettePeriode;
 
   console.log("🔵 DEBUG ACOMPTE S" + weekNum, {
     caBrutPeriode,
@@ -633,12 +638,25 @@ resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
         const isPaid = statutPaye || resteCettePeriode <= 0.01;
 
+        // Forcer la cohérence UI : resteAPercevoir = resteCettePeriode = valeur nette finale
+        if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
+          const safeNumber = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+          const resteNetFinal = safeNumber(resteCettePeriode);
+          content.resteAPercevoir = resteNetFinal;
+          content.resteCettePeriode = resteNetFinal;
+          console.log("NET_FINAL", { resteAPercevoir: content.resteAPercevoir, resteCettePeriode: content.resteCettePeriode, resteNetFinal });
+        }
+
         setBilanContent(content);
         setBilanPaye(isPaid);
         setShowPeriodModal(false);
         setShowBilan(true);
 
         const acompteConsommeSave = bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0;
+        // ✅ Pour semaine : utiliser le net final déjà normalisé dans content
+        const resteAPercevoirSave = bilanPeriodType === PERIOD_TYPES.SEMAINE
+          ? content.resteAPercevoir
+          : resteCettePeriode;
 
         const dataToSave = {
           user_id: user.id,
@@ -650,7 +668,7 @@ resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
           acompte_consomme: acompteConsommeSave,
           // ✅ Toujours écrire paye+reste pour garantir l'invariant à chaque upsert.
           // isPaid inclut statutPaye donc on ne risque pas de revenir en arrière.
-          reste_a_percevoir: isPaid ? 0 : Math.max(0, resteCettePeriode),
+          reste_a_percevoir: isPaid ? 0 : Math.max(0, resteAPercevoirSave),
           paye: isPaid,
           // date_paiement : fixer uniquement lors du passage initial à payé
           ...(isPaid && !statutPaye ? { date_paiement: new Date().toISOString() } : {}),
@@ -885,6 +903,75 @@ resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
     [bilanPeriodValue, bilanContent.filteredData, kmSettings, domicileLatLng, lieux, triggerAlert, genererBilan]
   );
 
+  /**
+   * Reconstruit les bilans en DB pour une plage de semaines.
+   * Calcule dans l'ordre croissant pour respecter la règle glissante N-1.
+   */
+  const rebuildBilans = useCallback(
+    async (patronId, startWeek, endWeek) => {
+      const pId = effectivePatronId(patronId);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "Utilisateur non connecté" };
+
+        let rebuilt = 0;
+
+        for (let weekNum = startWeek; weekNum <= endWeek; weekNum++) {
+          // Missions de la semaine
+          const filtered = getMissionsByPeriod(PERIOD_TYPES.SEMAINE, String(weekNum), patronId);
+          const totalMissions = filtered.reduce((sum, m) => sum + (m.montant || 0), 0);
+
+          // Frais divers de la semaine
+          const fraisFiltres = getFraisByWeek(weekNum, patronId);
+          const totalFrais = getTotalFrais(fraisFiltres);
+
+          const caBrutPeriode = totalMissions + totalFrais;
+
+          // Impayé précédent (règle glissante N-1)
+          const impayePrecedent = await getImpayePrecedent(weekNum, patronId);
+
+          // Allocations acomptes jusqu'à cette semaine
+          const { data: allocsJusqua } = await supabase
+            .from("acompte_allocations")
+            .select("amount")
+            .eq("patron_id", pId)
+            .lte("periode_index", weekNum);
+          const acompteConsomme = (allocsJusqua || []).reduce(
+            (sum, a) => sum + (parseFloat(a.amount) || 0), 0
+          );
+
+          // Reste net final
+          const detteTotale = impayePrecedent + caBrutPeriode;
+          const resteNetFinal = Math.max(0, detteTotale - acompteConsomme);
+          const isPaid = resteNetFinal <= 0.01;
+
+          console.log(`DEBUG_REBUILD S${weekNum}`, { caBrutPeriode, impayePrecedent, acompteConsomme, resteNetFinal, isPaid });
+
+          // Contrainte unique : (periode_type, periode_value, patron_id)
+          await supabase.from(TABLE).upsert({
+            user_id: user.id,
+            periode_type: PERIOD_TYPES.SEMAINE,
+            periode_value: String(weekNum),
+            periode_index: weekNum,
+            patron_id: pId,
+            ca_brut_periode: caBrutPeriode,
+            acompte_consomme: acompteConsomme,
+            reste_a_percevoir: isPaid ? 0 : resteNetFinal,
+            paye: isPaid,
+          }, { onConflict: "periode_type,periode_value,patron_id" });
+
+          rebuilt++;
+        }
+
+        return { success: true, message: `${rebuilt} semaine(s) reconstruite(s) (S${startWeek}→S${endWeek})` };
+      } catch (err) {
+        console.error("❌ Erreur rebuildBilans:", err);
+        return { success: false, message: err?.message || "Erreur rebuild" };
+      }
+    },
+    [getMissionsByPeriod, getFraisByWeek, getTotalFrais, getImpayePrecedent]
+  );
+
   const gotoPreviousWeek = useCallback(() => {
     const currentIndex = availablePeriods.indexOf(bilanPeriodValue);
     if (currentIndex < availablePeriods.length - 1) {
@@ -938,5 +1025,6 @@ resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
     handleWeekChange,
     recalculerFraisKm,
     isRecalculatingKm,
+    rebuildBilans,
   };
 }
