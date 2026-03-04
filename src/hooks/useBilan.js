@@ -256,18 +256,17 @@ export function useBilan({
   );
 
   const getAcomptesUtilisesAvantPeriode = useCallback(
-    async (dateDebut, patronId = null) => {
-      if (!dateDebut) return 0;
+    async (weekNum, patronId = null) => {
+      if (!weekNum) return 0;
 
       const pId = effectivePatronId(patronId);
-      const fromIso = dateDebut;
 
       try {
         const { data, error } = await supabase
           .from("acompte_allocations")
           .select("amount")
           .eq("patron_id", pId)
-          .lt("created_at", fromIso);
+          .lt("periode_index", parseInt(weekNum, 10));
 
         if (error) throw error;
 
@@ -451,22 +450,38 @@ export function useBilan({
             : 0;
 
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
+          const weekNum = parseInt(bilanPeriodValue, 10);
           const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
-          const acomptesDejaUtilises = await getAcomptesUtilisesAvantPeriode(debutPeriode, patronId);
-          const acompteDisponible = Math.max(0, acomptesCumules - acomptesDejaUtilises);
+
+          // Allocations déjà utilisées dans les semaines précédentes
+          const acomptesDejaUtilises = await getAcomptesUtilisesAvantPeriode(weekNum, patronId);
+
+          // Allocations pour CETTE semaine (depuis acompte_allocations)
+          const { data: allocsCetteSemaine, error: errAllocs } = await supabase
+            .from("acompte_allocations")
+            .select("amount")
+            .eq("patron_id", pId)
+            .eq("periode_index", weekNum);
+          if (errAllocs) console.error("Erreur allocations semaine:", errAllocs);
+
+          acompteConsomme = (allocsCetteSemaine || []).reduce((sum, a) => sum + (parseFloat(a?.amount) || 0), 0);
+
+          const totalAlloueJusqua = acomptesDejaUtilises + acompteConsomme;
           const totalDu = caBrutPeriode + impayePrecedent;
 
-          acompteConsomme = Math.min(totalDu, acompteDisponible);
           resteAPercevoir = Math.max(0, totalDu - acompteConsomme);
           resteCettePeriode = resteAPercevoir;
           soldeAvantPeriode = Math.max(0, acomptesCumules - acomptesDejaUtilises - acomptesDansPeriode);
-          soldeApresPeriode = Math.max(0, acomptesCumules - (acomptesDejaUtilises + acompteConsomme));
+          soldeApresPeriode = Math.max(0, acomptesCumules - totalAlloueJusqua);
 
           console.log("DEBUG ACOMPTE", {
+            weekNum,
             totalDu,
             impayePrecedent,
             caBrutPeriode,
+            acomptesDejaUtilises,
             acompteConsomme,
+            totalAlloueJusqua,
             soldeAvantPeriode,
             soldeApresPeriode,
           });
