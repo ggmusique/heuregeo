@@ -1,6 +1,6 @@
 // AUTO-GENERATED. Do not edit by hand.
 export const BUILD_INFO = {
-  branch: "--abbrev-ref\nd1fabf4a18601c5452f7522b607ed52d0453728e",
-  commit: "--short\nd1fabf4a18601c5452f7522b607ed52d0453728e",
-  date: "2026-03-07T11:41:41.287Z",
+  branch: "--abbrev-ref\nee817cc59a6a5c670ba9a5bfc5f1acf0b251e020",
+  commit: "--short\nee817cc59a6a5c670ba9a5bfc5f1acf0b251e020",
+  date: "2026-03-07T12:27:03.952Z",
 };
