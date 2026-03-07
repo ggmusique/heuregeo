@@ -3,40 +3,63 @@ import { registerSW } from "virtual:pwa-register";
 
 export function UpdatePrompt() {
   const [needRefresh, setNeedRefresh] = useState(false);
+  const [updateSW, setUpdateSW] = useState(null);
 
   useEffect(() => {
-    const updateSW = registerSW({
+    const sw = registerSW({
       immediate: true,
       onNeedRefresh() {
         setNeedRefresh(true);
       },
       onOfflineReady() {
-        // noop
+        console.log('✅ App ready to work offline');
       },
     });
-
-    return () => {
-      if (typeof updateSW === "function") {
-        updateSW(false);
-      }
-    };
+    setUpdateSW(() => sw);
   }, []);
 
   if (!needRefresh) return null;
 
+  const handleUpdate = () => {
+    updateSW?.(true);
+    window.location.reload();
+  };
+
   return (
-    <div className="fixed bottom-24 left-4 right-4 z-[1200] rounded-2xl border border-yellow-400/40 bg-[#0B1220]/95 px-4 py-3 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-yellow-300">
-          Nouvelle version disponible
-        </p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="rounded-lg bg-yellow-500 px-3 py-1.5 text-xs font-black uppercase text-slate-900"
-        >
-          Mettre à jour
-        </button>
+    <div className="fixed bottom-24 left-4 right-4 z-[1200] animate-in slide-in-from-bottom duration-300">
+      <div className="rounded-2xl border border-yellow-400/40 bg-gradient-to-br from-[#0B1220]/98 to-[#1a2332]/98 p-4 shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col gap-3">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-500/20 text-2xl">
+              🚀
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-black uppercase tracking-wide text-yellow-300">
+                Nouvelle version disponible
+              </p>
+              <p className="text-xs text-white/50">
+                Version {__APP_VERSION__}
+              </p>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setNeedRefresh(false)}
+              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white/70 transition-all hover:bg-white/10 active:scale-95"
+            >
+              Plus tard
+            </button>
+            <button
+              onClick={handleUpdate}
+              className="flex-1 rounded-xl bg-gradient-to-r from-yellow-500 to-yellow-600 px-4 py-2.5 text-xs font-black uppercase tracking-wide text-slate-900 shadow-lg transition-all hover:from-yellow-400 hover:to-yellow-500 active:scale-95"
+            >
+              Mettre à jour
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
