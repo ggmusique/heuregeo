@@ -672,8 +672,10 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
   soldeApresPeriode = acompteDisponible - acompteConsomme;
 }
 
+        // ✅ Si un acompte a été REÇU cette semaine, afficher son montant total
+        // Sinon afficher 0 (même si des allocations d'acomptes précédents existent)
         const consommeCettePeriode = bilanPeriodType === PERIOD_TYPES.SEMAINE
-          ? Math.max(0, allocCetteSemaine)
+          ? (acomptesDansPeriode > 0 ? acomptesDansPeriode : 0)
           : Math.max(0, (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode);
 
         // 7) Statut payé
