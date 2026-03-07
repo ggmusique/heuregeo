@@ -145,33 +145,48 @@ const createAcompte = useCallback(
 
   /**
    * ==========================================
-   * 3) Supprimer un acompte (API)
+   * 3) Supprimer un acompte (RPC + DELETE)
    * ==========================================
-   * Si un jour tu ajoutes un bouton “supprimer acompte”
-   * => ça le retire aussi du state local
+   * 1) Annule les allocations via la RPC unapply_acompte
+   * 2) Supprime l'acompte de la table
+   * 3) Retire l'acompte du state local
    */
-  const deleteAcompte = useCallback(
-    async (id) => {
-      if (!id) {
-        throw new Error("ID de l'acompte manquant");
+  const deleteAcompte = useCallback(async (id) => {
+    if (!id) {
+      throw new Error("ID de l'acompte manquant");
+    }
+
+    try {
+      setLoading(true);
+
+      const { error: unapplyError } = await supabase.rpc("unapply_acompte", {
+        p_acompte_id: id,
+      });
+
+      if (unapplyError) {
+        console.error("Erreur unapply_acompte:", unapplyError);
+        onError?.("Erreur annulation des allocations");
+        throw unapplyError;
       }
 
-      try {
-        setLoading(true);
-        await acomptesApi.deleteAcompte(id);
+      const { error: deleteError } = await supabase
+        .from("acomptes")
+        .delete()
+        .eq("id", id);
 
-        // On enlève du state
-        setListeAcomptes((prev) => prev.filter((a) => a.id !== id));
-      } catch (err) {
-        console.error("Erreur suppression acompte:", err);
+      if (deleteError) {
+        console.error("Erreur suppression acompte:", deleteError);
         onError?.("Erreur suppression acompte");
-        throw err;
-      } finally {
-        setLoading(false);
+        throw deleteError;
       }
-    },
-    [onError]
-  );
+
+      setListeAcomptes((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [onError]);
 
   /**
    * ==========================================
