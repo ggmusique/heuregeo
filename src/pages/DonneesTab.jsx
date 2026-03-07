@@ -25,6 +25,11 @@ export const DonneesTab = ({
   allowLieuActions = true,
   kmSettings = null,
   onRegeocoderLieu = null,
+  deleteAcompte = null,
+  fetchAcomptes = null,
+  showConfirm = null,
+  triggerAlert = null,
+  isViewer = false,
 }) => {
   const AccordionSection = React.memo(({
     title,
@@ -97,6 +102,11 @@ export const DonneesTab = ({
           missions={missions}
           fraisDivers={fraisDivers}
           acomptes={acomptes}
+          deleteAcompte={deleteAcompte}
+          fetchAcomptes={fetchAcomptes}
+          showConfirm={showConfirm}
+          triggerAlert={triggerAlert}
+          isViewer={isViewer}
         />
       </AccordionSection>
 
