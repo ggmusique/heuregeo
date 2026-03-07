@@ -71,6 +71,11 @@ export function ParametresTab({
   onRegeocoderBatch = null,
   onRecalculerKmSemaine = null,
   onRebuildBilans = null,
+  deleteAcompte = null,
+  fetchAcomptes = null,
+  showConfirm = null,
+  triggerAlert = null,
+  isViewer = false,
 }) {
   const [activePanel, setActivePanel] = useState(null);
 
@@ -221,6 +226,11 @@ export function ParametresTab({
                   allowLieuActions={false}
                   kmSettings={kmSettings}
                   onRegeocoderLieu={onRegeocoderLieu}
+                  deleteAcompte={deleteAcompte}
+                  fetchAcomptes={fetchAcomptes}
+                  showConfirm={showConfirm}
+                  triggerAlert={triggerAlert}
+                  isViewer={isViewer}
                 />
               )}
 

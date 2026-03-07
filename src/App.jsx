@@ -103,7 +103,7 @@ export default function App({ user }) {
   const { missions, loading: missionsLoading, fetchMissions, createMission, updateMission, deleteMission, getMissionsByWeek, getMissionsByPeriod } = useMissions(triggerAlert);
   const { lieux, loading: lieuxLoading, fetchLieux, createLieu, updateLieu, deleteLieu } = useLieux(triggerAlert);
   const { fraisDivers, loading: fraisLoading, fetchFrais, createFrais, updateFrais, deleteFrais, getFraisByWeek, getTotalFrais } = useFrais(triggerAlert);
-  const { listeAcomptes, loading: acomptesLoading, fetchAcomptes, createAcompte, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua } = useAcomptes(missions, fraisDivers, triggerAlert);
+  const { listeAcomptes, loading: acomptesLoading, fetchAcomptes, createAcompte, deleteAcompte, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua } = useAcomptes(missions, fraisDivers, triggerAlert);
   const { patrons, loading: patronsLoading, createPatron, updatePatron, deletePatron, getPatronNom, getPatronColor } = usePatrons(triggerAlert);
   const { clients, loading: clientsLoading, createClient, updateClient, deleteClient, getClientNom } = useClients(triggerAlert);
   const { loading: gpsLoading } = useGeolocation(
@@ -775,6 +775,11 @@ export default function App({ user }) {
             missions={missions}
             fraisDivers={fraisDivers}
             acomptes={listeAcomptes}
+            deleteAcompte={deleteAcompte}
+            fetchAcomptes={fetchAcomptes}
+            showConfirm={showConfirm}
+            triggerAlert={triggerAlert}
+            isViewer={isViewer}
             onPatronEdit={handlePatronEdit}
             onPatronDelete={handlePatronDelete}
             onPatronAdd={() => { resetPatronForm(); setShowPatronModal(true); }}

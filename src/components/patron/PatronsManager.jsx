@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { formatEuro } from "../../utils/formatters";
+import { formatEuro, formatDateFR } from "../../utils/formatters";
 
 /**
  * Gestionnaire complet des patrons avec liste et actions
@@ -16,8 +16,14 @@ export function PatronsManager({
   missions = [],         // ✅ safe
   fraisDivers = [],      // ✅ safe
   acomptes = [],         // ✅ safe
+  deleteAcompte = null,
+  fetchAcomptes = null,
+  showConfirm = null,
+  triggerAlert = null,
+  isViewer = false,
 }) {
   const [expandedPatronId, setExpandedPatronId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   /**
    * ✅ Calcul des stats pour un patron
@@ -264,6 +270,65 @@ export function PatronsManager({
                         {formatEuro(stats.reste)}
                       </p>
                     </div>
+
+                    {/* Liste des acomptes */}
+                    {acomptes.filter((a) => a?.patron_id === patron.id).length > 0 && (
+                      <div className="mb-4">
+                        <p className="text-[9px] font-black uppercase opacity-50 mb-2">
+                          💰 Acomptes
+                        </p>
+                        <div className="space-y-2">
+                          {acomptes
+                            .filter((a) => a?.patron_id === patron.id)
+                            .sort((a, b) => new Date(b.date_acompte) - new Date(a.date_acompte))
+                            .map((acompte) => (
+                              <div
+                                key={acompte.id}
+                                className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/10"
+                              >
+                                <div>
+                                  <span className="text-sm font-bold text-cyan-400 amount-safe">
+                                    {formatEuro(acompte.montant)}
+                                  </span>
+                                  <span className="text-[10px] opacity-60 ml-2">
+                                    {formatDateFR(acompte.date_acompte)}
+                                  </span>
+                                </div>
+                                {!isViewer && deleteAcompte && showConfirm && (
+                                  <button
+                                    onClick={async () => {
+                                      const confirmed = await showConfirm({
+                                        title: "Supprimer cet acompte",
+                                        message: `Montant: ${formatEuro(acompte.montant)} - Date: ${formatDateFR(acompte.date_acompte)}\n\nCela annulera les paiements automatiques des semaines payées par cet acompte.\n\nContinuer ?`,
+                                        confirmText: "Supprimer",
+                                        cancelText: "Annuler",
+                                        type: "danger",
+                                      });
+
+                                      if (!confirmed) return;
+
+                                      setDeletingId(acompte.id);
+                                      try {
+                                        await deleteAcompte(acompte.id);
+                                        triggerAlert?.("✅ Acompte supprimé !");
+                                        await fetchAcomptes?.();
+                                      } catch (err) {
+                                        triggerAlert?.("❌ Erreur lors de la suppression de l'acompte");
+                                      } finally {
+                                        setDeletingId(null);
+                                      }
+                                    }}
+                                    disabled={deletingId === acompte.id}
+                                    className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all disabled:opacity-50"
+                                  >
+                                    {deletingId === acompte.id ? "⏳" : "🗑️"}
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-2">
