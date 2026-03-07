@@ -3,6 +3,26 @@ import * as missionsApi from "../services/api/missionsApi";
 import { getWeekNumber } from "../utils/dateUtils";
 
 /**
+ * Valide les données d'une mission avant envoi en base.
+ * Retourne un message d'erreur ou null si tout est valide.
+ */
+const validateMissionData = (data) => {
+  if (!data) return "Données manquantes.";
+  if (!data.client_id) return "Client obligatoire.";
+  if (!data.lieu_id) return "Lieu obligatoire.";
+  if (!data.patron_id) return "Patron obligatoire.";
+  if (!data.debut || !data.fin) return "Horaires incomplets.";
+  const [hD, mD] = data.debut.split(":").map(Number);
+  const [hF, mF] = data.fin.split(":").map(Number);
+  const minutesDebut = hD * 60 + mD;
+  const minutesFin = hF * 60 + mF;
+  if (minutesFin <= minutesDebut) return "L'heure de fin doit être après le début.";
+  const grossDuration = minutesFin - minutesDebut;
+  if ((data.pause || 0) >= grossDuration) return "La pause dépasse la durée de la mission.";
+  return null;
+};
+
+/**
  * Hook complet pour gérer les missions - Multi-Patrons
  *
  * Rôle dans l’app :
@@ -68,6 +88,12 @@ export const useMissions = (onError) => {
         throw new Error("Données de la mission manquantes");
       }
 
+      const validationError = validateMissionData(missionData);
+      if (validationError) {
+        onError?.(validationError);
+        throw new Error(validationError);
+      }
+
       try {
         setLoading(true);
 
@@ -101,6 +127,12 @@ export const useMissions = (onError) => {
     async (id, missionData) => {
       if (!id) throw new Error("ID de la mission manquant");
       if (!missionData) throw new Error("Données de la mission manquantes");
+
+      const validationError = validateMissionData(missionData);
+      if (validationError) {
+        onError?.(validationError);
+        throw new Error(validationError);
+      }
 
       try {
         setLoading(true);
@@ -181,11 +213,12 @@ export const useMissions = (onError) => {
 
       const missionsArray = Array.isArray(missions) ? missions : [];
 
-      // Filtre semaine ISO
+      // Filtre semaine ISO (date_mission en priorité, date_iso en fallback)
       let filtered = missionsArray.filter((m) => {
-        if (!m?.date_iso) return false;
+        const mDate = m?.date_mission || m?.date_iso;
+        if (!mDate) return false;
         try {
-          return getWeekNumber(new Date(m.date_iso)) === weekNumber;
+          return getWeekNumber(new Date(mDate)) === weekNumber;
         } catch {
           return false;
         }
@@ -215,14 +248,16 @@ export const useMissions = (onError) => {
       const missionsArray = Array.isArray(missions) ? missions : [];
 
       let filtered = missionsArray.filter((m) => {
-        if (!m?.date_iso) return false;
+        // date_mission en priorité, date_iso en fallback
+        const mDate = m?.date_mission || m?.date_iso;
+        if (!mDate) return false;
 
         try {
           if (periodType === "semaine") {
-            return getWeekNumber(new Date(m.date_iso)) === parseInt(periodValue);
+            return getWeekNumber(new Date(mDate)) === parseInt(periodValue);
           }
           // mois "YYYY-MM" ou année "YYYY"
-          return m.date_iso.startsWith(periodValue);
+          return mDate.startsWith(periodValue);
         } catch {
           return false;
         }

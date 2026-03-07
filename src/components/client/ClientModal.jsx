@@ -58,7 +58,7 @@ export const ClientModal = ({
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
       <div
-        className={`w-full max-w-md p-6 rounded-[30px] ${
+        className={`w-full max-w-md p-6 rounded-[30px] max-h-[calc(100vh-8rem)] overflow-y-auto ${
           darkMode
             ? "bg-[#1a1f2e] border-2 border-indigo-500/40"
             : "bg-white border-2 border-slate-200"

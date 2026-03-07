@@ -67,7 +67,7 @@ export const BilanDetail = ({
 
                       {/* Montant & durée */}
                       <div className="text-right">
-                        <p className="text-xl md:text-2xl font-black text-green-400">
+                        <p className="text-xl md:text-2xl font-black text-green-400 amount-safe">
                           {formatEuro(m.montant || 0)}
                         </p>
                         <p className="text-sm opacity-80">
@@ -110,7 +110,7 @@ export const BilanDetail = ({
 
                 <div className="flex justify-between text-white/90 text-sm">
                   <span>Montant :</span>
-                  <span className="font-bold text-green-400">
+                  <span className="font-bold text-green-400 amount-safe">
                     {formatEuro(group.e)}
                   </span>
                 </div>
@@ -161,7 +161,7 @@ export const BilanDetail = ({
 
                 <div className="flex justify-between text-white/90 text-sm">
                   <span>Montant :</span>
-                  <span className="font-bold text-green-400">
+                  <span className="font-bold text-green-400 amount-safe">
                     {formatEuro(group.e)}
                   </span>
                 </div>
@@ -179,7 +179,7 @@ export const BilanDetail = ({
         bilanContent.impayePrecedent > 0 ||
         bilanContent.soldeAcomptesAvant > 0 ||
         bilanContent.acomptesDansPeriode > 0 ||
-        bilanContent.totalAcomptes > 0 ||
+        bilanContent.acompteConsommePeriode > 0 ||
         bilanContent.soldeAcomptesApres > 0) && (
         <div className="mt-10 p-6 bg-gradient-to-br from-indigo-900/20 to-purple-900/20 rounded-[35px] border border-indigo-500/30">
           
@@ -209,17 +209,17 @@ export const BilanDetail = ({
             {bilanContent.acomptesDansPeriode !== 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">Reçus cette période :</span>
-                <span className="font-bold text-cyan-300">
+                <span className="font-bold text-cyan-300 amount-safe">
                   +{formatEuro(bilanContent.acomptesDansPeriode)}
                 </span>
               </div>
             )}
 
-            {bilanContent.totalAcomptes !== 0 && (
+            {bilanContent.acompteConsommePeriode !== 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-white/60">Consommé :</span>
-                <span className="font-bold text-cyan-300">
-                  -{formatEuro(bilanContent.totalAcomptes)}
+                <span className="font-bold text-cyan-300 amount-safe">
+                  -{formatEuro(bilanContent.acompteConsommePeriode)}
                 </span>
               </div>
             )}
@@ -229,7 +229,7 @@ export const BilanDetail = ({
                 <span className="text-[10px] font-black uppercase text-white/80">
                   Solde restant à reporter :
                 </span>
-                <span className="text-xl font-black text-green-400">
+                <span className="text-xl font-black text-green-400 amount-safe">
                   {formatEuro(bilanContent.soldeAcomptesApres)}
                 </span>
               </div>

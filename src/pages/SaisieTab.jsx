@@ -29,10 +29,12 @@ export const SaisieTab = ({
   onLieuChange,
   onPatronChange,
   onClientChange,
+  onShowPatronModal,
   onShowLieuModal,
   onShowClientModal,
   onShowFraisModal,
   onShowAcompteModal,
+  showMissionRateEditor = true,
 }) => {
   return (
     <div className="animate-in fade-in duration-500">
@@ -53,10 +55,12 @@ export const SaisieTab = ({
         missions={missions}
         selectedPatronId={selectedPatronId}
         onPatronChange={onPatronChange}
+        onAddNewPatron={() => onShowPatronModal()}
         clients={clients}
         selectedClientId={selectedClientId}
         onClientChange={onClientChange}
         onAddNewClient={() => onShowClientModal()}
+        showRateEditorControl={showMissionRateEditor}
       />
 
       {/* Boutons rapides */}

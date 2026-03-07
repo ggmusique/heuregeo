@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import * as acomptesApi from "../services/api/acomptesApi";
+import { supabase } from "../services/supabase";
 import { calculerSoldeAcomptesAvant } from "../utils/calculators";
 
 /**
@@ -26,6 +27,12 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
 
   // Ref : évite de relancer fetchAcomptes 2 fois en même temps
   const isFetching = useRef(false);
+
+  // Ref : évite un double-submit sur createAcompte
+  const isCreating = useRef(false);
+
+  // Set : verrou par acompteId pour éviter double apply_acompte sur le même acompte
+  const appliedAcompteIds = useRef(new Set());
 
   /**
    * ==========================================
@@ -58,42 +65,79 @@ export const useAcomptes = (missions = [], fraisDivers = [], onError) => {
 
 /**
  * ==========================================
- * 2) Créer un acompte (API) + AUTO-PAIEMENT
+ * 2) Créer un acompte (API) + AUTO-PAIEMENT via RPC
  * ==========================================
  * Utilisé quand tu valides la modal "+ Acompte"
  * => On ajoute direct l'acompte dans la liste (optimiste)
- * => ✅ On déclenche l'auto-paiement des bilans
+ * => La RPC apply_acompte est déclenchée côté DB
  */
 const createAcompte = useCallback(
-  async (acompteData, autoPayerBilans) => { // ✅ Nouveau param
+  async (acompteData) => {
     if (!acompteData) {
       throw new Error("Données de l'acompte manquantes");
     }
 
+    // Protection double-submit
+    if (isCreating.current) {
+      throw new Error("Enregistrement d'acompte en cours");
+    }
+    isCreating.current = true;
+
     try {
       setLoading(true);
 
-      const newAcompte = await acomptesApi.createAcompte(acompteData);
+      const result = await acomptesApi.createAcompte(acompteData);
+      const newAcompte = result?.acompte || null;
+
+      let autoPayApplied = false;
 
       if (newAcompte) {
         setListeAcomptes((prev) => [newAcompte, ...prev]);
-        
-        // ✅ DÉCLENCHER L'AUTO-PAIEMENT
-        if (autoPayerBilans && typeof autoPayerBilans === 'function') {
-          await autoPayerBilans(
-            acompteData.patron_id,
-            acompteData.montant
+
+        const acompteId = newAcompte.id;
+
+        // Verrou par acompteId : évite de déclencher apply_acompte deux fois
+        // pour le même acompte (ex: re-render, double-appel accidentel)
+        if (appliedAcompteIds.current.has(acompteId)) {
+          console.warn("APPLY_ACOMPTE:skip (already applied)", { acompteId });
+        } else {
+          appliedAcompteIds.current.add(acompteId);
+          console.log("APPLY_ACOMPTE:start", { acompteId });
+
+          const { error: applyError } = await supabase.rpc("apply_acompte", {
+            p_acompte_id: acompteId,
+          });
+
+          if (applyError) {
+            appliedAcompteIds.current.delete(acompteId);
+            console.error("Erreur apply_acompte:", applyError);
+            throw applyError;
+          }
+
+          autoPayApplied = true;
+          console.log("APPLY_ACOMPTE:end", { acompteId });
+
+          // Log de vérification : total_alloue rechargé depuis acompte_allocations
+          const { data: allocations } = await supabase
+            .from("acompte_allocations")
+            .select("amount")
+            .eq("acompte_id", acompteId);
+          const totalAlloue = (allocations || []).reduce(
+            (sum, a) => sum + (parseFloat(a.amount) || 0),
+            0
           );
+          console.log("APPLY_ACOMPTE:total_alloue", { acompteId, totalAlloue });
         }
       }
 
-      return newAcompte;
+      return { ...result, autoPayApplied };
     } catch (err) {
       console.error("Erreur création acompte:", err);
       onError?.("Erreur création acompte");
       throw err;
     } finally {
       setLoading(false);
+      isCreating.current = false;
     }
   },
   [onError]

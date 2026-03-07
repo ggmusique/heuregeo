@@ -10,6 +10,16 @@ import { calculerDuree } from "../../utils/calculators";
 import { ClientSelector } from "../client/ClientSelector";
 import { LieuSelector } from "../lieu/LieuSelector";
 
+const JOURNEE_TYPE = { debut: "08:00", fin: "17:00", pause: 30 };
+const MAX_TIME_MINUTES = 23 * 60 + 45;
+const MAX_PAUSE_MINUTES = 180;
+
+const adjustTime = (time, deltaMinutes) => {
+  const [h, m] = time.split(":").map(Number);
+  const total = Math.max(0, Math.min(MAX_TIME_MINUTES, h * 60 + m + deltaMinutes));
+  return `${Math.floor(total / 60).toString().padStart(2, "0")}:${(total % 60).toString().padStart(2, "0")}`;
+};
+
 export const MissionForm = ({
   editMode = false,
   initialData = null,
@@ -24,6 +34,8 @@ export const MissionForm = ({
   patrons = [],
   selectedPatronId = null,
   onPatronChange = () => {},
+  onAddNewPatron = () => {},
+  showRateEditorControl = true,
   clients = [],
   selectedClientId = null,
   onClientChange = () => {},
@@ -47,6 +59,17 @@ export const MissionForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [weather, setWeather] = useState(null);
   const [weatherCity, setWeatherCity] = useState("");
+  const [showRateEditor, setShowRateEditor] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
+
+  const clearError = useCallback((field) => {
+    setFormErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }, []);
 
   const selectedClient = useMemo(() => {
     if (!selectedClientId) return null;
@@ -59,6 +82,15 @@ export const MissionForm = ({
     if (!selectedLieuId) return null;
     return (Array.isArray(lieux) ? lieux : []).find((l) => l.id === selectedLieuId);
   }, [lieux, selectedLieuId]);
+
+  const selectedPatron = useMemo(() => {
+    if (!selectedPatronId) return null;
+    return (Array.isArray(patrons) ? patrons : []).find((p) => p.id === selectedPatronId) || null;
+  }, [patrons, selectedPatronId]);
+
+  const patronRate = selectedPatron?.taux_horaire != null ? Number(selectedPatron.taux_horaire) : null;
+  const currentRate = Number.parseFloat(tarifHoraire);
+  const isCustomRate = Number.isFinite(currentRate) && patronRate != null && currentRate !== patronRate;
 
   useEffect(() => {
     if (!editMode || !initialData) return;
@@ -144,22 +176,33 @@ export const MissionForm = ({
 
   const handleSubmit = useCallback(() => {
     if (isSubmitting) return;
+
+    const errors = {};
+
     if (!dateMission || !debut || !fin) {
-      alert("Veuillez remplir la date et les horaires.");
-      return;
+      errors.horaires = "Date et horaires requis.";
+    } else {
+      const [hD, mD] = debut.split(":").map(Number);
+      const [hF, mF] = fin.split(":").map(Number);
+      const minutesDebut = hD * 60 + mD;
+      const minutesFin = hF * 60 + mF;
+      if (minutesFin <= minutesDebut) {
+        errors.fin = "L'heure de fin doit être après le début.";
+      } else {
+        const grossDuration = minutesFin - minutesDebut;
+        if (pause >= grossDuration) {
+          errors.pause = "La pause dépasse la durée de la mission.";
+        }
+      }
     }
-    if (!selectedPatronId) {
-      alert("Veuillez sélectionner un patron pour cette mission.");
-      return;
-    }
-    if (!selectedClientId) {
-      alert("Veuillez sélectionner un client pour cette mission.");
-      return;
-    }
-    if (!selectedLieuId) {
-      alert("Veuillez sélectionner un lieu pour cette mission.");
-      return;
-    }
+
+    if (!selectedPatronId) errors.patron = "Patron obligatoire.";
+    if (!selectedClientId) errors.client = "Client obligatoire.";
+    if (!selectedLieuId) errors.lieu = "Lieu obligatoire.";
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
     const dureeH = calculerDuree(debut, fin, pause);
     const tarifNum = parseFloat(tarifHoraire);
     const montant = dureeH * (Number.isFinite(tarifNum) ? tarifNum : 0);
@@ -194,6 +237,10 @@ export const MissionForm = ({
   const getMonthName = () => safeDate.toLocaleString("fr-FR", { month: "long" }).toUpperCase();
   const getDay = () => safeDate.getDate().toString().padStart(2, "0");
   const getYear = () => safeDate.getFullYear();
+
+  const adjustBtnClass = darkMode
+    ? "flex-1 py-1 rounded-xl text-[11px] font-black border transition-all active:scale-95 bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
+    : "flex-1 py-1 rounded-xl text-[11px] font-black border transition-all active:scale-95 bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200";
 
   return (
     <section
@@ -311,57 +358,88 @@ export const MissionForm = ({
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-6">
-        <div className="flex-1">
-          <PatronSelectorCompact
-            patrons={patrons}
-            selectedPatronId={selectedPatronId}
-            onSelect={onPatronChange}
-            required={true}
-            darkMode={darkMode}
-          />
-        </div>
-        <div
-          className={`shrink-0 w-[64px] h-[64px] rounded-2xl border-2 flex items-center justify-center relative overflow-hidden transition-all active:scale-90 mt-5 ${
-            darkMode
-              ? "bg-green-900/20 border-green-700/60 text-green-300 hover:border-green-500"
-              : "bg-green-100/70 border-green-300 text-green-700 hover:border-green-500"
-          }`}
-        >
-          <div className="text-2xl">€</div>
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 hover:opacity-100 transition-opacity text-xs font-bold text-green-200 pointer-events-none">
-            {tarifHoraire}€/h
+      <div className="mb-6">
+        <PatronSelectorCompact
+          patrons={patrons}
+          selectedPatronId={selectedPatronId}
+          onSelect={(id) => { onPatronChange(id); clearError("patron"); }}
+          required={true}
+          darkMode={darkMode}
+          onAddNew={onAddNewPatron}
+        />
+        {formErrors.patron && (
+          <p className="mt-1 text-xs font-black text-red-400">{formErrors.patron}</p>
+        )}
+
+        {showRateEditorControl && (
+          <div className={`mt-3 p-3 rounded-xl border ${darkMode ? "bg-emerald-900/15 border-emerald-500/20" : "bg-emerald-50 border-emerald-200"}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase opacity-60 tracking-wider">Taux mission</p>
+                <p className="text-sm font-black text-emerald-300">
+                  {Number.isFinite(currentRate) ? `${currentRate.toFixed(2)} €/h` : "Non défini"}
+                </p>
+                {patronRate != null && (
+                  <p className="text-[10px] opacity-70">Taux patron: {Number(patronRate).toFixed(2)} €/h</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRateEditor((v) => !v)}
+                className="px-3 py-2 rounded-lg border border-emerald-400/30 text-emerald-300 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500/10 transition-all"
+              >
+                {showRateEditor ? "Fermer" : "Modifier le taux du jour"}
+              </button>
+            </div>
+
+            {isCustomRate && (
+              <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-amber-300">
+                Taux personnalisé actif
+              </p>
+            )}
+
+            {showRateEditor && (
+              <div className="mt-3">
+                <select
+                  value={tarifHoraire}
+                  onChange={(e) => setTarifHoraire(e.target.value)}
+                  className={`w-full p-3 rounded-xl font-black text-sm border-2 outline-none ${
+                    darkMode
+                      ? "bg-black/30 border-emerald-500/30 text-white"
+                      : "bg-white border-emerald-300 text-slate-900"
+                  }`}
+                >
+                  {TARIF_OPTIONS.map((val) => (
+                    <option key={val} value={val}>
+                      {val.toFixed(2)} €/h
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
-          <select
-            value={tarifHoraire}
-            onChange={(e) => setTarifHoraire(e.target.value)}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-          >
-            {TARIF_OPTIONS.map((val) => (
-              <option key={val} value={val}>
-                {val.toFixed(2)} €
-              </option>
-            ))}
-          </select>
-        </div>
+        )}
       </div>
 
       <div className="mb-6">
         <ClientSelector
           clients={clients}
           selectedClientId={selectedClientId}
-          onSelect={onClientChange}
+          onSelect={(id) => { onClientChange(id); clearError("client"); }}
           required={true}
           darkMode={darkMode}
           onAddNew={onAddNewClient}
         />
+        {formErrors.client && (
+          <p className="mt-1 text-xs font-black text-red-400">{formErrors.client}</p>
+        )}
       </div>
 
       <div className="mb-6">
         <LieuSelector
           lieux={lieux}
           selectedLieuId={selectedLieuId}
-          onSelect={onLieuChange}
+          onSelect={(id) => { onLieuChange(id); clearError("lieu"); }}
           required={true}
           darkMode={darkMode}
           onAddNew={() => {
@@ -373,56 +451,116 @@ export const MissionForm = ({
           selectedClientId={selectedClientId}
           missions={missions}
         />
+        {formErrors.lieu && (
+          <p className="mt-1 text-xs font-black text-red-400">{formErrors.lieu}</p>
+        )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-10">
-        <div
-          className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
-            darkMode ? "border-slate-700" : "border-slate-300"
-          } backdrop-blur-md`}
+      {/* Preset + Duplicate row */}
+      <div className="flex gap-2 mb-3">
+        <button
+          type="button"
+          onClick={() => { setDebut(JOURNEE_TYPE.debut); setFin(JOURNEE_TYPE.fin); setPause(JOURNEE_TYPE.pause); }}
+          className={`flex-1 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider border transition-all active:scale-95 ${
+            darkMode
+              ? "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
+              : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+          }`}
         >
-          <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Début</span>
-          <span className="text-xl font-black text-indigo-400">{debut}</span>
-          <select
-            value={debut}
-            onChange={(e) => setDebut(e.target.value)}
-            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+          ☀️ Journée type
+        </button>
+        {onCopyLast && (
+          <button
+            type="button"
+            onClick={onCopyLast}
+            className={`flex-1 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider border transition-all active:scale-95 ${
+              darkMode
+                ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20"
+                : "bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100"
+            }`}
           >
-            {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
-          </select>
+            📋 Dupliquer
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {/* Début */}
+        <div className="flex flex-col gap-1">
+          <div
+            className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
+              formErrors.fin ? "border-red-500" : darkMode ? "border-slate-700" : "border-slate-300"
+            } backdrop-blur-md`}
+          >
+            <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Début</span>
+            <span className="text-xl font-black text-indigo-400">{debut}</span>
+            <select
+              value={debut}
+              onChange={(e) => { setDebut(e.target.value); clearError("fin"); clearError("horaires"); }}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            >
+              {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
+            </select>
+          </div>
+          <div className="flex gap-1">
+            <button type="button" onClick={() => { setDebut(adjustTime(debut, -15)); clearError("fin"); }} className={adjustBtnClass}>−</button>
+            <button type="button" onClick={() => { setDebut(adjustTime(debut, 15)); clearError("fin"); }} className={adjustBtnClass}>+</button>
+          </div>
         </div>
 
-        <div
-          className={`p-4 bg-black/40 rounded-[28px] border-2 relative flex flex-col items-center justify-center text-center min-h-[90px] ${
-            darkMode ? "border-slate-700" : "border-slate-300"
-          } backdrop-blur-md`}
-        >
-          <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Pause</span>
-          <div className="font-black text-xl text-indigo-400">{pause}m</div>
-          <select
-            value={pause}
-            onChange={(e) => setPause(parseInt(e.target.value, 10))}
-            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+        {/* Pause */}
+        <div className="flex flex-col gap-1">
+          <div
+            className={`p-4 bg-black/40 rounded-[28px] border-2 relative flex flex-col items-center justify-center text-center min-h-[90px] ${
+              formErrors.pause ? "border-red-500" : darkMode ? "border-slate-700" : "border-slate-300"
+            } backdrop-blur-md`}
           >
-            {PAUSE_OPTIONS.map((val) => (<option key={val} value={val}>{val} min</option>))}
-          </select>
+            <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Pause</span>
+            <div className="font-black text-xl text-indigo-400">{pause}m</div>
+            <select
+              value={pause}
+              onChange={(e) => { setPause(parseInt(e.target.value, 10)); clearError("pause"); }}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            >
+              {PAUSE_OPTIONS.map((val) => (<option key={val} value={val}>{val} min</option>))}
+            </select>
+          </div>
+          <div className="flex gap-1">
+            <button type="button" onClick={() => { setPause((p) => Math.max(0, p - 15)); clearError("pause"); }} className={adjustBtnClass}>−</button>
+            <button type="button" onClick={() => { setPause((p) => Math.min(MAX_PAUSE_MINUTES, p + 15)); clearError("pause"); }} className={adjustBtnClass}>+</button>
+          </div>
         </div>
 
-        <div
-          className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
-            darkMode ? "border-slate-700" : "border-slate-300"
-          } backdrop-blur-md`}
-        >
-          <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Fin</span>
-          <span className="text-xl font-black text-purple-400">{fin}</span>
-          <select
-            value={fin}
-            onChange={(e) => setFin(e.target.value)}
-            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+        {/* Fin */}
+        <div className="flex flex-col gap-1">
+          <div
+            className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
+              formErrors.fin ? "border-red-500" : darkMode ? "border-slate-700" : "border-slate-300"
+            } backdrop-blur-md`}
           >
-            {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
-          </select>
+            <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Fin</span>
+            <span className="text-xl font-black text-purple-400">{fin}</span>
+            <select
+              value={fin}
+              onChange={(e) => { setFin(e.target.value); clearError("fin"); clearError("horaires"); }}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            >
+              {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
+            </select>
+          </div>
+          <div className="flex gap-1">
+            <button type="button" onClick={() => { setFin(adjustTime(fin, -15)); clearError("fin"); }} className={adjustBtnClass}>−</button>
+            <button type="button" onClick={() => { setFin(adjustTime(fin, 15)); clearError("fin"); }} className={adjustBtnClass}>+</button>
+          </div>
         </div>
+      </div>
+
+      <div className="mt-2 mb-10 min-h-[20px] text-center">
+        {(formErrors.fin || formErrors.pause || formErrors.horaires) && (
+          <p className="text-xs font-black text-red-400">
+            {formErrors.fin || formErrors.pause || formErrors.horaires}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-3">

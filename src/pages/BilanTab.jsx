@@ -27,8 +27,27 @@ export const BilanTab = ({
   canExportPDF = true,
   canExportExcel = true,
   canExportCSV = true,
+  kmSettings = null,
+  kmFraisThisWeek = null,
+  domicileLatLng = null,
+  onRecalculerFraisKm = null,
 }) => {
+  const exportBilanContent = useMemo(() => {
+    if (kmSettings?.km_enable === true) return bilan.bilanContent;
+    return {
+      ...bilan.bilanContent,
+      fraisKilometriques: { items: [], totalKm: 0, totalAmount: 0 },
+    };
+  }, [bilan.bilanContent, kmSettings?.km_enable]);
+
   const sortedBilanMissions = useMemo(() => {
+    console.log("RESTE RAW", {
+  showBilan: bilan.showBilan,
+  periodType: bilan.bilanPeriodType,
+  periodValue: bilan.bilanPeriodValue,
+  resteAPercevoir: bilan?.bilanContent?.resteAPercevoir,
+  resteCettePeriode: bilan?.bilanContent?.resteCettePeriode,
+});
     if (!bilan.bilanContent?.filteredData) return [];
     return [...bilan.bilanContent.filteredData].sort(
       (a, b) => new Date(a.date_iso) - new Date(b.date_iso)
@@ -75,6 +94,49 @@ export const BilanTab = ({
                   patronColor={getPatronColor(m.patron_id)}
                 />
               ))
+          )}
+
+          {/* ── BLOC FRAIS KM – Semaine en cours ── */}
+          {kmSettings?.km_enable === true && missionsThisWeek.length > 0 && (
+            kmFraisThisWeek?.items?.length > 0 ? (
+              <div className="mt-2 p-4 bg-[#0A1628]/60 rounded-[25px] border border-blue-600/20 backdrop-blur-md">
+                <p className="text-[10px] font-black uppercase text-blue-400/70 mb-3 tracking-[0.2em]">
+                  🚗 Frais kilométriques
+                </p>
+                <div className="space-y-2 mb-3">
+                  {kmFraisThisWeek.items.filter((item) => item.amount !== null).map((item, i) => (
+                    <div key={i} className="flex justify-between items-center text-sm">
+                      <div>
+                        <span className="text-white/80 font-bold">{formatDateFR(item.date)}</span>
+                        <span className="text-white/50 ml-2">{item.labelLieuOuClient}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal * 10) / 10} km</span>
+                        <span className="font-bold text-blue-300 ml-2">{formatEuro(item.amount)}</span>
+                      </div>
+                    </div>
+                  ))}
+                  {kmFraisThisWeek.items.filter((item) => item.amount === null).map((item, i) => (
+                    <div key={`missing-${i}`} className="text-sm text-white/40 italic">
+                      {formatDateFR(item.date)} — {item.labelLieuOuClient}
+                    </div>
+                  ))}
+                </div>
+                {kmFraisThisWeek.totalAmount > 0 && (
+                  <div className="pt-2 border-t border-white/10 flex justify-between">
+                    <span className="text-white/60 text-sm">{Math.round(kmFraisThisWeek.totalKm * 10) / 10} km total</span>
+                    <span className="font-black text-blue-300">{formatEuro(kmFraisThisWeek.totalAmount)}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="mt-2 p-4 bg-[#0A1628]/40 rounded-[25px] border border-blue-600/10 text-sm text-white/40 italic">
+                🚗 Frais kilométriques —{" "}
+                {!domicileLatLng
+                  ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"
+                  : "coordonnées GPS manquantes pour les lieux de mission"}
+              </div>
+            )
           )}
         </div>
       </div>
@@ -175,55 +237,107 @@ export const BilanTab = ({
       </div>
     )}
 
-    {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── affiché uniquement si données */}
-    {(bilan.bilanContent.acomptesDansPeriode > 0 ||
-      bilan.bilanContent.soldeAcomptesAvant > 0 ||
-      bilan.bilanContent.totalAcomptes > 0) && (
-      <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
-        <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
-          Suivi du solde acompte & impayés
+    {/* ── BLOC FRAIS KM ── */}
+    {kmSettings?.km_enable === true && bilan.bilanContent.fraisKilometriques?.items?.length > 0 && bilan.bilanPeriodType === "semaine" && (
+      <div className="mb-4 p-6 bg-[#0A1628]/60 rounded-[35px] border border-blue-600/20 backdrop-blur-md">
+        <p className="text-[10px] font-black uppercase text-blue-400/70 mb-4 tracking-[0.2em]">
+          🚗 Frais kilométriques
         </p>
-        <div className="space-y-3">
-
-          {bilan.bilanContent.soldeAcomptesAvant > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-white/60">💳 Acompte disponible précédent :</span>
-              <span className="font-bold text-cyan-300">
-                {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
-              </span>
-            </div>
-          )}
-
-          {bilan.bilanContent.acomptesDansPeriode > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-white/60">📥 Reçus cette période :</span>
-              <span className="font-bold text-cyan-300">
-                +{formatEuro(bilan.bilanContent.acomptesDansPeriode)}
-              </span>
-            </div>
-          )}
-
-          {bilan.bilanContent.totalAcomptes > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-white/60">✂️ Consommé cette période :</span>
-              <span className="font-bold text-red-400">
-                -{formatEuro(bilan.bilanContent.totalAcomptes)}
-              </span>
-            </div>
-          )}
-
-          <div className="pt-3 border-t border-white/10 flex justify-between items-center">
-            <span className="text-[10px] font-black uppercase text-white/80">
-              Solde restant à reporter :
-            </span>
-            <span className={`text-xl font-black ${bilan.bilanContent.soldeAcomptesApres > 0 ? "text-green-400" : "text-white/40"}`}>
-              {formatEuro(bilan.bilanContent.soldeAcomptesApres)}
-            </span>
-          </div>
-
+        <div className="space-y-2 mb-4">
+          {bilan.bilanContent.fraisKilometriques.items
+            .filter((item) => item.amount !== null)
+            .map((item, i) => (
+              <div key={i} className="flex justify-between items-center text-sm">
+                <div>
+                  <span className="text-white/80 font-bold">{formatDateFR(item.date)}</span>
+                  <span className="text-white/50 ml-2">{item.labelLieuOuClient}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal * 10) / 10} km</span>
+                  <span className="font-bold text-blue-300 ml-2">{formatEuro(item.amount)}</span>
+                </div>
+              </div>
+            ))}
+          {bilan.bilanContent.fraisKilometriques.items
+            .filter((item) => item.amount === null)
+            .map((item, i) => (
+              <div key={`missing-${i}`} className="text-sm text-white/40 italic">
+                {formatDateFR(item.date)} — {item.labelLieuOuClient}
+              </div>
+            ))}
+        </div>
+        <div className="pt-3 border-t border-white/10 flex justify-between">
+          <span className="text-white/60 text-sm">{Math.round(bilan.bilanContent.fraisKilometriques.totalKm * 10) / 10} km total</span>
+          <span className="font-black text-blue-300">{formatEuro(bilan.bilanContent.fraisKilometriques.totalAmount)}</span>
         </div>
       </div>
     )}
+
+    {/* ── BLOC FRAIS KM – fallback domicile manquant ── */}
+    {kmSettings?.km_enable === true && bilan.bilanPeriodType === "semaine" &&
+      !bilan.bilanContent.fraisKilometriques?.items?.length && (
+      <div className="mb-4 p-4 bg-[#0A1628]/40 rounded-[25px] border border-blue-600/10 text-sm text-white/40 italic">
+        🚗 Frais kilométriques —{" "}
+        {!domicileLatLng
+          ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"
+          : "coordonnées GPS manquantes pour les lieux de mission"}
+      </div>
+    )}
+
+{/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── */}
+{bilan.bilanPeriodType === "semaine" && (
+  bilan.bilanContent.acomptesDansPeriode > 0 || 
+  bilan.bilanContent.totalAcomptes > 0 ||
+  bilan.bilanContent.soldeAcomptesAvant > 0 ||
+  bilan.bilanContent.soldeAcomptesApres > 0
+) && (
+  <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
+    <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
+      Suivi du solde acompte & impayés
+    </p>
+    <div className="space-y-3">
+
+      {/* 💳 Acompte disponible précédent */}
+      <div className="flex justify-between text-sm">
+        <span className="text-white/60">💳 Acompte disponible précédent :</span>
+        <span className="font-bold text-cyan-300">
+          {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
+        </span>
+      </div>
+
+      {/* 📥 Reçus cette période */}
+      {bilan.bilanContent.acomptesDansPeriode > 0 && (
+        <div className="flex justify-between text-sm">
+          <span className="text-white/60">📥 Reçus cette période :</span>
+          <span className="font-bold text-cyan-300">
+            +{formatEuro(bilan.bilanContent.acomptesDansPeriode)}
+          </span>
+        </div>
+      )}
+
+      {/* ✂️ Consommé cette période */}
+      {bilan.bilanContent.totalAcomptes > 0 && (
+        <div className="flex justify-between text-sm">
+          <span className="text-white/60">✂️ Consommé cette période :</span>
+          <span className="font-bold text-red-400">
+            -{formatEuro(bilan.bilanContent.totalAcomptes)}
+          </span>
+        </div>
+      )}
+
+      {/* Solde restant à reporter */}
+      <div className="pt-3 border-t border-white/10 flex justify-between items-center">
+        <span className="text-[10px] font-black uppercase text-white/80">
+          Solde restant à reporter :
+        </span>
+        <span className="text-xl font-black text-green-400">
+          {formatEuro(bilan.bilanContent.soldeAcomptesApres)}
+        </span>
+      </div>
+
+    </div>
+  </div>
+)}
   </>
 )}
 
@@ -236,7 +350,13 @@ export const BilanTab = ({
                 Reste à percevoir (Net)
               </span>
               <span className="text-3xl font-black text-orange-400">
-                {formatEuro(bilan.bilanContent.resteAPercevoir || 0)}
+                {formatEuro(
+  (() => {
+    const net = Number(bilan.bilanContent?.resteAPercevoir);
+    const net2 = Number(bilan.bilanContent?.resteCettePeriode);
+    return Number.isFinite(net) && net > 0 ? net : Number.isFinite(net2) ? net2 : 0;
+  })()
+)}
               </span>
             </div>
             {!isViewer && (
@@ -271,8 +391,8 @@ export const BilanTab = ({
       <div className="flex flex-wrap gap-3 mb-8">
         <button
           onClick={() => canExportExcel && exportToExcel(
-            bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
-            bilan.bilanContent.titre, bilan.bilanContent.fraisDivers, profile
+            exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
+            exportBilanContent.titre, exportBilanContent.fraisDivers, profile
           )}
           disabled={!canExportExcel}
           title={!canExportExcel ? "Fonctionnalité Pro" : undefined}
@@ -284,7 +404,7 @@ export const BilanTab = ({
 
         <button
           onClick={() => canExportPDF && exportToPDFPro(
-            bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
+            exportBilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
             bilan.bilanPeriodValue, profile
           )}
           disabled={!canExportPDF}
@@ -297,7 +417,7 @@ export const BilanTab = ({
 
         <button
           onClick={() => canExportCSV && exportToCSV(
-            bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false
+            exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false
           )}
           disabled={!canExportCSV}
           title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
@@ -310,7 +430,7 @@ export const BilanTab = ({
         {bilan.bilanPeriodType === "semaine" && bilan.bilanContent.fraisDivers.length > 0 && (
           <button
             onClick={() => canExportCSV && exportToCSV(
-              bilan.bilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true
+              exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true
             )}
             disabled={!canExportCSV}
             title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
@@ -321,6 +441,22 @@ export const BilanTab = ({
           </button>
         )}
       </div>
+
+      {/* RECALCUL KM */}
+      {kmSettings?.km_enable === true && !isViewer && onRecalculerFraisKm && (
+        <div className="mb-8">
+          <button
+            onClick={onRecalculerFraisKm}
+            disabled={bilan.isRecalculatingKm}
+            className={"w-full py-4 rounded-2xl font-black text-[11px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
+              (bilan.isRecalculatingKm
+                ? "bg-white/5 text-white/30 border-white/10 cursor-not-allowed"
+                : "bg-blue-600/20 text-blue-400 border-blue-600/30 hover:bg-blue-600/30")}
+          >
+            {bilan.isRecalculatingKm ? "⏳ Recalcul en cours…" : "🚗 Recalculer KM"}
+          </button>
+        </div>
+      )}
 
       {/* DÉTAIL MISSIONS OU REGROUPEMENT */}
       {bilan.bilanPeriodType === "semaine" ? (

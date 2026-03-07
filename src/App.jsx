@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
-import { DonneesTab } from "./pages/DonneesTab";
-import { HistoriqueTab } from "./pages/HistoriqueTab";
-import { BilanTab } from "./pages/BilanTab";
-import { CompteTab } from "./pages/CompteTab";
-import { AdminPage } from "./pages/AdminPage";
+import { SuiviTab } from "./pages/SuiviTab";
+import { ParametresTab } from "./pages/ParametresTab";
 
 import { useClients } from "./hooks/useClients";
 import { useMissions } from "./hooks/useMissions";
@@ -17,6 +14,8 @@ import { useConfirm } from "./hooks/useConfirm";
 import { useGeolocation } from "./hooks/useGeolocation";
 import { useLieux } from "./hooks/useLieux";
 import { useProfile } from "./hooks/useProfile";
+import { geocodeAddress } from "./utils/geocode";
+import { getKmEnabled } from "./utils/kmSettings";
 
 import { FraisModal } from "./components/common/frais/FraisModal";
 import { AcompteModal } from "./components/common/acompte/AcompteModal";
@@ -37,6 +36,8 @@ import "./fix-time-pickers-emergency.css";
 import "./fix-selects.css";
 
 import { getWeekNumber } from "./utils/dateUtils";
+import { KM_RATES } from "./utils/kmRatesByCountry";
+import { haversineKm, getLieuLabel } from "./utils/calculators";
 
 export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
@@ -48,6 +49,10 @@ export default function App({ user }) {
   const [customAlert, setCustomAlert] = useState({ show: false, message: "" });
   const [isIOS, setIsIOS] = useState(false);
   const [liveTime, setLiveTime] = useState("");
+  const [showMissionRateEditor, setShowMissionRateEditor] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("showMissionRateEditor") !== "false";
+  });
 
   const [showFraisModal, setShowFraisModal] = useState(false);
   const [fraisDescription, setFraisDescription] = useState("");
@@ -60,6 +65,7 @@ export default function App({ user }) {
   const [acompteMontant, setAcompteMontant] = useState("");
   const [acompteDate, setAcompteDate] = useState(new Date().toISOString().split("T")[0]);
   const [acomptePatronId, setAcomptePatronId] = useState(null);
+  const [isSavingAcompte, setIsSavingAcompte] = useState(false);
 
   const [showPatronModal, setShowPatronModal] = useState(false);
   const [editingPatronId, setEditingPatronId] = useState(null);
@@ -83,6 +89,7 @@ export default function App({ user }) {
   const [loadingHistorique, setLoadingHistorique] = useState(false);
   const [historiquePatronId, setHistoriquePatronId] = useState(null);
   const [historiqueTab, setHistoriqueTab] = useState("impayes");
+  const [suiviDefaultView, setSuiviDefaultView] = useState("historique");
 
   const [bilanPatronId, setBilanPatronId] = useState(null);
   const [bilanClientId, setBilanClientId] = useState(null);
@@ -104,8 +111,108 @@ export default function App({ user }) {
     (error) => triggerAlert(error)
   );
 
-  const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert });
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV } = useProfile(user);
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage } = useProfile(user);
+
+  const kmSettings = useMemo(() => {
+    if (!profile) return null;
+    const f = profile.features ?? {};
+    const ks = f.km_settings ?? {};
+    return {
+      km_enable: getKmEnabled(f),
+      km_include_retour: f.km_include_retour ?? ks.roundTrip ?? false,
+      km_domicile_adresse: f.km_domicile_address || ks.homeLabel || "",
+      km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null),
+      km_domicile_lng: f.km_domicile_lng != null ? Number(f.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null),
+      km_country_code: f.km_country || ks.countryCode || "FR",
+      km_rate_mode: f.km_rate_mode || "AUTO_BY_COUNTRY",
+      km_rate: f.km_rate_custom || 0,
+    };
+  }, [profile]);
+
+  const [domicileLatLng, setDomicileLatLng] = useState(null);
+  useEffect(() => {
+    if (!kmSettings?.km_enable) return;
+    // Primary: use coords already stored in profile features
+    if (Number.isFinite(kmSettings.km_domicile_lat) && Number.isFinite(kmSettings.km_domicile_lng)) {
+      setDomicileLatLng({ lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng });
+      return;
+    }
+    // Fallback: geocode text address
+    const addr = (kmSettings.km_domicile_adresse || "").trim() ||
+      [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
+    if (!addr) return;
+    const featuresSnapshot = profile?.features ?? {};
+    geocodeAddress(addr).then((result) => {
+      if (result) {
+        setDomicileLatLng({ lat: result.lat, lng: result.lng });
+        // Persist coords to profile features so they survive reload and avoid timing issues
+        saveProfile({ features: { ...featuresSnapshot, km_domicile_lat: result.lat, km_domicile_lng: result.lng } });
+      }
+    });
+  }, [kmSettings?.km_enable, kmSettings?.km_domicile_lat, kmSettings?.km_domicile_lng, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.code_postal, profile?.ville, saveProfile]);
+
+  // One-shot migration/sync: km_settings is source of truth, keep legacy flat keys aligned
+  useEffect(() => {
+    if (!profile) return;
+    const f = profile.features ?? {};
+    const ks = f.km_settings ?? {};
+
+    const normalizedEnabled = getKmEnabled(f);
+    const normalizedLat = f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null);
+    const normalizedLng = f.km_domicile_lng != null ? Number(f.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null);
+    const normalizedAddress = f.km_domicile_address || ks.homeLabel || null;
+    const normalizedCountry = f.km_country || ks.countryCode || "FR";
+    const normalizedRoundTrip = f.km_include_retour ?? ks.roundTrip ?? false;
+    const normalizedRateMode = f.km_rate_mode || (ks.ratePerKm != null ? "CUSTOM" : "AUTO_BY_COUNTRY");
+    const normalizedRateCustom = f.km_rate_custom ?? (ks.ratePerKm ?? null);
+
+    const needsSync =
+      ks.enabled !== normalizedEnabled ||
+      ks.homeLat !== normalizedLat ||
+      ks.homeLng !== normalizedLng ||
+      ks.homeLabel !== normalizedAddress ||
+      ks.countryCode !== normalizedCountry ||
+      ks.roundTrip !== normalizedRoundTrip ||
+      (ks.ratePerKm ?? null) !== (normalizedRateCustom ?? null) ||
+      f.km_enabled !== normalizedEnabled ||
+      f.km_enable !== undefined ||
+      f.km_domicile_lat !== normalizedLat ||
+      f.km_domicile_lng !== normalizedLng ||
+      (f.km_domicile_address || null) !== normalizedAddress ||
+      (f.km_country || "FR") !== normalizedCountry ||
+      (f.km_include_retour ?? false) !== normalizedRoundTrip ||
+      (f.km_rate_mode || "AUTO_BY_COUNTRY") !== normalizedRateMode ||
+      (f.km_rate_custom ?? null) !== (normalizedRateCustom ?? null);
+
+    if (!needsSync) return;
+
+    const nextFeatures = {
+      ...f,
+      km_enabled: normalizedEnabled,
+      km_enable: undefined,
+      km_country: normalizedCountry,
+      km_rate_mode: normalizedRateMode,
+      km_rate_custom: normalizedRateCustom,
+      km_include_retour: normalizedRoundTrip,
+      km_domicile_lat: normalizedLat,
+      km_domicile_lng: normalizedLng,
+      km_domicile_address: normalizedAddress,
+      km_settings: {
+        ...ks,
+        enabled: normalizedEnabled,
+        homeLat: normalizedLat,
+        homeLng: normalizedLng,
+        homeLabel: normalizedAddress,
+        ratePerKm: normalizedRateCustom,
+        roundTrip: normalizedRoundTrip,
+        countryCode: normalizedCountry,
+      },
+    };
+    saveProfile({ features: nextFeatures });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, profile?.features]);
+
+  const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
 
   useEffect(() => {
     document.title = "Heures de Geo";
@@ -138,9 +245,17 @@ export default function App({ user }) {
     if (bilan.showPeriodModal) bilan.calculerPeriodesDisponibles();
   }, [bilan.showPeriodModal, bilan.bilanPeriodType, missions]);
 
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("showMissionRateEditor", showMissionRateEditor ? "true" : "false");
+    }
+  }, [showMissionRateEditor]);
+
   useEffect(() => {
     if (isViewer && !profileLoading) {
-      setActiveTab("histo");
+      setActiveTab("suivi");
+      setSuiviDefaultView("bilan");
     }
   }, [isViewer, profileLoading]);
 
@@ -226,18 +341,28 @@ export default function App({ user }) {
   const resetFraisForm = () => { setFraisDescription(""); setFraisMontant(""); setFraisDate(new Date().toISOString().split("T")[0]); setEditingFraisId(null); setFraisPatronId(null); };
 
   const handleAcompteSubmit = async () => {
+    if (isSavingAcompte) return;
     const montantNet = parseFloat(acompteMontant?.toString().replace(",", "."));
     if (!acompteMontant || isNaN(montantNet) || montantNet <= 0) return triggerAlert("Veuillez saisir un montant valide");
     if (!acomptePatronId) return triggerAlert("Selectionne un patron pour cet acompte");
     try {
+      setIsSavingAcompte(true);
       setLoading(true);
-      await createAcompte({ montant: montantNet, date_acompte: acompteDate, patron_id: acomptePatronId }, bilan.autoPayerBilans);
+      await createAcompte({ montant: montantNet, date_acompte: acompteDate, patron_id: acomptePatronId });
       triggerAlert("Acompte enregistre !");
       resetAcompteForm();
       setShowAcompteModal(false);
+      await fetchAcomptes();
+      if (typeof bilan.fetchHistoriqueBilans === "function") {
+        await bilan.fetchHistoriqueBilans(acomptePatronId);
+      }
       if (bilan.showBilan && bilan.bilanPeriodValue) await bilan.genererBilan(bilanPatronId);
+      await chargerHistorique(acomptePatronId);
     } catch (err) { triggerAlert("Erreur : " + (err?.message || "Probleme de base de donnees")); }
-    finally { setLoading(false); }
+    finally {
+      setLoading(false);
+      setIsSavingAcompte(false);
+    }
   };
 
   const resetAcompteForm = () => { setAcompteMontant(""); setAcompteDate(new Date().toISOString().split("T")[0]); setAcomptePatronId(null); };
@@ -307,6 +432,103 @@ export default function App({ user }) {
 
   const handleLieuEdit = (lieu) => { setEditingLieuId(lieu.id); setEditingLieuData(lieu); setShowLieuModal(true); };
 
+  const handleRegeocoderLieu = async (id, coords) => {
+    try {
+      await updateLieu(id, coords);
+      triggerAlert("Coordonnées mises à jour !");
+    } catch (err) {
+      triggerAlert("Erreur : " + (err?.message || "Mise à jour échouée"));
+    }
+  };
+
+  // Declared here (before handleRecalculerKmSemaine) to avoid TDZ error:
+  // useCallback deps arrays are evaluated at declaration time, so missionsThisWeek
+  // must be initialized before it appears in any dependency array.
+  const currentWeek = getWeekNumber(new Date());
+  const missionsThisWeek = useMemo(
+    () => getMissionsByWeek(currentWeek).filter((m) => m && m.date_iso),
+    [getMissionsByWeek, currentWeek]
+  );
+
+  // Batch geocoding for lieux without coordinates (used by DiagnosticsPage)
+  // Nominatim usage policy requires ≤ 1 request/second; 1100ms gives a safe margin.
+  const NOMINATIM_DELAY_MS = 1100;
+  const handleRegeocoderBatch = useCallback(async (lieuxManquants) => {
+    if (!lieuxManquants?.length) return { message: "Aucun lieu à géocoder" };
+    let count = 0;
+    const errors = [];
+    for (const lieu of lieuxManquants) {
+      const addr = (lieu.adresse_complete || lieu.nom || "").trim();
+      if (!addr) continue;
+      try {
+        // Respect Nominatim rate limit (1 req/s)
+        await new Promise((r) => setTimeout(r, NOMINATIM_DELAY_MS));
+        const result = await geocodeAddress(addr);
+        if (result) {
+          await updateLieu(lieu.id, { latitude: result.lat, longitude: result.lng });
+          count++;
+        }
+      } catch {
+        errors.push(lieu.nom || lieu.id);
+      }
+    }
+    await fetchLieux();
+    if (errors.length > 0) {
+      return { message: `${count} lieu(x) géocodé(s), ${errors.length} erreur(s)` };
+    }
+    return { message: `✅ ${count} lieu(x) géocodé(s)` };
+  }, [updateLieu, fetchLieux]);
+
+  // Recalculate km frais for current week and persist to frais_km table (reuses Ticket-3 logic)
+  const handleRecalculerKmSemaine = useCallback(async () => {
+    const effectiveDomicile = domicileLatLng ?? (
+      Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng)
+        ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
+        : null
+    );
+    if (!effectiveDomicile?.lat || !effectiveDomicile?.lng) {
+      throw new Error("Domicile non configuré. Vérifiez Paramètres → Km.");
+    }
+    if (missionsThisWeek.length === 0) throw new Error("Aucune mission cette semaine");
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) throw new Error("Utilisateur non connecté");
+    const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
+      ? (parseFloat(kmSettings.km_rate) || 0)
+      : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
+    const multiplicateur = kmSettings.km_include_retour ? 2 : 1;
+    const countryCode = kmSettings.km_country_code || "FR";
+    const rows = [];
+    missionsThisWeek.forEach((m) => {
+      const lieuById = lieux.find((l) => l.id === m.lieu_id);
+      const lieuByName = !lieuById && m.lieu
+        ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
+        : null;
+      const lieu = lieuById || lieuByName;
+      const latLieu = Number(lieu?.latitude);
+      const lngLieu = Number(lieu?.longitude);
+      if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+        const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
+        const distanceKm = kmOneWay * multiplicateur;
+        const amount = distanceKm * kmRateEffectif;
+        rows.push({
+          user_id: authUser.id,
+          patron_id: m.patron_id || null,
+          mission_id: m.id,
+          date_frais: m.date_iso,
+          country_code: countryCode,
+          distance_km: distanceKm,
+          rate_per_km: kmRateEffectif,
+          amount,
+          source: "auto",
+        });
+      }
+    });
+    if (rows.length === 0) throw new Error("Aucun lieu géocodé — coordonnées GPS manquantes");
+    const { error } = await supabase.from("frais_km").upsert(rows, { onConflict: "mission_id" });
+    if (error) throw error;
+    return { message: `✅ ${rows.length} ligne(s) km recalculée(s) pour la semaine` };
+  }, [kmSettings, domicileLatLng, missionsThisWeek, lieux]);
+
   const handleLieuDelete = async (lieu) => {
     const confirmed = await showConfirm({ title: "Supprimer ce lieu", message: "Supprimer ce lieu ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
     if (!confirmed) return;
@@ -333,8 +555,62 @@ export default function App({ user }) {
     finally { setLoadingHistorique(false); }
   };
 
-  const currentWeek = getWeekNumber(new Date());
-  const missionsThisWeek = getMissionsByWeek(currentWeek).filter((m) => m && m.date_iso);
+  const kmFraisThisWeek = useMemo(() => {
+    const empty = { items: [], totalKm: 0, totalAmount: 0 };
+    if (!kmSettings?.km_enable) return empty;
+    // Use domicileLatLng state first, fall back to coords stored directly in kmSettings
+    const effectiveDomicile = domicileLatLng ?? (
+      Number.isFinite(kmSettings.km_domicile_lat) && Number.isFinite(kmSettings.km_domicile_lng)
+        ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
+        : null
+    );
+    if (!effectiveDomicile?.lat || !effectiveDomicile?.lng) return empty;
+    // Rate: AUTO uses table, CUSTOM uses km_rate_custom
+    const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
+      ? (parseFloat(kmSettings.km_rate) || 0)
+      : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
+    const multiplicateur = kmSettings.km_include_retour ? 2 : 1;
+    const result = { items: [], totalKm: 0, totalAmount: 0 };
+    missionsThisWeek.forEach((m) => {
+      // Lieu lookup: by id first, then by name (case-insensitive) as fallback
+      const lieuById = lieux.find((l) => l.id === m.lieu_id);
+      const lieuByName = !lieuById && m.lieu
+        ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
+        : null;
+      const lieu = lieuById || lieuByName;
+      const latLieu = Number(lieu?.latitude);
+      const lngLieu = Number(lieu?.longitude);
+      if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+        // distance_km is in km (haversineKm returns km)
+        const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
+        const kmTot = kmOneWay * multiplicateur; // × 2 if aller-retour
+        const amount = kmTot * kmRateEffectif;   // no rounding: exact value stored
+        result.items.push({
+          missionId: m.id, date: m.date_iso,
+          labelLieuOuClient: getLieuLabel(lieu, m),
+          kmOneWay, kmTotal: kmTot, amount,   // exact, rounded only at display
+        });
+        result.totalKm += kmTot;
+        result.totalAmount += amount;
+      } else {
+        result.items.push({
+          missionId: m.id, date: m.date_iso,
+          labelLieuOuClient: getLieuLabel(lieu, m),
+          kmOneWay: null, kmTotal: null, amount: null,
+        });
+      }
+    });
+    // totals kept exact; display layer applies rounding
+    return result;
+  }, [kmSettings, domicileLatLng, missionsThisWeek, lieux]);
+
+  const isProNavigationMode = isPro && !isViewer;
+
+  const proNavItems = [
+    { key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
+    { key: "suivi", label: "Suivi", icon: "📊", activeClass: "from-cyan-600 to-indigo-700" },
+    { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
+  ];
 
   const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || loadingHistorique;
 
@@ -430,48 +706,95 @@ export default function App({ user }) {
             }}  
             onShowLieuModal={() => { resetLieuForm(); setShowLieuModal(true); }}  
             onShowClientModal={() => { resetClientForm(); setShowClientModal(true); }}  
+            onShowPatronModal={() => { resetPatronForm(); setShowPatronModal(true); }}
             onShowFraisModal={() => setShowFraisModal(true)}  
             onShowAcompteModal={() => setShowAcompteModal(true)}  
+            showMissionRateEditor={showMissionRateEditor}
           />  
         )}  
 
-        {activeTab === "donnees" && (  
-          <DonneesTab  
-            patrons={patrons} clients={clients} lieux={lieux} missions={missions} fraisDivers={fraisDivers} acomptes={listeAcomptes} darkMode={darkMode}  
-            onPatronEdit={handlePatronEdit} onPatronDelete={handlePatronDelete} onPatronAdd={() => { resetPatronForm(); setShowPatronModal(true); }}  
-            onClientEdit={handleClientEdit} onClientDelete={handleClientDelete} onClientAdd={() => { resetClientForm(); setShowClientModal(true); }}  
-            onLieuEdit={handleLieuEdit} onLieuDelete={handleLieuDelete} onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}  
-          />  
-        )}  
-
-        {activeTab === "historique" && (  
-          <HistoriqueTab  
-            historique={historique} historiquePatronId={historiquePatronId} historiqueTab={historiqueTab} loadingHistorique={loadingHistorique}  
-            darkMode={darkMode} patrons={patrons} missions={missions} listeAcomptes={listeAcomptes}  
-            onPatronFilterChange={(patronId) => { setHistoriquePatronId(patronId); chargerHistorique(patronId); }}  
-            onTabChange={setHistoriqueTab} onLoadHistorique={chargerHistorique}  
-            isViewer={isViewer} viewerPatronId={viewerPatronId}  
-          />  
-        )}  
-
-        {activeTab === "histo" && (
-          <BilanTab
-            bilan={bilan} bilanPatronId={bilanPatronId} currentWeek={currentWeek} missionsThisWeek={missionsThisWeek}
-            darkMode={darkMode} patrons={patrons} getPatronNom={getPatronNom} getPatronColor={getPatronColor}
-            onMarquerCommePaye={handleMarquerCommePaye} onFraisEdit={handleFraisEdit} onFraisDelete={handleFraisDelete}
-            onMissionEdit={handleMissionEdit} onMissionDelete={handleMissionDelete} profile={profile}
-            isViewer={isViewer}
-            canBilanMois={canBilanMois} canBilanAnnee={canBilanAnnee}
-            canExportPDF={canExportPDF} canExportExcel={canExportExcel} canExportCSV={canExportCSV}
+        {activeTab === "suivi" && (
+          <SuiviTab
+            defaultView={isViewer ? "bilan" : suiviDefaultView}
+            historiqueProps={{
+              historique,
+              historiquePatronId,
+              historiqueTab,
+              loadingHistorique,
+              darkMode,
+              patrons,
+              missions,
+              listeAcomptes,
+              onPatronFilterChange: (patronId) => { setHistoriquePatronId(patronId); chargerHistorique(patronId); },
+              onTabChange: setHistoriqueTab,
+              onLoadHistorique: chargerHistorique,
+              isViewer,
+              viewerPatronId,
+            }}
+            bilanProps={{
+              bilan,
+              bilanPatronId,
+              currentWeek,
+              missionsThisWeek,
+              darkMode,
+              patrons,
+              getPatronNom,
+              getPatronColor,
+              onMarquerCommePaye: handleMarquerCommePaye,
+              onFraisEdit: handleFraisEdit,
+              onFraisDelete: handleFraisDelete,
+              onMissionEdit: handleMissionEdit,
+              onMissionDelete: handleMissionDelete,
+              profile,
+              isViewer,
+              canBilanMois,
+              canBilanAnnee,
+              canExportPDF,
+              canExportExcel,
+              canExportCSV,
+              kmSettings,
+              kmFraisThisWeek,
+              domicileLatLng,
+              onRecalculerFraisKm: () => bilan.recalculerFraisKm(bilanPatronId),
+            }}
           />
         )}
 
-        {activeTab === "compte" && (
-          <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={user?.email} />
-        )}
-
-        {activeTab === "admin" && isAdmin && (
-          <AdminPage darkMode={darkMode} />
+        {activeTab === "parametres" && !isViewer && (
+          <ParametresTab
+            profile={profile}
+            profileSaving={profileSaving}
+            saveProfile={saveProfile}
+            userEmail={user?.email}
+            darkMode={darkMode}
+            isAdmin={isAdmin}
+            isPro={isPro}
+            patrons={patrons}
+            clients={clients}
+            lieux={lieux}
+            missions={missions}
+            fraisDivers={fraisDivers}
+            acomptes={listeAcomptes}
+            onPatronEdit={handlePatronEdit}
+            onPatronDelete={handlePatronDelete}
+            onPatronAdd={() => { resetPatronForm(); setShowPatronModal(true); }}
+            onClientEdit={handleClientEdit}
+            onClientDelete={handleClientDelete}
+            onClientAdd={() => { resetClientForm(); setShowClientModal(true); }}
+            onLieuEdit={handleLieuEdit}
+            onLieuDelete={handleLieuDelete}
+            onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}
+            showMissionRateEditor={showMissionRateEditor}
+            onToggleMissionRateEditor={setShowMissionRateEditor}
+            kmSettings={kmSettings}
+            onRegeocoderLieu={handleRegeocoderLieu}
+            domicileLatLng={domicileLatLng}
+            missionsThisWeek={missionsThisWeek}
+            kmFraisThisWeek={kmFraisThisWeek}
+            onRegeocoderBatch={handleRegeocoderBatch}
+            onRecalculerKmSemaine={handleRecalculerKmSemaine}
+            onRebuildBilans={bilan.rebuildBilans}
+          />
         )}
       </main>  
 
@@ -479,7 +802,7 @@ export default function App({ user }) {
 
       <FraisModal show={showFraisModal} editMode={!!editingFraisId} description={fraisDescription} setDescription={setFraisDescription} montant={fraisMontant} setMontant={setFraisMontant} date={fraisDate} setDate={setFraisDate} onSubmit={handleFraisSubmit} onCancel={() => { setShowFraisModal(false); resetFraisForm(); }} loading={loading} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={fraisPatronId} onPatronChange={setFraisPatronId} />  
 
-      <AcompteModal show={showAcompteModal} montant={acompteMontant} setMontant={setAcompteMontant} date={acompteDate} setDate={setAcompteDate} onSubmit={handleAcompteSubmit} onCancel={() => { setShowAcompteModal(false); resetAcompteForm(); }} loading={loading} isIOS={isIOS} patrons={patrons} selectedPatronId={acomptePatronId} onPatronChange={setAcomptePatronId} />  
+      <AcompteModal show={showAcompteModal} montant={acompteMontant} setMontant={setAcompteMontant} date={acompteDate} setDate={setAcompteDate} onSubmit={handleAcompteSubmit} onCancel={() => { setShowAcompteModal(false); resetAcompteForm(); }} loading={loading || isSavingAcompte} isIOS={isIOS} patrons={patrons} selectedPatronId={acomptePatronId} onPatronChange={setAcomptePatronId} />  
 
       <PatronModal show={showPatronModal} editMode={!!editingPatronId} initialData={editingPatronData} onSubmit={handlePatronSubmit} onCancel={() => { setShowPatronModal(false); resetPatronForm(); }} loading={loading} darkMode={darkMode} />  
 
@@ -499,30 +822,45 @@ export default function App({ user }) {
       <LieuModal show={showLieuModal} editMode={!!editingLieuId} initialData={editingLieuData} onSubmit={handleLieuSubmit} onCancel={() => { setShowLieuModal(false); resetLieuForm(); }} loading={loading} darkMode={darkMode} />  
 
       <nav className="fixed bottom-6 left-6 right-6 z-[100]">  
-        <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">  
-          {!isViewer && (
-            <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>
-          )}
-          {!isViewer && (
-            <button onClick={() => setActiveTab("donnees")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "donnees" ? "bg-gradient-to-br from-green-600 to-green-800 text-white" : "text-white/30")}>Donnees</button>
-          )}
-          <button onClick={() => { setActiveTab("historique"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "historique" ? "bg-gradient-to-br from-cyan-600 to-cyan-800 text-white" : "text-white/30")}>Historique</button>  
-          <button onClick={() => { setActiveTab("histo"); bilan.setShowBilan(false); }} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "histo" ? "bg-gradient-to-br from-[#C9A84C] to-[#A07830] text-white" : "text-white/30")}>Bilan</button>  
-          {!isViewer ? (
-            <button onClick={() => setActiveTab("compte")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "compte" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>
-              <span>Compte</span>
-            </button>
-          ) : (
-            <button onClick={() => supabase.auth.signOut()} className="flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 text-white/30">
-              <span>🚪</span>
-            </button>
-          )}
-          {isAdmin && (
-            <button onClick={() => setActiveTab("admin")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "admin" ? "bg-gradient-to-br from-purple-600 to-purple-800 text-white" : "text-white/20")}>
-              <span>⚙️</span>
-            </button>
-          )}
-        </div>  
+        {isProNavigationMode ? (
+          <div className="bg-[#030d22]/95 border-yellow-500/30 backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1">  
+            {proNavItems.map((item) => {
+              const isActive = activeTab === item.key;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => {
+                    setActiveTab(item.key);
+                    if (typeof item.onClick === "function") item.onClick();
+                  }}
+                  className={
+                    "flex-1 rounded-[28px] font-black uppercase tracking-widest flex flex-col items-center justify-center py-2 text-[9px] gap-0.5 transition-all duration-200 " +
+                    (isActive ? `bg-gradient-to-br ${item.activeClass} text-white shadow-lg` : "text-white/35")
+                  }
+                >
+                  <span className="text-[14px] leading-none">{item.icon}</span>
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">  
+            {!isViewer && (
+              <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>
+            )}
+            <button onClick={() => setActiveTab("suivi")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "suivi" ? "bg-gradient-to-br from-cyan-600 to-indigo-700 text-white" : "text-white/30")}>Suivi</button>  
+            {!isViewer ? (
+              <button onClick={() => setActiveTab("parametres")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "parametres" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>
+                <span>Parametres</span>
+              </button>
+            ) : (
+              <button onClick={() => supabase.auth.signOut()} className="flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 text-white/30">
+                <span>🚪</span>
+              </button>
+            )}
+          </div>
+        )}
       </nav>  
     </div>  
   );

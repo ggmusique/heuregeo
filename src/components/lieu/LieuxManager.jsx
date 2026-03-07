@@ -1,5 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { formatEuro, formatHeures } from "../../utils/formatters";
+import { geocodeAddress } from "../../utils/geocode";
+import { isSuspectLieu } from "../../utils/suspectCoords";
 
 /**
  * ✅ Gestionnaire complet des lieux avec liste et stats
@@ -17,10 +19,50 @@ export const LieuxManager = ({
   onEdit = () => {},
   onDelete = () => {},
   onAdd = () => {},
+  onLieuEdit = () => {},
   darkMode = true,
   missions = [],
+  allowActions = true,
+  kmSettings = null,
+  onRegeocoderLieu = null,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [backfillRunning, setBackfillRunning] = useState(false);
+  const [backfillProgress, setBackfillProgress] = useState(null); // { done, total }
+  const [backfillResult, setBackfillResult] = useState(null); // { updated, errors: [{id, nom}] }
+  const [regeocodingId, setRegeocodingId] = useState(null); // id currently being re-geocoded
+  const [regeocodingErrors, setRegeocodingErrors] = useState({}); // id -> error message
+
+  const lieuxSansCoords = useMemo(() => {
+    return lieux.filter((l) => !l.latitude || !l.longitude);
+  }, [lieux]);
+
+  const handleBackfillCoords = useCallback(async () => {
+    if (backfillRunning || lieuxSansCoords.length === 0) return;
+    setBackfillRunning(true);
+    setBackfillProgress({ done: 0, total: lieuxSansCoords.length });
+    setBackfillResult(null);
+    let updated = 0;
+    const errors = [];
+    for (let i = 0; i < lieuxSansCoords.length; i++) {
+      const lieu = lieuxSansCoords[i];
+      const query = [lieu.adresse_complete, lieu.nom].filter(Boolean).join(", ");
+      const result = await geocodeAddress(query);
+      if (result) {
+        try {
+          await onEdit({ ...lieu, latitude: result.lat, longitude: result.lng });
+          updated++;
+        } catch {
+          errors.push({ id: lieu.id, nom: lieu.nom });
+        }
+      } else {
+        errors.push({ id: lieu.id, nom: lieu.nom });
+      }
+      setBackfillProgress({ done: i + 1, total: lieuxSansCoords.length });
+    }
+    setBackfillResult({ updated, errors });
+    setBackfillRunning(false);
+  }, [backfillRunning, lieuxSansCoords, onEdit]);
 
   /**
    * ✅ Calculer les stats par lieu (synchrone)
@@ -100,8 +142,92 @@ export const LieuxManager = ({
    */
   const isValidNumber = (v) => typeof v === "number" && !Number.isNaN(v);
 
+  // Coordonnées et label du domicile (issues de kmSettings)
+  const homeLat = kmSettings?.km_domicile_lat ?? null;
+  const homeLng = kmSettings?.km_domicile_lng ?? null;
+  const homeLabel = kmSettings?.km_domicile_adresse ?? null;
+
+  /**
+   * Re-géocoder un lieu individuel depuis son nom/adresse
+   */
+  const handleRegeocoderLieu = useCallback(async (lieu) => {
+    if (regeocodingId || !onRegeocoderLieu) return;
+    const query = [lieu.adresse_complete, lieu.nom].filter(Boolean).join(", ");
+    if (!query.trim()) return;
+    setRegeocodingId(lieu.id);
+    setRegeocodingErrors((prev) => { const { [lieu.id]: _, ...rest } = prev; return rest; }); // eslint-disable-line no-unused-vars
+    const result = await geocodeAddress(query);
+    if (result) {
+      try {
+        await onRegeocoderLieu(lieu.id, {
+          latitude: result.lat,
+          longitude: result.lng,
+          adresse_complete: result.normalizedAddress || lieu.adresse_complete,
+        });
+      } catch (err) {
+        console.error("Erreur re-géocodage lieu:", err);
+        setRegeocodingErrors((prev) => ({ ...prev, [lieu.id]: "Erreur lors de la sauvegarde des coordonnées." }));
+      }
+    } else {
+      setRegeocodingErrors((prev) => ({
+        ...prev,
+        [lieu.id]: "Impossible de trouver les coordonnées. Vérifie l'orthographe ou l'adresse.",
+      }));
+    }
+    setRegeocodingId(null);
+  }, [regeocodingId, onRegeocoderLieu]);
+
   return (
     <div className="space-y-6">
+      {/* Backfill GPS coords */}
+      {lieuxSansCoords.length > 0 && (
+        <div className={`p-4 rounded-2xl border ${
+          darkMode ? "border-blue-500/30 bg-blue-500/5" : "border-blue-300 bg-blue-50"
+        }`}>
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-[10px] font-black uppercase text-blue-300 tracking-wider mb-1">
+                📍 Coordonnées GPS manquantes
+              </p>
+              <p className="text-sm text-white/60">
+                {lieuxSansCoords.length} lieu{lieuxSansCoords.length > 1 ? "x" : ""} sans coordonnées GPS
+              </p>
+            </div>
+            <button
+              onClick={handleBackfillCoords}
+              disabled={backfillRunning}
+              className="px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-300 text-[10px] font-black uppercase tracking-wider hover:bg-blue-600/30 disabled:opacity-50 transition-all"
+            >
+              {backfillRunning ? "En cours..." : "🗺️ Compléter les coordonnées GPS"}
+            </button>
+          </div>
+          {backfillProgress && (
+            <p className="mt-2 text-sm text-white/60">
+              {backfillProgress.done} / {backfillProgress.total} lieux traités
+            </p>
+          )}
+          {backfillResult && (
+            <div className="mt-2 space-y-1">
+              <p className="text-sm text-green-400 font-bold">
+                Terminé : {backfillResult.updated} mis à jour
+                {backfillResult.errors.length > 0 && `, ${backfillResult.errors.length} erreur${backfillResult.errors.length > 1 ? "s" : ""}`}
+              </p>
+              {backfillResult.errors.map((e, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-red-400 text-xs">{e.nom}</span>
+                  <button
+                    onClick={() => onLieuEdit(lieux.find((l) => l.id === e.id))}
+                    className="text-[10px] font-black uppercase text-purple-300 hover:text-purple-100 transition-all"
+                  >
+                    Modifier
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Header avec bouton ajouter et recherche */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="flex-1 w-full sm:w-auto">
@@ -210,12 +336,20 @@ export const LieuxManager = ({
           sortedLieux.map((lieu) => {
             const hasGps =
               isValidNumber(lieu?.latitude) && isValidNumber(lieu?.longitude);
+            const suspect = isSuspectLieu(lieu, homeLat, homeLng, homeLabel);
+            const needsRegeocode = suspect || !hasGps;
+            const isRegeocoding = regeocodingId === lieu.id;
+            const regeoError = regeocodingErrors[lieu.id];
 
             return (
               <div
                 key={lieu.id}
                 className={`p-5 rounded-[25px] backdrop-blur-md border-2 ${
-                  darkMode
+                  suspect
+                    ? darkMode
+                      ? "bg-amber-900/10 border-amber-500/40 hover:border-amber-400/60"
+                      : "bg-amber-50 border-amber-300 hover:border-amber-400"
+                    : darkMode
                     ? "bg-white/5 border-white/10 hover:border-purple-500/40"
                     : "bg-white border-slate-200 hover:border-purple-300"
                 } transition-all`}
@@ -223,7 +357,7 @@ export const LieuxManager = ({
                 <div className="flex items-start justify-between gap-4">
                   {/* Infos lieu */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-lg font-black text-white truncate">
                         {lieu?.nom || "Lieu"}
                       </h3>
@@ -234,8 +368,15 @@ export const LieuxManager = ({
                         </span>
                       )}
 
-                      {/* ✅ Badge GPS OK */}
-                      {hasGps && (
+                      {/* Badge coordonnées suspectes */}
+                      {suspect && (
+                        <span className="px-2 py-1 bg-amber-600/20 border border-amber-500/40 rounded-lg text-[9px] font-black text-amber-300 uppercase">
+                          ⚠️ Coordonnées suspectes
+                        </span>
+                      )}
+
+                      {/* ✅ Badge GPS OK (uniquement si pas suspect) */}
+                      {hasGps && !suspect && (
                         <span className="px-2 py-1 bg-emerald-600/20 border border-emerald-500/30 rounded-lg text-[9px] font-black text-emerald-300 uppercase">
                           GPS OK ✓
                         </span>
@@ -267,6 +408,26 @@ export const LieuxManager = ({
                         <div className="text-xs text-white/60 flex items-start gap-2">
                           <span className="shrink-0">📝</span>
                           <span className="line-clamp-2">{lieu.notes}</span>
+                        </div>
+                      )}
+
+                      {/* Bouton Re-géocoder (suspect ou coords manquantes) */}
+                      {needsRegeocode && onRegeocoderLieu && (
+                        <div className="mt-1">
+                          <button
+                            onClick={() => handleRegeocoderLieu(lieu)}
+                            disabled={!!regeocodingId}
+                            className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50 ${
+                              suspect
+                                ? "bg-amber-600/20 border border-amber-500/40 text-amber-300 hover:bg-amber-600/30"
+                                : "bg-blue-600/20 border border-blue-500/40 text-blue-300 hover:bg-blue-600/30"
+                            }`}
+                          >
+                            {isRegeocoding ? "🔄 Recherche…" : "🗺️ Re-géocoder"}
+                          </button>
+                          {regeoError && (
+                            <p className="mt-1 text-[10px] text-red-400">{regeoError}</p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -313,6 +474,7 @@ export const LieuxManager = ({
                   </div>
 
                   {/* Boutons d'action */}
+                  {allowActions && (
                   <div className="flex gap-2">
                     <button
                       onClick={() => onEdit(lieu)}
@@ -338,6 +500,7 @@ export const LieuxManager = ({
                       🗑️
                     </button>
                   </div>
+                  )}
                 </div>
               </div>
             );

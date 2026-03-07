@@ -1,6 +1,8 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { supabase } from "../services/supabase";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
+import { KM_RATES } from "../utils/kmRatesByCountry";
+import { haversineKm, getLieuLabel } from "../utils/calculators";
 
 const fetchHistoricalWeather = async (dateIso) => {
   try {
@@ -35,6 +37,31 @@ const fetchHistoricalWeather = async (dateIso) => {
 const GLOBAL_PATRON_ID = "00000000-0000-0000-0000-000000000000";
 const TABLE = "bilans_status_v2";
 
+/**
+ * Normalise une ligne bilan pour respecter l'invariant :
+ *   paye <=> reste_a_percevoir === 0  (tolérance 0.01)
+ *   reste_a_percevoir >= 0 toujours
+ *
+ * À utiliser avant toute écriture dans bilans_status_v2.
+ */
+export function normalizeBilanRow({
+  ca_brut_periode = 0,
+  acompte_consomme = 0,
+  reste_a_percevoir = 0,
+  paye = false,
+  date_paiement = null,
+} = {}) {
+  const reste = Math.max(0, Number(reste_a_percevoir) || 0);
+  const isPaye = paye === true || reste <= 0.01;
+  return {
+    ca_brut_periode: Number(ca_brut_periode) || 0,
+    acompte_consomme: Number(acompte_consomme) || 0,
+    reste_a_percevoir: isPaye ? 0 : reste,
+    paye: isPaye,
+    date_paiement: isPaye ? (date_paiement || new Date().toISOString()) : null,
+  };
+}
+
 export function useBilan({
   missions,
   fraisDivers,
@@ -47,6 +74,9 @@ export function useBilan({
   getAcomptesDansPeriode,
   getTotalAcomptesJusqua,
   triggerAlert,
+  kmSettings = null,
+  domicileLatLng = null,
+  lieux = [],
 }) {
   const [showBilan, setShowBilan] = useState(false);
   const [showPeriodModal, setShowPeriodModal] = useState(false);
@@ -54,6 +84,7 @@ export function useBilan({
   const [bilanPeriodValue, setBilanPeriodValue] = useState("");
   const [availablePeriods, setAvailablePeriods] = useState([]);
   const [bilanPaye, setBilanPaye] = useState(false);
+  const [isRecalculatingKm, setIsRecalculatingKm] = useState(false);
 
   const [bilanContent, setBilanContent] = useState({
     titre: "",
@@ -68,10 +99,12 @@ export function useBilan({
     resteAPercevoir: 0,
     soldeAcomptesAvant: 0,
     soldeAcomptesApres: 0,
-    acomptesDansPeriode: 0,   // ✅ acomptes reçus cette période
-    totalAcomptes: 0,          // ✅ consommé affiché (cumul)
+    acomptesDansPeriode: 0,
+    totalAcomptes: 0,
+    acompteConsommePeriode: 0,
     selectedPatronId: null,
     selectedPatronNom: "Tous les patrons (Global)",
+    fraisKilometriques: { items: [], totalKm: 0, totalAmount: 0 },
   });
 
   useEffect(() => {
@@ -127,17 +160,19 @@ export function useBilan({
   const calculerPeriodesDisponibles = useCallback(() => {
     const periods = new Set();
     missions.forEach((m) => {
-      if (!m?.date_iso) return;
-      const d = new Date(m.date_iso);
+      // date_mission en priorité, date_iso en fallback
+      const mDate = m?.date_mission || m?.date_iso;
+      if (!mDate) return;
+      const d = new Date(mDate);
       if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
         periods.add(getWeekNumber(d));
       } else if (bilanPeriodType === PERIOD_TYPES.MOIS) {
-        periods.add(m.date_iso.substring(0, 7));
+        periods.add(mDate.substring(0, 7));
       } else if (bilanPeriodType === PERIOD_TYPES.ANNEE) {
-        periods.add(m.date_iso.substring(0, 4));
+        periods.add(mDate.substring(0, 4));
       }
     });
-    const sorted = Array.from(periods).sort().reverse();
+    const sorted = Array.from(periods).sort((a, b) => computePeriodeIndex(bilanPeriodType, b) - computePeriodeIndex(bilanPeriodType, a));
     setAvailablePeriods(sorted);
     if (sorted.length > 0) {
       setBilanPeriodValue(sorted[0].toString());
@@ -155,17 +190,35 @@ export function useBilan({
         // ✅ Le statut payé est partagé par période/patron.
         // On ne filtre donc pas par user_id pour éviter les écrasements
         // lors d'un changement de rôle (viewer <-> owner).
-        let query = supabase
+        // On prend la ligne la plus récente pour survivre aux éventuels doublons.
+        const { data, error } = await supabase
           .from(TABLE)
-          .select("paye")
+          .select("paye, reste_a_percevoir")
           .eq("periode_type", bilanPeriodType)
           .eq("periode_value", bilanPeriodValue)
-          .eq("patron_id", pId);
+          .eq("patron_id", pId)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        console.log("STATUT_QUERY", {
+          table: TABLE,
+          filters: {
+            periode_type: bilanPeriodType,
+            periode_value: bilanPeriodValue,
+            patron_id: pId,
+          },
+          data,
+          error,
+        });
   
-        const { data, error } = await query.maybeSingle();
-  
-        if (error) throw error;
-        return data?.paye || false;
+        if (error) {
+          console.error("STATUT_QUERY_ERROR", { pId, bilanPeriodType, bilanPeriodValue, error });
+          throw error;
+        }
+        if (!data || data.length === 0) return false;
+        const row = data[0] || {};
+        const reste = parseFloat(row?.reste_a_percevoir ?? 0);
+        return (row?.paye === true) && !(reste > 0.01);
       } catch (err) {
         console.error("Erreur getStatutPaiement:", err);
         return false;
@@ -174,37 +227,80 @@ export function useBilan({
     [bilanPeriodType, bilanPeriodValue]
   );
 
-  const getImpayePrecedent = useCallback(
-    async (currentWeek, patronId = null) => {
+ const getImpayePrecedent = useCallback(
+  async (currentWeek, patronId = null) => {
+    const pId = effectivePatronId(patronId);
+    const currentIndex = parseInt(currentWeek, 10) || 0;
+    if (currentIndex < 2) return 0;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+
+      const { data, error } = await supabase
+        .from(TABLE)
+        .select("periode_index, paye, reste_a_percevoir")
+        .eq("periode_type", PERIOD_TYPES.SEMAINE)
+        .eq("patron_id", pId)
+        .lt("periode_index", currentIndex)
+        .or("paye.eq.false,reste_a_percevoir.gt.0");
+
+      console.log("BILANS_QUERY", {
+        scope: "impaye_precedent",
+        filters: {
+          periode_type: PERIOD_TYPES.SEMAINE,
+          patron_id: pId,
+          periode_index_lt: currentIndex,
+          unpaid_filter: "paye=false OR reste_a_percevoir>0",
+        },
+        data,
+        error,
+      });
+
+      if (error) {
+        console.error("BILANS_QUERY_ERROR", { scope: "impaye_precedent", patronId: pId, currentIndex, error });
+        throw error;
+      }
+
+      const impayePrecedent = (data || []).reduce((sum, row) => {
+        const reste = parseFloat(row?.reste_a_percevoir ?? 0);
+        return sum + (reste > 0 ? reste : 0);
+      }, 0);
+
+      console.log("🟣 IMPAYE PRECEDENT", {
+        currentIndex,
+        mode: "sum-all-previous-unpaid",
+        rows: (data || []).length,
+        impayePrecedent,
+      });
+
+      return impayePrecedent;
+    } catch (err) {
+      console.error("Erreur getImpayePrecedent:", err);
+      return 0;
+    }
+  },
+  []
+);
+
+  const getAcomptesUtilisesAvantPeriode = useCallback(
+    async (weekNum, patronId = null) => {
+      if (!weekNum) return 0;
+
       const pId = effectivePatronId(patronId);
-      const currentIndex = parseInt(currentWeek, 10) || 0;
+
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return 0;
-
-        let query = supabase
-          .from(TABLE)
-          .select("periode_index, ca_brut_periode, acompte_consomme")
-          .eq("periode_type", PERIOD_TYPES.SEMAINE)
+        const { data, error } = await supabase
+          .from("acompte_allocations")
+          .select("amount")
           .eq("patron_id", pId)
-          .eq("paye", false)
-          .lt("periode_index", currentIndex)
-          .order("periode_index", { ascending: true });
+          .lt("periode_index", parseInt(weekNum, 10));
 
-        const { data, error } = await query;
-  
         if (error) throw error;
-  
-        // ✅ Impayé = somme de (CA brut - acompte consommé) par semaine
-        const total = (data || []).reduce((sum, row) => {
-          const ca = parseFloat(row?.ca_brut_periode ?? 0);
-          const acompte = parseFloat(row?.acompte_consomme ?? 0);
-          const reste = Math.max(0, ca - acompte);
-          return sum + reste;
-        }, 0);
-  
-        return total;
-      } catch {
+
+        return (data || []).reduce((sum, row) => sum + (parseFloat(row?.amount) || 0), 0);
+      } catch (err) {
+        console.error("Erreur getAcomptesUtilisesAvantPeriode:", err);
         return 0;
       }
     },
@@ -231,7 +327,8 @@ export function useBilan({
           if (r.periode_type === "semaine") {
             resteFixe = parseFloat(r?.reste_a_percevoir ?? 0);
           }
-          return { ...r, patron_nom, reste_a_percevoir: resteFixe };
+          const payeNormalise = r?.paye === true && !(resteFixe > 0.01);
+          return { ...r, patron_nom, paye: payeNormalise, reste_a_percevoir: resteFixe };
         });
         const impayes = rows
           .filter((r) => r.paye === false)
@@ -254,13 +351,15 @@ export function useBilan({
         triggerAlert?.("Sélectionnez une période.");
         return false;
       }
-      if (bilanPeriodType === PERIOD_TYPES.SEMAINE && !getTotalAcomptesJusqua) {
-        triggerAlert?.("⚠️ getTotalAcomptesJusqua manquant (useAcomptes).");
+      if (bilanPeriodType === PERIOD_TYPES.SEMAINE && !getSoldeAvant) {
+        triggerAlert?.("⚠️ getSoldeAvant manquant (useAcomptes).");
         return false;
       }
 
       try {
-        const pId = effectivePatronId(patronId);
+        const runPatronId = patronId ?? bilanContent.selectedPatronId ?? null;
+        const pId = effectivePatronId(runPatronId);
+        console.log("BILAN_PATRON_CONTEXT", { patronIdArg: patronId, selectedPatronId: bilanContent.selectedPatronId, runPatronId, resolvedPatronId: pId });
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           triggerAlert?.("Utilisateur non connecté.");
@@ -271,7 +370,7 @@ export function useBilan({
         const filtered = getMissionsByPeriod(
           bilanPeriodType,
           bilanPeriodValue,
-          patronId
+          runPatronId
         ).filter((m) => !clientId || m.client_id === clientId)
           .sort((a, b) => new Date(a.date_iso) - new Date(b.date_iso));
 
@@ -327,7 +426,7 @@ export function useBilan({
         // 3) Frais
         let fraisFiltres = [];
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          fraisFiltres = getFraisByWeek(parseInt(bilanPeriodValue, 10), patronId);
+          fraisFiltres = getFraisByWeek(parseInt(bilanPeriodValue, 10), runPatronId);
         }
         const totalFrais = getTotalFrais(fraisFiltres);
 
@@ -355,7 +454,7 @@ export function useBilan({
         const caBrutPeriode = totalMissions + totalFrais;
 
         if (caBrutPeriode === 0 && filtered.length === 0) {
-          triggerAlert?.(`⚠️ Aucune mission pour ${resolvePatronNom(patronId) || "ce patron"} en ${formatPeriodLabel(bilanPeriodValue)}`);
+          triggerAlert?.(`⚠️ Aucune mission pour ${resolvePatronNom(runPatronId) || "ce patron"} en ${formatPeriodLabel(bilanPeriodValue)}`);
           setShowPeriodModal(false);
           setShowBilan(false);
           return false;
@@ -364,7 +463,7 @@ export function useBilan({
         // 6) Impayé précédent
         let impayePrecedent = 0;
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          impayePrecedent = await getImpayePrecedent(parseInt(bilanPeriodValue, 10), patronId);
+          impayePrecedent = await getImpayePrecedent(parseInt(bilanPeriodValue, 10), runPatronId);
         }
 
         // Variables résultats
@@ -373,83 +472,217 @@ export function useBilan({
         let soldeAvantPeriode = 0;
         let soldeApresPeriode = 0;
         let acompteConsomme = 0;
-        let acompteConsommeAffiche = 0; // ✅ total affiché (inclut semaines précédentes)
+        let acompteConsommePeriode = 0;
 
         const acomptesDansPeriode =
           bilanPeriodType === PERIOD_TYPES.SEMAINE
             ? getAcomptesDansPeriode(debutPeriode, finPeriode, patronId)
             : 0;
 
-        if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          const acomptesCumules = getTotalAcomptesJusqua(finPeriode, patronId);
+if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
+  const weekNum = parseInt(bilanPeriodValue, 10);
+  
+  // Total alloué POUR CETTE semaine uniquement (delta)
+  const { data: allocsCetteSemaine, error: allocCetteSemaineError } = await supabase
+    .from("acompte_allocations")
+    .select("amount")
+    .eq("patron_id", pId)
+    .eq("periode_index", weekNum);  // ✅ Juste cette semaine
 
-          // Somme des acompte_consomme des bilans précédents sauvegardés
-          let acomptesDejaUtilises = 0;
-          try {
+  console.log("ALLOC_QUERY", {
+    scope: "cette_semaine",
+    filters: { patron_id: pId, periode_index: weekNum },
+    data: allocsCetteSemaine,
+    error: allocCetteSemaineError,
+  });
 
-            let bilansPrecedentsQuery = supabase
-              .from(TABLE)
-              .select("acompte_consomme")
-              .eq("patron_id", pId)
-              .eq("periode_type", "semaine")
-              .lt("periode_index", parseInt(bilanPeriodValue, 10));
+  if (allocCetteSemaineError) {
+    console.error("ALLOC_QUERY_ERROR", { scope: "cette_semaine", patronId: pId, currentIndex: weekNum, error: allocCetteSemaineError });
+  }
 
-            const { data: bilansPrecedents } = await bilansPrecedentsQuery;
+  const allocCetteSemaine = (allocsCetteSemaine || []).reduce(
+    (sum, a) => sum + (parseFloat(a.amount) || 0), 
+    0
+  );
 
-            if (bilansPrecedents) {
-              acomptesDejaUtilises = bilansPrecedents.reduce((sum, b) => {
-                return sum + (parseFloat(b.acompte_consomme) || 0);
-              }, 0);
-            }
-          } catch (err) {
-            console.error("Erreur calcul acomptes utilisés:", err);
-          }
+  // Total alloué JUSQU'À cette semaine (cumul pour solde global)
+  const { data: allocsJusqua, error: allocJusquaError } = await supabase
+    .from("acompte_allocations")
+    .select("amount")
+    .eq("patron_id", pId)
+    .lte("periode_index", weekNum);
 
-          // Acomptes disponibles pour cette semaine
-          const acomptesDisponibles = Math.max(0, acomptesCumules - acomptesDejaUtilises);
+  console.log("ALLOC_QUERY", {
+    scope: "jusqua",
+    filters: { patron_id: pId, periode_index_lte: weekNum },
+    data: allocsJusqua,
+    error: allocJusquaError,
+  });
 
-          // Solde avant = acompte dispo AVANT les acomptes reçus cette période
-          const acomptesAvantPeriode = getTotalAcomptesJusqua(debutPeriode, patronId);
-          soldeAvantPeriode = Math.max(0, acomptesAvantPeriode - acomptesDejaUtilises);
+  if (allocJusquaError) {
+    console.error("ALLOC_QUERY_ERROR", { scope: "jusqua", patronId: pId, currentIndex: weekNum, error: allocJusquaError });
+  }
 
-          console.log("💰 DEBUG ACOMPTES", {
-            acomptesCumules,
-            acomptesDejaUtilises,
-            acomptesDisponibles,
-            soldeAvantPeriode,
-            caBrutPeriode,
-            impayePrecedent,
-          });
+  const totalAlloueJusqua = (allocsJusqua || []).reduce(
+    (sum, a) => sum + (parseFloat(a.amount) || 0), 
+    0
+  );
 
-          // Consommé cette période uniquement (sauvegardé en BDD)
-          acompteConsomme = Math.min(caBrutPeriode, acomptesDisponibles);
+  // Total alloué AVANT cette semaine
+  const { data: allocsAvant, error: allocAvantError } = await supabase
+    .from("acompte_allocations")
+    .select("amount")
+    .eq("patron_id", pId)
+    .lt("periode_index", weekNum);
 
-          // ✅ Consommé AFFICHÉ = tout ce qui a été utilisé jusqu'ici
-          acompteConsommeAffiche = acomptesDejaUtilises + acompteConsomme;
+  console.log("ALLOC_QUERY", {
+    scope: "avant",
+    filters: { patron_id: pId, periode_index_lt: weekNum },
+    data: allocsAvant,
+    error: allocAvantError,
+  });
 
-          // Solde à reporter
-          soldeApresPeriode = Math.max(0, acomptesCumules - acompteConsommeAffiche);
+  if (allocAvantError) {
+    console.error("ALLOC_QUERY_ERROR", { scope: "avant", patronId: pId, currentIndex: weekNum, error: allocAvantError });
+  }
 
-          // Reste à percevoir = CA + impayés - acompte dispo cette période
-          resteAPercevoir = Math.max(0, caBrutPeriode + impayePrecedent - acompteConsomme);
-          resteCettePeriode = resteAPercevoir;
+  const totalAlloueAvant = (allocsAvant || []).reduce(
+    (sum, a) => sum + (parseFloat(a.amount) || 0), 
+    0
+  );
 
-        } else {
-          // Mode mois/année
-          soldeAvantPeriode = getSoldeAvant(debutPeriode, patronId);
-          const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
-          acompteConsomme = Math.min(acompteDisponible, caBrutPeriode);
-          resteCettePeriode = caBrutPeriode - acompteConsomme;
-          resteAPercevoir = resteCettePeriode;
-          soldeApresPeriode = acompteDisponible - acompteConsomme;
-          acompteConsommeAffiche = acompteConsomme;
-        }
+  const periodStartIso = new Date(`${debutPeriode}T00:00:00`).toISOString();
+  const periodEndExclusive = new Date(`${finPeriode}T00:00:00`);
+  periodEndExclusive.setDate(periodEndExclusive.getDate() + 1);
+
+  const { data: allocsCreatedInPeriod, error: allocPeriodError } = await supabase
+    .from("acompte_allocations")
+    .select("amount, created_at")
+    .eq("patron_id", pId)
+    .gte("created_at", periodStartIso)
+    .lt("created_at", periodEndExclusive.toISOString());
+
+  console.log("ALLOC_QUERY", {
+    scope: "created_in_period",
+    filters: {
+      patron_id: pId,
+      created_at_gte: periodStartIso,
+      created_at_lt: periodEndExclusive.toISOString(),
+    },
+    data: allocsCreatedInPeriod,
+    error: allocPeriodError,
+  });
+
+  if (allocPeriodError) {
+    console.error("ALLOC_QUERY_ERROR", { scope: "created_in_period", patronId: pId, currentIndex: weekNum, error: allocPeriodError });
+  }
+
+  acompteConsommePeriode = (allocsCreatedInPeriod || []).reduce(
+    (sum, a) => sum + (parseFloat(a.amount) || 0),
+    0
+  );
+
+  // Acomptes reçus
+  const { data: acomptesCumulesRows, error: acomptesCumulesError } = await supabase
+    .from("acomptes")
+    .select("montant")
+    .eq("patron_id", pId)
+    .lte("date_acompte", finPeriode);
+
+  console.log("ACOMPTES_QUERY", {
+    scope: "cumules",
+    filters: { patron_id: pId, date_acompte_lte: finPeriode },
+    data: acomptesCumulesRows,
+    error: acomptesCumulesError,
+  });
+
+  if (acomptesCumulesError) {
+    console.error("ACOMPTES_QUERY_ERROR", { scope: "cumules", patronId: pId, dateFin: finPeriode, error: acomptesCumulesError });
+  }
+
+  const { data: acomptesPeriodeRows, error: acomptesPeriodeError } = await supabase
+    .from("acomptes")
+    .select("montant")
+    .eq("patron_id", pId)
+    .gte("date_acompte", debutPeriode)
+    .lte("date_acompte", finPeriode);
+
+  console.log("ACOMPTES_QUERY", {
+    scope: "dans_periode",
+    filters: {
+      patron_id: pId,
+      date_acompte_gte: debutPeriode,
+      date_acompte_lte: finPeriode,
+    },
+    data: acomptesPeriodeRows,
+    error: acomptesPeriodeError,
+  });
+
+  if (acomptesPeriodeError) {
+    console.error("ACOMPTES_QUERY_ERROR", { scope: "dans_periode", patronId: pId, debutPeriode, finPeriode, error: acomptesPeriodeError });
+  }
+
+  const acomptesCumules = (acomptesCumulesRows || []).reduce(
+    (sum, a) => sum + (parseFloat(a.montant) || 0),
+    0
+  );
+  const acomptesDansPeriode = (acomptesPeriodeRows || []).reduce(
+    (sum, a) => sum + (parseFloat(a.montant) || 0),
+    0
+  );
+  
+  // ✅ acompteConsomme = ce qui a été alloué POUR CETTE semaine
+  acompteConsomme = allocCetteSemaine;
+
+  // Solde avant
+  soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDansPeriode);
+  
+  // Solde après
+  soldeApresPeriode = Math.max(0, acomptesCumules - totalAlloueJusqua);
+  
+  // ✅ Reste à percevoir = dette - acompte alloué POUR cette semaine
+  const detteTotale = impayePrecedent + caBrutPeriode;
+  resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
+  resteAPercevoir = resteCettePeriode;
+
+  console.log("🔵 DEBUG ACOMPTE S" + weekNum, {
+    caBrutPeriode,
+    impayePrecedent,
+    detteTotale,
+    acomptesCumules,
+    allocCetteSemaine,
+    totalAlloueJusqua,
+    totalAlloueAvant,
+    acomptesDansPeriode,
+    acompteConsomme,
+    soldeAvantPeriode,
+    soldeApresPeriode,
+    resteCettePeriode,
+    resteAPercevoir,
+  });
+
+} else {
+  // Mode mois/année (inchangé)
+  soldeAvantPeriode = getSoldeAvant(debutPeriode, runPatronId);
+  const acomptesDansPeriode = getAcomptesDansPeriode(debutPeriode, finPeriode, runPatronId);
+  const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
+  acompteConsomme = Math.min(acompteDisponible, caBrutPeriode);
+  resteCettePeriode = caBrutPeriode - acompteConsomme;
+  resteAPercevoir = resteCettePeriode;
+  soldeApresPeriode = acompteDisponible - acompteConsomme;
+}
+
+        // ✅ Si un acompte a été REÇU cette semaine, afficher son montant total
+        // Sinon afficher 0 (même si des allocations d'acomptes précédents existent)
+        const consommeCettePeriode = bilanPeriodType === PERIOD_TYPES.SEMAINE
+          ? (acomptesDansPeriode > 0 ? acomptesDansPeriode : 0)
+          : Math.max(0, (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode);
 
         // 7) Statut payé
-        const statutPaye = await getStatutPaiement(patronId);
+        const statutPaye = await getStatutPaiement(runPatronId);
 
         // 8) Nom patron
-        const selectedPatron = patronId ? patrons.find((p) => p.id === patronId) : null;
+        const selectedPatron = runPatronId ? patrons.find((p) => p.id === runPatronId) : null;
         const patronNom = selectedPatron ? selectedPatron.nom : "Tous les patrons (Global)";
 
         // 9) Météo
@@ -471,6 +704,60 @@ export function useBilan({
         }
 
         // 10) Objet final UI
+        // Frais kilométriques
+        let fraisKm = { items: [], totalKm: 0, totalAmount: 0 };
+        // Use domicileLatLng state first, fall back to coords stored directly in kmSettings
+        const effectiveDomicile = domicileLatLng ?? (
+          Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng)
+            ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
+            : null
+        );
+        if (kmSettings?.km_enable === true && bilanPeriodType === PERIOD_TYPES.SEMAINE && effectiveDomicile?.lat && effectiveDomicile?.lng) {
+          // Rate: AUTO uses table, CUSTOM uses km_rate_custom
+          const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
+            ? (parseFloat(kmSettings.km_rate) || 0)
+            : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
+          const multiplicateur = kmSettings.km_include_retour ? 2 : 1;
+
+          filtered.forEach((m) => {
+            // Lieu lookup: by id first, then by name (case-insensitive) as fallback
+            const lieuById = lieux.find((l) => l.id === m.lieu_id);
+            const lieuByName = !lieuById && m.lieu
+              ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
+              : null;
+            const lieu = lieuById || lieuByName;
+            const latLieu = Number(lieu?.latitude);
+            const lngLieu = Number(lieu?.longitude);
+            if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+              // distance_km is in km (haversineKm returns km)
+              const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
+              const kmTotal = kmOneWay * multiplicateur; // × 2 if aller-retour
+              const amount = kmTotal * kmRateEffectif;   // no rounding: exact value stored
+              fraisKm.items.push({
+                missionId: m.id,
+                date: m.date_iso,
+                labelLieuOuClient: getLieuLabel(lieu, m),
+                kmOneWay, kmTotal, amount,   // exact, rounded only at display
+              });
+              fraisKm.totalKm += kmTotal;
+              fraisKm.totalAmount += amount;
+            } else {
+              fraisKm.items.push({
+                missionId: m.id,
+                date: m.date_iso,
+                labelLieuOuClient: getLieuLabel(lieu, m),
+                kmOneWay: null,
+                kmTotal: null,
+                amount: null,
+              });
+            }
+          });
+          // totals kept exact; display layer applies rounding
+
+          resteAPercevoir = Math.max(0, resteAPercevoir + fraisKm.totalAmount);
+          resteCettePeriode = resteAPercevoir;
+        }
+
         const content = {
           titre: formatPeriodLabel(bilanPeriodValue),
           totalE: caBrutPeriode,
@@ -480,10 +767,8 @@ export function useBilan({
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
 
-         // ✅ N'afficher le bloc que si un acompte a été consommé sur CETTE période
-totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0 
-? acompteConsommeAffiche 
-: 0,
+          acompteConsommePeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsommePeriode : 0,
+          totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE ? consommeCettePeriode : 0,
 
           acomptesDansPeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acomptesDansPeriode : 0,
           resteCettePeriode,
@@ -491,49 +776,76 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
           impayePrecedent,
           soldeAcomptesAvant: soldeAvantPeriode,
           soldeAcomptesApres: soldeApresPeriode,
-          selectedPatronId: patronId,
+          selectedPatronId: runPatronId,
           selectedPatronNom: patronNom,
+          fraisKilometriques: fraisKm,
         };
+
+        // 11) Invariant paye<=>reste=0 : dériver l'état final avant tout write DB
+        const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
+        const isPaid = statutPaye || resteCettePeriode <= 0.01;
+
+        // Forcer la cohérence UI : resteAPercevoir = resteCettePeriode = valeur nette finale
+        if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
+          const safeNumber = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+          const resteNetFinal = safeNumber(resteCettePeriode);
+          content.resteAPercevoir = resteNetFinal;
+          content.resteCettePeriode = resteNetFinal;
+          console.log("NET_FINAL", { resteAPercevoir: content.resteAPercevoir, resteCettePeriode: content.resteCettePeriode, resteNetFinal });
+        }
 
         setBilanContent(content);
-        setBilanPaye(statutPaye);
+        setBilanPaye(isPaid);
         setShowPeriodModal(false);
         setShowBilan(true);
-        
-        
-
-        // 11) Sauvegarde Supabase
-        const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
-        const { data: bilanExistant } = await supabase
-          .from(TABLE)
-          .select("acompte_consomme, paye")
-          .eq("periode_type", bilanPeriodType)
-          .eq("periode_value", bilanPeriodValue)
-          .eq("patron_id", pId)
-          .maybeSingle();
-
-        const dataToSave = {
-          user_id: user.id,
-          periode_type: bilanPeriodType,
-          periode_value: bilanPeriodValue,
-          periode_index: periodeIndex,
-          patron_id: pId,
-          paye: statutPaye,
-          date_paiement: statutPaye ? new Date().toISOString() : null,
-          reste_a_percevoir: resteCettePeriode,
-          ca_brut_periode: caBrutPeriode,
-          // ✅ Sauvegarde le petit acompteConsomme (cette période uniquement)
-          acompte_consomme: (bilanExistant?.acompte_consomme > 0)
-            ? bilanExistant.acompte_consomme
-            : (bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0),
-        };
 
         if (!isGlobalPatronId(patronId)) {
-          const { error: upsertError } = await supabase.from(TABLE).upsert(dataToSave, {
-            onConflict: "periode_type,periode_value,patron_id",
-          });
-          if (upsertError) {
+          const { data: existingBilan, error: lookupError } = await supabase
+            .from(TABLE)
+            .select("id")
+            .eq("periode_type", bilanPeriodType)
+            .eq("periode_value", bilanPeriodValue)
+            .eq("patron_id", pId)
+            .maybeSingle();
+
+          if (lookupError) {
             triggerAlert?.("Erreur sauvegarde bilan.");
+            return false;
+          }
+
+          if (!existingBilan?.id) {
+            const { error: insertError } = await supabase
+              .from(TABLE)
+              .insert({
+                user_id: user.id,
+                periode_type: bilanPeriodType,
+                periode_value: bilanPeriodValue,
+                periode_index: periodeIndex,
+                patron_id: pId,
+                ca_brut_periode: caBrutPeriode,
+                paye: false,
+                date_paiement: null,
+                acompte_consomme: 0,
+                reste_a_percevoir: caBrutPeriode,
+              });
+
+            if (insertError) {
+              triggerAlert?.("Erreur sauvegarde bilan.");
+              return false;
+            }
+          } else {
+            const { error: updateError } = await supabase
+              .from(TABLE)
+              .update({
+                ca_brut_periode: caBrutPeriode,
+                periode_index: periodeIndex,
+              })
+              .eq("id", existingBilan.id);
+
+            if (updateError) {
+              triggerAlert?.("Erreur sauvegarde bilan.");
+              return false;
+            }
           }
         }
 
@@ -551,77 +863,24 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
       getTotalFrais,
       getSoldeAvant,
       getAcomptesDansPeriode,
-      getTotalAcomptesJusqua,
       getImpayePrecedent,
+      getAcomptesUtilisesAvantPeriode,
+      getTotalAcomptesJusqua,
       getStatutPaiement,
       formatPeriodLabel,
       triggerAlert,
       patrons,
+      kmSettings,
+      domicileLatLng,
+      lieux,
     ]
   );
 
   const autoPayerBilans = useCallback(
     async (patronId, montantAcompte) => {
-      try {
-        const pId = effectivePatronId(patronId);
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return false;
-
-        console.log("🔵 AUTO-PAIEMENT DÉMARRÉ", { patronId: pId, montantAcompte });
-
-        const { data: bilansImpayes, error } = await supabase
-          .from(TABLE)
-          .select("*")
-          .eq("patron_id", pId)
-          .eq("periode_type", "semaine")
-          .eq("paye", false)
-          .order("periode_index", { ascending: true });
-
-        if (error) throw error;
-        console.log("🟡 Bilans impayés trouvés:", bilansImpayes);
-
-        if (!bilansImpayes || bilansImpayes.length === 0) {
-          console.log("⚠️ Aucun bilan impayé trouvé");
-          return true;
-        }
-
-        let resteAcompte = montantAcompte;
-
-        for (const bilan of bilansImpayes) {
-          if (resteAcompte <= 0) break;
-
-          const caBrut = parseFloat(bilan.ca_brut_periode || 0);
-          const acompteDejaConsomme = parseFloat(bilan.acompte_consomme || 0);
-          const resteDu = Math.max(0, caBrut - acompteDejaConsomme);
-
-          if (resteDu <= 0) continue;
-
-          if (resteAcompte >= resteDu) {
-            await supabase.from(TABLE).update({
-              paye: true,
-              date_paiement: new Date().toISOString(),
-              acompte_consomme: caBrut,
-              reste_a_percevoir: 0,
-            }).eq("id", bilan.id);
-            resteAcompte -= resteDu;
-          } else {
-            const nouvelAcompteConsomme = acompteDejaConsomme + resteAcompte;
-            await supabase.from(TABLE).update({
-              acompte_consomme: nouvelAcompteConsomme,
-              reste_a_percevoir: caBrut - nouvelAcompteConsomme,
-            }).eq("id", bilan.id);
-            resteAcompte = 0;
-            break;
-          }
-        }
-
-        console.log("✅ AUTO-PAIEMENT TERMINÉ");
-        return true;
-      } catch (err) {
-        console.error("❌ Erreur auto-paiement bilans:", err);
-        triggerAlert?.("⚠️ Erreur lors de la mise à jour automatique des bilans");
-        return false;
-      }
+      console.warn("autoPayerBilans est neutralisé: utiliser apply_acompte côté DB", { patronId, montantAcompte });
+      triggerAlert?.("ℹ️ Auto-paiement front désactivé (source de vérité côté DB).");
+      return false;
     },
     [triggerAlert]
   );
@@ -630,27 +889,50 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
     async (patronId = null) => {
       try {
         const pId = effectivePatronId(patronId);
-        const reste = bilanContent.resteCettePeriode || 0;
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Utilisateur non connecté");
 
-        const dataToSave = {
-          user_id: user.id,
-          periode_type: bilanPeriodType,
-          periode_value: bilanPeriodValue,
-          periode_index: computePeriodeIndex(bilanPeriodType, bilanPeriodValue),
-          patron_id: pId,
-          paye: true,
-          date_paiement: new Date().toISOString(),
-          reste_a_percevoir: reste,
-          ca_brut_periode: bilanContent.totalE || 0,
-          acompte_consomme: bilanContent.totalAcomptes || 0,
-        };
+        const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
+        const { data: existingBilan, error: lookupError } = await supabase
+          .from(TABLE)
+          .select("id, ca_brut_periode")
+          .eq("periode_type", bilanPeriodType)
+          .eq("periode_value", bilanPeriodValue)
+          .eq("patron_id", pId)
+          .maybeSingle();
 
-        const { error } = await supabase.from(TABLE).upsert(dataToSave, {
-          onConflict: "periode_type,periode_value,patron_id",
-        });
-        if (error) throw error;
+        if (lookupError) throw lookupError;
+
+        if (!existingBilan?.id) {
+          const caBrutPeriode = Number(bilanContent.totalE) || 0;
+          const { error: insertError } = await supabase.from(TABLE).insert({
+            user_id: user.id,
+            periode_type: bilanPeriodType,
+            periode_value: bilanPeriodValue,
+            periode_index: periodeIndex,
+            patron_id: pId,
+            ca_brut_periode: caBrutPeriode,
+            paye: true,
+            date_paiement: new Date().toISOString(),
+            reste_a_percevoir: 0,
+            acompte_consomme: caBrutPeriode,
+          });
+
+          if (insertError) throw insertError;
+        } else {
+          const caBrutPeriode = Number(existingBilan.ca_brut_periode) || 0;
+          const { error: updateError } = await supabase
+            .from(TABLE)
+            .update({
+              paye: true,
+              date_paiement: new Date().toISOString(),
+              reste_a_percevoir: 0,
+              acompte_consomme: caBrutPeriode,
+            })
+            .eq("id", existingBilan.id);
+
+          if (updateError) throw updateError;
+        }
 
         setBilanPaye(true);
         triggerAlert?.("✅ Marqué comme payé !");
@@ -661,6 +943,164 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
       }
     },
     [bilanPeriodType, bilanPeriodValue, bilanContent, triggerAlert]
+  );
+
+  const recalculerFraisKm = useCallback(
+    async (patronId = null) => {
+      if (!bilanPeriodValue) { triggerAlert?.("Sélectionnez une période."); return; }
+
+      const effectiveDomicile = domicileLatLng ?? (
+        Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng)
+          ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
+          : null
+      );
+      if (!effectiveDomicile?.lat || !effectiveDomicile?.lng) {
+        triggerAlert?.("🚗 Domicile non configuré. Vérifiez Paramètres → Km.");
+        return;
+      }
+
+      const missionsList = bilanContent.filteredData;
+      if (!missionsList || missionsList.length === 0) {
+        triggerAlert?.("Aucune mission pour cette période.");
+        return;
+      }
+
+      try {
+        setIsRecalculatingKm(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { triggerAlert?.("Utilisateur non connecté."); return; }
+
+        const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
+          ? (parseFloat(kmSettings.km_rate) || 0)
+          : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42); // 0.42 €/km: default FR rate
+        const multiplicateur = kmSettings.km_include_retour ? 2 : 1;
+        const countryCode = kmSettings.km_country_code || "FR";
+
+        const rows = [];
+        missionsList.forEach((m) => {
+          const lieuById = lieux.find((l) => l.id === m.lieu_id);
+          const lieuByName = !lieuById && m.lieu
+            ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
+            : null;
+          const lieu = lieuById || lieuByName;
+          const latLieu = Number(lieu?.latitude);
+          const lngLieu = Number(lieu?.longitude);
+          if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+            const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
+            const distanceKm = kmOneWay * multiplicateur;
+            const amount = distanceKm * kmRateEffectif;
+            rows.push({
+              user_id: user.id,
+              patron_id: m.patron_id || null,
+              mission_id: m.id,
+              date_frais: m.date_iso,
+              country_code: countryCode,
+              distance_km: distanceKm,
+              rate_per_km: kmRateEffectif,
+              amount,
+              source: "auto",
+            });
+          }
+        });
+
+        if (rows.length === 0) {
+          triggerAlert?.("🚗 Aucun lieu géocodé — coordonnées GPS manquantes pour les lieux de mission.");
+          return;
+        }
+
+        const { error } = await supabase
+          .from("frais_km")
+          .upsert(rows, { onConflict: "mission_id" });
+        if (error) throw error;
+
+        triggerAlert?.(`✅ ${rows.length} ligne(s) km recalculée(s)`);
+        await genererBilan(patronId);
+      } catch (err) {
+        console.error("❌ Erreur recalcul frais_km:", err);
+        triggerAlert?.("Erreur lors du recalcul des frais km.");
+      } finally {
+        setIsRecalculatingKm(false);
+      }
+    },
+    [bilanPeriodValue, bilanContent.filteredData, kmSettings, domicileLatLng, lieux, triggerAlert, genererBilan]
+  );
+
+  /**
+   * Reconstruit les bilans en DB pour une plage de semaines.
+   * Calcule dans l'ordre croissant pour respecter la règle glissante N-1.
+   */
+  const rebuildBilans = useCallback(
+    async (patronId, startWeek, endWeek) => {
+      const pId = effectivePatronId(patronId);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { success: false, message: "Utilisateur non connecté" };
+
+        let rebuilt = 0;
+
+        for (let weekNum = startWeek; weekNum <= endWeek; weekNum++) {
+          // Missions de la semaine
+          const filtered = getMissionsByPeriod(PERIOD_TYPES.SEMAINE, String(weekNum), patronId);
+          const totalMissions = filtered.reduce((sum, m) => sum + (m.montant || 0), 0);
+
+          // Frais divers de la semaine
+          const fraisFiltres = getFraisByWeek(weekNum, patronId);
+          const totalFrais = getTotalFrais(fraisFiltres);
+
+          const caBrutPeriode = totalMissions + totalFrais;
+
+          // Impayé précédent (règle glissante N-1)
+          const impayePrecedent = await getImpayePrecedent(weekNum, patronId);
+
+          console.log(`DEBUG_REBUILD S${weekNum}`, { caBrutPeriode, impayePrecedent });
+
+          const { data: existingBilan, error: lookupError } = await supabase
+            .from(TABLE)
+            .select("id")
+            .eq("periode_type", PERIOD_TYPES.SEMAINE)
+            .eq("periode_value", String(weekNum))
+            .eq("patron_id", pId)
+            .maybeSingle();
+
+          if (lookupError) throw lookupError;
+
+          if (!existingBilan?.id) {
+            const { error: insertError } = await supabase.from(TABLE).insert({
+              user_id: user.id,
+              periode_type: PERIOD_TYPES.SEMAINE,
+              periode_value: String(weekNum),
+              periode_index: weekNum,
+              patron_id: pId,
+              ca_brut_periode: caBrutPeriode,
+              paye: false,
+              date_paiement: null,
+              acompte_consomme: 0,
+              reste_a_percevoir: caBrutPeriode,
+            });
+
+            if (insertError) throw insertError;
+          } else {
+            const { error: updateError } = await supabase
+              .from(TABLE)
+              .update({
+                ca_brut_periode: caBrutPeriode,
+                periode_index: weekNum,
+              })
+              .eq("id", existingBilan.id);
+
+            if (updateError) throw updateError;
+          }
+
+          rebuilt++;
+        }
+
+        return { success: true, message: `${rebuilt} semaine(s) reconstruite(s) (S${startWeek}→S${endWeek})` };
+      } catch (err) {
+        console.error("❌ Erreur rebuildBilans:", err);
+        return { success: false, message: err?.message || "Erreur rebuild" };
+      }
+    },
+    [getMissionsByPeriod, getFraisByWeek, getTotalFrais, getImpayePrecedent]
   );
 
   const gotoPreviousWeek = useCallback(() => {
@@ -714,5 +1154,8 @@ totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE && acompteConsomme > 0
     hasPreviousWeek,
     hasNextWeek,
     handleWeekChange,
+    recalculerFraisKm,
+    isRecalculatingKm,
+    rebuildBilans,
   };
 }

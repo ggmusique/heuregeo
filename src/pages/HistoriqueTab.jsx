@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { formatEuro, formatDateFR } from "../utils/formatters";
 import { getWeekNumber } from "../utils/dateUtils";
 
@@ -30,6 +30,39 @@ export const HistoriqueTab = ({
 }) => {
   // When viewer, use their fixed patron_id for all filtering
   const effectivePatronId = isViewer ? viewerPatronId : historiquePatronId;
+
+  // Build a set of week numbers from existing missions (to filter deleted-mission rows)
+  const validWeekNums = useMemo(() => {
+    const set = new Set();
+    missions.forEach((m) => {
+      if (!m.date_iso) return;
+      if (effectivePatronId && m.patron_id !== effectivePatronId) return;
+      set.add(getWeekNumber(new Date(m.date_iso)));
+    });
+    return set;
+  }, [missions, effectivePatronId]);
+
+  // Filter historique rows: exclude periods where all missions have been deleted
+  const filteredImpayes = useMemo(
+    () =>
+      missions.length > 0
+        ? (historique.impayes || []).filter((row) => {
+            const wk = parseInt(row.periode_value, 10);
+            return Number.isFinite(wk) && validWeekNums.has(wk);
+          })
+        : historique.impayes || [],
+    [historique.impayes, validWeekNums, missions.length]
+  );
+  const filteredPayes = useMemo(
+    () =>
+      missions.length > 0
+        ? (historique.payes || []).filter((row) => {
+            const wk = parseInt(row.periode_value, 10);
+            return Number.isFinite(wk) && validWeekNums.has(wk);
+          })
+        : historique.payes || [],
+    [historique.payes, validWeekNums, missions.length]
+  );
   return (
     <div className="animate-in fade-in duration-500 space-y-4 pb-4">
       {/* ── SÉLECTEUR PATRON ── */}
@@ -84,8 +117,8 @@ export const HistoriqueTab = ({
           );
           const caTotal = missionsTotal.reduce((s, m) => s + (m.montant || 0), 0);
 
-          // Total impayés
-          const totalImpayes = historique.impayes.reduce(
+          // Total impayés (using filtered list to exclude deleted-mission rows)
+          const totalImpayes = filteredImpayes.reduce(
             (s, r) => s + (r.ca_brut_periode || 0),  // ✅ au lieu de reste_a_percevoir
             0
           );
@@ -170,8 +203,8 @@ export const HistoriqueTab = ({
                   <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
                     Semaines payées
                   </p>
-                  <p className="text-2xl font-black text-green-300">
-                    {historique.payes.length} ✅
+                  <p className="text-2xl font-black text-green-300 amount-safe">
+                    {filteredPayes.length} ✅
                   </p>
                 </div>
 
@@ -186,7 +219,7 @@ export const HistoriqueTab = ({
                     Semaines impayées
                   </p>
                   <p className="text-2xl font-black text-orange-300">
-                    {historique.impayes.length} 🟠
+                    {filteredImpayes.length} 🟠
                   </p>
                 </div>
               </div>
@@ -204,7 +237,7 @@ export const HistoriqueTab = ({
                     <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
                       Dernier acompte reçu
                     </p>
-                    <p className="text-xl font-black text-cyan-300">
+                    <p className="text-xl font-black text-cyan-300 amount-safe">
                       {formatEuro(dernierAcompte.montant)}
                     </p>
                     <p className="text-[10px] opacity-50 mt-1">
@@ -242,7 +275,7 @@ export const HistoriqueTab = ({
                     : "bg-slate-100 text-slate-400 border border-slate-200"
               }`}
             >
-              🟠 Impayés ({historique.impayes.length})
+              🟠 Impayés ({filteredImpayes.length})
             </button>
 
             <button
@@ -255,7 +288,7 @@ export const HistoriqueTab = ({
                     : "bg-slate-100 text-slate-400 border border-slate-200"
               }`}
             >
-              ✅ Payés ({historique.payes.length})
+              ✅ Payés ({filteredPayes.length})
             </button>
           </div>
 
@@ -268,14 +301,14 @@ export const HistoriqueTab = ({
                   : "border-orange-200 bg-orange-50"
               } backdrop-blur-md`}
             >
-              {historique.impayes.length === 0 ? (
+              {filteredImpayes.length === 0 ? (
                 <div className="text-center py-6">
                   <p className="text-3xl mb-2">🎉</p>
                   <p className="text-sm opacity-60 font-bold">Aucun impayé !</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {historique.impayes.map((row) => (
+                  {filteredImpayes.map((row) => (
                     <div
                       key={row.id}
                       className={`flex items-center justify-between p-4 rounded-2xl ${
@@ -293,9 +326,9 @@ export const HistoriqueTab = ({
                         </p>
                       </div>
                       <div className="text-right">
-                      <p className="text-lg font-black text-orange-400">
-  {formatEuro(row.ca_brut_periode || 0)}  {/* ✅ au lieu de reste_a_percevoir */}
-</p>
+                        <p className="text-lg font-black text-orange-400 amount-safe">
+                          {formatEuro(row.reste_a_percevoir || 0)}
+                        </p>
                         <p className="text-[9px] uppercase opacity-40 tracking-wider">
                           non payé
                         </p>
@@ -307,13 +340,13 @@ export const HistoriqueTab = ({
                     <p className="text-[10px] font-black uppercase opacity-60">
                       Total
                     </p>
-                    <p className="text-xl font-black text-orange-400">
-                    {formatEuro(
-  historique.impayes.reduce(
-    (s, r) => s + (r.ca_brut_periode || 0),  // ✅ au lieu de reste_a_percevoir
-    0
-  )
-)}
+                    <p className="text-xl font-black text-orange-400 amount-safe">
+                      {formatEuro(
+                        filteredImpayes.reduce(
+                          (s, r) => s + (r.reste_a_percevoir || 0),
+                          0
+                        )
+                      )}
                     </p>
                   </div>
                 </div>
@@ -330,7 +363,7 @@ export const HistoriqueTab = ({
                   : "border-green-200 bg-green-50"
               } backdrop-blur-md`}
             >
-              {historique.payes.length === 0 ? (
+              {filteredPayes.length === 0 ? (
                 <div className="text-center py-6">
                   <p className="text-3xl mb-2">📭</p>
                   <p className="text-sm opacity-60 font-bold">
@@ -339,7 +372,7 @@ export const HistoriqueTab = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {historique.payes.map((row) => (
+                  {filteredPayes.map((row) => (
                     <div
                       key={row.id}
                       className={`flex items-center justify-between p-4 rounded-2xl ${
@@ -357,7 +390,7 @@ export const HistoriqueTab = ({
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-black text-green-400">
+                        <p className="text-lg font-black text-green-400 amount-safe">
                           {formatEuro(row.ca_brut_periode || 0)}
                         </p>
                         <p className="text-[9px] opacity-40">
