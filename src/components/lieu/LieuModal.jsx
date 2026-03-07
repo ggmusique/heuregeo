@@ -16,6 +16,7 @@ export const LieuModal = ({
     latitude: "",
     longitude: "",
     notes: "",
+    type: "client",
   });
   const [geocodeStatus, setGeocodeStatus] = useState("idle"); // idle | searching | ok | error
   const [geocodeError, setGeocodeError] = useState("");
@@ -29,6 +30,7 @@ export const LieuModal = ({
         latitude: initialData.latitude || "",
         longitude: initialData.longitude || "",
         notes: initialData.notes || "",
+        type: initialData.type || "client",
       });
       setGeocodeStatus(initialData.latitude && initialData.longitude ? "ok" : "idle");
       setGeocodeError("");
@@ -40,6 +42,7 @@ export const LieuModal = ({
         latitude: "",
         longitude: "",
         notes: initialData?.notes || "",
+        type: "client",
       });
       setGeocodeStatus("idle");
       setGeocodeError("");
@@ -87,6 +90,7 @@ export const LieuModal = ({
       latitude: lat ? parseFloat(lat) : null,
       longitude: lng ? parseFloat(lng) : null,
       notes: formData.notes.trim() || null,
+      type: formData.type || "client",
     };
     onSubmit(dataToSubmit);
   };
@@ -159,6 +163,24 @@ export const LieuModal = ({
               className={inputCls}
               required
             />
+          </div>
+
+          {/* Type de lieu */}
+          <div>
+            <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider">
+              Type de lieu
+            </label>
+            <select
+              value={formData.type}
+              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              className={inputCls}
+            >
+              <option value="client">📍 Client</option>
+              <option value="atelier">🏭 Atelier</option>
+              <option value="bureau">🏢 Bureau</option>
+              <option value="domicile">🏠 Domicile</option>
+              <option value="autre">📌 Autre</option>
+            </select>
           </div>
 
           <div>
