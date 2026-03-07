@@ -13,14 +13,16 @@ function safe(cmd, fallback = "unknown") {
 
 const branch = safe("git rev-parse --abbrev-ref HEAD", "unknown");
 const commit = safe("git rev-parse --short HEAD", "unknown");
-const date = new Date().toISOString();
+// ✅ CORRECTION: Utiliser la date du dernier commit (stable) au lieu de Date.now()
+const commitDate = safe("git log -1 --format=%cI", new Date().toISOString());
 
 const info = `// AUTO-GENERATED. Do not edit by hand.
 export const BUILD_INFO = {
   branch: ${JSON.stringify(branch)},
   commit: ${JSON.stringify(commit)},
-  date: ${JSON.stringify(date)},
+  date: ${JSON.stringify(commitDate)},
 };
 `;
 
 writeFileSync("src/buildInfo.js", info, "utf8");
+console.log("✅ buildInfo generated:", { branch, commit, date: commitDate });
