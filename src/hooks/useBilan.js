@@ -733,19 +733,27 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
               const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
               const kmTotal = kmOneWay * multiplicateur; // × 2 if aller-retour
               const amount = kmTotal * kmRateEffectif;   // no rounding: exact value stored
+              // Ajoute le type entre parenthèses si ce n'est pas 'client'
+              const typeLabel = lieu?.type && lieu.type !== 'client'
+                ? ` (${lieu.type.toUpperCase()})`
+                : '';
               fraisKm.items.push({
                 missionId: m.id,
                 date: m.date_iso,
-                labelLieuOuClient: getLieuLabel(lieu, m),
+                labelLieuOuClient: getLieuLabel(lieu, m) + typeLabel,
                 kmOneWay, kmTotal, amount,   // exact, rounded only at display
               });
               fraisKm.totalKm += kmTotal;
               fraisKm.totalAmount += amount;
             } else {
+              // Ajoute le type même si pas de GPS
+              const typeLabel = lieu?.type && lieu.type !== 'client'
+                ? ` (${lieu.type.toUpperCase()})`
+                : '';
               fraisKm.items.push({
                 missionId: m.id,
                 date: m.date_iso,
-                labelLieuOuClient: getLieuLabel(lieu, m),
+                labelLieuOuClient: getLieuLabel(lieu, m) + typeLabel,
                 kmOneWay: null,
                 kmTotal: null,
                 amount: null,
