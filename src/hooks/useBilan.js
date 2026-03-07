@@ -787,6 +787,7 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           selectedPatronId: runPatronId,
           selectedPatronNom: patronNom,
           fraisKilometriques: fraisKm,
+          lieux,
         };
 
         // 11) Invariant paye<=>reste=0 : dériver l'état final avant tout write DB

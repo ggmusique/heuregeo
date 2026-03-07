@@ -317,7 +317,15 @@ const drawMissionsTable = (doc, bilanContent, startY) => {
       doc.setFont(undefined, "normal");
       doc.setTextColor(...COLORS.textSecondary);
       doc.setFontSize(6.5);
-      doc.text((m.lieu || "-").substring(0, 22), cx + 2, y + 4);
+      const lieux = bilanContent.lieux || [];
+      const lieuObj = lieux.find(l => l.id === m.lieu_id)
+        || (m.lieu ? lieux.find(l => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim()) : null);
+      const typeLabel = lieuObj?.type && lieuObj.type !== 'client'
+        ? ` (${lieuObj.type.toUpperCase()})`
+        : '';
+      const lieuName = m.lieu || lieuObj?.nom || '-';
+      const lieuDisplay = `${lieuName.substring(0, 22)}${typeLabel}`;
+      doc.text(lieuDisplay, cx + 2, y + 4);
       cx += colWidths[2];
 
       // Horaires
