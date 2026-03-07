@@ -5,7 +5,7 @@ import { supabase } from "../supabase";
  */
 
 // Colonnes autorisées sur la table lieux (whitelist anti colonne inconnue)
-const LIEUX_COLUMNS = ["nom", "adresse_complete", "latitude", "longitude", "notes", "user_id"];
+const LIEUX_COLUMNS = ["nom", "adresse_complete", "latitude", "longitude", "notes", "user_id", "type"];
 
 const sanitizeLieu = (data) =>
   Object.fromEntries(Object.entries(data).filter(([k]) => LIEUX_COLUMNS.includes(k)));
