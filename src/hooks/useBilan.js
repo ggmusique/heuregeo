@@ -673,7 +673,7 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
 }
 
         const consommeCettePeriode = bilanPeriodType === PERIOD_TYPES.SEMAINE
-          ? Math.max(0, acompteConsommePeriode)
+          ? Math.max(0, allocCetteSemaine)
           : Math.max(0, (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode);
 
         // 7) Statut payé
