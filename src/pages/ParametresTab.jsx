@@ -2,7 +2,7 @@ import React, { Component, Suspense, lazy, useEffect, useMemo, useState } from "
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { AdminPage } from "./AdminPage";
-import { EUROPE_COUNTRIES, KM_RATES } from "../utils/kmRatesByCountry";
+import { EUROPE_COUNTRIES, KM_RATES, detectCountryFromLatLng } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
 
@@ -611,6 +611,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
 
     let kmDomicileLat = prevFeatures.km_domicile_lat ?? null;
     let kmDomicileLng = prevFeatures.km_domicile_lng ?? null;
+    let detectedCountry = null;
     const addr =
       (kmDomicileAdresse || "").trim() ||
       [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
@@ -619,14 +620,17 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
       if (geoResult) {
         kmDomicileLat = geoResult.lat;
         kmDomicileLng = geoResult.lng;
+        detectedCountry = detectCountryFromLatLng(geoResult.lat, geoResult.lng);
+        if (detectedCountry) setKmCountryCode(detectedCountry);
       } else {
         setSaveError("Adresse introuvable via géocodage. Essayez une adresse plus précise (ex: 12 Rue Dupont, 75001 Paris).");
       }
     }
+    const effectiveCountry = detectedCountry || kmCountryCode;
 
     const nextFeatures = {
       ...setKmEnabled(prevFeatures, kmEnable),
-      km_country: kmCountryCode,
+      km_country: effectiveCountry,
       km_rate_mode: kmRateMode,
       km_rate_custom: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
       km_include_retour: kmIncludeRetour,
@@ -641,7 +645,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
         homeLabel: kmDomicileAdresse || null,
         ratePerKm: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
         roundTrip: kmIncludeRetour,
-        countryCode: kmCountryCode,
+        countryCode: effectiveCountry,
       },
     };
     const result = await saveProfile({ features: nextFeatures });
@@ -663,17 +667,21 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
       async (pos) => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
+        const detectedCountry = detectCountryFromLatLng(lat, lng);
         const prevFeatures = profile?.features ?? {};
         const nextFeatures = {
           ...prevFeatures,
           km_domicile_lat: lat,
           km_domicile_lng: lng,
+          ...(detectedCountry ? { km_country: detectedCountry } : {}),
           km_settings: {
             ...(prevFeatures.km_settings ?? {}),
             homeLat: lat,
             homeLng: lng,
+            ...(detectedCountry ? { countryCode: detectedCountry } : {}),
           },
         };
+        if (detectedCountry) setKmCountryCode(detectedCountry);
         const result = await saveProfile({ features: nextFeatures });
         if (result?.error) setSaveError(result.error);
         setGeoLoading(false);
