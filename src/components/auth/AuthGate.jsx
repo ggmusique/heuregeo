@@ -4,6 +4,7 @@ import { supabase } from "../../services/supabase";
 export default function AuthGate({ children }) {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [minDelayDone, setMinDelayDone] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +23,13 @@ export default function AuthGate({ children }) {
       }
     );
 
-    return () => sub.subscription.unsubscribe();
+    // Délai minimum pour la splash screen
+    const timer = setTimeout(() => setMinDelayDone(true), 1200);
+
+    return () => {
+      sub.subscription.unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   // ✅ MODIFIÉ : Ajout de e.preventDefault() pour Safari
@@ -54,7 +61,7 @@ export default function AuthGate({ children }) {
     await supabase.auth.signOut();
   };
 
-  if (loading) {
+  if (loading || !minDelayDone) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a001f]">
         <div className="flex flex-col items-center gap-5">
