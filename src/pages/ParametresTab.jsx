@@ -5,6 +5,7 @@ import { AdminPage } from "./AdminPage";
 import { EUROPE_COUNTRIES, KM_RATES, detectCountryFromLatLng } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
+import { supabase } from "../services/supabase";
 
 const DiagnosticsPage = lazy(() =>
   import("./DiagnosticsPage").then((m) => ({ default: m.DiagnosticsPage }))
@@ -284,6 +285,29 @@ export function ParametresTab({
               </button>
             );
           })}
+          <div className={"mt-2 pt-2 border-t " + (darkMode ? "border-white/10" : "border-slate-200")}>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className={"w-full text-left rounded-xl border px-3 py-3 transition-all duration-200 " +
+                (darkMode
+                  ? "bg-white/5 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 text-white/40 hover:text-red-400"
+                  : "bg-transparent border-slate-200 hover:bg-red-50 hover:border-red-200 text-slate-400 hover:text-red-500")}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg flex-shrink-0 text-current bg-current/10">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-wide">Se déconnecter</p>
+                  {userEmail && <p className="text-[9px] mt-0.5 opacity-60 truncate max-w-[140px]">{userEmail}</p>}
+                </div>
+              </div>
+            </button>
+          </div>
         </aside>
 
         {/* ── Panneau de contenu ── */}
