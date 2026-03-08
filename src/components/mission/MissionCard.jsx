@@ -100,6 +100,7 @@ export const MissionCard = React.memo(
             {formatEuro(montant)}
           </span>
 
+          {(onEdit || onDelete) && (
           <div className="flex flex-col gap-3">
             <button
               type="button"
@@ -123,6 +124,7 @@ export const MissionCard = React.memo(
               🗑️
             </button>
           </div>
+          )}
         </div>
       </div>
     );
