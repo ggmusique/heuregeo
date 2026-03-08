@@ -1,27 +1,71 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../services/supabase'
 
+const EU_TVA_RATES = [
+  { code: "FR", label: "France",         rate: "20"  },
+  { code: "DE", label: "Allemagne",      rate: "19"  },
+  { code: "AT", label: "Autriche",       rate: "20"  },
+  { code: "BE", label: "Belgique",       rate: "21"  },
+  { code: "BG", label: "Bulgarie",       rate: "20"  },
+  { code: "CY", label: "Chypre",         rate: "19"  },
+  { code: "HR", label: "Croatie",        rate: "25"  },
+  { code: "DK", label: "Danemark",       rate: "25"  },
+  { code: "ES", label: "Espagne",        rate: "21"  },
+  { code: "EE", label: "Estonie",        rate: "22"  },
+  { code: "FI", label: "Finlande",       rate: "25.5"},
+  { code: "GR", label: "Grèce",          rate: "24"  },
+  { code: "HU", label: "Hongrie",        rate: "27"  },
+  { code: "IE", label: "Irlande",        rate: "23"  },
+  { code: "IT", label: "Italie",         rate: "22"  },
+  { code: "LV", label: "Lettonie",       rate: "21"  },
+  { code: "LT", label: "Lituanie",       rate: "21"  },
+  { code: "LU", label: "Luxembourg",     rate: "17"  },
+  { code: "MT", label: "Malte",          rate: "18"  },
+  { code: "NL", label: "Pays-Bas",       rate: "21"  },
+  { code: "PL", label: "Pologne",        rate: "23"  },
+  { code: "PT", label: "Portugal",       rate: "23"  },
+  { code: "RO", label: "Roumanie",       rate: "19"  },
+  { code: "SK", label: "Slovaquie",      rate: "23"  },
+  { code: "SI", label: "Slovénie",       rate: "22"  },
+  { code: "SE", label: "Suède",          rate: "25"  },
+  { code: "CZ", label: "Tchéquie",       rate: "21"  },
+  { code: "CH", label: "Suisse",         rate: "8.1" },
+  { code: "NO", label: "Norvège",        rate: "25"  },
+  { code: "GB", label: "Royaume-Uni",    rate: "20"  },
+]
+
 export const CompteTab = ({ profile, saving, onSave, userEmail }) => {
   const [form, setForm] = useState({
-    prenom: '', nom: '', adresse: '', code_postal: '', ville: '', telephone: ''
+    prenom: '', nom: '', adresse: '', code_postal: '', ville: '', telephone: '',
+    numero_tva: '', pays_tva: 'FR',
   })
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (profile) {
       setForm({
-        prenom: profile.prenom || '',
-        nom: profile.nom || '',
-        adresse: profile.adresse || '',
-        code_postal: profile.code_postal || '',
-        ville: profile.ville || '',
-        telephone: profile.telephone || '',
+        prenom:     profile.prenom     || '',
+        nom:        profile.nom        || '',
+        adresse:    profile.adresse    || '',
+        code_postal:profile.code_postal|| '',
+        ville:      profile.ville      || '',
+        telephone:  profile.telephone  || '',
+        numero_tva: profile.features?.numero_tva || '',
+        pays_tva:   profile.features?.pays_tva   || 'FR',
       })
     }
   }, [profile])
 
   const handleSave = async () => {
-    const result = await onSave(form)
+    const { numero_tva, pays_tva, ...profileFields } = form
+    const result = await onSave({
+      ...profileFields,
+      features: {
+        ...(profile?.features || {}),
+        numero_tva,
+        pays_tva,
+      },
+    })
     if (!result?.error) {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -31,6 +75,8 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }) => {
   const handleLogout = async () => {
     await supabase.auth.signOut()
   }
+
+  const tauxSelectionne = EU_TVA_RATES.find(c => c.code === form.pays_tva)?.rate ?? ''
 
   return (
     <div className="flex flex-col min-h-screen bg-[#050510] pb-32">
@@ -100,6 +146,61 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }) => {
             onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))}
             className="w-full p-4 rounded-2xl bg-[#1a1f2e] border-2 border-white/10 text-white placeholder-white/30 font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all"
           />
+        </div>
+
+        {/* Carte Facturation TVA */}
+        <div className="bg-[#0f111a] border-2 border-white/10 rounded-[32px] p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-black uppercase tracking-[0.25em] text-amber-400 opacity-80">
+              Facturation
+            </p>
+            <span className="text-[9px] text-white/30 font-bold uppercase tracking-wider">
+              📄 Pour vos factures
+            </span>
+          </div>
+
+          {/* Numéro de TVA */}
+          <div>
+            <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-1">
+              N° TVA intracommunautaire
+            </p>
+            <input
+              type="text"
+              placeholder="ex : FR12345678901"
+              value={form.numero_tva}
+              onChange={e => setForm(f => ({ ...f, numero_tva: e.target.value.toUpperCase() }))}
+              className="w-full p-4 rounded-2xl bg-[#1a1f2e] border-2 border-amber-500/30 text-white placeholder-white/20 font-black text-[13px] uppercase focus:outline-none focus:border-amber-400 transition-all tracking-widest"
+            />
+          </div>
+
+          {/* Pays + taux TVA */}
+          <div>
+            <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-1">
+              Taux de TVA applicable
+            </p>
+            <div className="flex gap-3 items-center">
+              <select
+                value={form.pays_tva}
+                onChange={e => setForm(f => ({ ...f, pays_tva: e.target.value }))}
+                className="flex-1 p-4 rounded-2xl bg-[#1a1f2e] border-2 border-amber-500/30 text-white font-black text-[13px] focus:outline-none focus:border-amber-400 transition-all appearance-none"
+              >
+                {EU_TVA_RATES.map(c => (
+                  <option key={c.code} value={c.code}>
+                    {c.label} — {c.rate} %
+                  </option>
+                ))}
+              </select>
+              {tauxSelectionne && (
+                <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-300 font-black text-[18px] min-w-[64px] text-center">
+                  {tauxSelectionne}%
+                </div>
+              )}
+            </div>
+          </div>
+
+          <p className="text-[10px] text-white/25 italic">
+            Ces informations sont utilisées pour vos exports et factures.
+          </p>
         </div>
 
         {/* Carte Compte */}
