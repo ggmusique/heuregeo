@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useLabels } from "../../contexts/LabelsContext";
 
 /**
  * ✅ ClientSelector = champ "Client" avec recherche + liste déroulante (autocomplete)
@@ -16,6 +17,7 @@ export const ClientSelector = ({
   darkMode = true,           // 👈 styles sombre/clair
   onAddNew = null,           // 👈 si fourni: affiche le bouton "+" pour créer un client
 }) => {
+  const L = useLabels();
   // ✅ Texte tapé dans l’input (sert aussi à afficher le nom sélectionné)
   const [search, setSearch] = useState("");
 
@@ -120,7 +122,7 @@ export const ClientSelector = ({
     <div className="relative">
       {/* ✅ LABEL du champ */}
       <label className="block text-[10px] font-black uppercase mb-2 text-indigo-300 tracking-wider opacity-80">
-        Client {required && <span className="text-red-400">*</span>}
+        {L.client} {required && <span className="text-red-400">*</span>}
       </label>
 
       {/* ✅ INPUT + bouton "+" */}

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { useLabels } from "../../contexts/LabelsContext";
 
 /**
  * ✅ Sélecteur de lieu avec autocomplete - VERSION UUID
@@ -23,6 +24,7 @@ export const LieuSelector = ({
   selectedClientId = null,
   missions = [],
 }) => {
+  const L = useLabels();
   // ========= STATE UI =========
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -268,7 +270,7 @@ export const LieuSelector = ({
               {lieuxDuClientList.length > 0 && (
                 <>
                   <div className="px-3 py-2 text-[10px] font-black uppercase text-green-400 opacity-60">
-                    ✓ Lieux habituels pour ce client
+                    ✓ {L.lieux} habituels pour ce {L.client}
                   </div>
 
                   {lieuxDuClientList.map((lieu) => {

@@ -6,6 +6,7 @@ import { EUROPE_COUNTRIES, KM_RATES, detectCountryFromLatLng } from "../utils/km
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
 import { supabase } from "../services/supabase";
+import { useLabels } from "../contexts/LabelsContext";
 
 const DiagnosticsPage = lazy(() =>
   import("./DiagnosticsPage").then((m) => ({ default: m.DiagnosticsPage }))
@@ -49,6 +50,13 @@ const IconSearch = () => (
   </svg>
 );
 
+const IconEdit = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+  </svg>
+);
+
 const IconClose = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
     <path d="M18 6L6 18M6 6l12 12" />
@@ -89,6 +97,14 @@ const colorMap = {
     headerText: "text-yellow-300",
     badge: "bg-yellow-500/20 text-yellow-300 border-yellow-400/30",
   },
+  teal: {
+    active: "bg-teal-500/15 border-teal-400/40",
+    icon: "text-teal-400 bg-teal-500/15",
+    dot: "bg-teal-400",
+    header: "from-teal-500/15 to-transparent border-teal-500/20",
+    headerText: "text-teal-300",
+    badge: "bg-teal-500/20 text-teal-300 border-teal-400/30",
+  },
   red: {
     active: "bg-red-500/15 border-red-400/40",
     icon: "text-red-400 bg-red-500/15",
@@ -111,6 +127,7 @@ const colorMapLight = {
   indigo: { ...colorMap.indigo, headerText: "text-indigo-600", badge: "bg-indigo-100 text-indigo-600 border-indigo-300/60" },
   violet: { ...colorMap.violet, headerText: "text-violet-600", badge: "bg-violet-100 text-violet-600 border-violet-300/60" },
   yellow: { ...colorMap.yellow, headerText: "text-amber-700", badge: "bg-amber-50 text-amber-700 border-amber-300/60" },
+  teal: { ...colorMap.teal, headerText: "text-teal-700", badge: "bg-teal-100 text-teal-700 border-teal-300/60" },
   red: { ...colorMap.red, headerText: "text-red-600", badge: "bg-red-100 text-red-600 border-red-300/60" },
   cyan: { ...colorMap.cyan, headerText: "text-cyan-700", badge: "bg-cyan-100 text-cyan-700 border-cyan-300/60" },
 };
@@ -212,6 +229,13 @@ export function ParametresTab({
         color: "yellow",
         title: "Options Pro",
         subtitle: "Fonctionnalités avancées",
+      },
+      {
+        key: "libelles",
+        icon: <IconEdit />,
+        color: "teal",
+        title: "Libellés",
+        subtitle: "Personnaliser le vocabulaire",
       },
       ...(isAdmin
         ? [
@@ -506,6 +530,15 @@ export function ParametresTab({
                   />
                 )}
 
+                {activePanel === "libelles" && (
+                  <LabelsPanel
+                    profile={profile}
+                    saveProfile={saveProfile}
+                    darkMode={darkMode}
+                    profileSaving={profileSaving}
+                  />
+                )}
+
                 {activePanel === "admin" && isAdmin && (
                   <AdminPage darkMode={darkMode} />
                 )}
@@ -540,6 +573,114 @@ export function ParametresTab({
         </div>
       </div>
     </section>
+  );
+}
+
+// ─── LabelsPanel ──────────────────────────────────────────────────────────────
+
+function LabelsPanel({ profile, saveProfile, darkMode, profileSaving }) {
+  const DEFS = { patron: "Patron", patrons: "Patrons", client: "Client", clients: "Clients", lieu: "Lieu", lieux: "Lieux", mission: "Mission", missions: "Missions" };
+  const saved = profile?.features?.labels ?? {};
+  const [vals, setVals] = useState({
+    patron:   saved.patron   ?? "",
+    patrons:  saved.patrons  ?? "",
+    client:   saved.client   ?? "",
+    clients:  saved.clients  ?? "",
+    lieu:     saved.lieu     ?? "",
+    lieux:    saved.lieux    ?? "",
+    mission:  saved.mission  ?? "",
+    missions: saved.missions ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const s = profile?.features?.labels ?? {};
+    setVals({
+      patron:   s.patron   ?? "",
+      patrons:  s.patrons  ?? "",
+      client:   s.client   ?? "",
+      clients:  s.clients  ?? "",
+      lieu:     s.lieu     ?? "",
+      lieux:    s.lieux    ?? "",
+      mission:  s.mission  ?? "",
+      missions: s.missions ?? "",
+    });
+  }, [profile]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const cleaned = {};
+    Object.entries(vals).forEach(([k, v]) => { if (v.trim()) cleaned[k] = v.trim(); });
+    await saveProfile({ features: { ...(profile?.features ?? {}), labels: Object.keys(cleaned).length ? cleaned : null } });
+    setSaving(false);
+  };
+
+  const handleReset = async () => {
+    setSaving(true);
+    const { labels: _removed, ...rest } = profile?.features ?? {};
+    await saveProfile({ features: rest });
+    setSaving(false);
+  };
+
+  const rows = [
+    { key: "patron",  keyP: "patrons",  label: "Employeur / Patron" },
+    { key: "client",  keyP: "clients",  label: "Client / Bénéficiaire" },
+    { key: "lieu",    keyP: "lieux",    label: "Lieu / Adresse" },
+    { key: "mission", keyP: "missions", label: "Mission / Prestation" },
+  ];
+
+  const inp = (key) => (
+    <input
+      type="text"
+      value={vals[key]}
+      onChange={(e) => setVals((v) => ({ ...v, [key]: e.target.value }))}
+      placeholder={DEFS[key]}
+      className={"w-full p-2.5 rounded-xl font-bold outline-none border-2 transition-all text-sm backdrop-blur-md " +
+        (darkMode ? "bg-black/20 border-white/10 text-white focus:border-teal-500 placeholder:text-white/25" : "bg-white border-slate-200 text-slate-800 focus:border-teal-500 placeholder:text-slate-300")}
+    />
+  );
+
+  return (
+    <div className="space-y-4 p-1">
+      <p className={"text-xs " + (darkMode ? "text-white/50" : "text-slate-500")}>
+        Personnalisez le vocabulaire affiché dans l&apos;application. Laissez vide pour garder la valeur par défaut.
+      </p>
+      <div className="space-y-3">
+        {rows.map(({ key, keyP, label }) => (
+          <div key={key} className={"rounded-xl border p-3 space-y-2 " + (darkMode ? "border-white/10 bg-white/3" : "border-slate-200 bg-slate-50")}>
+            <p className={"text-[10px] font-black uppercase tracking-widest " + (darkMode ? "text-teal-300/70" : "text-teal-700")}>{label}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className={"text-[9px] uppercase tracking-wider mb-1 " + (darkMode ? "text-white/35" : "text-slate-400")}>Singulier</p>
+                {inp(key)}
+              </div>
+              <div>
+                <p className={"text-[9px] uppercase tracking-wider mb-1 " + (darkMode ? "text-white/35" : "text-slate-400")}>Pluriel</p>
+                {inp(keyP)}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={handleSave}
+          disabled={saving || profileSaving}
+          className={"flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all " +
+            (darkMode ? "bg-teal-500/20 text-teal-300 border border-teal-500/30 hover:bg-teal-500/30 disabled:opacity-40" : "bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 disabled:opacity-40")}
+        >
+          {saving ? "Enregistrement…" : "Enregistrer"}
+        </button>
+        <button
+          onClick={handleReset}
+          disabled={saving || profileSaving}
+          className={"px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all " +
+            (darkMode ? "border border-white/10 text-white/40 hover:text-white/60 disabled:opacity-40" : "border border-slate-200 text-slate-400 hover:text-slate-600 disabled:opacity-40")}
+        >
+          Réinitialiser
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { formatEuro, formatHeures } from "../../utils/formatters";
+import { useLabels } from "../../contexts/LabelsContext";
 
 /**
  * Gestionnaire complet des clients avec liste et stats
@@ -20,6 +21,7 @@ export const ClientsManager = ({
   missions = [],
   allowActions = true,
 }) => {
+  const L = useLabels();
   const [searchTerm, setSearchTerm] = useState("");
 
   /**
@@ -211,7 +213,7 @@ export const ClientsManager = ({
           onClick={onAdd}
           className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl font-black text-white text-[11px] uppercase tracking-wider shadow-lg hover:shadow-xl transition-all active:scale-95 backdrop-blur-md"
         >
-          + Nouveau Client
+          + Nouveau {L.client}
         </button>
       </div>
 
@@ -225,7 +227,7 @@ export const ClientsManager = ({
           } backdrop-blur-md`}
         >
           <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">
-            Total Clients
+            Total {L.clients}
           </div>
           <div className="text-2xl font-black text-white mt-1">
             {globalStats.totalClients}

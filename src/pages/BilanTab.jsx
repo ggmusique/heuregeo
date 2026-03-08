@@ -4,6 +4,7 @@ import { getWeekNumber } from "../utils/dateUtils";
 import { MissionCard } from "../components/mission/MissionCard";
 import { WeekPicker } from "../components/common/bilan/WeekPicker";
 import { WeatherIcon } from "../components/common/WeatherIcon";
+import { useLabels } from "../contexts/LabelsContext";
 
 export const BilanTab = ({
   bilan,
@@ -33,6 +34,7 @@ export const BilanTab = ({
   domicileLatLng = null,
   onRecalculerFraisKm = null,
 }) => {
+  const L = useLabels();
   const exportBilanContent = useMemo(() => {
     if (kmSettings?.km_enable === true) return bilan.bilanContent;
     return {
@@ -466,7 +468,7 @@ export const BilanTab = ({
               ? (darkMode ? "bg-blue-600/20 text-blue-400 border-yellow-600/20" : "bg-blue-50 text-blue-700 border-blue-200")
               : (darkMode ? "bg-white/5 text-white/20 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed"))}
         >
-          {canExportCSV ? "CSV Missions" : "🔒 CSV Missions"}
+          {canExportCSV ? `CSV ${L.missions}` : `🔒 CSV ${L.missions}`}
         </button>
 
         {bilan.bilanPeriodType === "semaine" && bilan.bilanContent.fraisDivers.length > 0 && (

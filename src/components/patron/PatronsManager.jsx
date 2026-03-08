@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { formatEuro, formatDateFR } from "../../utils/formatters";
+import { useLabels } from "../../contexts/LabelsContext";
 
 /**
  * Gestionnaire complet des patrons avec liste et actions
@@ -22,6 +23,7 @@ export function PatronsManager({
   triggerAlert = null,
   isViewer = false,
 }) {
+  const L = useLabels();
   const [expandedPatronId, setExpandedPatronId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -96,7 +98,7 @@ export function PatronsManager({
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-black uppercase tracking-tight">
-            Mes Patrons
+            {`Mes ${L.patrons}`}
           </h2>
           <p className="text-[10px] opacity-60 uppercase tracking-wider mt-1">
             {patrons.length} patron{patrons.length > 1 ? "s" : ""} actif

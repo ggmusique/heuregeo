@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLabels } from "../../contexts/LabelsContext";
 
 /**
  * ✅ ClientModal - VERSION CLEAN
@@ -19,6 +20,7 @@ export const ClientModal = ({
   loading = false,
   darkMode = true,
 }) => {
+  const L = useLabels();
   const [formData, setFormData] = useState({
     nom: "",
     contact: "",
@@ -66,7 +68,7 @@ export const ClientModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-2xl font-black uppercase mb-6 text-center">
-          {editMode ? "✏️ Modifier Client" : "➕ Nouveau Client"}
+          {editMode ? `✏️ Modifier ${L.client}` : `➕ Nouveau ${L.client}`}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">

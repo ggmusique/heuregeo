@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { PatronsManager } from "../components/patron/PatronsManager";
 import { ClientsManager } from "../components/client/ClientsManager";
 import { LieuxManager } from "../components/lieu/LieuxManager";
+import { useLabels } from "../contexts/LabelsContext";
 
 export const DonneesTab = ({
   patrons,
@@ -31,6 +32,7 @@ export const DonneesTab = ({
   triggerAlert = null,
   isViewer = false,
 }) => {
+  const L = useLabels();
   const AccordionSection = React.memo(({
     title,
     count,
@@ -89,7 +91,7 @@ export const DonneesTab = ({
     <div className="animate-in fade-in duration-500 space-y-4">
       <AccordionSection
         id="patrons-section"
-        title="👔 Patrons"
+        title={`👔 ${L.patrons}`}
         count={patrons.length}
         defaultOpen={defaultOpenPatrons}
       >
@@ -112,7 +114,7 @@ export const DonneesTab = ({
 
       <AccordionSection
         id="clients-section"
-        title="🏢 Clients"
+        title={`🏢 ${L.clients}`}
         count={clients.length}
         defaultOpen={false}
       >
@@ -129,7 +131,7 @@ export const DonneesTab = ({
 
       <AccordionSection
         id="lieux-section"
-        title="📍 Lieux"
+        title={`📍 ${L.lieux}`}
         count={lieux.length}
         defaultOpen={false}
       >

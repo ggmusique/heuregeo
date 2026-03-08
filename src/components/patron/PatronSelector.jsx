@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useLabels } from "../../contexts/LabelsContext";
 
 export function PatronSelector({
   patrons = [],
@@ -9,6 +10,7 @@ export function PatronSelector({
   darkMode = true,
   onAddNew,
 }) {
+  const L = useLabels();
   useEffect(() => {
     if (required && !selectedPatronId && patrons.length === 1) {
       onSelect?.(patrons[0].id);
@@ -18,7 +20,7 @@ export function PatronSelector({
   return (
     <div>
       <label className="block text-[10px] font-black uppercase opacity-60 mb-2 tracking-wider">
-        Patron {required && "*"}
+        {L.patron} {required && "*"}
       </label>
 
       {patrons.length === 0 ? (
@@ -101,6 +103,7 @@ export function PatronSelectorCompact({
   className = "",
   onAddNew,
 }) {
+  const L = useLabels();
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef(null);
@@ -165,7 +168,7 @@ export function PatronSelectorCompact({
   return (
     <div className={`relative ${className}`}>
       <label className="block text-[10px] font-black uppercase mb-2 text-indigo-300 tracking-wider opacity-80">
-        Patron {required && <span className="text-red-400">*</span>}
+        {L.patron} {required && <span className="text-red-400">*</span>}
       </label>
 
       <div className="relative">
@@ -258,7 +261,7 @@ export function PatronSelectorCompact({
               className="w-3 h-3 rounded-full"
               style={{ backgroundColor: selectedPatron.couleur || "#8b5cf6" }}
             />
-            <span className="text-[10px] font-black uppercase opacity-60 tracking-wider">Patron sélectionné</span>
+            <span className="text-[10px] font-black uppercase opacity-60 tracking-wider">{L.patron} sélectionné</span>
           </div>
           <p className="text-sm font-black mt-1 uppercase">{selectedPatron.nom}</p>
           {selectedPatron.taux_horaire != null && (

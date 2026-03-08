@@ -1,10 +1,12 @@
 import { useState, useCallback } from "react";
 import { geocodeAddress } from "../utils/geocode";
+import { useLabels } from "../contexts/LabelsContext";
 
 // Nominatim usage policy requires ≤ 1 request/second; 1100ms gives a safe margin.
 const NOMINATIM_DELAY_MS = 1100;
 
 export function useLieuModal({ createLieu, updateLieu, deleteLieu, fetchLieux, setLoading, triggerAlert, showConfirm, onLieuCreated }) {
+  const L = useLabels();
   const [showLieuModal, setShowLieuModal] = useState(false);
   const [editingLieuId, setEditingLieuId] = useState(null);
   const [editingLieuData, setEditingLieuData] = useState(null);
@@ -18,8 +20,8 @@ export function useLieuModal({ createLieu, updateLieu, deleteLieu, fetchLieux, s
     try {
       setLoading(true);
       let createdLieu;
-      if (editingLieuId) { await updateLieu(editingLieuId, lieuData); triggerAlert("Lieu modifie !"); }
-      else { createdLieu = await createLieu(lieuData); triggerAlert("Lieu cree !"); }
+      if (editingLieuId) { await updateLieu(editingLieuId, lieuData); triggerAlert(`${L.lieu} modifié !`); }
+      else { createdLieu = await createLieu(lieuData); triggerAlert(`${L.lieu} créé !`); }
       await fetchLieux();
       if (createdLieu?.id) {
         onLieuCreated(createdLieu);
@@ -39,7 +41,7 @@ export function useLieuModal({ createLieu, updateLieu, deleteLieu, fetchLieux, s
   const handleLieuDelete = async (lieu) => {
     const confirmed = await showConfirm({ title: "Supprimer ce lieu", message: "Supprimer ce lieu ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
     if (!confirmed) return;
-    try { setLoading(true); await deleteLieu(lieu.id); triggerAlert("Lieu supprime !"); }
+    try { setLoading(true); await deleteLieu(lieu.id); triggerAlert(`${L.lieu} supprimé !`); }
     catch { triggerAlert("Erreur suppression"); }
     finally { setLoading(false); }
   };

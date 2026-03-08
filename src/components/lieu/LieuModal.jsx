@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { geocodeAddress } from "../../utils/geocode";
+import { useLabels } from "../../contexts/LabelsContext";
 
 export const LieuModal = ({
   show = false,
@@ -10,6 +11,7 @@ export const LieuModal = ({
   loading = false,
   darkMode = true,
 }) => {
+  const L = useLabels();
   const [formData, setFormData] = useState({
     nom: "",
     adresse_complete: "",
@@ -147,7 +149,7 @@ export const LieuModal = ({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-2xl font-black uppercase mb-6 text-center">
-          {editMode ? "✏️ Modifier Lieu" : "➕ Nouveau Lieu"}
+          {editMode ? `✏️ Modifier ${L.lieu}` : `➕ Nouveau ${L.lieu}`}
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -175,7 +177,7 @@ export const LieuModal = ({
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className={inputCls}
             >
-              <option value="client">📍 Client</option>
+              <option value="client">{`📍 ${L.client}`}</option>
               <option value="atelier">🏭 Atelier</option>
               <option value="bureau">🏢 Bureau</option>
               <option value="domicile">🏠 Domicile</option>

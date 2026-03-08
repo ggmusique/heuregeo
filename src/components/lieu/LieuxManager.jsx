@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { formatEuro, formatHeures } from "../../utils/formatters";
 import { geocodeAddress } from "../../utils/geocode";
 import { isSuspectLieu } from "../../utils/suspectCoords";
+import { useLabels } from "../../contexts/LabelsContext";
 
 /**
  * ✅ Gestionnaire complet des lieux avec liste et stats
@@ -26,6 +27,7 @@ export const LieuxManager = ({
   kmSettings = null,
   onRegeocoderLieu = null,
 }) => {
+  const L = useLabels();
   const [searchTerm, setSearchTerm] = useState("");
   const [backfillRunning, setBackfillRunning] = useState(false);
   const [backfillProgress, setBackfillProgress] = useState(null); // { done, total }
@@ -248,7 +250,7 @@ export const LieuxManager = ({
           onClick={onAdd}
           className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl font-black text-white text-[11px] uppercase tracking-wider shadow-lg hover:shadow-xl transition-all active:scale-95 backdrop-blur-md"
         >
-          + Nouveau Lieu
+          + Nouveau {L.lieu}
         </button>
       </div>
 
@@ -262,7 +264,7 @@ export const LieuxManager = ({
           } backdrop-blur-md`}
         >
           <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">
-            Total Lieux
+            Total {L.lieux}
           </div>
           <div className="text-2xl font-black text-white mt-1">
             {Array.isArray(lieux) ? lieux.length : 0}

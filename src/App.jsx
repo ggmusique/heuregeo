@@ -41,6 +41,8 @@ import { OnboardingForm } from "./components/auth/OnboardingForm";
 import { ViewerBadge } from "./components/common/ViewerBadge";
 
 import { supabase } from "./services/supabase";
+import { LabelsContext } from "./contexts/LabelsContext";
+import { getLabels } from "./utils/labels";
 
 import "./time-inputs-fix.css";
 import "./fix-time-pickers-emergency.css";
@@ -85,6 +87,8 @@ export default function App({ user }) {
   );
 
   const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canAgenda, canFacture } = useProfile(user);
+
+  const labels = getLabels(profile);
 
   const { kmSettings, domicileLatLng, currentWeek, missionsThisWeek, kmFraisThisWeek, handleRecalculerKmSemaine } = useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek });
 
@@ -189,6 +193,7 @@ export default function App({ user }) {
   }
 
   return (
+    <LabelsContext.Provider value={labels}>
     <div className={"min-h-screen relative overflow-hidden transition-all duration-700 " + (darkMode ? "dark bg-[#020818] text-white" : "light bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900")}>
       <div className="fixed inset-0 pointer-events-none">
         {darkMode && <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-blue-800/10" />}
@@ -471,5 +476,6 @@ export default function App({ user }) {
         )}
       </nav>
     </div>
+    </LabelsContext.Provider>
   );
 }

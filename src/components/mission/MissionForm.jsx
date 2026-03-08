@@ -10,6 +10,7 @@ import { calculerDuree } from "../../utils/calculators";
 import { ClientSelector } from "../client/ClientSelector";
 import { WeatherIcon } from "../common/WeatherIcon";
 import { LieuSelector } from "../lieu/LieuSelector";
+import { useLabels } from "../../contexts/LabelsContext";
 
 const JOURNEE_TYPE = { debut: "08:00", fin: "17:00", pause: 30 };
 const MAX_TIME_MINUTES = 23 * 60 + 45;
@@ -47,6 +48,7 @@ export const MissionForm = ({
   onAddNewLieu = () => {},
   missions = [],
 }) => {
+  const L = useLabels();
   const [pause, setPause] = useState(initialData?.pause ?? 30);
   const [dateMission, setDateMission] = useState(() => {
     return initialData?.date_iso || new Date().toISOString().split("T")[0];
@@ -197,9 +199,9 @@ export const MissionForm = ({
       }
     }
 
-    if (!selectedPatronId) errors.patron = "Patron obligatoire.";
-    if (!selectedClientId) errors.client = "Client obligatoire.";
-    if (!selectedLieuId) errors.lieu = "Lieu obligatoire.";
+    if (!selectedPatronId) errors.patron = `${L.patron} obligatoire.`;
+    if (!selectedClientId) errors.client = `${L.client} obligatoire.`;
+    if (!selectedLieuId) errors.lieu = `${L.lieu} obligatoire.`;
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;

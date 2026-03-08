@@ -1,16 +1,17 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import * as missionsApi from "../services/api/missionsApi";
 import { getWeekNumber } from "../utils/dateUtils";
+import { useLabels } from "../contexts/LabelsContext";
 
 /**
  * Valide les données d'une mission avant envoi en base.
  * Retourne un message d'erreur ou null si tout est valide.
  */
-const validateMissionData = (data) => {
+const validateMissionData = (data, L) => {
   if (!data) return "Données manquantes.";
-  if (!data.client_id) return "Client obligatoire.";
-  if (!data.lieu_id) return "Lieu obligatoire.";
-  if (!data.patron_id) return "Patron obligatoire.";
+  if (!data.client_id) return `${L.client} obligatoire.`;
+  if (!data.lieu_id) return `${L.lieu} obligatoire.`;
+  if (!data.patron_id) return `${L.patron} obligatoire.`;
   if (!data.debut || !data.fin) return "Horaires incomplets.";
   const [hD, mD] = data.debut.split(":").map(Number);
   const [hF, mF] = data.fin.split(":").map(Number);
@@ -41,6 +42,8 @@ export const useMissions = (onError) => {
   const [missions, setMissions] = useState([]);
   // loading = pour afficher le spinner pendant une action
   const [loading, setLoading] = useState(false);
+
+  const L = useLabels();
 
   // Ref = "verrou" anti double-clic : empêche fetchMissions d’être lancé 2 fois
   const isFetching = useRef(false);
@@ -88,7 +91,7 @@ export const useMissions = (onError) => {
         throw new Error("Données de la mission manquantes");
       }
 
-      const validationError = validateMissionData(missionData);
+      const validationError = validateMissionData(missionData, L);
       if (validationError) {
         onError?.(validationError);
         throw new Error(validationError);
@@ -113,7 +116,7 @@ export const useMissions = (onError) => {
         setLoading(false);
       }
     },
-    [onError]
+    [onError, L]
   );
 
   // ------------------------------------------------------------
@@ -128,7 +131,7 @@ export const useMissions = (onError) => {
       if (!id) throw new Error("ID de la mission manquant");
       if (!missionData) throw new Error("Données de la mission manquantes");
 
-      const validationError = validateMissionData(missionData);
+      const validationError = validateMissionData(missionData, L);
       if (validationError) {
         onError?.(validationError);
         throw new Error(validationError);
@@ -153,7 +156,7 @@ export const useMissions = (onError) => {
         setLoading(false);
       }
     },
-    [onError]
+    [onError, L]
   );
 
   // ------------------------------------------------------------

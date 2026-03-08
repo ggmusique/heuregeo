@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useLabels } from "../../contexts/LabelsContext";
 
 /**
  * Modal pour créer ou modifier un patron (annoté / safe)
@@ -14,6 +15,7 @@ export function PatronModal({
   loading = false,
   darkMode = true,
 }) {
+  const L = useLabels();
   const [nom, setNom] = useState("");
   const [tauxHoraire, setTauxHoraire] = useState("");
   const [couleur, setCouleur] = useState("#8b5cf6");
@@ -136,7 +138,7 @@ export function PatronModal({
       >
         {/* Titre */}
         <h2 className="text-2xl font-black mb-6 uppercase tracking-tight">
-          {editMode ? "Modifier Patron" : "Nouveau Patron"}
+          {editMode ? `Modifier ${L.patron}` : `Nouveau ${L.patron}`}
         </h2>
 
         {/* Formulaire */}

@@ -7,6 +7,7 @@ import {
   formatHeures,
   formatDateFR,
 } from "../../../utils/formatters";
+import { useLabels } from "../../../contexts/LabelsContext";
 
 /**
  * ============================
@@ -22,6 +23,7 @@ export const BilanDetail = ({
   bilanContent,    // Objet contenant TOUS les résultats du bilan
   darkMode = true,
 }) => {
+  const L = useLabels();
   // Sécurité : si aucun contenu, on n'affiche rien
   if (!bilanContent) return null;
 
@@ -61,7 +63,7 @@ export const BilanDetail = ({
                           {m.pause > 0 && ` (${m.pause} min pause)`}
                         </p>
                         <p className="text-xs opacity-70 mt-1">
-                          {m.lieu || "Lieu non précisé"}
+                          {m.lieu || `${L.lieu} non précisé`}
                         </p>
                       </div>
 
