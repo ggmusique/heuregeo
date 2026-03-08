@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { EU_TVA_RATES } from "./tvaRates";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -194,7 +194,7 @@ export async function generateFacture(
       ];
     });
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: y,
       head: [["Date", "Prestation", "Durée", "Taux", "Montant"]],
       body: missionRows,
@@ -228,7 +228,7 @@ export async function generateFacture(
 
   // ── FRAIS DIVERS ───────────────────────────────────────────────────────
   if (fraisDivers.length > 0) {
-    doc.autoTable({
+    autoTable(doc, {
       startY: y,
       head: [["Date", "Frais divers", "", "", "Montant"]],
       body: fraisDivers.map((f) => [
@@ -254,7 +254,7 @@ export async function generateFacture(
 
   // ── FRAIS KM ────────────────────────────────────────────────────────────
   if (hasKm) {
-    doc.autoTable({
+    autoTable(doc, {
       startY: y,
       head: [["", "Frais kilométriques", "", "km", "Montant"]],
       body: [["", `${km.totalKm} km parcourus`, "", String(km.totalKm), fmtEuro(km.totalAmount)]],
