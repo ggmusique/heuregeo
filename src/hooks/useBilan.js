@@ -443,7 +443,7 @@ export function useBilan({
 
         const acomptesDansPeriode =
           bilanPeriodType === PERIOD_TYPES.SEMAINE
-            ? getAcomptesDansPeriode(debutPeriode, finPeriode, patronId)
+            ? getAcomptesDansPeriode(debutPeriode, finPeriode, runPatronId)
             : 0;
 
 if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {

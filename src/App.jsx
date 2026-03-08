@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
 import { SuiviTab } from "./pages/SuiviTab";
@@ -14,8 +14,15 @@ import { useConfirm } from "./hooks/useConfirm";
 import { useGeolocation } from "./hooks/useGeolocation";
 import { useLieux } from "./hooks/useLieux";
 import { useProfile } from "./hooks/useProfile";
-import { geocodeAddress } from "./utils/geocode";
-import { getKmEnabled } from "./utils/kmSettings";
+
+import { useKmDomicile } from "./hooks/useKmDomicile";
+import { useHistorique } from "./hooks/useHistorique";
+import { useMissionForm } from "./hooks/useMissionForm";
+import { useLieuModal } from "./hooks/useLieuModal";
+import { useFraisModal } from "./hooks/useFraisModal";
+import { usePatronModal } from "./hooks/usePatronModal";
+import { useClientModal } from "./hooks/useClientModal";
+import { useAcompteModal } from "./hooks/useAcompteModal";
 
 import { FraisModal } from "./components/common/frais/FraisModal";
 import { AcompteModal } from "./components/common/acompte/AcompteModal";
@@ -35,10 +42,6 @@ import "./time-inputs-fix.css";
 import "./fix-time-pickers-emergency.css";
 import "./fix-selects.css";
 
-import { getWeekNumber } from "./utils/dateUtils";
-import { KM_RATES } from "./utils/kmRatesByCountry";
-import { haversineKm, getLieuLabel } from "./utils/calculators";
-
 export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
@@ -53,44 +56,6 @@ export default function App({ user }) {
     if (typeof window === "undefined") return true;
     return window.localStorage.getItem("showMissionRateEditor") !== "false";
   });
-
-  const [showFraisModal, setShowFraisModal] = useState(false);
-  const [fraisDescription, setFraisDescription] = useState("");
-  const [fraisMontant, setFraisMontant] = useState("");
-  const [fraisDate, setFraisDate] = useState(new Date().toISOString().split("T")[0]);
-  const [editingFraisId, setEditingFraisId] = useState(null);
-  const [fraisPatronId, setFraisPatronId] = useState(null);
-
-  const [showAcompteModal, setShowAcompteModal] = useState(false);
-  const [acompteMontant, setAcompteMontant] = useState("");
-  const [acompteDate, setAcompteDate] = useState(new Date().toISOString().split("T")[0]);
-  const [acomptePatronId, setAcomptePatronId] = useState(null);
-  const [isSavingAcompte, setIsSavingAcompte] = useState(false);
-
-  const [showPatronModal, setShowPatronModal] = useState(false);
-  const [editingPatronId, setEditingPatronId] = useState(null);
-  const [editingPatronData, setEditingPatronData] = useState(null);
-
-  const [showClientModal, setShowClientModal] = useState(false);
-  const [editingClientId, setEditingClientId] = useState(null);
-  const [editingClientData, setEditingClientData] = useState(null);
-
-  const [showLieuModal, setShowLieuModal] = useState(false);
-  const [editingLieuId, setEditingLieuId] = useState(null);
-  const [editingLieuData, setEditingLieuData] = useState(null);
-
-  const [editingMissionId, setEditingMissionId] = useState(null);
-  const [editingMissionData, setEditingMissionData] = useState(null);
-  const [selectedClientId, setSelectedClientId] = useState(null);
-  const [selectedLieuId, setSelectedLieuId] = useState(null);
-  const [selectedPatronId, setSelectedPatronId] = useState(null);
-
-  const [historique, setHistorique] = useState({ impayes: [], payes: [], all: [] });
-  const [loadingHistorique, setLoadingHistorique] = useState(false);
-  const [historiquePatronId, setHistoriquePatronId] = useState(null);
-  const [historiqueTab, setHistoriqueTab] = useState("impayes");
-  const [suiviDefaultView, setSuiviDefaultView] = useState("historique");
-
   const [bilanPatronId, setBilanPatronId] = useState(null);
   const [bilanClientId, setBilanClientId] = useState(null);
 
@@ -105,7 +70,7 @@ export default function App({ user }) {
   const { fraisDivers, loading: fraisLoading, fetchFrais, createFrais, updateFrais, deleteFrais, getFraisByWeek, getTotalFrais } = useFrais(triggerAlert);
   const { listeAcomptes, loading: acomptesLoading, fetchAcomptes, createAcompte, deleteAcompte, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua } = useAcomptes(missions, fraisDivers, triggerAlert);
   const { patrons, loading: patronsLoading, createPatron, updatePatron, deletePatron, getPatronNom, getPatronColor } = usePatrons(triggerAlert);
-  const { clients, loading: clientsLoading, createClient, updateClient, deleteClient, getClientNom } = useClients(triggerAlert);
+  const { clients, loading: clientsLoading, createClient, updateClient, deleteClient } = useClients(triggerAlert);
   const { loading: gpsLoading } = useGeolocation(
     (address) => triggerAlert("Position chargee : " + address.substring(0, 45) + "..."),
     (error) => triggerAlert(error)
@@ -113,106 +78,21 @@ export default function App({ user }) {
 
   const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage } = useProfile(user);
 
-  const kmSettings = useMemo(() => {
-    if (!profile) return null;
-    const f = profile.features ?? {};
-    const ks = f.km_settings ?? {};
-    return {
-      km_enable: getKmEnabled(f),
-      km_include_retour: f.km_include_retour ?? ks.roundTrip ?? false,
-      km_domicile_adresse: f.km_domicile_address || ks.homeLabel || "",
-      km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null),
-      km_domicile_lng: f.km_domicile_lng != null ? Number(f.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null),
-      km_country_code: f.km_country || ks.countryCode || "FR",
-      km_rate_mode: f.km_rate_mode || "AUTO_BY_COUNTRY",
-      km_rate: f.km_rate_custom || 0,
-    };
-  }, [profile]);
-
-  const [domicileLatLng, setDomicileLatLng] = useState(null);
-  useEffect(() => {
-    if (!kmSettings?.km_enable) return;
-    // Primary: use coords already stored in profile features
-    if (Number.isFinite(kmSettings.km_domicile_lat) && Number.isFinite(kmSettings.km_domicile_lng)) {
-      setDomicileLatLng({ lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng });
-      return;
-    }
-    // Fallback: geocode text address
-    const addr = (kmSettings.km_domicile_adresse || "").trim() ||
-      [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
-    if (!addr) return;
-    const featuresSnapshot = profile?.features ?? {};
-    geocodeAddress(addr).then((result) => {
-      if (result) {
-        setDomicileLatLng({ lat: result.lat, lng: result.lng });
-        // Persist coords to profile features so they survive reload and avoid timing issues
-        saveProfile({ features: { ...featuresSnapshot, km_domicile_lat: result.lat, km_domicile_lng: result.lng } });
-      }
-    });
-  }, [kmSettings?.km_enable, kmSettings?.km_domicile_lat, kmSettings?.km_domicile_lng, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.code_postal, profile?.ville, saveProfile]);
-
-  // One-shot migration/sync: km_settings is source of truth, keep legacy flat keys aligned
-  useEffect(() => {
-    if (!profile) return;
-    const f = profile.features ?? {};
-    const ks = f.km_settings ?? {};
-
-    const normalizedEnabled = getKmEnabled(f);
-    const normalizedLat = f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null);
-    const normalizedLng = f.km_domicile_lng != null ? Number(f.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null);
-    const normalizedAddress = f.km_domicile_address || ks.homeLabel || null;
-    const normalizedCountry = f.km_country || ks.countryCode || "FR";
-    const normalizedRoundTrip = f.km_include_retour ?? ks.roundTrip ?? false;
-    const normalizedRateMode = f.km_rate_mode || (ks.ratePerKm != null ? "CUSTOM" : "AUTO_BY_COUNTRY");
-    const normalizedRateCustom = f.km_rate_custom ?? (ks.ratePerKm ?? null);
-
-    const needsSync =
-      ks.enabled !== normalizedEnabled ||
-      ks.homeLat !== normalizedLat ||
-      ks.homeLng !== normalizedLng ||
-      ks.homeLabel !== normalizedAddress ||
-      ks.countryCode !== normalizedCountry ||
-      ks.roundTrip !== normalizedRoundTrip ||
-      (ks.ratePerKm ?? null) !== (normalizedRateCustom ?? null) ||
-      f.km_enabled !== normalizedEnabled ||
-      f.km_enable !== undefined ||
-      f.km_domicile_lat !== normalizedLat ||
-      f.km_domicile_lng !== normalizedLng ||
-      (f.km_domicile_address || null) !== normalizedAddress ||
-      (f.km_country || "FR") !== normalizedCountry ||
-      (f.km_include_retour ?? false) !== normalizedRoundTrip ||
-      (f.km_rate_mode || "AUTO_BY_COUNTRY") !== normalizedRateMode ||
-      (f.km_rate_custom ?? null) !== (normalizedRateCustom ?? null);
-
-    if (!needsSync) return;
-
-    const nextFeatures = {
-      ...f,
-      km_enabled: normalizedEnabled,
-      km_enable: undefined,
-      km_country: normalizedCountry,
-      km_rate_mode: normalizedRateMode,
-      km_rate_custom: normalizedRateCustom,
-      km_include_retour: normalizedRoundTrip,
-      km_domicile_lat: normalizedLat,
-      km_domicile_lng: normalizedLng,
-      km_domicile_address: normalizedAddress,
-      km_settings: {
-        ...ks,
-        enabled: normalizedEnabled,
-        homeLat: normalizedLat,
-        homeLng: normalizedLng,
-        homeLabel: normalizedAddress,
-        ratePerKm: normalizedRateCustom,
-        roundTrip: normalizedRoundTrip,
-        countryCode: normalizedCountry,
-      },
-    };
-    saveProfile({ features: nextFeatures });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.id, profile?.features]);
+  const { kmSettings, domicileLatLng, currentWeek, missionsThisWeek, kmFraisThisWeek, handleRecalculerKmSemaine } = useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek });
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
+
+  const missionForm = useMissionForm({ createMission, updateMission, deleteMission, missions, setLoading, triggerAlert, showConfirm, setActiveTab });
+
+  const lieuModal = useLieuModal({ createLieu, updateLieu, deleteLieu, fetchLieux, setLoading, triggerAlert, showConfirm, onLieuCreated: missionForm.onLieuCreated });
+
+  const historiqueHook = useHistorique({ fetchHistoriqueBilans: bilan.fetchHistoriqueBilans, triggerAlert });
+
+  const acompteModal = useAcompteModal({ createAcompte, fetchAcomptes, setLoading, triggerAlert, bilanPatronId, chargerHistorique: historiqueHook.chargerHistorique, bilan });
+
+  const fraisModal = useFraisModal({ createFrais, updateFrais, deleteFrais, setLoading, triggerAlert, showConfirm });
+  const patronModal = usePatronModal({ createPatron, updatePatron, deletePatron, setLoading, triggerAlert, showConfirm });
+  const clientModal = useClientModal({ createClient, updateClient, deleteClient, setLoading, triggerAlert, showConfirm });
 
   useEffect(() => {
     document.title = "Heures de Geo";
@@ -232,19 +112,8 @@ export default function App({ user }) {
   }, []);
 
   useEffect(() => {
-    if (editingMissionData?.lieu_id) setSelectedLieuId(editingMissionData.lieu_id);
-    else if (!editingMissionId) setSelectedLieuId(null);
-  }, [editingMissionData, editingMissionId]);
-
-  useEffect(() => {
-    if (editingMissionData?.client_id) setSelectedClientId(editingMissionData.client_id);
-    else if (!editingMissionId) setSelectedClientId(null);
-  }, [editingMissionData, editingMissionId]);
-
-  useEffect(() => {
     if (bilan.showPeriodModal) bilan.calculerPeriodesDisponibles();
   }, [bilan.showPeriodModal, bilan.bilanPeriodType, missions]);
-
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -255,7 +124,7 @@ export default function App({ user }) {
   useEffect(() => {
     if (isViewer && !profileLoading) {
       setActiveTab("suivi");
-      setSuiviDefaultView("bilan");
+      historiqueHook.setSuiviDefaultView("bilan");
     }
   }, [isViewer, profileLoading]);
 
@@ -265,344 +134,11 @@ export default function App({ user }) {
     }
   }, [isViewer, viewerPatronId]);
 
-  const handleMissionSubmit = async (missionData) => {
-    if (!missionData?.debut || !missionData?.fin) { triggerAlert("Veuillez remplir debut et fin"); return; }
-    try {
-      setLoading(true);
-      if (editingMissionId) { await updateMission(editingMissionId, missionData); triggerAlert("Mission mise a jour !"); }
-      else { await createMission(missionData); triggerAlert("Mission enregistree !"); }
-      resetMissionForm();
-    } catch (err) { triggerAlert("Erreur : " + (err?.message || "Operation echouee")); }
-    finally { setLoading(false); }
-  };
-
-  const handleMissionEdit = (mission) => {
-    setEditingMissionId(mission.id);
-    setEditingMissionData(mission);
-    setSelectedClientId(mission.client_id || null);
-    setSelectedLieuId(mission.lieu_id || null);
-    setSelectedPatronId(mission.patron_id || null);
-    setActiveTab("saisie");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleMissionDelete = async (id) => {
-    const mission = missions.find((m) => m.id === id);
-    if (!mission) return;
-    const confirmed = await showConfirm({ title: "Supprimer mission", message: "Supprimer cette mission ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
-    if (!confirmed) return;
-    try { setLoading(true); await deleteMission(id); triggerAlert("Mission supprimee !"); }
-    catch { triggerAlert("Erreur suppression"); }
-    finally { setLoading(false); }
-  };
-
-  const resetMissionForm = () => { setEditingMissionId(null); setEditingMissionData(null); setSelectedClientId(null); setSelectedLieuId(null); setSelectedPatronId(null); };
-
-  const copierDerniereMission = () => {
-    if (!missions.length) return triggerAlert("Aucune mission precedente.");
-    const derniere = [...missions].sort((a, b) => b.date_iso.localeCompare(a.date_iso))[0];
-    setEditingMissionData({ lieu_id: derniere.lieu_id || null, lieu: derniere.lieu || "", debut: derniere.debut, fin: derniere.fin, pause: derniere.pause, patron_id: derniere.patron_id, client_id: derniere.client_id, client: derniere.client });
-    setSelectedClientId(derniere.client_id || null);
-    setSelectedLieuId(derniere.lieu_id || null);
-    setSelectedPatronId(derniere.patron_id || null);
-  };
-
-  const handleFraisSubmit = async () => {
-    const montant = parseFloat(fraisMontant);
-    if (!fraisDescription.trim() || isNaN(montant) || montant <= 0) return triggerAlert("Remplis correctement les champs");
-    if (!fraisPatronId) return triggerAlert("Selectionne un patron pour ce frais");
-    try {
-      setLoading(true);
-      if (editingFraisId) { await updateFrais(editingFraisId, { description: fraisDescription.trim(), montant, date_frais: fraisDate, patron_id: fraisPatronId }); triggerAlert("Frais modifie !"); }
-      else { await createFrais({ description: fraisDescription.trim(), montant, date_frais: fraisDate, patron_id: fraisPatronId }); triggerAlert("Frais ajoute !"); }
-      resetFraisForm();
-      setShowFraisModal(false);
-    } catch { triggerAlert("Erreur operation frais"); }
-    finally { setLoading(false); }
-  };
-
-  const handleFraisEdit = (frais) => {
-    setEditingFraisId(frais.id);
-    setFraisDescription(frais.description || "");
-    setFraisMontant(frais.montant?.toString() || "");
-    setFraisDate(frais.date_frais || new Date().toISOString().split("T")[0]);
-    setFraisPatronId(frais.patron_id || null);
-    setShowFraisModal(true);
-  };
-
-  const handleFraisDelete = async (frais) => {
-    const confirmed = await showConfirm({ title: "Supprimer ce frais", message: "Supprimer ce frais ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
-    if (!confirmed) return;
-    try { setLoading(true); await deleteFrais(frais.id); triggerAlert("Frais supprime !"); }
-    catch { triggerAlert("Erreur suppression"); }
-    finally { setLoading(false); }
-  };
-
-  const resetFraisForm = () => { setFraisDescription(""); setFraisMontant(""); setFraisDate(new Date().toISOString().split("T")[0]); setEditingFraisId(null); setFraisPatronId(null); };
-
-  const handleAcompteSubmit = async () => {
-    if (isSavingAcompte) return;
-    const montantNet = parseFloat(acompteMontant?.toString().replace(",", "."));
-    if (!acompteMontant || isNaN(montantNet) || montantNet <= 0) return triggerAlert("Veuillez saisir un montant valide");
-    if (!acomptePatronId) return triggerAlert("Selectionne un patron pour cet acompte");
-    try {
-      setIsSavingAcompte(true);
-      setLoading(true);
-      await createAcompte({ montant: montantNet, date_acompte: acompteDate, patron_id: acomptePatronId });
-      triggerAlert("Acompte enregistre !");
-      resetAcompteForm();
-      setShowAcompteModal(false);
-      await fetchAcomptes();
-      if (typeof bilan.fetchHistoriqueBilans === "function") {
-        await bilan.fetchHistoriqueBilans(acomptePatronId);
-      }
-      if (bilan.showBilan && bilan.bilanPeriodValue) await bilan.genererBilan(bilanPatronId);
-      await chargerHistorique(acomptePatronId);
-    } catch (err) { triggerAlert("Erreur : " + (err?.message || "Probleme de base de donnees")); }
-    finally {
-      setLoading(false);
-      setIsSavingAcompte(false);
-    }
-  };
-
-  const resetAcompteForm = () => { setAcompteMontant(""); setAcompteDate(new Date().toISOString().split("T")[0]); setAcomptePatronId(null); };
-
-  const handlePatronSubmit = async (patronData) => {
-    try {
-      setLoading(true);
-      if (editingPatronId) { await updatePatron(editingPatronId, patronData); triggerAlert("Patron modifie !"); }
-      else { await createPatron(patronData); triggerAlert("Patron cree !"); }
-      resetPatronForm();
-      setShowPatronModal(false);
-    } catch (err) { triggerAlert("Erreur : " + (err?.message || "Operation echouee")); }
-    finally { setLoading(false); }
-  };
-
-  const handlePatronEdit = (patron) => { setEditingPatronId(patron.id); setEditingPatronData(patron); setShowPatronModal(true); };
-
-  const handlePatronDelete = async (patron) => {
-    const confirmed = await showConfirm({ title: "Supprimer ce patron", message: "Supprimer ce patron ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
-    if (!confirmed) return;
-    try { setLoading(true); await deletePatron(patron.id); triggerAlert("Patron supprime !"); }
-    catch { triggerAlert("Erreur suppression"); }
-    finally { setLoading(false); }
-  };
-
-  const resetPatronForm = () => { setEditingPatronId(null); setEditingPatronData(null); };
-
-  const handleClientSubmit = async (clientData) => {
-    try {
-      setLoading(true);
-      if (editingClientId) { await updateClient(editingClientId, clientData); triggerAlert("Client modifie !"); }
-      else { await createClient(clientData); triggerAlert("Client cree !"); }
-      resetClientForm();
-      setShowClientModal(false);
-    } catch (err) { triggerAlert("Erreur : " + (err?.message || "Operation echouee")); }
-    finally { setLoading(false); }
-  };
-
-  const handleClientEdit = (client) => { setEditingClientId(client.id); setEditingClientData(client); setShowClientModal(true); };
-
-  const handleClientDelete = async (client) => {
-    const confirmed = await showConfirm({ title: "Supprimer ce client", message: "Supprimer ce client ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
-    if (!confirmed) return;
-    try { setLoading(true); await deleteClient(client.id); triggerAlert("Client supprime !"); }
-    catch { triggerAlert("Erreur suppression"); }
-    finally { setLoading(false); }
-  };
-
-  const resetClientForm = () => { setEditingClientId(null); setEditingClientData(null); };
-
-  const handleLieuSubmit = async (lieuData) => {
-    try {
-      setLoading(true);
-      let createdLieu;
-      if (editingLieuId) { await updateLieu(editingLieuId, lieuData); triggerAlert("Lieu modifie !"); }
-      else { createdLieu = await createLieu(lieuData); triggerAlert("Lieu cree !"); }
-      await fetchLieux();
-      if (createdLieu?.id) {
-        setSelectedLieuId(createdLieu.id);
-        if (!editingMissionId) setEditingMissionData((prev) => ({ ...(prev || {}), lieu_id: createdLieu.id, lieu: createdLieu.nom || "" }));
-      }
-      resetLieuForm();
-      setShowLieuModal(false);
-    } catch (err) { triggerAlert("Erreur : " + (err?.message || "Operation echouee")); }
-    finally { setLoading(false); }
-  };
-
-  const handleLieuEdit = (lieu) => { setEditingLieuId(lieu.id); setEditingLieuData(lieu); setShowLieuModal(true); };
-
-  const handleRegeocoderLieu = async (id, coords) => {
-    try {
-      await updateLieu(id, coords);
-      triggerAlert("Coordonnées mises à jour !");
-    } catch (err) {
-      triggerAlert("Erreur : " + (err?.message || "Mise à jour échouée"));
-    }
-  };
-
-  // Declared here (before handleRecalculerKmSemaine) to avoid TDZ error:
-  // useCallback deps arrays are evaluated at declaration time, so missionsThisWeek
-  // must be initialized before it appears in any dependency array.
-  const currentWeek = getWeekNumber(new Date());
-  const missionsThisWeek = useMemo(
-    () => getMissionsByWeek(currentWeek).filter((m) => m && m.date_iso),
-    [getMissionsByWeek, currentWeek]
-  );
-
-  // Batch geocoding for lieux without coordinates (used by DiagnosticsPage)
-  // Nominatim usage policy requires ≤ 1 request/second; 1100ms gives a safe margin.
-  const NOMINATIM_DELAY_MS = 1100;
-  const handleRegeocoderBatch = useCallback(async (lieuxManquants) => {
-    if (!lieuxManquants?.length) return { message: "Aucun lieu à géocoder" };
-    let count = 0;
-    const errors = [];
-    for (const lieu of lieuxManquants) {
-      const addr = (lieu.adresse_complete || lieu.nom || "").trim();
-      if (!addr) continue;
-      try {
-        // Respect Nominatim rate limit (1 req/s)
-        await new Promise((r) => setTimeout(r, NOMINATIM_DELAY_MS));
-        const result = await geocodeAddress(addr);
-        if (result) {
-          await updateLieu(lieu.id, { latitude: result.lat, longitude: result.lng });
-          count++;
-        }
-      } catch {
-        errors.push(lieu.nom || lieu.id);
-      }
-    }
-    await fetchLieux();
-    if (errors.length > 0) {
-      return { message: `${count} lieu(x) géocodé(s), ${errors.length} erreur(s)` };
-    }
-    return { message: `✅ ${count} lieu(x) géocodé(s)` };
-  }, [updateLieu, fetchLieux]);
-
-  // Recalculate km frais for current week and persist to frais_km table (reuses Ticket-3 logic)
-  const handleRecalculerKmSemaine = useCallback(async () => {
-    const effectiveDomicile = domicileLatLng ?? (
-      Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng)
-        ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
-        : null
-    );
-    if (!effectiveDomicile?.lat || !effectiveDomicile?.lng) {
-      throw new Error("Domicile non configuré. Vérifiez Paramètres → Km.");
-    }
-    if (missionsThisWeek.length === 0) throw new Error("Aucune mission cette semaine");
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) throw new Error("Utilisateur non connecté");
-    const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
-      ? (parseFloat(kmSettings.km_rate) || 0)
-      : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
-    const multiplicateur = kmSettings.km_include_retour ? 2 : 1;
-    const countryCode = kmSettings.km_country_code || "FR";
-    const rows = [];
-    missionsThisWeek.forEach((m) => {
-      const lieuById = lieux.find((l) => l.id === m.lieu_id);
-      const lieuByName = !lieuById && m.lieu
-        ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
-        : null;
-      const lieu = lieuById || lieuByName;
-      const latLieu = Number(lieu?.latitude);
-      const lngLieu = Number(lieu?.longitude);
-      if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
-        const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
-        const distanceKm = kmOneWay * multiplicateur;
-        const amount = distanceKm * kmRateEffectif;
-        rows.push({
-          user_id: authUser.id,
-          patron_id: m.patron_id || null,
-          mission_id: m.id,
-          date_frais: m.date_iso,
-          country_code: countryCode,
-          distance_km: distanceKm,
-          rate_per_km: kmRateEffectif,
-          amount,
-          source: "auto",
-        });
-      }
-    });
-    if (rows.length === 0) throw new Error("Aucun lieu géocodé — coordonnées GPS manquantes");
-    const { error } = await supabase.from("frais_km").upsert(rows, { onConflict: "mission_id" });
-    if (error) throw error;
-    return { message: `✅ ${rows.length} ligne(s) km recalculée(s) pour la semaine` };
-  }, [kmSettings, domicileLatLng, missionsThisWeek, lieux]);
-
-  const handleLieuDelete = async (lieu) => {
-    const confirmed = await showConfirm({ title: "Supprimer ce lieu", message: "Supprimer ce lieu ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
-    if (!confirmed) return;
-    try { setLoading(true); await deleteLieu(lieu.id); triggerAlert("Lieu supprime !"); }
-    catch { triggerAlert("Erreur suppression"); }
-    finally { setLoading(false); }
-  };
-
-  const resetLieuForm = () => { setEditingLieuId(null); setEditingLieuData(null); };
-
   const handleMarquerCommePaye = async () => {
     const confirmed = await showConfirm({ title: "Marquer comme paye", message: "Voulez-vous marquer ce bilan comme paye ?", confirmText: "Confirmer", cancelText: "Annuler", type: "info" });
     if (!confirmed) return;
     await bilan.marquerCommePaye(bilanPatronId);
   };
-
-  const chargerHistorique = async (patronId = null) => {
-    if (typeof bilan.fetchHistoriqueBilans !== "function") { triggerAlert("Historique non branche"); return; }
-    try {
-      setLoadingHistorique(true);
-      const res = await bilan.fetchHistoriqueBilans(patronId);
-      setHistorique(res || { impayes: [], payes: [], all: [] });
-    } catch { triggerAlert("Erreur chargement historique"); }
-    finally { setLoadingHistorique(false); }
-  };
-
-  const kmFraisThisWeek = useMemo(() => {
-    const empty = { items: [], totalKm: 0, totalAmount: 0 };
-    if (!kmSettings?.km_enable) return empty;
-    // Use domicileLatLng state first, fall back to coords stored directly in kmSettings
-    const effectiveDomicile = domicileLatLng ?? (
-      Number.isFinite(kmSettings.km_domicile_lat) && Number.isFinite(kmSettings.km_domicile_lng)
-        ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
-        : null
-    );
-    if (!effectiveDomicile?.lat || !effectiveDomicile?.lng) return empty;
-    // Rate: AUTO uses table, CUSTOM uses km_rate_custom
-    const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
-      ? (parseFloat(kmSettings.km_rate) || 0)
-      : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
-    const multiplicateur = kmSettings.km_include_retour ? 2 : 1;
-    const result = { items: [], totalKm: 0, totalAmount: 0 };
-    missionsThisWeek.forEach((m) => {
-      // Lieu lookup: by id first, then by name (case-insensitive) as fallback
-      const lieuById = lieux.find((l) => l.id === m.lieu_id);
-      const lieuByName = !lieuById && m.lieu
-        ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
-        : null;
-      const lieu = lieuById || lieuByName;
-      const latLieu = Number(lieu?.latitude);
-      const lngLieu = Number(lieu?.longitude);
-      if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
-        // distance_km is in km (haversineKm returns km)
-        const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
-        const kmTot = kmOneWay * multiplicateur; // × 2 if aller-retour
-        const amount = kmTot * kmRateEffectif;   // no rounding: exact value stored
-        result.items.push({
-          missionId: m.id, date: m.date_iso,
-          labelLieuOuClient: getLieuLabel(lieu, m),
-          kmOneWay, kmTotal: kmTot, amount,   // exact, rounded only at display
-        });
-        result.totalKm += kmTot;
-        result.totalAmount += amount;
-      } else {
-        result.items.push({
-          missionId: m.id, date: m.date_iso,
-          labelLieuOuClient: getLieuLabel(lieu, m),
-          kmOneWay: null, kmTotal: null, amount: null,
-        });
-      }
-    });
-    // totals kept exact; display layer applies rounding
-    return result;
-  }, [kmSettings, domicileLatLng, missionsThisWeek, lieux]);
 
   const isProNavigationMode = isPro && !isViewer;
 
@@ -612,122 +148,122 @@ export default function App({ user }) {
     { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
   ];
 
-  const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || loadingHistorique;
+  const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || historiqueHook.loadingHistorique;
 
   if (user && !profileLoading && !isViewer && !isProfileComplete) {
     return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
   }
 
   return (
-    <div className={"min-h-screen relative overflow-hidden transition-all duration-700 " + (darkMode ? "bg-[#020818] text-white" : "bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900")}>  
-      <div className="fixed inset-0 pointer-events-none">  
-        <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-blue-800/10" />  
-        <div className="absolute inset-0 backdrop-blur-3xl" />  
-      </div>  
+    <div className={"min-h-screen relative overflow-hidden transition-all duration-700 " + (darkMode ? "bg-[#020818] text-white" : "bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900")}>
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-blue-800/10" />
+        <div className="absolute inset-0 backdrop-blur-3xl" />
+      </div>
 
-      <CustomAlert show={customAlert.show} message={customAlert.message || ""} onDismiss={() => setCustomAlert((prev) => ({ ...prev, show: false }))} />  
-      <UpdatePrompt />  
+      <CustomAlert show={customAlert.show} message={customAlert.message || ""} onDismiss={() => setCustomAlert((prev) => ({ ...prev, show: false }))} />
+      <UpdatePrompt />
 
-      {isLoading && (  
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-sm">  
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-500 border-t-transparent"></div>  
-        </div>  
-      )}  
+      {isLoading && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-500 border-t-transparent"></div>
+        </div>
+      )}
 
-      <header className="relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-yellow-600/30">  
-        <div className="absolute inset-0 bg-gradient-to-br from-[#020818] via-[#0A1628] to-[#020818] backdrop-blur-xl" />  
-        <div className="relative z-10 text-center">  
-          <button  
-            onClick={() => setDarkMode(!darkMode)}  
-            className="absolute right-6 top-6 w-12 h-12 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-2xl border border-white/20 shadow-lg active:scale-90 transition-all"  
-          >  
-            {darkMode ? "☀️" : "🌙"}  
-          </button>  
-          <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[#D4AF37] mb-2 drop-shadow-2xl font-['Playfair_Display']">  
-            {("HEURES DE " + (profile?.prenom?.trim()?.toUpperCase() || "GEO"))}  
-          </h1>  
-          {isViewer && <ViewerBadge patronNom={profile?.nom || ""} />} 
+      <header className="relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-yellow-600/30">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#020818] via-[#0A1628] to-[#020818] backdrop-blur-xl" />
+        <div className="relative z-10 text-center">
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="absolute right-6 top-6 w-12 h-12 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-2xl border border-white/20 shadow-lg active:scale-90 transition-all"
+          >
+            {darkMode ? "☀️" : "🌙"}
+          </button>
+          <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[#D4AF37] mb-2 drop-shadow-2xl font-['Playfair_Display']">
+            {("HEURES DE " + (profile?.prenom?.trim()?.toUpperCase() || "GEO"))}
+          </h1>
+          {isViewer && <ViewerBadge patronNom={profile?.nom || ""} />}
           {isPro && !isViewer && (
-  <div className="text-center py-1">
-    <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-yellow-500/15 border border-yellow-500/40 text-yellow-400">
-      ✨ Pro
-    </span>
-  </div>
-)} 
-          <div className="flex items-center justify-center gap-2 mb-1">  
-            <span className="text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border border-yellow-600/40 text-yellow-500/70">  
-              v{APP_VERSION} ✓ OTA  
-            </span>  
-          </div>  
-          <div className="flex items-center justify-center gap-2 text-white/90">  
-            <span className="text-[17px] font-black tracking-tight">{liveTime}</span>  
-            <span className="text-[15px] font-medium opacity-80 lowercase">  
-              {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}  
-            </span>  
-          </div>  
-        </div>  
-      </header>  
+            <div className="text-center py-1">
+              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-yellow-500/15 border border-yellow-500/40 text-yellow-400">
+                ✨ Pro
+              </span>
+            </div>
+          )}
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <span className="text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border border-yellow-600/40 text-yellow-500/70">
+              v{APP_VERSION} ✓ OTA
+            </span>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-white/90">
+            <span className="text-[17px] font-black tracking-tight">{liveTime}</span>
+            <span className="text-[15px] font-medium opacity-80 lowercase">
+              {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+            </span>
+          </div>
+        </div>
+      </header>
 
-      <main className="relative px-5 -mt-10 pb-32 z-10">  
-        {activeTab === "saisie" && (  
-          <SaisieTab  
-            editingMissionId={editingMissionId}  
-            editingMissionData={editingMissionData}  
-            selectedClientId={selectedClientId}  
-            selectedLieuId={selectedLieuId}  
-            selectedPatronId={selectedPatronId}  
-            onMissionSubmit={handleMissionSubmit}  
-            onMissionCancel={resetMissionForm}  
-            onCopyLast={copierDerniereMission}  
-            lieux={lieux}  
-            patrons={patrons}  
-            clients={clients}  
-            missions={missions}  
-            darkMode={darkMode}  
-            isIOS={isIOS}  
-            loading={loading}  
-            onLieuChange={(lieuId) => {  
-              setSelectedLieuId(lieuId);  
-              if (editingMissionId) {  
-                const selected = lieux.find((l) => String(l.id) === String(lieuId));  
-                setEditingMissionData((prev) => ({ ...(prev || {}), lieu_id: lieuId, lieu: selected?.nom || prev?.lieu || "" }));  
-              }  
-            }}  
-            onPatronChange={(patronId) => {  
-              setSelectedPatronId(patronId);  
-              if (editingMissionId) setEditingMissionData((prev) => ({ ...(prev || {}), patron_id: patronId }));  
-            }}  
-            onClientChange={(clientId) => {  
-              setSelectedClientId(clientId);  
-              if (editingMissionId) {  
-                const selected = clients.find((c) => c.id === clientId);  
-                setEditingMissionData((prev) => ({ ...(prev || {}), client_id: clientId, client: selected?.nom || prev?.client || "" }));  
-              }  
-            }}  
-            onShowLieuModal={() => { resetLieuForm(); setShowLieuModal(true); }}  
-            onShowClientModal={() => { resetClientForm(); setShowClientModal(true); }}  
-            onShowPatronModal={() => { resetPatronForm(); setShowPatronModal(true); }}
-            onShowFraisModal={() => setShowFraisModal(true)}  
-            onShowAcompteModal={() => setShowAcompteModal(true)}  
+      <main className="relative px-5 -mt-10 pb-32 z-10">
+        {activeTab === "saisie" && (
+          <SaisieTab
+            editingMissionId={missionForm.editingMissionId}
+            editingMissionData={missionForm.editingMissionData}
+            selectedClientId={missionForm.selectedClientId}
+            selectedLieuId={missionForm.selectedLieuId}
+            selectedPatronId={missionForm.selectedPatronId}
+            onMissionSubmit={missionForm.handleMissionSubmit}
+            onMissionCancel={missionForm.resetMissionForm}
+            onCopyLast={missionForm.copierDerniereMission}
+            lieux={lieux}
+            patrons={patrons}
+            clients={clients}
+            missions={missions}
+            darkMode={darkMode}
+            isIOS={isIOS}
+            loading={loading}
+            onLieuChange={(lieuId) => {
+              missionForm.setSelectedLieuId(lieuId);
+              if (missionForm.editingMissionId) {
+                const selected = lieux.find((l) => String(l.id) === String(lieuId));
+                missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), lieu_id: lieuId, lieu: selected?.nom || prev?.lieu || "" }));
+              }
+            }}
+            onPatronChange={(patronId) => {
+              missionForm.setSelectedPatronId(patronId);
+              if (missionForm.editingMissionId) missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), patron_id: patronId }));
+            }}
+            onClientChange={(clientId) => {
+              missionForm.setSelectedClientId(clientId);
+              if (missionForm.editingMissionId) {
+                const selected = clients.find((c) => c.id === clientId);
+                missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), client_id: clientId, client: selected?.nom || prev?.client || "" }));
+              }
+            }}
+            onShowLieuModal={() => { lieuModal.resetLieuForm(); lieuModal.setShowLieuModal(true); }}
+            onShowClientModal={() => { clientModal.resetClientForm(); clientModal.setShowClientModal(true); }}
+            onShowPatronModal={() => { patronModal.resetPatronForm(); patronModal.setShowPatronModal(true); }}
+            onShowFraisModal={() => fraisModal.setShowFraisModal(true)}
+            onShowAcompteModal={() => acompteModal.setShowAcompteModal(true)}
             showMissionRateEditor={showMissionRateEditor}
-          />  
-        )}  
+          />
+        )}
 
         {activeTab === "suivi" && (
           <SuiviTab
-            defaultView={isViewer ? "bilan" : suiviDefaultView}
+            defaultView={isViewer ? "bilan" : historiqueHook.suiviDefaultView}
             historiqueProps={{
-              historique,
-              historiquePatronId,
-              historiqueTab,
-              loadingHistorique,
+              historique: historiqueHook.historique,
+              historiquePatronId: historiqueHook.historiquePatronId,
+              historiqueTab: historiqueHook.historiqueTab,
+              loadingHistorique: historiqueHook.loadingHistorique,
               darkMode,
               patrons,
               missions,
               listeAcomptes,
-              onPatronFilterChange: (patronId) => { setHistoriquePatronId(patronId); chargerHistorique(patronId); },
-              onTabChange: setHistoriqueTab,
-              onLoadHistorique: chargerHistorique,
+              onPatronFilterChange: (patronId) => { historiqueHook.setHistoriquePatronId(patronId); historiqueHook.chargerHistorique(patronId); },
+              onTabChange: historiqueHook.setHistoriqueTab,
+              onLoadHistorique: historiqueHook.chargerHistorique,
               isViewer,
               viewerPatronId,
             }}
@@ -741,10 +277,10 @@ export default function App({ user }) {
               getPatronNom,
               getPatronColor,
               onMarquerCommePaye: handleMarquerCommePaye,
-              onFraisEdit: handleFraisEdit,
-              onFraisDelete: handleFraisDelete,
-              onMissionEdit: handleMissionEdit,
-              onMissionDelete: handleMissionDelete,
+              onFraisEdit: fraisModal.handleFraisEdit,
+              onFraisDelete: fraisModal.handleFraisDelete,
+              onMissionEdit: missionForm.handleMissionEdit,
+              onMissionDelete: missionForm.handleMissionDelete,
               profile,
               isViewer,
               canBilanMois,
@@ -780,38 +316,38 @@ export default function App({ user }) {
             showConfirm={showConfirm}
             triggerAlert={triggerAlert}
             isViewer={isViewer}
-            onPatronEdit={handlePatronEdit}
-            onPatronDelete={handlePatronDelete}
-            onPatronAdd={() => { resetPatronForm(); setShowPatronModal(true); }}
-            onClientEdit={handleClientEdit}
-            onClientDelete={handleClientDelete}
-            onClientAdd={() => { resetClientForm(); setShowClientModal(true); }}
-            onLieuEdit={handleLieuEdit}
-            onLieuDelete={handleLieuDelete}
-            onLieuAdd={() => { resetLieuForm(); setShowLieuModal(true); }}
+            onPatronEdit={patronModal.handlePatronEdit}
+            onPatronDelete={patronModal.handlePatronDelete}
+            onPatronAdd={() => { patronModal.resetPatronForm(); patronModal.setShowPatronModal(true); }}
+            onClientEdit={clientModal.handleClientEdit}
+            onClientDelete={clientModal.handleClientDelete}
+            onClientAdd={() => { clientModal.resetClientForm(); clientModal.setShowClientModal(true); }}
+            onLieuEdit={lieuModal.handleLieuEdit}
+            onLieuDelete={lieuModal.handleLieuDelete}
+            onLieuAdd={() => { lieuModal.resetLieuForm(); lieuModal.setShowLieuModal(true); }}
             showMissionRateEditor={showMissionRateEditor}
             onToggleMissionRateEditor={setShowMissionRateEditor}
             kmSettings={kmSettings}
-            onRegeocoderLieu={handleRegeocoderLieu}
+            onRegeocoderLieu={lieuModal.handleRegeocoderLieu}
             domicileLatLng={domicileLatLng}
             missionsThisWeek={missionsThisWeek}
             kmFraisThisWeek={kmFraisThisWeek}
-            onRegeocoderBatch={handleRegeocoderBatch}
+            onRegeocoderBatch={lieuModal.handleRegeocoderBatch}
             onRecalculerKmSemaine={handleRecalculerKmSemaine}
             onRebuildBilans={bilan.rebuildBilans}
           />
         )}
-      </main>  
+      </main>
 
-      <ConfirmModal show={confirmState.show} title={confirmState.title} message={confirmState.message} confirmText={confirmState.confirmText} cancelText={confirmState.cancelText} type={confirmState.type} onConfirm={confirmState.onConfirm} onCancel={hideConfirm} />  
+      <ConfirmModal show={confirmState.show} title={confirmState.title} message={confirmState.message} confirmText={confirmState.confirmText} cancelText={confirmState.cancelText} type={confirmState.type} onConfirm={confirmState.onConfirm} onCancel={hideConfirm} />
 
-      <FraisModal show={showFraisModal} editMode={!!editingFraisId} description={fraisDescription} setDescription={setFraisDescription} montant={fraisMontant} setMontant={setFraisMontant} date={fraisDate} setDate={setFraisDate} onSubmit={handleFraisSubmit} onCancel={() => { setShowFraisModal(false); resetFraisForm(); }} loading={loading} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={fraisPatronId} onPatronChange={setFraisPatronId} />  
+      <FraisModal show={fraisModal.showFraisModal} editMode={!!fraisModal.editingFraisId} description={fraisModal.fraisDescription} setDescription={fraisModal.setFraisDescription} montant={fraisModal.fraisMontant} setMontant={fraisModal.setFraisMontant} date={fraisModal.fraisDate} setDate={fraisModal.setFraisDate} onSubmit={fraisModal.handleFraisSubmit} onCancel={() => { fraisModal.setShowFraisModal(false); fraisModal.resetFraisForm(); }} loading={loading} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={fraisModal.fraisPatronId} onPatronChange={fraisModal.setFraisPatronId} />
 
-      <AcompteModal show={showAcompteModal} montant={acompteMontant} setMontant={setAcompteMontant} date={acompteDate} setDate={setAcompteDate} onSubmit={handleAcompteSubmit} onCancel={() => { setShowAcompteModal(false); resetAcompteForm(); }} loading={loading || isSavingAcompte} isIOS={isIOS} patrons={patrons} selectedPatronId={acomptePatronId} onPatronChange={setAcomptePatronId} />  
+      <AcompteModal show={acompteModal.showAcompteModal} montant={acompteModal.acompteMontant} setMontant={acompteModal.setAcompteMontant} date={acompteModal.acompteDate} setDate={acompteModal.setAcompteDate} onSubmit={acompteModal.handleAcompteSubmit} onCancel={() => { acompteModal.setShowAcompteModal(false); acompteModal.resetAcompteForm(); }} loading={loading || acompteModal.isSavingAcompte} isIOS={isIOS} patrons={patrons} selectedPatronId={acompteModal.acomptePatronId} onPatronChange={acompteModal.setAcomptePatronId} />
 
-      <PatronModal show={showPatronModal} editMode={!!editingPatronId} initialData={editingPatronData} onSubmit={handlePatronSubmit} onCancel={() => { setShowPatronModal(false); resetPatronForm(); }} loading={loading} darkMode={darkMode} />  
+      <PatronModal show={patronModal.showPatronModal} editMode={!!patronModal.editingPatronId} initialData={patronModal.editingPatronData} onSubmit={patronModal.handlePatronSubmit} onCancel={() => { patronModal.setShowPatronModal(false); patronModal.resetPatronForm(); }} loading={loading} darkMode={darkMode} />
 
-      <ClientModal show={showClientModal} editMode={!!editingClientId} initialData={editingClientData} onSubmit={handleClientSubmit} onCancel={() => { setShowClientModal(false); resetClientForm(); }} loading={loading} darkMode={darkMode} />  
+      <ClientModal show={clientModal.showClientModal} editMode={!!clientModal.editingClientId} initialData={clientModal.editingClientData} onSubmit={clientModal.handleClientSubmit} onCancel={() => { clientModal.setShowClientModal(false); clientModal.resetClientForm(); }} loading={loading} darkMode={darkMode} />
 
       <PeriodModal
         show={bilan.showPeriodModal} periodType={bilan.bilanPeriodType} setPeriodType={bilan.setBilanPeriodType}
@@ -824,11 +360,11 @@ export default function App({ user }) {
         canBilanMois={canBilanMois} canBilanAnnee={canBilanAnnee}
       />
 
-      <LieuModal show={showLieuModal} editMode={!!editingLieuId} initialData={editingLieuData} onSubmit={handleLieuSubmit} onCancel={() => { setShowLieuModal(false); resetLieuForm(); }} loading={loading} darkMode={darkMode} />  
+      <LieuModal show={lieuModal.showLieuModal} editMode={!!lieuModal.editingLieuId} initialData={lieuModal.editingLieuData} onSubmit={lieuModal.handleLieuSubmit} onCancel={() => { lieuModal.setShowLieuModal(false); lieuModal.resetLieuForm(); }} loading={loading} darkMode={darkMode} />
 
-      <nav className="fixed bottom-6 left-6 right-6 z-[100]">  
+      <nav className="fixed bottom-6 left-6 right-6 z-[100]">
         {isProNavigationMode ? (
-          <div className="bg-[#030d22]/95 border-yellow-500/30 backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1">  
+          <div className="bg-[#030d22]/95 border-yellow-500/30 backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1">
             {proNavItems.map((item) => {
               const isActive = activeTab === item.key;
               return (
@@ -850,11 +386,11 @@ export default function App({ user }) {
             })}
           </div>
         ) : (
-          <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">  
+          <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">
             {!isViewer && (
               <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>
             )}
-            <button onClick={() => setActiveTab("suivi")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "suivi" ? "bg-gradient-to-br from-cyan-600 to-indigo-700 text-white" : "text-white/30")}>Suivi</button>  
+            <button onClick={() => setActiveTab("suivi")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "suivi" ? "bg-gradient-to-br from-cyan-600 to-indigo-700 text-white" : "text-white/30")}>Suivi</button>
             {!isViewer ? (
               <button onClick={() => setActiveTab("parametres")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "parametres" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>
                 <span>Parametres</span>
@@ -866,7 +402,7 @@ export default function App({ user }) {
             )}
           </div>
         )}
-      </nav>  
-    </div>  
+      </nav>
+    </div>
   );
 }
