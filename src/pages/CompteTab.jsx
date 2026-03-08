@@ -40,9 +40,11 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }) => {
     numero_tva: '', pays_tva: 'FR',
   })
   const [saved, setSaved] = useState(false)
+  const [showTva, setShowTva] = useState(false)
 
   useEffect(() => {
     if (profile) {
+      const numero = profile.features?.numero_tva || ''
       setForm({
         prenom:     profile.prenom     || '',
         nom:        profile.nom        || '',
@@ -50,9 +52,10 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }) => {
         code_postal:profile.code_postal|| '',
         ville:      profile.ville      || '',
         telephone:  profile.telephone  || '',
-        numero_tva: profile.features?.numero_tva || '',
+        numero_tva: numero,
         pays_tva:   profile.features?.pays_tva   || 'FR',
       })
+      if (numero) setShowTva(true)
     }
   }, [profile])
 
@@ -148,59 +151,73 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }) => {
           />
         </div>
 
-        {/* Carte Facturation TVA */}
-        <div className="bg-[#0f111a] border-2 border-white/10 rounded-[32px] p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-[11px] font-black uppercase tracking-[0.25em] text-amber-400 opacity-80">
-              Facturation
-            </p>
-            <span className="text-[9px] text-white/30 font-bold uppercase tracking-wider">
-              📄 Pour vos factures
-            </span>
-          </div>
-
-          {/* Numéro de TVA */}
-          <div>
-            <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-1">
-              N° TVA intracommunautaire
-            </p>
-            <input
-              type="text"
-              placeholder="ex : FR12345678901"
-              value={form.numero_tva}
-              onChange={e => setForm(f => ({ ...f, numero_tva: e.target.value.toUpperCase() }))}
-              className="w-full p-4 rounded-2xl bg-[#1a1f2e] border-2 border-amber-500/30 text-white placeholder-white/20 font-black text-[13px] uppercase focus:outline-none focus:border-amber-400 transition-all tracking-widest"
-            />
-          </div>
-
-          {/* Pays + taux TVA */}
-          <div>
-            <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-1">
-              Taux de TVA applicable
-            </p>
-            <div className="flex gap-3 items-center">
-              <select
-                value={form.pays_tva}
-                onChange={e => setForm(f => ({ ...f, pays_tva: e.target.value }))}
-                className="flex-1 p-4 rounded-2xl bg-[#1a1f2e] border-2 border-amber-500/30 text-white font-black text-[13px] focus:outline-none focus:border-amber-400 transition-all appearance-none"
-              >
-                {EU_TVA_RATES.map(c => (
-                  <option key={c.code} value={c.code}>
-                    {c.label} — {c.rate} %
-                  </option>
-                ))}
-              </select>
-              {tauxSelectionne && (
-                <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-300 font-black text-[18px] min-w-[64px] text-center">
-                  {tauxSelectionne}%
-                </div>
+        {/* Carte Facturation TVA — repliable */}
+        <div className="bg-[#0f111a] border-2 border-white/10 rounded-[32px] overflow-hidden">
+          <button
+            onClick={() => setShowTva(v => !v)}
+            className="w-full flex items-center justify-between px-6 py-4 text-left"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-black uppercase tracking-[0.25em] text-amber-400 opacity-80">
+                Facturation / TVA
+              </span>
+              {form.numero_tva && (
+                <span className="text-[9px] font-bold text-amber-300/60 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                  {form.numero_tva}
+                </span>
               )}
             </div>
-          </div>
+            <span className="text-white/30 text-lg transition-transform duration-200" style={{ display: 'inline-block', transform: showTva ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+              ›
+            </span>
+          </button>
 
-          <p className="text-[10px] text-white/25 italic">
-            Ces informations sont utilisées pour vos exports et factures.
-          </p>
+          {showTva && (
+            <div className="px-6 pb-6 space-y-4 border-t border-white/5 pt-4">
+              <p className="text-[10px] text-white/25 italic">
+                📄 À remplir pour vos factures
+              </p>
+
+              {/* Numéro de TVA */}
+              <div>
+                <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-1">
+                  N° TVA intracommunautaire
+                </p>
+                <input
+                  type="text"
+                  placeholder="ex : FR12345678901"
+                  value={form.numero_tva}
+                  onChange={e => setForm(f => ({ ...f, numero_tva: e.target.value.toUpperCase() }))}
+                  className="w-full p-4 rounded-2xl bg-[#1a1f2e] border-2 border-amber-500/30 text-white placeholder-white/20 font-black text-[13px] uppercase focus:outline-none focus:border-amber-400 transition-all tracking-widest"
+                />
+              </div>
+
+              {/* Pays + taux TVA */}
+              <div>
+                <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-1">
+                  Taux de TVA applicable
+                </p>
+                <div className="flex gap-3 items-center">
+                  <select
+                    value={form.pays_tva}
+                    onChange={e => setForm(f => ({ ...f, pays_tva: e.target.value }))}
+                    className="flex-1 p-4 rounded-2xl bg-[#1a1f2e] border-2 border-amber-500/30 text-white font-black text-[13px] focus:outline-none focus:border-amber-400 transition-all appearance-none"
+                  >
+                    {EU_TVA_RATES.map(c => (
+                      <option key={c.code} value={c.code}>
+                        {c.label} — {c.rate} %
+                      </option>
+                    ))}
+                  </select>
+                  {tauxSelectionne && (
+                    <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-300 font-black text-[18px] min-w-[64px] text-center">
+                      {tauxSelectionne}%
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Carte Compte */}
