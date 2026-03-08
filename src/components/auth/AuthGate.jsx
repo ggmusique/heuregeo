@@ -24,7 +24,7 @@ export default function AuthGate({ children }) {
     );
 
     // Délai minimum pour la splash screen
-    const timer = setTimeout(() => setMinDelayDone(true), 1200);
+    const timer = setTimeout(() => setMinDelayDone(true), 2500);
 
     return () => {
       sub.subscription.unsubscribe();
