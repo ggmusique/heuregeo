@@ -56,9 +56,9 @@ export function usePatrons(triggerAlert) {
 
       // ✅ Normalisation des champs
       const nom = patronData.nom.trim();
-      const tauxNum = parseFloat(patronData.tauxHoraire);
+      const tauxNum = parseFloat(patronData.taux_horaire);
       const taux_horaire =
-        patronData.tauxHoraire !== "" && !isNaN(tauxNum) ? tauxNum : null;
+        patronData.taux_horaire != null && !isNaN(tauxNum) ? tauxNum : null;
 
       const couleur = patronData.couleur || "#8b5cf6";
 
@@ -74,6 +74,12 @@ export function usePatrons(triggerAlert) {
             couleur,
             actif: true,
             user_id: user.id,
+            adresse: patronData.adresse ?? null,
+            code_postal: patronData.code_postal ?? null,
+            ville: patronData.ville ?? null,
+            telephone: patronData.telephone ?? null,
+            email: patronData.email ?? null,
+            siret: patronData.siret ?? null,
           },
         ])
         .select()
@@ -118,9 +124,9 @@ export function usePatrons(triggerAlert) {
       }
 
       const nom = patronData.nom.trim();
-      const tauxNum = parseFloat(patronData.tauxHoraire);
+      const tauxNum = parseFloat(patronData.taux_horaire);
       const taux_horaire =
-        patronData.tauxHoraire !== "" && !isNaN(tauxNum) ? tauxNum : null;
+        patronData.taux_horaire != null && !isNaN(tauxNum) ? tauxNum : null;
 
       const couleur = patronData.couleur || "#8b5cf6";
 
@@ -130,6 +136,12 @@ export function usePatrons(triggerAlert) {
           nom,
           taux_horaire,
           couleur,
+          adresse: patronData.adresse ?? null,
+          code_postal: patronData.code_postal ?? null,
+          ville: patronData.ville ?? null,
+          telephone: patronData.telephone ?? null,
+          email: patronData.email ?? null,
+          siret: patronData.siret ?? null,
         })
         .eq("id", patronId)
         .select()
