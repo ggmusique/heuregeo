@@ -6,7 +6,107 @@ import { EUROPE_COUNTRIES, KM_RATES } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
 
-const DiagnosticsPage = lazy(() => import("./DiagnosticsPage").then((m) => ({ default: m.DiagnosticsPage })));
+const DiagnosticsPage = lazy(() =>
+  import("./DiagnosticsPage").then((m) => ({ default: m.DiagnosticsPage }))
+);
+
+// ─── Icônes SVG ─────────────────────────────────────────────────────────────
+
+const IconUser = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+  </svg>
+);
+
+const IconDatabase = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <ellipse cx="12" cy="5" rx="9" ry="3" />
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+  </svg>
+);
+
+const IconSparkles = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5z" />
+    <path d="M5 3l.75 2.25L8 6l-2.25.75L5 9l-.75-2.25L2 6l2.25-.75z" />
+    <path d="M19 15l.75 2.25L22 18l-2.25.75L19 21l-.75-2.25L16 18l2.25-.75z" />
+  </svg>
+);
+
+const IconShield = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <path d="M12 2l9 4v6c0 5-3.5 9.7-9 11-5.5-1.3-9-6-9-11V6l9-4z" />
+  </svg>
+);
+
+const IconSearch = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <circle cx="11" cy="11" r="8" />
+    <path d="M21 21l-4.35-4.35" />
+  </svg>
+);
+
+const IconClose = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="w-3.5 h-3.5">
+    <path d="M18 6L6 18M6 6l12 12" />
+  </svg>
+);
+
+const IconSettings = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" />
+  </svg>
+);
+
+// ─── Couleurs par section ────────────────────────────────────────────────────
+
+const colorMap = {
+  indigo: {
+    active: "bg-indigo-500/15 border-indigo-400/40",
+    icon: "text-indigo-400 bg-indigo-500/15",
+    dot: "bg-indigo-400",
+    header: "from-indigo-500/15 to-transparent border-indigo-500/20",
+    headerText: "text-indigo-300",
+    badge: "bg-indigo-500/20 text-indigo-300 border-indigo-400/30",
+  },
+  violet: {
+    active: "bg-violet-500/15 border-violet-400/40",
+    icon: "text-violet-400 bg-violet-500/15",
+    dot: "bg-violet-400",
+    header: "from-violet-500/15 to-transparent border-violet-500/20",
+    headerText: "text-violet-300",
+    badge: "bg-violet-500/20 text-violet-300 border-violet-400/30",
+  },
+  yellow: {
+    active: "bg-yellow-500/15 border-yellow-400/40",
+    icon: "text-yellow-400 bg-yellow-500/15",
+    dot: "bg-yellow-400",
+    header: "from-yellow-500/15 to-transparent border-yellow-500/20",
+    headerText: "text-yellow-300",
+    badge: "bg-yellow-500/20 text-yellow-300 border-yellow-400/30",
+  },
+  red: {
+    active: "bg-red-500/15 border-red-400/40",
+    icon: "text-red-400 bg-red-500/15",
+    dot: "bg-red-400",
+    header: "from-red-500/15 to-transparent border-red-500/20",
+    headerText: "text-red-300",
+    badge: "bg-red-500/20 text-red-300 border-red-400/30",
+  },
+  cyan: {
+    active: "bg-cyan-500/15 border-cyan-400/40",
+    icon: "text-cyan-400 bg-cyan-500/15",
+    dot: "bg-cyan-400",
+    header: "from-cyan-500/15 to-transparent border-cyan-500/20",
+    headerText: "text-cyan-300",
+    badge: "bg-cyan-500/20 text-cyan-300 border-cyan-400/30",
+  },
+};
+
+// ─── Error boundary Diagnostics ──────────────────────────────────────────────
 
 class DiagnosticsErrorBoundary extends Component {
   constructor(props) {
@@ -37,6 +137,8 @@ class DiagnosticsErrorBoundary extends Component {
     return this.props.children;
   }
 }
+
+// ─── Composant principal ─────────────────────────────────────────────────────
 
 export function ParametresTab({
   profile,
@@ -83,35 +185,40 @@ export function ParametresTab({
     () => [
       {
         key: "profil",
-        icon: "👤",
+        icon: <IconUser />,
+        color: "indigo",
         title: "Profil",
-        subtitle: "Identite, coordonnees et compte",
+        subtitle: "Identité, coordonnées et compte",
       },
       {
         key: "donnees",
-        icon: "🗂️",
-        title: "Donnees",
-        subtitle: `${patrons.length} patrons • ${clients.length} clients • ${lieux.length} lieux`,
+        icon: <IconDatabase />,
+        color: "violet",
+        title: "Données",
+        subtitle: `${patrons.length} patrons · ${clients.length} clients · ${lieux.length} lieux`,
       },
       {
         key: "extra-pro",
-        icon: "✨",
-        title: "Extra option payante (Pro)",
-        subtitle: "Fonctionnalites avancees reservees aux comptes Pro",
+        icon: <IconSparkles />,
+        color: "yellow",
+        title: "Options Pro",
+        subtitle: "Fonctionnalités avancées",
       },
       ...(isAdmin
         ? [
             {
               key: "admin",
-              icon: "🛡️",
+              icon: <IconShield />,
+              color: "red",
               title: "Admin",
-              subtitle: "Configuration avancee et supervision",
+              subtitle: "Configuration et supervision",
             },
             {
               key: "diagnostics",
-              icon: "🔍",
-              title: "Diagnostics KM/GPS",
-              subtitle: "Vue dev · km, coords, lieux manquants",
+              icon: <IconSearch />,
+              color: "cyan",
+              title: "Diagnostics GPS",
+              subtitle: "KM, coordonnées, lieux",
             },
           ]
         : []),
@@ -128,139 +235,226 @@ export function ParametresTab({
   }, [sections, activePanel]);
 
   return (
-    <section className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-[250px_minmax(0,1fr)] gap-4 items-start">
-        <aside className="rounded-2xl border border-white/10 bg-black/25 backdrop-blur-xl p-3 space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 px-2">Sections</p>
-          {sections.map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setActivePanel(item.key)}
-              aria-label={`Ouvrir section ${item.title}`}
-              className="w-full text-left rounded-xl border px-3 py-3 transition-all bg-white/5 border-white/10 hover:border-white/25"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-base">{item.icon}</span>
-                <span className="text-[12px] font-black uppercase tracking-widest text-white">{item.title}</span>
-              </div>
-              <p className="text-[11px] text-white/60 leading-snug">{item.subtitle}</p>
-            </button>
-          ))}
+    <section>
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-4 items-start">
+
+        {/* ── Sidebar ── */}
+        <aside className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl p-3 space-y-1.5 lg:sticky lg:top-4">
+          <p className="text-[9px] font-black uppercase tracking-[0.25em] text-white/35 px-2 pb-1">
+            Navigation
+          </p>
+          {sections.map((item) => {
+            const isActive = activePanel === item.key;
+            const colors = colorMap[item.color];
+            return (
+              <button
+                key={item.key}
+                onClick={() => setActivePanel(isActive ? null : item.key)}
+                aria-label={`Section ${item.title}`}
+                className={`w-full text-left rounded-xl border px-3 py-3 transition-all duration-200 ${
+                  isActive
+                    ? colors.active + " shadow-sm"
+                    : "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/25"
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 transition-all duration-200 ${isActive ? colors.icon : "text-white/40 bg-white/5"}`}>
+                    {item.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-[11px] font-black uppercase tracking-widest truncate transition-colors duration-200 ${isActive ? "text-white" : "text-white/75"}`}>
+                      {item.title}
+                    </p>
+                    <p className="text-[10px] text-white/45 leading-snug truncate mt-0.5">
+                      {item.subtitle}
+                    </p>
+                  </div>
+                  {isActive && (
+                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${colors.dot}`} />
+                  )}
+                </div>
+              </button>
+            );
+          })}
         </aside>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl p-5 space-y-3 min-h-[260px]">
-          <h2 className="text-lg sm:text-xl font-black uppercase tracking-wider text-white">Parametres</h2>
-          <p className="text-sm text-white/60">
-            Hub central: choisissez une section dans le menu de gauche pour ouvrir une fenetre dediee.
-          </p>
-          <div className="rounded-xl border border-dashed border-white/20 p-4 text-white/55 text-sm">
-            Exemples: Profil, Donnees, Extra option payante (Pro), Admin.
-          </div>
-        </div>
-      </div>
-
-      {activeSection && (
-        <div className="fixed inset-0 z-[300] bg-black/65 backdrop-blur-sm flex flex-col p-3 pb-28 sm:p-6 sm:pb-28">
-          <div className="max-w-6xl w-full mx-auto flex-1 min-h-0 rounded-2xl border border-white/15 bg-[#070d1c] shadow-2xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/30">
-              <div className="flex items-center gap-2 text-white">
-                <span>{activeSection.icon}</span>
-                <p className="font-black uppercase tracking-wider text-sm">{activeSection.title}</p>
+        {/* ── Panneau de contenu ── */}
+        <div className="rounded-2xl border border-white/10 bg-black/25 backdrop-blur-xl overflow-hidden min-h-[300px]">
+          {!activeSection ? (
+            // État bienvenue
+            <div className="p-8 flex flex-col items-center justify-center min-h-[300px] text-center space-y-5">
+              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/25">
+                <IconSettings />
               </div>
-              <button
-                onClick={() => setActivePanel(null)}
-                className="px-3 py-1.5 rounded-lg border border-white/20 text-white/80 hover:text-white hover:border-white/40 text-xs font-black uppercase tracking-widest"
-              >
-                Fermer
-              </button>
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-white/50">
+                  Paramètres
+                </p>
+                <p className="text-xs text-white/30 mt-1.5">
+                  Sélectionnez une section dans le menu
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {sections.map((item) => {
+                  const colors = colorMap[item.color];
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => setActivePanel(item.key)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all hover:opacity-90 ${colors.badge}`}
+                    >
+                      {item.icon}
+                      {item.title}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 pb-8">
-              {activePanel === "profil" && (
-                <div className="space-y-4">
-                  <CompteTab profile={profile} saving={profileSaving} onSave={saveProfile} userEmail={userEmail} />
-                </div>
-              )}
-
-              {activePanel === "extra-pro" && (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-yellow-500/25 bg-yellow-500/5 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/80 mb-2">Extra option payante (Pro)</p>
+          ) : (
+            <>
+              {/* Header de section */}
+              {(() => {
+                const colors = colorMap[activeSection.color];
+                return (
+                  <div className={`px-5 py-4 border-b border-white/10 bg-gradient-to-r ${colors.header}`}>
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm text-white/70">Afficher le sélecteur "taux du jour" dans Saisie</p>
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`p-2 rounded-xl flex-shrink-0 ${colors.icon}`}>
+                          {activeSection.icon}
+                        </div>
+                        <div className="min-w-0">
+                          <p className={`text-[11px] font-black uppercase tracking-[0.2em] ${colors.headerText}`}>
+                            {activeSection.title}
+                          </p>
+                          <p className="text-[10px] text-white/45 truncate mt-0.5">
+                            {activeSection.subtitle}
+                          </p>
+                        </div>
+                      </div>
                       <button
-                        type="button"
-                        onClick={() => onToggleMissionRateEditor((prev) => !prev)}
-                        className={"px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " + (showMissionRateEditor ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10" : "border-white/20 text-white/60") }
+                        onClick={() => setActivePanel(null)}
+                        className="p-1.5 rounded-lg border border-white/15 text-white/40 hover:text-white hover:border-white/30 transition-all flex-shrink-0"
+                        aria-label="Fermer"
                       >
-                        {showMissionRateEditor ? "Activé" : "Désactivé"}
+                        <IconClose />
                       </button>
                     </div>
                   </div>
+                );
+              })()}
 
-                  {/* Frais kilométriques */}
-                  <KmSettingsPanel profile={profile} saveProfile={saveProfile} isPro={isPro} />
-                </div>
-              )}
+              {/* Contenu de la section */}
+              <div className="p-4 sm:p-5">
+                {activePanel === "profil" && (
+                  <CompteTab
+                    profile={profile}
+                    saving={profileSaving}
+                    onSave={saveProfile}
+                    userEmail={userEmail}
+                  />
+                )}
 
-              {activePanel === "donnees" && (
-                <DonneesTab
-                  patrons={patrons}
-                  clients={clients}
-                  lieux={lieux}
-                  missions={missions}
-                  fraisDivers={fraisDivers}
-                  acomptes={acomptes}
-                  darkMode={darkMode}
-                  onPatronEdit={onPatronEdit}
-                  onPatronDelete={onPatronDelete}
-                  onPatronAdd={onPatronAdd}
-                  onClientEdit={onClientEdit}
-                  onClientDelete={onClientDelete}
-                  onClientAdd={onClientAdd}
-                  onLieuEdit={onLieuEdit}
-                  onLieuDelete={onLieuDelete}
-                  onLieuAdd={onLieuAdd}
-                  defaultOpenPatrons={false}
-                  allowClientActions={false}
-                  allowLieuActions={true}
-                  kmSettings={kmSettings}
-                  onRegeocoderLieu={onRegeocoderLieu}
-                  deleteAcompte={deleteAcompte}
-                  fetchAcomptes={fetchAcomptes}
-                  showConfirm={showConfirm}
-                  triggerAlert={triggerAlert}
-                  isViewer={isViewer}
-                />
-              )}
-
-              {activePanel === "admin" && isAdmin && <AdminPage darkMode={darkMode} />}
-
-              {activePanel === "diagnostics" && isAdmin && (
-                <DiagnosticsErrorBoundary>
-                  <Suspense fallback={<div className="py-8 text-center text-white/40 text-sm">Chargement diagnostics…</div>}>
-                    <DiagnosticsPage
+                {activePanel === "extra-pro" && (
+                  <div className="space-y-4">
+                    <div className="rounded-2xl border border-yellow-500/25 bg-yellow-500/5 p-4">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/80 mb-3">
+                        Sélecteur taux du jour
+                      </p>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm text-white/70">
+                          Afficher le sélecteur &quot;taux du jour&quot; dans Saisie
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => onToggleMissionRateEditor((prev) => !prev)}
+                          className={
+                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                            (showMissionRateEditor
+                              ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
+                              : "border-white/20 text-white/60")
+                          }
+                        >
+                          {showMissionRateEditor ? "Activé" : "Désactivé"}
+                        </button>
+                      </div>
+                    </div>
+                    <KmSettingsPanel
                       profile={profile}
-                      kmSettings={kmSettings}
-                      domicileLatLng={domicileLatLng}
-                      lieux={lieux}
-                      missionsThisWeek={missionsThisWeek}
-                      kmFraisThisWeek={kmFraisThisWeek ?? undefined}
-                      onRegeocoderBatch={onRegeocoderBatch}
-                      onRecalculerKmSemaine={onRecalculerKmSemaine}
-                      onRebuildBilans={onRebuildBilans}
-                      patrons={patrons}
+                      saveProfile={saveProfile}
+                      isPro={isPro}
                     />
-                  </Suspense>
-                </DiagnosticsErrorBoundary>
-              )}
-            </div>
-          </div>
+                  </div>
+                )}
+
+                {activePanel === "donnees" && (
+                  <DonneesTab
+                    patrons={patrons}
+                    clients={clients}
+                    lieux={lieux}
+                    missions={missions}
+                    fraisDivers={fraisDivers}
+                    acomptes={acomptes}
+                    darkMode={darkMode}
+                    onPatronEdit={onPatronEdit}
+                    onPatronDelete={onPatronDelete}
+                    onPatronAdd={onPatronAdd}
+                    onClientEdit={onClientEdit}
+                    onClientDelete={onClientDelete}
+                    onClientAdd={onClientAdd}
+                    onLieuEdit={onLieuEdit}
+                    onLieuDelete={onLieuDelete}
+                    onLieuAdd={onLieuAdd}
+                    defaultOpenPatrons={false}
+                    allowClientActions={false}
+                    allowLieuActions={true}
+                    kmSettings={kmSettings}
+                    onRegeocoderLieu={onRegeocoderLieu}
+                    deleteAcompte={deleteAcompte}
+                    fetchAcomptes={fetchAcomptes}
+                    showConfirm={showConfirm}
+                    triggerAlert={triggerAlert}
+                    isViewer={isViewer}
+                  />
+                )}
+
+                {activePanel === "admin" && isAdmin && (
+                  <AdminPage darkMode={darkMode} />
+                )}
+
+                {activePanel === "diagnostics" && isAdmin && (
+                  <DiagnosticsErrorBoundary>
+                    <Suspense
+                      fallback={
+                        <div className="py-8 text-center text-white/40 text-sm">
+                          Chargement diagnostics…
+                        </div>
+                      }
+                    >
+                      <DiagnosticsPage
+                        profile={profile}
+                        kmSettings={kmSettings}
+                        domicileLatLng={domicileLatLng}
+                        lieux={lieux}
+                        missionsThisWeek={missionsThisWeek}
+                        kmFraisThisWeek={kmFraisThisWeek ?? undefined}
+                        onRegeocoderBatch={onRegeocoderBatch}
+                        onRecalculerKmSemaine={onRecalculerKmSemaine}
+                        onRebuildBilans={onRebuildBilans}
+                        patrons={patrons}
+                      />
+                    </Suspense>
+                  </DiagnosticsErrorBoundary>
+                )}
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </section>
   );
 }
+
+// ─── KmSettingsPanel ─────────────────────────────────────────────────────────
 
 function KmSettingsPanel({ profile, saveProfile, isPro }) {
   const [saving, setSaving] = useState(false);
@@ -281,7 +475,9 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     const ks = f.km_settings ?? {};
     return f.km_country || ks.countryCode || "FR";
   });
-  const [kmRateMode, setKmRateMode] = useState(() => profile?.features?.km_rate_mode || "AUTO_BY_COUNTRY");
+  const [kmRateMode, setKmRateMode] = useState(
+    () => profile?.features?.km_rate_mode || "AUTO_BY_COUNTRY"
+  );
   const [kmRate, setKmRate] = useState(() => profile?.features?.km_rate_custom ?? "");
 
   useEffect(() => {
@@ -297,13 +493,10 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
   }, [profile]);
 
   const recommendedRate = KM_RATES[kmCountryCode] || 0.42;
-  const countryLabel = EUROPE_COUNTRIES.find((c) => c.code === kmCountryCode)?.label || kmCountryCode;
-
+  const countryLabel =
+    EUROPE_COUNTRIES.find((c) => c.code === kmCountryCode)?.label || kmCountryCode;
   const hasDomicileInProfile = !!(profile?.adresse || profile?.ville);
 
-  // Auto-save the enabled/disabled state when the toggle is clicked.
-  // The full-form save button is only shown when km is enabled, so without this
-  // the "disable" action would never be persisted (toggle reverts on navigation).
   const handleToggleEnable = async () => {
     if (!isPro) return;
     const newEnabled = !kmEnable;
@@ -315,7 +508,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     const result = await saveProfile({ features: nextFeatures });
     if (result?.error) {
       setSaveError(result.error);
-      setKmEnable(getKmEnabled(profile?.features)); // revert on error
+      setKmEnable(getKmEnabled(profile?.features));
     }
     setSaving(false);
   };
@@ -325,10 +518,11 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     setSaveError(null);
     const prevFeatures = profile?.features ?? {};
 
-    // Geocode the domicile address and persist coords to avoid re-geocoding on every load
     let kmDomicileLat = prevFeatures.km_domicile_lat ?? null;
     let kmDomicileLng = prevFeatures.km_domicile_lng ?? null;
-    const addr = (kmDomicileAdresse || "").trim() || [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
+    const addr =
+      (kmDomicileAdresse || "").trim() ||
+      [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
     if (addr) {
       const geoResult = await geocodeAddress(addr);
       if (geoResult) {
@@ -360,7 +554,6 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     const result = await saveProfile({ features: nextFeatures });
     if (result?.error) {
       setSaveError(result.error);
-      // Revert toggle state to what was in profile
       setKmEnable(getKmEnabled(profile?.features));
     }
     setSaving(false);
@@ -370,7 +563,9 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
     <div className="rounded-2xl border border-blue-500/25 bg-blue-500/5 p-4 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-blue-200/80 mb-1">🚗 Frais kilométriques</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-blue-200/80 mb-1">
+            Frais kilométriques
+          </p>
           {!isPro && (
             <p className="text-[10px] text-yellow-400/80">Fonctionnalité Pro</p>
           )}
@@ -379,7 +574,13 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
           type="button"
           onClick={handleToggleEnable}
           disabled={!isPro || saving}
-          className={"px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " + (kmEnable ? "border-blue-400/40 text-blue-300 bg-blue-500/10" : "border-white/20 text-white/60") + (!isPro ? " opacity-50 cursor-not-allowed" : "")}
+          className={
+            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+            (kmEnable
+              ? "border-blue-400/40 text-blue-300 bg-blue-500/10"
+              : "border-white/20 text-white/60") +
+            (!isPro ? " opacity-50 cursor-not-allowed" : "")
+          }
         >
           {kmEnable ? "Activé" : "Désactivé"}
         </button>
@@ -387,19 +588,22 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
 
       {kmEnable && isPro && (
         <div className="space-y-3">
-          {/* Aller/Retour */}
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-white/70">Inclure le trajet retour (aller-retour)</p>
             <button
               type="button"
               onClick={() => setKmIncludeRetour((v) => !v)}
-              className={"px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " + (kmIncludeRetour ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10" : "border-white/20 text-white/60")}
+              className={
+                "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                (kmIncludeRetour
+                  ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
+                  : "border-white/20 text-white/60")
+              }
             >
               {kmIncludeRetour ? "Aller-Retour" : "Aller seul"}
             </button>
           </div>
 
-          {/* Domicile */}
           <div>
             <label className="block text-[10px] font-black uppercase mb-1 text-blue-300/80 tracking-wider">
               Adresse domicile
@@ -408,9 +612,13 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
               type="text"
               value={kmDomicileAdresse}
               onChange={(e) => setKmDomicileAdresse(e.target.value)}
-              placeholder={hasDomicileInProfile
-                ? [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ")
-                : "Ex: Rue de la Paix 1, 75001 Paris"}
+              placeholder={
+                hasDomicileInProfile
+                  ? [profile?.adresse, profile?.code_postal, profile?.ville]
+                      .filter(Boolean)
+                      .join(", ")
+                  : "Ex: Rue de la Paix 1, 75001 Paris"
+              }
               className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-black/20 border-white/10 text-white focus:border-blue-500 backdrop-blur-md placeholder:text-white/30"
             />
             {hasDomicileInProfile && !kmDomicileAdresse && (
@@ -418,30 +626,36 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
                 Si vide, l&apos;adresse du profil sera utilisée.
               </p>
             )}
-            {Number.isFinite(Number(profile?.features?.km_domicile_lat)) && Number.isFinite(Number(profile?.features?.km_domicile_lng)) ? (
+            {Number.isFinite(Number(profile?.features?.km_domicile_lat)) &&
+            Number.isFinite(Number(profile?.features?.km_domicile_lng)) ? (
               <p className="text-[10px] text-green-400 mt-1">✅ Coordonnées GPS enregistrées</p>
             ) : (
-              <p className="text-[10px] text-yellow-400/80 mt-1">⚠️ Coordonnées non résolues — enregistrez pour les calculer</p>
+              <p className="text-[10px] text-yellow-400/80 mt-1">
+                ⚠️ Coordonnées non résolues — enregistrez pour les calculer
+              </p>
             )}
           </div>
 
-          {/* Pays */}
           <div>
             <label className="block text-[10px] font-black uppercase mb-1 text-blue-300/80 tracking-wider">
               Pays
             </label>
             <select
               value={kmCountryCode}
-              onChange={(e) => { setKmCountryCode(e.target.value); setKmRateMode("AUTO_BY_COUNTRY"); }}
+              onChange={(e) => {
+                setKmCountryCode(e.target.value);
+                setKmRateMode("AUTO_BY_COUNTRY");
+              }}
               className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-black/20 border-white/10 text-white focus:border-blue-500 backdrop-blur-md"
             >
               {EUROPE_COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>{c.label}</option>
+                <option key={c.code} value={c.code}>
+                  {c.label}
+                </option>
               ))}
             </select>
           </div>
 
-          {/* Taux */}
           <div>
             <label className="block text-[10px] font-black uppercase mb-1 text-blue-300/80 tracking-wider">
               Taux kilométrique
@@ -449,11 +663,15 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
             {kmRateMode === "AUTO_BY_COUNTRY" ? (
               <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/10">
                 <span className="text-sm text-white/70">
-                  Taux recommandé : <strong className="text-blue-300">{recommendedRate} €/km</strong> ({countryLabel})
+                  Taux recommandé :{" "}
+                  <strong className="text-blue-300">{recommendedRate} €/km</strong> ({countryLabel})
                 </span>
                 <button
                   type="button"
-                  onClick={() => { setKmRateMode("CUSTOM"); setKmRate(recommendedRate); }}
+                  onClick={() => {
+                    setKmRateMode("CUSTOM");
+                    setKmRate(recommendedRate);
+                  }}
                   className="text-[10px] font-black uppercase text-purple-300 hover:text-purple-100 transition-all ml-2"
                 >
                   Personnaliser
@@ -482,9 +700,8 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
             )}
           </div>
 
-          {saveError && (
-            <p className="text-red-400 text-xs font-bold">{saveError}</p>
-          )}
+          {saveError && <p className="text-red-400 text-xs font-bold">{saveError}</p>}
+
           <button
             type="button"
             onClick={handleSave}

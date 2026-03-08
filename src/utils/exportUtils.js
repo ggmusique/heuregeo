@@ -1,3 +1,4 @@
+import * as XLSX from "xlsx";
 import { formatEuro, formatHeures, formatDateFR } from "./formatters";
 
 /**
@@ -28,10 +29,6 @@ export const exportToExcel = (
     throw new Error("Données du bilan manquantes");
   }
 
-  if (!window.XLSX) {
-    throw new Error("Librairie Excel non chargée");
-  }
-
   const { filteredData = [], totalH = 0, totalE = 0 } = bilanData;
 
   // Calcul des totaux
@@ -45,7 +42,6 @@ export const exportToExcel = (
 
   const grandTotal = totalE;
   const totalMissions = totalE - totalFrais;
-  const XLSX = window.XLSX;
 
   // Construction des coordonnées du profil
   const profileRows = [];
