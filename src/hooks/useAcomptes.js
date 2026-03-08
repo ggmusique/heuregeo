@@ -102,7 +102,6 @@ const createAcompte = useCallback(
           console.warn("APPLY_ACOMPTE:skip (already applied)", { acompteId });
         } else {
           appliedAcompteIds.current.add(acompteId);
-          console.log("APPLY_ACOMPTE:start", { acompteId });
 
           const { error: applyError } = await supabase.rpc("apply_acompte", {
             p_acompte_id: acompteId,
@@ -115,18 +114,7 @@ const createAcompte = useCallback(
           }
 
           autoPayApplied = true;
-          console.log("APPLY_ACOMPTE:end", { acompteId });
 
-          // Log de vérification : total_alloue rechargé depuis acompte_allocations
-          const { data: allocations } = await supabase
-            .from("acompte_allocations")
-            .select("amount")
-            .eq("acompte_id", acompteId);
-          const totalAlloue = (allocations || []).reduce(
-            (sum, a) => sum + (parseFloat(a.amount) || 0),
-            0
-          );
-          console.log("APPLY_ACOMPTE:total_alloue", { acompteId, totalAlloue });
         }
       }
 

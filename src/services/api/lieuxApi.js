@@ -32,8 +32,6 @@ export const fetchLieux = async () => {
 
 // ========= CREATE =========
 export const createLieu = async (lieuData) => {
-  console.log("🔵 API - createLieu appelée avec:", lieuData);
-
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Utilisateur non connecté");
 
@@ -48,8 +46,6 @@ export const createLieu = async (lieuData) => {
     console.error("🔴 API - Erreur création lieu:", error);
     throw error;
   }
-
-  console.log("🟢 API - Lieu créé:", data[0]);
 
   // ✅ Retourner le lieu créé (avec son ID)
   return data[0];

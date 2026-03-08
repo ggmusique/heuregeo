@@ -430,7 +430,7 @@ export default function App({ user }) {
     finally { setLoading(false); }
   };
 
-  const handleLieuEdit = (lieu) => { console.log("EDIT LIEU", lieu); setEditingLieuId(lieu.id); setEditingLieuData(lieu); setShowLieuModal(true); };
+  const handleLieuEdit = (lieu) => { setEditingLieuId(lieu.id); setEditingLieuData(lieu); setShowLieuModal(true); };
 
   const handleRegeocoderLieu = async (id, coords) => {
     try {

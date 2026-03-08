@@ -49,21 +49,6 @@ export const fetchMissions = async () => {
 // 2) CRÉER une mission (CREATE)
 // ------------------------------------------------------------
 export const createMission = async (missionData) => {
-  // ✅ LOG : Voir ce qui arrive dans l'API
-  console.log("🔵 API - createMission appelée avec:", {
-    missionData,
-    types: {
-      client_id: typeof missionData.client_id,
-      lieu_id: typeof missionData.lieu_id,
-      patron_id: typeof missionData.patron_id,
-    },
-    values: {
-      client_id: missionData.client_id,
-      lieu_id: missionData.lieu_id,
-      patron_id: missionData.patron_id,
-    }
-  });
-
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Utilisateur non connecté");
 
@@ -90,8 +75,6 @@ export const createMission = async (missionData) => {
   }
 
   // ✅ LOG : Succès
-  console.log("🟢 API - Mission créée:", data[0]);
-
   return data[0];
 };
 
@@ -99,17 +82,6 @@ export const createMission = async (missionData) => {
 // 3) MODIFIER une mission (UPDATE)
 // ------------------------------------------------------------
 export const updateMission = async (id, missionData) => {
-  // ✅ LOG : Voir ce qui arrive dans l'API
-  console.log("🔵 API - updateMission appelée avec:", {
-    id,
-    missionData,
-    types: {
-      client_id: typeof missionData.client_id,
-      lieu_id: typeof missionData.lieu_id,
-      patron_id: typeof missionData.patron_id,
-    },
-  });
-
   const payload = { ...missionData };
   // Always keep date_mission in sync with date_iso when date_iso is updated
   if (payload.date_iso) {
@@ -131,8 +103,6 @@ export const updateMission = async (id, missionData) => {
     });
     throw error;
   }
-
-  console.log("🟢 API - Mission mise à jour:", data[0]);
 
   return data[0];
 };

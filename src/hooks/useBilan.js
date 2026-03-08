@@ -198,17 +198,6 @@ export function useBilan({
           .order("created_at", { ascending: false })
           .limit(1);
 
-        console.log("STATUT_QUERY", {
-          table: TABLE,
-          filters: {
-            periode_type: bilanPeriodType,
-            periode_value: bilanPeriodValue,
-            patron_id: pId,
-          },
-          data,
-          error,
-        });
-  
         if (error) {
           console.error("STATUT_QUERY_ERROR", { pId, bilanPeriodType, bilanPeriodValue, error });
           throw error;
@@ -243,18 +232,6 @@ export function useBilan({
         .lt("periode_index", currentIndex)
         .or("paye.eq.false,reste_a_percevoir.gt.0");
 
-      console.log("BILANS_QUERY", {
-        scope: "impaye_precedent",
-        filters: {
-          periode_type: PERIOD_TYPES.SEMAINE,
-          patron_id: pId,
-          periode_index_lt: currentIndex,
-          unpaid_filter: "paye=false OR reste_a_percevoir>0",
-        },
-        data,
-        error,
-      });
-
       if (error) {
         console.error("BILANS_QUERY_ERROR", { scope: "impaye_precedent", patronId: pId, currentIndex, error });
         throw error;
@@ -264,13 +241,6 @@ export function useBilan({
         const reste = parseFloat(row?.reste_a_percevoir ?? 0);
         return sum + (reste > 0 ? reste : 0);
       }, 0);
-
-      console.log("🟣 IMPAYE PRECEDENT", {
-        currentIndex,
-        mode: "sum-all-previous-unpaid",
-        rows: (data || []).length,
-        impayePrecedent,
-      });
 
       return impayePrecedent;
     } catch (err) {
@@ -357,7 +327,6 @@ export function useBilan({
       try {
         const runPatronId = patronId ?? bilanContent.selectedPatronId ?? null;
         const pId = effectivePatronId(runPatronId);
-        console.log("BILAN_PATRON_CONTEXT", { patronIdArg: patronId, selectedPatronId: bilanContent.selectedPatronId, runPatronId, resolvedPatronId: pId });
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           triggerAlert?.("Utilisateur non connecté.");
@@ -487,13 +456,6 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
     .eq("patron_id", pId)
     .eq("periode_index", weekNum);  // ✅ Juste cette semaine
 
-  console.log("ALLOC_QUERY", {
-    scope: "cette_semaine",
-    filters: { patron_id: pId, periode_index: weekNum },
-    data: allocsCetteSemaine,
-    error: allocCetteSemaineError,
-  });
-
   if (allocCetteSemaineError) {
     console.error("ALLOC_QUERY_ERROR", { scope: "cette_semaine", patronId: pId, currentIndex: weekNum, error: allocCetteSemaineError });
   }
@@ -510,13 +472,6 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
     .eq("patron_id", pId)
     .lte("periode_index", weekNum);
 
-  console.log("ALLOC_QUERY", {
-    scope: "jusqua",
-    filters: { patron_id: pId, periode_index_lte: weekNum },
-    data: allocsJusqua,
-    error: allocJusquaError,
-  });
-
   if (allocJusquaError) {
     console.error("ALLOC_QUERY_ERROR", { scope: "jusqua", patronId: pId, currentIndex: weekNum, error: allocJusquaError });
   }
@@ -532,13 +487,6 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
     .select("amount")
     .eq("patron_id", pId)
     .lt("periode_index", weekNum);
-
-  console.log("ALLOC_QUERY", {
-    scope: "avant",
-    filters: { patron_id: pId, periode_index_lt: weekNum },
-    data: allocsAvant,
-    error: allocAvantError,
-  });
 
   if (allocAvantError) {
     console.error("ALLOC_QUERY_ERROR", { scope: "avant", patronId: pId, currentIndex: weekNum, error: allocAvantError });
@@ -560,17 +508,6 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
     .gte("created_at", periodStartIso)
     .lt("created_at", periodEndExclusive.toISOString());
 
-  console.log("ALLOC_QUERY", {
-    scope: "created_in_period",
-    filters: {
-      patron_id: pId,
-      created_at_gte: periodStartIso,
-      created_at_lt: periodEndExclusive.toISOString(),
-    },
-    data: allocsCreatedInPeriod,
-    error: allocPeriodError,
-  });
-
   if (allocPeriodError) {
     console.error("ALLOC_QUERY_ERROR", { scope: "created_in_period", patronId: pId, currentIndex: weekNum, error: allocPeriodError });
   }
@@ -587,13 +524,6 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
     .eq("patron_id", pId)
     .lte("date_acompte", finPeriode);
 
-  console.log("ACOMPTES_QUERY", {
-    scope: "cumules",
-    filters: { patron_id: pId, date_acompte_lte: finPeriode },
-    data: acomptesCumulesRows,
-    error: acomptesCumulesError,
-  });
-
   if (acomptesCumulesError) {
     console.error("ACOMPTES_QUERY_ERROR", { scope: "cumules", patronId: pId, dateFin: finPeriode, error: acomptesCumulesError });
   }
@@ -604,17 +534,6 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
     .eq("patron_id", pId)
     .gte("date_acompte", debutPeriode)
     .lte("date_acompte", finPeriode);
-
-  console.log("ACOMPTES_QUERY", {
-    scope: "dans_periode",
-    filters: {
-      patron_id: pId,
-      date_acompte_gte: debutPeriode,
-      date_acompte_lte: finPeriode,
-    },
-    data: acomptesPeriodeRows,
-    error: acomptesPeriodeError,
-  });
 
   if (acomptesPeriodeError) {
     console.error("ACOMPTES_QUERY_ERROR", { scope: "dans_periode", patronId: pId, debutPeriode, finPeriode, error: acomptesPeriodeError });
@@ -642,22 +561,6 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
   const detteTotale = impayePrecedent + caBrutPeriode;
   resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
   resteAPercevoir = resteCettePeriode;
-
-  console.log("🔵 DEBUG ACOMPTE S" + weekNum, {
-    caBrutPeriode,
-    impayePrecedent,
-    detteTotale,
-    acomptesCumules,
-    allocCetteSemaine,
-    totalAlloueJusqua,
-    totalAlloueAvant,
-    acomptesDansPeriode,
-    acompteConsomme,
-    soldeAvantPeriode,
-    soldeApresPeriode,
-    resteCettePeriode,
-    resteAPercevoir,
-  });
 
 } else {
   // Mode mois/année (inchangé)
@@ -812,7 +715,6 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           const resteNetFinal = safeNumber(resteCettePeriode);
           content.resteAPercevoir = resteNetFinal;
           content.resteCettePeriode = resteNetFinal;
-          console.log("NET_FINAL", { resteAPercevoir: content.resteAPercevoir, resteCettePeriode: content.resteCettePeriode, resteNetFinal });
         }
 
         setBilanContent(content);
@@ -1072,8 +974,6 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
 
           // Impayé précédent (règle glissante N-1)
           const impayePrecedent = await getImpayePrecedent(weekNum, patronId);
-
-          console.log(`DEBUG_REBUILD S${weekNum}`, { caBrutPeriode, impayePrecedent });
 
           const { data: existingBilan, error: lookupError } = await supabase
             .from(TABLE)

@@ -12,7 +12,6 @@ export function UpdatePrompt() {
         setNeedRefresh(true);
       },
       onOfflineReady() {
-        console.log('✅ App ready to work offline');
       },
     });
     setUpdateSW(() => sw);
