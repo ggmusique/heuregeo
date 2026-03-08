@@ -500,7 +500,7 @@ const drawKmFeesTable = (doc, bilanContent, startY) => {
       cx += colWidths[1];
 
       doc.setTextColor(...COLORS.navyLight);
-      doc.text(`${Math.round((item.kmTotal || 0) * 10) / 10} km`, cx + colWidths[2] / 2, y + 4, { align: "center" });
+      doc.text(`${Math.round(item.kmTotal || 0)} km`, cx + colWidths[2] / 2, y + 4, { align: "center" });
       cx += colWidths[2];
 
       doc.setFont(undefined, "bold");
@@ -522,7 +522,7 @@ const drawKmFeesTable = (doc, bilanContent, startY) => {
     doc.setFontSize(8.5);
     doc.setTextColor(...COLORS.white);
     doc.text("TOTAL FRAIS KM", startX + 5, y + 5.5);
-    doc.text(`${Math.round((km.totalKm || 0) * 10) / 10} km`, startX + tableW - 55, y + 5.5, { align: "center" });
+    doc.text(`${Math.round(km.totalKm || 0)} km`, startX + tableW - 55, y + 5.5, { align: "center" });
     doc.text(formatEuro(km.totalAmount || 0), startX + tableW - 5, y + 5.5, { align: "right" });
 
     return y + 18;

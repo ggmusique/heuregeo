@@ -257,7 +257,7 @@ export async function generateFacture(
     autoTable(doc, {
       startY: y,
       head: [["", "Frais kilométriques", "", "km", "Montant"]],
-      body: [["", `${km.totalKm} km parcourus`, "", String(km.totalKm), fmtEuro(km.totalAmount)]],
+      body: [["", `${Math.round(km.totalKm)} km parcourus`, "", String(Math.round(km.totalKm)), fmtEuro(km.totalAmount)]],
       margin: { left: ML, right: MR },
       styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: C.black, lineColor: C.grayL, lineWidth: 0.1 },
       headStyles: { fillColor: C.blue, textColor: C.white, fontStyle: "bold", fontSize: 9 },
