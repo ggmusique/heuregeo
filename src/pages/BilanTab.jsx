@@ -5,6 +5,7 @@ import { exportToExcel, exportToCSV } from "../utils/exportUtils";
 import { exportToPDFPro } from "../utils/exportPDF_Pro";
 import { MissionCard } from "../components/mission/MissionCard";
 import { WeekPicker } from "../components/common/bilan/WeekPicker";
+import { WeatherIcon } from "../components/common/WeatherIcon";
 
 export const BilanTab = ({
   bilan,
@@ -500,13 +501,7 @@ export const BilanTab = ({
 
                     {m.weather ? (
                       <div className="flex items-center gap-2 min-w-[90px] justify-end">
-                        <img
-                          src={`https://openweathermap.org/img/wn/${m.weather.icon}@2x.png`}
-                          alt={m.weather.desc}
-                          className="w-8 h-8 drop-shadow-sm opacity-90"
-                          crossOrigin="anonymous"
-                          onError={(e) => { e.target.style.display = "none"; }}
-                        />
+                        <WeatherIcon code={m.weather.icon} className="w-8 h-8 flex-shrink-0" />
                         <div className="text-right text-xs leading-tight">
                           <div className="font-medium">{m.weather.tempMin}–{m.weather.tempMax}°</div>
                           <div className="opacity-70 capitalize truncate max-w-[60px]">{m.weather.desc}</div>

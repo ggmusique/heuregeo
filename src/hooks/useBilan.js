@@ -4,10 +4,8 @@ import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
 
-const fetchHistoricalWeather = async (dateIso) => {
+const fetchHistoricalWeather = async (dateIso, lat = 50.63, lon = 5.58) => {
   try {
-    const lat = 50.63;
-    const lon = 5.58;
     const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${dateIso}&end_date=${dateIso}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=Europe/Paris`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("Erreur API météo");
@@ -693,7 +691,21 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           await Promise.all(
             uniqueDates.map(async (date) => {
               if (!weatherCache[date]) {
-                weatherCache[date] = await fetchHistoricalWeather(date);
+                const missionDuJour = filtered.find((m) => m.date_iso === date);
+                const lieuById = missionDuJour && lieux.find((l) => l.id === missionDuJour.lieu_id);
+                const lieuByName = !lieuById && missionDuJour?.lieu
+                  ? lieux.find((l) => l.nom?.toLowerCase().trim() === missionDuJour.lieu?.toLowerCase().trim())
+                  : null;
+                const lieu = lieuById || lieuByName;
+                const latLieu = Number(lieu?.latitude);
+                const lngLieu = Number(lieu?.longitude);
+                const weatherLat = Number.isFinite(latLieu) && Number.isFinite(lngLieu)
+                  ? latLieu
+                  : (domicileLatLng?.lat ?? 50.63);
+                const weatherLon = Number.isFinite(latLieu) && Number.isFinite(lngLieu)
+                  ? lngLieu
+                  : (domicileLatLng?.lng ?? 5.58);
+                weatherCache[date] = await fetchHistoricalWeather(date, weatherLat, weatherLon);
               }
             })
           );

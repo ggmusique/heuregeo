@@ -8,6 +8,7 @@ import {
 } from "../../constants/options";
 import { calculerDuree } from "../../utils/calculators";
 import { ClientSelector } from "../client/ClientSelector";
+import { WeatherIcon } from "../common/WeatherIcon";
 import { LieuSelector } from "../lieu/LieuSelector";
 
 const JOURNEE_TYPE = { debut: "08:00", fin: "17:00", pause: 30 };
@@ -267,11 +268,7 @@ export const MissionForm = ({
             {weather ? (
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl backdrop-blur-md border border-white/25 shadow-md shrink-0">
-                  <img
-                    src={`https://openweathermap.org/img/wn/${weather.icon}@4x.png`}
-                    alt={weather.desc}
-                    className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-lg"
-                  />
+                  <WeatherIcon code={weather.icon} className="w-10 h-10 sm:w-12 sm:h-12" />
                 </div>
                 <div>
                   <div className="text-2xl sm:text-3xl font-black text-white drop-shadow leading-none">
