@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { formatEuro, formatDateFR } from "../utils/formatters";
 import { getWeekNumber } from "../utils/dateUtils";
+import { useLabels } from "../contexts/LabelsContext";
 
 /**
  * ✅ HistoriqueTab
@@ -28,6 +29,8 @@ export const HistoriqueTab = ({
   isViewer,
   viewerPatronId,
 }) => {
+  const L = useLabels();
+
   // When viewer, use their fixed patron_id for all filtering
   const effectivePatronId = isViewer ? viewerPatronId : historiquePatronId;
 
@@ -73,7 +76,7 @@ export const HistoriqueTab = ({
           } backdrop-blur-md`}
         >
           <p className="text-[10px] font-black uppercase opacity-50 tracking-widest mb-3">
-            Filtre patron
+            Filtre {L.patron}
           </p>
           <select
             value={historiquePatronId || ""}
@@ -84,7 +87,7 @@ export const HistoriqueTab = ({
                 : "bg-slate-50 border-slate-200 text-slate-900"
             }`}
           >
-            <option value="">Tous les patrons</option>
+            <option value="">Tous les {L.patrons}</option>
             {patrons.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.nom}

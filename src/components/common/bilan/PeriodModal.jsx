@@ -1,4 +1,5 @@
 import React from "react";
+import { useLabels } from "../../../contexts/LabelsContext";
 
 /**
  * ============================
@@ -40,6 +41,8 @@ export const PeriodModal = ({
   canBilanMois = true,       // accès au bilan par mois (plan Pro)
   canBilanAnnee = true,      // accès au bilan par année (plan Pro)
 }) => {
+  const L = useLabels();
+
   /**
    * Garde-fou : si show est false, on ne rend rien.
    * (la modale n’existe pas dans le DOM)
@@ -173,7 +176,7 @@ export const PeriodModal = ({
         {!isViewer && (
         <div className="mb-8">
           <label className="block text-[11px] font-black uppercase mb-3 text-green-300 tracking-[0.25em] opacity-80">
-            Filtrer par patron (optionnel)
+          Filtrer par {L.patron} (optionnel)
           </label>
 
           <div className="relative">
@@ -187,7 +190,7 @@ export const PeriodModal = ({
               className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-green-500/40 appearance-none cursor-pointer focus:outline-none focus:border-green-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[#1a1f2e] text-white" : "bg-white text-slate-900 border-slate-200"}`}
             >
               {/* Global */}
-              <option value="">📊 Tous les patrons (Global)</option>
+              <option value="">📊 Tous les {L.patrons} (Global)</option>
 
               {/* Liste patrons */}
               {patrons.map((patron) => (
@@ -217,7 +220,7 @@ export const PeriodModal = ({
 
           {/* Aide texte */}
           <p className="text-[9px] opacity-50 mt-2 px-1">
-            Laisser sur "Tous les patrons" pour un bilan consolidé
+            Laisser sur "Tous les {L.patrons}" pour un bilan consolidé
           </p>
         </div>
         )}
@@ -230,7 +233,7 @@ export const PeriodModal = ({
         {!isViewer && (
         <div className="mb-8">
           <label className="block text-[11px] font-black uppercase mb-3 text-amber-300 tracking-[0.25em] opacity-80">
-            Filtrer par client (optionnel)
+          Filtrer par {L.client} (optionnel)
           </label>
 
           <div className="relative">
@@ -242,7 +245,7 @@ export const PeriodModal = ({
               }}
               className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-amber-500/40 appearance-none cursor-pointer focus:outline-none focus:border-amber-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[#1a1f2e] text-white" : "bg-white text-slate-900 border-slate-200"}`}
             >
-              <option value="">👥 Tous les clients</option>
+              <option value="">👥 Tous les {L.clients}</option>
 
               {clients.map((client) => (
                 <option key={client.id} value={client.id}>
@@ -271,7 +274,7 @@ export const PeriodModal = ({
 
           {/* Aide texte */}
           <p className="text-[9px] opacity-50 mt-2 px-1">
-            Laisser sur "Tous les clients" pour un bilan consolidé
+            Laisser sur "Tous les {L.clients}" pour un bilan consolidé
           </p>
         </div>
         )}
