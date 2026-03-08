@@ -374,12 +374,14 @@ export function ParametresTab({
                         </p>
                         <button
                           type="button"
+                          disabled={!isPro}
                           onClick={() => onToggleMissionRateEditor((prev) => !prev)}
                           className={
                             "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
                             (showMissionRateEditor
                               ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
-                              : (darkMode ? "border-white/20 text-white/60" : "border-slate-300 text-slate-500"))
+                              : (darkMode ? "border-white/20 text-white/60" : "border-slate-300 text-slate-500")) +
+                            (!isPro ? " opacity-40 cursor-not-allowed" : "")
                           }
                         >
                           {showMissionRateEditor ? "Activé" : "Désactivé"}
@@ -392,6 +394,33 @@ export function ParametresTab({
                       isPro={isPro}
                       darkMode={darkMode}
                     />
+                    <div className={"rounded-2xl border p-4 " + (darkMode ? "border-emerald-500/25 bg-emerald-500/5" : "border-emerald-300/50 bg-emerald-50/50")}>
+                      <p className={"text-[10px] font-black uppercase tracking-widest mb-3 " + (darkMode ? "text-emerald-200/80" : "text-emerald-700")}>
+                        Agenda
+                      </p>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className={"text-sm " + (darkMode ? "text-white/70" : "text-slate-600")}>
+                          Calendrier, RDV et rappels
+                        </p>
+                        <button
+                          type="button"
+                          disabled={!isPro || profileSaving}
+                          onClick={async () => {
+                            const current = profile?.features?.agenda === true;
+                            await saveProfile({ features: { ...(profile?.features || {}), agenda: !current } });
+                          }}
+                          className={
+                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                            (profile?.features?.agenda
+                              ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
+                              : (darkMode ? "border-white/20 text-white/60" : "border-slate-300 text-slate-500")) +
+                            (!isPro || profileSaving ? " opacity-40 cursor-not-allowed" : "")
+                          }
+                        >
+                          {profile?.features?.agenda ? "Activé" : "Désactivé"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
 

@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
 import { SuiviTab } from "./pages/SuiviTab";
 import { ParametresTab } from "./pages/ParametresTab";
+import { AgendaTab } from "./pages/AgendaTab";
 
 import { useClients } from "./hooks/useClients";
 import { useMissions } from "./hooks/useMissions";
@@ -23,6 +24,8 @@ import { useFraisModal } from "./hooks/useFraisModal";
 import { usePatronModal } from "./hooks/usePatronModal";
 import { useClientModal } from "./hooks/useClientModal";
 import { useAcompteModal } from "./hooks/useAcompteModal";
+import { useAgenda } from "./hooks/useAgenda";
+import { useAgendaModal } from "./hooks/useAgendaModal";
 
 import { FraisModal } from "./components/common/frais/FraisModal";
 import { AcompteModal } from "./components/common/acompte/AcompteModal";
@@ -33,6 +36,7 @@ import { ConfirmModal } from "./components/common/ConfirmModal";
 import { CustomAlert } from "./components/common/CustomAlert";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
 import { LieuModal } from "./components/lieu/LieuModal";
+import { AgendaModal } from "./components/agenda/AgendaModal";
 import { OnboardingForm } from "./components/auth/OnboardingForm";
 import { ViewerBadge } from "./components/common/ViewerBadge";
 
@@ -80,7 +84,7 @@ export default function App({ user }) {
     (error) => triggerAlert(error)
   );
 
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage } = useProfile(user);
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canAgenda } = useProfile(user);
 
   const { kmSettings, domicileLatLng, currentWeek, missionsThisWeek, kmFraisThisWeek, handleRecalculerKmSemaine } = useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek });
 
@@ -97,6 +101,15 @@ export default function App({ user }) {
   const fraisModal = useFraisModal({ createFrais, updateFrais, deleteFrais, setLoading, triggerAlert, showConfirm });
   const patronModal = usePatronModal({ createPatron, updatePatron, deletePatron, setLoading, triggerAlert, showConfirm });
   const clientModal = useClientModal({ createClient, updateClient, deleteClient, setLoading, triggerAlert, showConfirm });
+
+  const agendaHook  = useAgenda({ userId: user?.id, triggerAlert });
+  const agendaModal = useAgendaModal({ createEvent: agendaHook.createEvent, updateEvent: agendaHook.updateEvent, deleteEvent: agendaHook.deleteEvent, triggerAlert });
+
+  const agendaWorkedDays = useMemo(() => {
+    const s = new Set();
+    missions.forEach((m) => { if (m.date) s.add(m.date); });
+    return s;
+  }, [missions]);
 
   useEffect(() => {
     document.title = "Heures de Geo";
@@ -144,6 +157,16 @@ export default function App({ user }) {
     }
   }, [isViewer, viewerPatronId]);
 
+  useEffect(() => {
+    if (canAgenda && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, [canAgenda]);
+
+  useEffect(() => {
+    if (!canAgenda && activeTab === "agenda") setActiveTab("saisie");
+  }, [canAgenda, activeTab]);
+
   const handleMarquerCommePaye = async () => {
     const confirmed = await showConfirm({ title: "Marquer comme paye", message: "Voulez-vous marquer ce bilan comme paye ?", confirmText: "Confirmer", cancelText: "Annuler", type: "info" });
     if (!confirmed) return;
@@ -153,12 +176,13 @@ export default function App({ user }) {
   const isProNavigationMode = isPro && !isViewer;
 
   const proNavItems = [
-    { key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
-    { key: "suivi", label: "Suivi", icon: "📊", activeClass: "from-cyan-600 to-indigo-700" },
+    { key: "saisie",     label: "Saisie",     icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
+    { key: "suivi",      label: "Suivi",      icon: "📊", activeClass: "from-cyan-600 to-indigo-700" },
+    ...(canAgenda ? [{ key: "agenda", label: "Agenda", icon: "📅", activeClass: "from-emerald-600 to-teal-700" }] : []),
     { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
   ];
 
-  const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || historiqueHook.loadingHistorique;
+  const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || historiqueHook.loadingHistorique || agendaHook.loading;
 
   if (user && !profileLoading && !isViewer && !isProfileComplete) {
     return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
@@ -307,6 +331,22 @@ export default function App({ user }) {
           />
         )}
 
+        {activeTab === "agenda" && (
+          <AgendaTab
+            events={agendaHook.events}
+            loading={agendaHook.loading}
+            currentYear={agendaHook.currentYear}
+            currentMonth={agendaHook.currentMonth}
+            workedDays={agendaWorkedDays}
+            onGoToPrev={agendaHook.goToPrevMonth}
+            onGoToNext={agendaHook.goToNextMonth}
+            onGoToToday={agendaHook.goToToday}
+            onOpenForDate={agendaModal.openForDate}
+            onEventEdit={agendaModal.handleEventEdit}
+            darkMode={darkMode}
+          />
+        )}
+
         {activeTab === "parametres" && !isViewer && (
           <ParametresTab
             profile={profile}
@@ -372,6 +412,20 @@ export default function App({ user }) {
       />
 
       <LieuModal show={lieuModal.showLieuModal} editMode={!!lieuModal.editingLieuId} initialData={lieuModal.editingLieuData} onSubmit={lieuModal.handleLieuSubmit} onCancel={() => { lieuModal.setShowLieuModal(false); lieuModal.resetLieuForm(); }} loading={loading} darkMode={darkMode} />
+
+      {agendaModal.showAgendaModal && (
+        <AgendaModal
+          show={agendaModal.showAgendaModal}
+          editMode={!!agendaModal.editingEventId}
+          initialData={agendaModal.editingEventData}
+          selectedDate={agendaModal.selectedDate}
+          onSubmit={agendaModal.handleEventSubmit}
+          onCancel={() => { agendaModal.setShowAgendaModal(false); agendaModal.resetEventForm(); }}
+          onDelete={() => agendaModal.handleEventDelete(agendaModal.editingEventId)}
+          loading={loading}
+          darkMode={darkMode}
+        />
+      )}
 
       <nav className="fixed bottom-6 left-6 right-6 z-[100]">
         {isProNavigationMode ? (
