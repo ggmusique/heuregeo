@@ -84,7 +84,7 @@ export default function App({ user }) {
     (error) => triggerAlert(error)
   );
 
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canAgenda } = useProfile(user);
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canAgenda, canFacture } = useProfile(user);
 
   const { kmSettings, domicileLatLng, currentWeek, missionsThisWeek, kmFraisThisWeek, handleRecalculerKmSemaine } = useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek });
 
@@ -323,6 +323,8 @@ export default function App({ user }) {
               canExportPDF,
               canExportExcel,
               canExportCSV,
+              canFacture,
+              saveProfile,
               kmSettings,
               kmFraisThisWeek,
               domicileLatLng,

@@ -18,6 +18,15 @@ export function PatronModal({
   const [tauxHoraire, setTauxHoraire] = useState("");
   const [couleur, setCouleur] = useState("#8b5cf6");
 
+  // Champs de facturation (optionnels)
+  const [showBilling, setShowBilling] = useState(false);
+  const [adresse, setAdresse] = useState("");
+  const [codePostal, setCodePostal] = useState("");
+  const [ville, setVille] = useState("");
+  const [telephone, setTelephone] = useState("");
+  const [email, setEmail] = useState("");
+  const [siret, setSiret] = useState("");
+
   // Couleurs prédéfinies
   const COULEURS_PRESET = [
     { nom: "Violet", value: "#8b5cf6" },
@@ -40,10 +49,25 @@ export function PatronModal({
         initialData.taux_horaire != null ? String(initialData.taux_horaire) : ""
       );
       setCouleur(initialData.couleur || "#8b5cf6");
+      setAdresse(initialData.adresse || "");
+      setCodePostal(initialData.code_postal || "");
+      setVille(initialData.ville || "");
+      setTelephone(initialData.telephone || "");
+      setEmail(initialData.email || "");
+      setSiret(initialData.siret || "");
+      const hasBilling = !!(initialData.adresse || initialData.ville || initialData.telephone || initialData.email || initialData.siret);
+      setShowBilling(hasBilling);
     } else {
       setNom("");
       setTauxHoraire("");
       setCouleur("#8b5cf6");
+      setAdresse("");
+      setCodePostal("");
+      setVille("");
+      setTelephone("");
+      setEmail("");
+      setSiret("");
+      setShowBilling(false);
     }
   }, [show, editMode, initialData]);
 
@@ -83,6 +107,12 @@ export function PatronModal({
       nom: cleanNom,
       taux_horaire: taux,
       couleur,
+      adresse: adresse.trim() || null,
+      code_postal: codePostal.trim() || null,
+      ville: ville.trim() || null,
+      telephone: telephone.trim() || null,
+      email: email.trim() || null,
+      siret: siret.trim() || null,
     });
   };
 
@@ -204,9 +234,78 @@ export function PatronModal({
               disabled={loading}
             />
           </div>
-        </div>
 
-        {/* Aperçu */}
+          {/* Coordonnées de facturation */}
+          <div className={`rounded-2xl border overflow-hidden ${darkMode ? "border-white/10" : "border-slate-200"}`}>
+            <button
+              type="button"
+              onClick={() => setShowBilling(v => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 text-left"
+            >
+              <span className="text-[10px] font-black uppercase opacity-60 tracking-wider">
+                Coordonnées de facturation
+                <span className="ml-2 font-normal normal-case opacity-60">optionnel</span>
+              </span>
+              <span className={`text-white/30 text-lg shrink-0`} style={{ display: 'inline-block', transition: 'transform .2s', transform: showBilling ? 'rotate(90deg)' : 'rotate(0deg)' }}>›</span>
+            </button>
+            {showBilling && (
+              <div className={`px-4 pb-4 space-y-3 border-t ${darkMode ? "border-white/5" : "border-slate-100"}`}>
+                <div className="pt-3">
+                  <input
+                    type="text"
+                    value={adresse}
+                    onChange={e => setAdresse(e.target.value)}
+                    placeholder="Adresse"
+                    disabled={loading}
+                    className={`w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={codePostal}
+                    onChange={e => setCodePostal(e.target.value)}
+                    placeholder="Code postal"
+                    disabled={loading}
+                    className={`w-1/3 px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`}
+                  />
+                  <input
+                    type="text"
+                    value={ville}
+                    onChange={e => setVille(e.target.value)}
+                    placeholder="Ville"
+                    disabled={loading}
+                    className={`w-2/3 px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`}
+                  />
+                </div>
+                <input
+                  type="tel"
+                  value={telephone}
+                  onChange={e => setTelephone(e.target.value)}
+                  placeholder="Téléphone"
+                  disabled={loading}
+                  className={`w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`}
+                />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="Email"
+                  disabled={loading}
+                  className={`w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`}
+                />
+                <input
+                  type="text"
+                  value={siret}
+                  onChange={e => setSiret(e.target.value)}
+                  placeholder="SIRET"
+                  disabled={loading}
+                  className={`w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`}
+                />
+              </div>
+            )}
+          </div>
+        </div>
         <div className={`mt-6 p-4 rounded-2xl ${darkMode ? "bg-black/20 border border-white/10" : "bg-slate-100 border border-slate-200"}`}>
           <p className="text-[9px] font-black uppercase opacity-50 mb-2">
             Aperçu

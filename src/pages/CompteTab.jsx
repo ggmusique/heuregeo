@@ -1,38 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../services/supabase'
+import { EU_TVA_RATES } from '../utils/tvaRates'
 
-const EU_TVA_RATES = [
-  { code: "FR", label: "France",         rate: "20"  },
-  { code: "DE", label: "Allemagne",      rate: "19"  },
-  { code: "AT", label: "Autriche",       rate: "20"  },
-  { code: "BE", label: "Belgique",       rate: "21"  },
-  { code: "BG", label: "Bulgarie",       rate: "20"  },
-  { code: "CY", label: "Chypre",         rate: "19"  },
-  { code: "HR", label: "Croatie",        rate: "25"  },
-  { code: "DK", label: "Danemark",       rate: "25"  },
-  { code: "ES", label: "Espagne",        rate: "21"  },
-  { code: "EE", label: "Estonie",        rate: "22"  },
-  { code: "FI", label: "Finlande",       rate: "25.5"},
-  { code: "GR", label: "Grèce",          rate: "24"  },
-  { code: "HU", label: "Hongrie",        rate: "27"  },
-  { code: "IE", label: "Irlande",        rate: "23"  },
-  { code: "IT", label: "Italie",         rate: "22"  },
-  { code: "LV", label: "Lettonie",       rate: "21"  },
-  { code: "LT", label: "Lituanie",       rate: "21"  },
-  { code: "LU", label: "Luxembourg",     rate: "17"  },
-  { code: "MT", label: "Malte",          rate: "18"  },
-  { code: "NL", label: "Pays-Bas",       rate: "21"  },
-  { code: "PL", label: "Pologne",        rate: "23"  },
-  { code: "PT", label: "Portugal",       rate: "23"  },
-  { code: "RO", label: "Roumanie",       rate: "19"  },
-  { code: "SK", label: "Slovaquie",      rate: "23"  },
-  { code: "SI", label: "Slovénie",       rate: "22"  },
-  { code: "SE", label: "Suède",          rate: "25"  },
-  { code: "CZ", label: "Tchéquie",       rate: "21"  },
-  { code: "CH", label: "Suisse",         rate: "8.1" },
-  { code: "NO", label: "Norvège",        rate: "25"  },
-  { code: "GB", label: "Royaume-Uni",    rate: "20"  },
-]
 
 /* ── Section repliable réutilisable ─────────────────────────── */
 const Section = ({ title, titleColor = "text-indigo-300", badge, open, onToggle, children }) => (

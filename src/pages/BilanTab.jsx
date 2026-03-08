@@ -26,6 +26,8 @@ export const BilanTab = ({
   canExportPDF = true,
   canExportExcel = true,
   canExportCSV = true,
+  canFacture = false,
+  saveProfile = null,
   kmSettings = null,
   kmFraisThisWeek = null,
   domicileLatLng = null,
@@ -436,6 +438,20 @@ export const BilanTab = ({
         >
           {canExportPDF ? "PDF" : "🔒 PDF"}
         </button>
+
+        {canFacture && (
+          <button
+            onClick={async () => {
+              const { generateFacture } = await import("../utils/generateFacture");
+              const patron = patrons.find(p => p.id === bilanPatronId) || null;
+              await generateFacture(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, profile, patron, saveProfile);
+            }}
+            className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
+              (darkMode ? "bg-amber-600/20 text-amber-400 border-amber-600/20" : "bg-amber-50 text-amber-700 border-amber-200")}
+          >
+            🧾 Facture
+          </button>
+        )}
 
         <button
           onClick={async () => {
