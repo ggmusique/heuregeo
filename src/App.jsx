@@ -107,7 +107,7 @@ export default function App({ user }) {
 
   const agendaWorkedDays = useMemo(() => {
     const s = new Set();
-    missions.forEach((m) => { if (m.date) s.add(m.date); });
+    missions.forEach((m) => { if (m.date_iso) s.add(m.date_iso); });
     return s;
   }, [missions]);
 

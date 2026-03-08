@@ -17,12 +17,15 @@ export function useAgenda({ userId, triggerAlert }) {
       const lastDayDate = new Date(currentYear, currentMonth, 0);
       const lastDay = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(lastDayDate.getDate()).padStart(2, "0")}`;
 
+      // Fetch events that overlap with the month:
+      // - single-day or start-in-month: date_iso in [firstDay, lastDay]
+      // - multi-day congés starting before the month but ending in/after: date_fin >= firstDay
       const { data, error } = await supabase
         .from("agenda_events")
         .select("*")
         .eq("user_id", userId)
-        .gte("date_iso", firstDay)
         .lte("date_iso", lastDay)
+        .or(`date_iso.gte.${firstDay},date_fin.gte.${firstDay}`)
         .order("date_iso", { ascending: true })
         .order("heure_debut", { ascending: true, nullsFirst: false });
 

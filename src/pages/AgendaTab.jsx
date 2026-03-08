@@ -60,8 +60,21 @@ export function AgendaTab({
   const eventsByDate = useMemo(() => {
     const map = {};
     events.forEach((e) => {
-      if (!map[e.date_iso]) map[e.date_iso] = [];
-      map[e.date_iso].push(e);
+      if (e.type === "conge" && e.date_fin) {
+        // Étaler le congé sur tous les jours de la plage
+        let cur = new Date(e.date_iso + "T12:00:00");
+        const end = new Date(e.date_fin + "T12:00:00");
+        while (cur <= end) {
+          const iso = cur.toISOString().slice(0, 10);
+          if (!map[iso]) map[iso] = [];
+          // Éviter les doublons si déjà ajouté
+          if (!map[iso].find((x) => x.id === e.id)) map[iso].push(e);
+          cur.setDate(cur.getDate() + 1);
+        }
+      } else {
+        if (!map[e.date_iso]) map[e.date_iso] = [];
+        map[e.date_iso].push(e);
+      }
     });
     return map;
   }, [events]);
@@ -215,6 +228,7 @@ export function AgendaTab({
 
             {selectedEvents.map((evt) => {
               const badge = TYPE_BADGE[evt.type] || TYPE_BADGE.note;
+              const fmtDate = (iso) => new Date(iso + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
               return (
                 <button
                   key={evt.id}
@@ -226,12 +240,16 @@ export function AgendaTab({
                       <p className={`text-[13px] font-black truncate ${badge.text}`}>
                         {badge.emoji} {evt.titre}
                       </p>
-                      {evt.heure_debut && (
+                      {evt.type === "conge" && evt.date_fin ? (
+                        <p className={`text-[10px] font-bold mt-0.5 ${darkMode ? "text-white/40" : "text-slate-400"}`}>
+                          {fmtDate(evt.date_iso)} → {fmtDate(evt.date_fin)}
+                        </p>
+                      ) : evt.heure_debut ? (
                         <p className={`text-[10px] font-bold mt-0.5 ${darkMode ? "text-white/40" : "text-slate-400"}`}>
                           {evt.heure_debut.slice(0, 5)}{evt.heure_fin ? ` → ${evt.heure_fin.slice(0, 5)}` : ""}
                           {evt.rappel_minutes ? ` · 🔔 ${evt.rappel_minutes < 60 ? evt.rappel_minutes + " min" : (evt.rappel_minutes / 60) + "h"}` : ""}
                         </p>
-                      )}
+                      ) : null}
                       {evt.description && (
                         <p className={`text-[10px] mt-1 truncate ${darkMode ? "text-white/30" : "text-slate-400"}`}>{evt.description}</p>
                       )}

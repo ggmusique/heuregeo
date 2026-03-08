@@ -30,6 +30,7 @@ export function AgendaModal({
   const [type,        setType]       = useState("rdv");
   const [titre,       setTitre]      = useState("");
   const [dateIso,     setDateIso]    = useState("");
+  const [dateFin,     setDateFin]    = useState("");
   const [heureDebut,  setHeureDebut] = useState("");
   const [heureFin,    setHeureFin]   = useState("");
   const [rappel,      setRappel]     = useState(null);
@@ -41,6 +42,7 @@ export function AgendaModal({
       setType(initialData.type || "rdv");
       setTitre(initialData.titre || "");
       setDateIso(initialData.date_iso || selectedDate || "");
+      setDateFin(initialData.date_fin || "");
       setHeureDebut(initialData.heure_debut || "");
       setHeureFin(initialData.heure_fin || "");
       setRappel(initialData.rappel_minutes ?? null);
@@ -49,6 +51,7 @@ export function AgendaModal({
       setType("rdv");
       setTitre("");
       setDateIso(selectedDate || "");
+      setDateFin("");
       setHeureDebut("");
       setHeureFin("");
       setRappel(null);
@@ -56,7 +59,8 @@ export function AgendaModal({
     }
   }, [show, editMode, initialData, selectedDate]);
 
-  const canSubmit = !loading && titre.trim().length > 0 && dateIso.length > 0;
+  const canSubmit = !loading && titre.trim().length > 0 && dateIso.length > 0 &&
+    (type !== "conge" || dateFin.length > 0);
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -64,6 +68,7 @@ export function AgendaModal({
       type,
       titre: titre.trim(),
       date_iso: dateIso,
+      date_fin: type === "conge" ? dateFin : null,
       heure_debut: type === "rdv" && heureDebut ? heureDebut : null,
       heure_fin:   type === "rdv" && heureFin   ? heureFin   : null,
       rappel_minutes: type === "rdv" ? rappel : null,
@@ -147,17 +152,50 @@ export function AgendaModal({
             />
           </div>
 
-          {/* Date */}
-          <div>
-            <label className={labelCls}>Date <span className="text-red-400">*</span></label>
-            <input
-              type="date"
-              value={dateIso}
-              onChange={(e) => setDateIso(e.target.value)}
-              className={inputCls}
-              disabled={loading}
-            />
-          </div>
+          {/* Dates : plage pour congé, date unique pour rdv/note */}
+          {type === "conge" ? (
+            <div>
+              <p className={labelCls}>Période <span className="text-red-400">*</span></p>
+              <div className="flex gap-3 items-center">
+                <div className="flex-1">
+                  <p className={`text-[9px] font-bold uppercase mb-1 ${darkMode ? "text-white/40" : "text-slate-400"}`}>Du</p>
+                  <input
+                    type="date"
+                    value={dateIso}
+                    onChange={(e) => {
+                      setDateIso(e.target.value);
+                      if (dateFin && e.target.value > dateFin) setDateFin(e.target.value);
+                    }}
+                    className={inputCls}
+                    disabled={loading}
+                  />
+                </div>
+                <span className={`text-lg font-black mt-5 ${darkMode ? "text-white/30" : "text-slate-300"}`}>→</span>
+                <div className="flex-1">
+                  <p className={`text-[9px] font-bold uppercase mb-1 ${darkMode ? "text-white/40" : "text-slate-400"}`}>Au</p>
+                  <input
+                    type="date"
+                    value={dateFin}
+                    min={dateIso || undefined}
+                    onChange={(e) => setDateFin(e.target.value)}
+                    className={inputCls}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className={labelCls}>Date <span className="text-red-400">*</span></label>
+              <input
+                type="date"
+                value={dateIso}
+                onChange={(e) => setDateIso(e.target.value)}
+                className={inputCls}
+                disabled={loading}
+              />
+            </div>
+          )}
 
           {/* Horaires (rdv seulement) */}
           {type === "rdv" && (
