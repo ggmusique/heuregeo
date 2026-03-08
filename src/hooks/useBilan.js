@@ -762,6 +762,8 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
               .update({
                 ca_brut_periode: caBrutPeriode,
                 periode_index: periodeIndex,
+                // Corrige les valeurs reste_a_percevoir périmées (ex: incluaient les frais KM par erreur)
+                reste_a_percevoir: isPaid ? 0 : caBrutPeriode,
               })
               .eq("id", existingBilan.id);
 
