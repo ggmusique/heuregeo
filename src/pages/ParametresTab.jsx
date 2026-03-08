@@ -569,7 +569,32 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
     setSaving(true);
     setSaveError(null);
     const prevFeatures = profile?.features ?? {};
-    const nextFeatures = setKmEnabled(prevFeatures, newEnabled);
+    let nextFeatures = setKmEnabled(prevFeatures, newEnabled);
+
+    // Si on active km et qu'il n'y a pas encore de coords GPS → géocoder l'adresse profil
+    if (newEnabled && !Number.isFinite(prevFeatures.km_domicile_lat)) {
+      const addr =
+        (prevFeatures.km_domicile_address || "").trim() ||
+        [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
+      if (addr) {
+        const geoResult = await geocodeAddress(addr);
+        if (geoResult) {
+          nextFeatures = {
+            ...nextFeatures,
+            km_domicile_lat: geoResult.lat,
+            km_domicile_lng: geoResult.lng,
+            km_domicile_address: prevFeatures.km_domicile_address || addr,
+            km_settings: {
+              ...(nextFeatures.km_settings ?? {}),
+              homeLat: geoResult.lat,
+              homeLng: geoResult.lng,
+              homeLabel: prevFeatures.km_domicile_address || addr,
+            },
+          };
+        }
+      }
+    }
+
     const result = await saveProfile({ features: nextFeatures });
     if (result?.error) {
       setSaveError(result.error);
@@ -593,6 +618,8 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
       if (geoResult) {
         kmDomicileLat = geoResult.lat;
         kmDomicileLng = geoResult.lng;
+      } else {
+        setSaveError("Adresse introuvable via géocodage. Essayez une adresse plus précise (ex: 12 Rue Dupont, 75001 Paris).");
       }
     }
 
