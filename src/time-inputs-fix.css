@@ -1,89 +1,130 @@
 /* ============================================
-   AMÉLIORATION INPUTS TIME SUR DESKTOP
+   TIME INPUTS FIX — scoped to .dark / .light
    ============================================ */
 
-/* Style général pour tous les inputs time */
+/* Base sizing (universal — no color) */
 input[type="time"] {
-  /* Augmenter la taille de la police */
   font-size: 16px !important;
   font-weight: 600 !important;
-
-  /* Améliorer le contraste */
-  color: #ffffff !important;
-
-  /* Améliorer la visibilité du curseur */
   caret-color: #818cf8 !important;
-}
-
-/* Style pour le mode dark (par défaut) */
-.dark input[type="time"],
-input[type="time"] {
-  /* Background plus visible */
-  background-color: rgba(255, 255, 255, 0.08) !important;
-  border: 2px solid rgba(139, 92, 246, 0.3) !important;
-
-  /* Padding pour plus d'espace */
   padding: 14px 16px !important;
-
-  /* Border radius cohérent */
   border-radius: 20px !important;
 }
 
-/* Hover state */
-input[type="time"]:hover {
+/* ── DARK MODE ──────────────────────────────── */
+.dark input[type="time"] {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border: 2px solid rgba(139, 92, 246, 0.3) !important;
+}
+
+.dark input[type="time"]:hover {
   background-color: rgba(255, 255, 255, 0.12) !important;
   border-color: rgba(139, 92, 246, 0.5) !important;
 }
 
-/* Focus state - TRÈS IMPORTANT pour la visibilité */
-input[type="time"]:focus {
+.dark input[type="time"]:focus {
   background-color: rgba(255, 255, 255, 0.15) !important;
   border-color: #818cf8 !important;
   outline: none !important;
   box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2) !important;
 }
 
-/* Style pour le mode light */
+.dark input[type="time"]::placeholder {
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-weight: 500 !important;
+}
+
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.5) !important;
+  opacity: 0.7 !important;
+}
+
+.dark input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+  color: #ffffff !important;
+}
+
+.dark input[type="time"]::-webkit-datetime-edit-text {
+  color: rgba(255, 255, 255, 0.5) !important;
+  padding: 0 4px !important;
+}
+
+.dark input[type="time"]::-webkit-datetime-edit-hour-field,
+.dark input[type="time"]::-webkit-datetime-edit-minute-field {
+  color: #ffffff !important;
+  background-color: rgba(129, 140, 248, 0.2) !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  font-weight: 700 !important;
+}
+
+.dark input[type="time"]::-webkit-datetime-edit-hour-field:focus,
+.dark input[type="time"]::-webkit-datetime-edit-minute-field:focus {
+  background-color: rgba(129, 140, 248, 0.4) !important;
+  outline: 2px solid #818cf8 !important;
+  outline-offset: 2px !important;
+}
+
+/* ── LIGHT MODE ─────────────────────────────── */
 .light input[type="time"] {
-  background-color: rgba(0, 0, 0, 0.05) !important;
-  border: 2px solid rgba(99, 102, 241, 0.3) !important;
   color: #1e293b !important;
+  background-color: rgba(255, 255, 255, 0.8) !important;
+  border: 2px solid rgba(99, 102, 241, 0.3) !important;
 }
 
 .light input[type="time"]:hover {
-  background-color: rgba(0, 0, 0, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
   border-color: rgba(99, 102, 241, 0.5) !important;
 }
 
 .light input[type="time"]:focus {
-  background-color: rgba(0, 0, 0, 0.1) !important;
+  background-color: rgba(255, 255, 255, 1) !important;
   border-color: #6366f1 !important;
+  outline: none !important;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
 }
 
-/* ============================================
-     AMÉLIORATION DES SPINNERS (ROULETTES)
-     ============================================ */
+.light input[type="time"]::placeholder {
+  color: rgba(0, 0, 0, 0.4) !important;
+  font-weight: 500 !important;
+}
 
-/* Chrome, Safari, Edge */
+.light input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: none !important;
+  opacity: 0.5 !important;
+}
+
+.light input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+  color: #1e293b !important;
+}
+
+.light input[type="time"]::-webkit-datetime-edit-text {
+  color: rgba(15, 23, 42, 0.5) !important;
+  padding: 0 4px !important;
+}
+
+.light input[type="time"]::-webkit-datetime-edit-hour-field,
+.light input[type="time"]::-webkit-datetime-edit-minute-field {
+  color: #1e293b !important;
+  background-color: rgba(99, 102, 241, 0.12) !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  font-weight: 700 !important;
+}
+
+.light input[type="time"]::-webkit-datetime-edit-hour-field:focus,
+.light input[type="time"]::-webkit-datetime-edit-minute-field:focus {
+  background-color: rgba(99, 102, 241, 0.22) !important;
+  outline: 2px solid #6366f1 !important;
+  outline-offset: 2px !important;
+}
+
+/* ── UNIVERSAL ──────────────────────────────── */
 input[type="time"]::-webkit-calendar-picker-indicator {
-  /* Rendre l'icône plus grande et visible */
   width: 24px !important;
   height: 24px !important;
-
-  /* Filtrer pour changer la couleur */
-  filter: invert(1) brightness(1.5) !important;
-
-  /* Curseur pointer */
   cursor: pointer !important;
-
-  /* Espacement */
   margin-left: 8px !important;
-
-  /* Opacité par défaut */
-  opacity: 0.7 !important;
-
-  /* Transition smooth */
   transition: opacity 0.2s ease, transform 0.2s ease !important;
 }
 
@@ -92,108 +133,21 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   transform: scale(1.1) !important;
 }
 
-/* Style pour les flèches de spin (up/down) */
-input[type="time"]::-webkit-inner-spin-button {
-  height: 40px !important;
-  cursor: pointer !important;
-  opacity: 1 !important;
-}
-
-/* Firefox */
-input[type="time"]::-moz-calendar-picker-indicator {
-  width: 24px !important;
-  height: 24px !important;
-  cursor: pointer !important;
-  opacity: 0.8 !important;
-}
-
-/* ============================================
-     AMÉLIORATION DU TEXTE DANS L'INPUT
-     ============================================ */
-
-/* Placeholder plus visible */
-input[type="time"]::placeholder {
-  color: rgba(255, 255, 255, 0.4) !important;
-  font-weight: 500 !important;
-}
-
-.light input[type="time"]::placeholder {
-  color: rgba(0, 0, 0, 0.4) !important;
-}
-
-/* Texte sélectionné */
 input[type="time"]::selection {
   background-color: rgba(129, 140, 248, 0.3) !important;
-  color: white !important;
 }
-
-/* ============================================
-     AMÉLIORATION POUR LES PETITS ÉCRANS
-     ============================================ */
 
 @media (max-width: 768px) {
-  input[type="time"] {
-    /* Sur mobile, garder la taille native pour le picker natif */
-    font-size: 16px !important;
-  }
+  input[type="time"] { font-size: 16px !important; }
 }
-
-/* ============================================
-     AMÉLIORATION POUR DESKTOP SPÉCIFIQUEMENT
-     ============================================ */
 
 @media (min-width: 1024px) {
   input[type="time"] {
-    /* Police encore plus grande sur desktop */
     font-size: 18px !important;
     min-height: 56px !important;
   }
-
   input[type="time"]::-webkit-calendar-picker-indicator {
     width: 28px !important;
     height: 28px !important;
   }
-}
-
-/* ============================================
-     FIX POUR LE CONTRASTE EN MODE DARK
-     ============================================ */
-
-/* Forcer le texte blanc en mode dark */
-input[type="time"]::-webkit-datetime-edit-fields-wrapper {
-  color: #ffffff !important;
-}
-
-input[type="time"]::-webkit-datetime-edit-text {
-  color: rgba(255, 255, 255, 0.5) !important;
-  padding: 0 4px !important;
-}
-
-input[type="time"]::-webkit-datetime-edit-hour-field,
-input[type="time"]::-webkit-datetime-edit-minute-field {
-  color: #ffffff !important;
-  background-color: rgba(129, 140, 248, 0.2) !important;
-  padding: 4px 8px !important;
-  border-radius: 6px !important;
-  font-weight: 700 !important;
-}
-
-input[type="time"]::-webkit-datetime-edit-hour-field:focus,
-input[type="time"]::-webkit-datetime-edit-minute-field:focus {
-  background-color: rgba(129, 140, 248, 0.4) !important;
-  outline: 2px solid #818cf8 !important;
-  outline-offset: 2px !important;
-}
-
-/* Mode light */
-.light input[type="time"]::-webkit-datetime-edit-hour-field,
-.light input[type="time"]::-webkit-datetime-edit-minute-field {
-  color: #1e293b !important;
-  background-color: rgba(99, 102, 241, 0.15) !important;
-}
-
-.light input[type="time"]::-webkit-datetime-edit-hour-field:focus,
-.light input[type="time"]::-webkit-datetime-edit-minute-field:focus {
-  background-color: rgba(99, 102, 241, 0.25) !important;
-  outline-color: #6366f1 !important;
 }

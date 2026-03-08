@@ -106,6 +106,14 @@ const colorMap = {
   },
 };
 
+const colorMapLight = {
+  indigo: { ...colorMap.indigo, headerText: "text-indigo-600", badge: "bg-indigo-100 text-indigo-600 border-indigo-300/60" },
+  violet: { ...colorMap.violet, headerText: "text-violet-600", badge: "bg-violet-100 text-violet-600 border-violet-300/60" },
+  yellow: { ...colorMap.yellow, headerText: "text-amber-700", badge: "bg-amber-50 text-amber-700 border-amber-300/60" },
+  red: { ...colorMap.red, headerText: "text-red-600", badge: "bg-red-100 text-red-600 border-red-300/60" },
+  cyan: { ...colorMap.cyan, headerText: "text-cyan-700", badge: "bg-cyan-100 text-cyan-700 border-cyan-300/60" },
+};
+
 // ─── Error boundary Diagnostics ──────────────────────────────────────────────
 
 class DiagnosticsErrorBoundary extends Component {
@@ -239,13 +247,13 @@ export function ParametresTab({
       <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-4 items-start">
 
         {/* ── Sidebar ── */}
-        <aside className="rounded-2xl border border-white/10 bg-black/30 backdrop-blur-xl p-3 space-y-1.5 lg:sticky lg:top-4">
-          <p className="text-[9px] font-black uppercase tracking-[0.25em] text-white/35 px-2 pb-1">
+        <aside className={"rounded-2xl border backdrop-blur-xl p-3 space-y-1.5 lg:sticky lg:top-4 " + (darkMode ? "border-white/10 bg-black/30" : "border-slate-200 bg-white/80 shadow-sm")}>
+          <p className={"text-[9px] font-black uppercase tracking-[0.25em] px-2 pb-1 " + (darkMode ? "text-white/35" : "text-slate-400")}>
             Navigation
           </p>
           {sections.map((item) => {
             const isActive = activePanel === item.key;
-            const colors = colorMap[item.color];
+            const colors = (darkMode ? colorMap : colorMapLight)[item.color];
             return (
               <button
                 key={item.key}
@@ -254,18 +262,18 @@ export function ParametresTab({
                 className={`w-full text-left rounded-xl border px-3 py-3 transition-all duration-200 ${
                   isActive
                     ? colors.active + " shadow-sm"
-                    : "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/25"
+                    : (darkMode ? "bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/25" : "bg-transparent border-slate-200 hover:bg-slate-50 hover:border-slate-300")
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 transition-all duration-200 ${isActive ? colors.icon : "text-white/40 bg-white/5"}`}>
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 transition-all duration-200 ${isActive ? colors.icon : (darkMode ? "text-white/40 bg-white/5" : "text-slate-400 bg-slate-100")}`}>
                     {item.icon}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={`text-[11px] font-black uppercase tracking-widest truncate transition-colors duration-200 ${isActive ? "text-white" : "text-white/75"}`}>
+                    <p className={`text-[11px] font-black uppercase tracking-widest truncate transition-colors duration-200 ${isActive ? (darkMode ? "text-white" : "text-slate-800") : (darkMode ? "text-white/75" : "text-slate-600")}`}>
                       {item.title}
                     </p>
-                    <p className="text-[10px] text-white/45 leading-snug truncate mt-0.5">
+                    <p className={"text-[10px] leading-snug truncate mt-0.5 " + (darkMode ? "text-white/45" : "text-slate-400")}>
                       {item.subtitle}
                     </p>
                   </div>
@@ -279,24 +287,24 @@ export function ParametresTab({
         </aside>
 
         {/* ── Panneau de contenu ── */}
-        <div className="rounded-2xl border border-white/10 bg-black/25 backdrop-blur-xl overflow-hidden min-h-[300px]">
+        <div className={"rounded-2xl border backdrop-blur-xl overflow-hidden min-h-[300px] " + (darkMode ? "border-white/10 bg-black/25" : "border-slate-200 bg-white/80 shadow-sm")}>
           {!activeSection ? (
             // État bienvenue
             <div className="p-8 flex flex-col items-center justify-center min-h-[300px] text-center space-y-5">
-              <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/25">
+              <div className={"w-14 h-14 rounded-2xl border flex items-center justify-center " + (darkMode ? "bg-white/5 border-white/10 text-white/25" : "bg-slate-100 border-slate-200 text-slate-300")}>
                 <IconSettings />
               </div>
               <div>
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-white/50">
+                <p className={"text-sm font-black uppercase tracking-[0.2em] " + (darkMode ? "text-white/50" : "text-slate-400")}>
                   Paramètres
                 </p>
-                <p className="text-xs text-white/30 mt-1.5">
+                <p className={"text-xs mt-1.5 " + (darkMode ? "text-white/30" : "text-slate-400")}>
                   Sélectionnez une section dans le menu
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 justify-center">
                 {sections.map((item) => {
-                  const colors = colorMap[item.color];
+                  const colors = (darkMode ? colorMap : colorMapLight)[item.color];
                   return (
                     <button
                       key={item.key}
@@ -314,9 +322,9 @@ export function ParametresTab({
             <>
               {/* Header de section */}
               {(() => {
-                const colors = colorMap[activeSection.color];
+                const colors = (darkMode ? colorMap : colorMapLight)[activeSection.color];
                 return (
-                  <div className={`px-5 py-4 border-b border-white/10 bg-gradient-to-r ${colors.header}`}>
+                  <div className={`px-5 py-4 border-b bg-gradient-to-r ${colors.header} ` + (darkMode ? "border-white/10" : "border-slate-200")}>
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className={`p-2 rounded-xl flex-shrink-0 ${colors.icon}`}>
@@ -326,14 +334,14 @@ export function ParametresTab({
                           <p className={`text-[11px] font-black uppercase tracking-[0.2em] ${colors.headerText}`}>
                             {activeSection.title}
                           </p>
-                          <p className="text-[10px] text-white/45 truncate mt-0.5">
+                          <p className={"text-[10px] truncate mt-0.5 " + (darkMode ? "text-white/45" : "text-slate-400")}>
                             {activeSection.subtitle}
                           </p>
                         </div>
                       </div>
                       <button
                         onClick={() => setActivePanel(null)}
-                        className="p-1.5 rounded-lg border border-white/15 text-white/40 hover:text-white hover:border-white/30 transition-all flex-shrink-0"
+                        className={"p-1.5 rounded-lg border transition-all flex-shrink-0 " + (darkMode ? "border-white/15 text-white/40 hover:text-white hover:border-white/30" : "border-slate-200 text-slate-400 hover:text-slate-700 hover:border-slate-300")}
                         aria-label="Fermer"
                       >
                         <IconClose />
@@ -356,12 +364,12 @@ export function ParametresTab({
 
                 {activePanel === "extra-pro" && (
                   <div className="space-y-4">
-                    <div className="rounded-2xl border border-yellow-500/25 bg-yellow-500/5 p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/80 mb-3">
+                    <div className={"rounded-2xl border p-4 " + (darkMode ? "border-yellow-500/25 bg-yellow-500/5" : "border-amber-300/50 bg-amber-50/50")}>
+                      <p className={"text-[10px] font-black uppercase tracking-widest mb-3 " + (darkMode ? "text-yellow-200/80" : "text-amber-700")}>
                         Sélecteur taux du jour
                       </p>
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm text-white/70">
+                        <p className={"text-sm " + (darkMode ? "text-white/70" : "text-slate-600")}>
                           Afficher le sélecteur &quot;taux du jour&quot; dans Saisie
                         </p>
                         <button
@@ -371,7 +379,7 @@ export function ParametresTab({
                             "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
                             (showMissionRateEditor
                               ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
-                              : "border-white/20 text-white/60")
+                              : (darkMode ? "border-white/20 text-white/60" : "border-slate-300 text-slate-500"))
                           }
                         >
                           {showMissionRateEditor ? "Activé" : "Désactivé"}
@@ -382,6 +390,7 @@ export function ParametresTab({
                       profile={profile}
                       saveProfile={saveProfile}
                       isPro={isPro}
+                      darkMode={darkMode}
                     />
                   </div>
                 )}
@@ -425,7 +434,7 @@ export function ParametresTab({
                   <DiagnosticsErrorBoundary>
                     <Suspense
                       fallback={
-                        <div className="py-8 text-center text-white/40 text-sm">
+                        <div className={"py-8 text-center text-sm " + (darkMode ? "text-white/40" : "text-slate-400")}>
                           Chargement diagnostics…
                         </div>
                       }
@@ -456,7 +465,7 @@ export function ParametresTab({
 
 // ─── KmSettingsPanel ─────────────────────────────────────────────────────────
 
-function KmSettingsPanel({ profile, saveProfile, isPro }) {
+function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
   const [kmEnable, setKmEnable] = useState(() => getKmEnabled(profile?.features));
@@ -560,10 +569,10 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
   };
 
   return (
-    <div className="rounded-2xl border border-blue-500/25 bg-blue-500/5 p-4 space-y-4">
+    <div className={"rounded-2xl border p-4 space-y-4 " + (darkMode ? "border-blue-500/25 bg-blue-500/5" : "border-blue-300/50 bg-blue-50/50")}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-blue-200/80 mb-1">
+          <p className={"text-[10px] font-black uppercase tracking-widest mb-1 " + (darkMode ? "text-blue-200/80" : "text-blue-700")}>
             Frais kilométriques
           </p>
           {!isPro && (
@@ -578,7 +587,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
             "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
             (kmEnable
               ? "border-blue-400/40 text-blue-300 bg-blue-500/10"
-              : "border-white/20 text-white/60") +
+              : (darkMode ? "border-white/20 text-white/60" : "border-slate-300 text-slate-500")) +
             (!isPro ? " opacity-50 cursor-not-allowed" : "")
           }
         >
@@ -589,7 +598,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
       {kmEnable && isPro && (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-white/70">Inclure le trajet retour (aller-retour)</p>
+            <p className={"text-sm " + (darkMode ? "text-white/70" : "text-slate-600")}>Inclure le trajet retour (aller-retour)</p>
             <button
               type="button"
               onClick={() => setKmIncludeRetour((v) => !v)}
@@ -597,7 +606,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
                 "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
                 (kmIncludeRetour
                   ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
-                  : "border-white/20 text-white/60")
+                  : (darkMode ? "border-white/20 text-white/60" : "border-slate-300 text-slate-500"))
               }
             >
               {kmIncludeRetour ? "Aller-Retour" : "Aller seul"}
@@ -605,7 +614,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
           </div>
 
           <div>
-            <label className="block text-[10px] font-black uppercase mb-1 text-blue-300/80 tracking-wider">
+            <label className={"block text-[10px] font-black uppercase mb-1 tracking-wider " + (darkMode ? "text-blue-300/80" : "text-blue-700")}>
               Adresse domicile
             </label>
             <input
@@ -619,10 +628,10 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
                       .join(", ")
                   : "Ex: Rue de la Paix 1, 75001 Paris"
               }
-              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-black/20 border-white/10 text-white focus:border-blue-500 backdrop-blur-md placeholder:text-white/30"
+              className={"w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm backdrop-blur-md " + (darkMode ? "bg-black/20 border-white/10 text-white focus:border-blue-500 placeholder:text-white/30" : "bg-white border-slate-200 text-slate-800 focus:border-blue-500 placeholder:text-slate-400")}
             />
             {hasDomicileInProfile && !kmDomicileAdresse && (
-              <p className="text-[10px] text-white/40 mt-1 italic">
+              <p className={"text-[10px] mt-1 italic " + (darkMode ? "text-white/40" : "text-slate-400")}>
                 Si vide, l&apos;adresse du profil sera utilisée.
               </p>
             )}
@@ -637,7 +646,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
           </div>
 
           <div>
-            <label className="block text-[10px] font-black uppercase mb-1 text-blue-300/80 tracking-wider">
+            <label className={"block text-[10px] font-black uppercase mb-1 tracking-wider " + (darkMode ? "text-blue-300/80" : "text-blue-700")}>
               Pays
             </label>
             <select
@@ -646,7 +655,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
                 setKmCountryCode(e.target.value);
                 setKmRateMode("AUTO_BY_COUNTRY");
               }}
-              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-black/20 border-white/10 text-white focus:border-blue-500 backdrop-blur-md"
+              className={"w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm backdrop-blur-md " + (darkMode ? "bg-black/20 border-white/10 text-white focus:border-blue-500" : "bg-white border-slate-200 text-slate-800 focus:border-blue-500")}
             >
               {EUROPE_COUNTRIES.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -657,12 +666,12 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
           </div>
 
           <div>
-            <label className="block text-[10px] font-black uppercase mb-1 text-blue-300/80 tracking-wider">
+            <label className={"block text-[10px] font-black uppercase mb-1 tracking-wider " + (darkMode ? "text-blue-300/80" : "text-blue-700")}>
               Taux kilométrique
             </label>
             {kmRateMode === "AUTO_BY_COUNTRY" ? (
-              <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/10">
-                <span className="text-sm text-white/70">
+              <div className={"flex items-center justify-between p-3 rounded-xl border " + (darkMode ? "bg-black/20 border-white/10" : "bg-white border-slate-200")}>
+                <span className={"text-sm " + (darkMode ? "text-white/70" : "text-slate-600")}>
                   Taux recommandé :{" "}
                   <strong className="text-blue-300">{recommendedRate} €/km</strong> ({countryLabel})
                 </span>
@@ -686,13 +695,13 @@ function KmSettingsPanel({ profile, saveProfile, isPro }) {
                   value={kmRate}
                   onChange={(e) => setKmRate(e.target.value)}
                   placeholder={`${recommendedRate}`}
-                  className="flex-1 p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-black/20 border-white/10 text-white focus:border-blue-500 backdrop-blur-md placeholder:text-white/30"
+                  className={"flex-1 p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm backdrop-blur-md " + (darkMode ? "bg-black/20 border-white/10 text-white focus:border-blue-500 placeholder:text-white/30" : "bg-white border-slate-200 text-slate-800 focus:border-blue-500 placeholder:text-slate-400")}
                 />
-                <span className="text-white/60 text-sm">€/km</span>
+                <span className={"text-sm " + (darkMode ? "text-white/60" : "text-slate-500")}>€/km</span>
                 <button
                   type="button"
                   onClick={() => setKmRateMode("AUTO_BY_COUNTRY")}
-                  className="text-[10px] font-black uppercase text-white/50 hover:text-white transition-all"
+                  className={"text-[10px] font-black uppercase transition-all " + (darkMode ? "text-white/50 hover:text-white" : "text-slate-400 hover:text-slate-700")}
                 >
                   Auto
                 </button>

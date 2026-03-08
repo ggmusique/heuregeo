@@ -60,7 +60,8 @@ export const BilanTab = ({
               bilan.setShowBilan(false);
               bilan.setShowPeriodModal(true);
             }}
-            className="w-full py-6 bg-gradient-to-r from-[#C9A84C] to-[#A07830] rounded-3xl font-black text-white text-[14px] uppercase shadow-xl active:scale-95 transition-all"
+            className={"w-full py-6 bg-gradient-to-r from-[#C9A84C] to-[#A07830] rounded-3xl font-black text-[14px] uppercase shadow-xl active:scale-95 transition-all " +
+              (darkMode ? "text-white" : "text-slate-800")}
           >
             Rapport bilan
           </button>
@@ -93,16 +94,18 @@ export const BilanTab = ({
           {/* ── BLOC FRAIS KM – Semaine en cours ── */}
           {kmSettings?.km_enable === true && missionsThisWeek.length > 0 && (
             kmFraisThisWeek?.items?.length > 0 ? (
-              <div className="mt-2 p-4 bg-[#0A1628]/60 rounded-[25px] border border-blue-600/20 backdrop-blur-md">
-                <p className="text-[10px] font-black uppercase text-blue-400/70 mb-3 tracking-[0.2em]">
+              <div className={"mt-2 p-4 rounded-[25px] border backdrop-blur-md " +
+                (darkMode ? "bg-[#0A1628]/60 border-blue-600/20" : "bg-white/80 border-blue-200")}>
+                <p className={"text-[10px] font-black uppercase mb-3 tracking-[0.2em] " +
+                  (darkMode ? "text-blue-400/70" : "text-blue-600")}>
                   🚗 Frais kilométriques
                 </p>
                 <div className="space-y-2 mb-3">
                   {kmFraisThisWeek.items.filter((item) => item.amount !== null).map((item, i) => (
                     <div key={i} className="flex justify-between items-center text-sm">
                       <div>
-                        <span className="text-white/80 font-bold">{formatDateFR(item.date)}</span>
-                        <span className="text-white/50 ml-2">{item.labelLieuOuClient}</span>
+                        <span className={"font-bold " + (darkMode ? "text-white/80" : "text-slate-700")}>{formatDateFR(item.date)}</span>
+                        <span className={"ml-2 " + (darkMode ? "text-white/50" : "text-slate-400")}>{item.labelLieuOuClient}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal * 10) / 10} km</span>
@@ -111,20 +114,21 @@ export const BilanTab = ({
                     </div>
                   ))}
                   {kmFraisThisWeek.items.filter((item) => item.amount === null).map((item, i) => (
-                    <div key={`missing-${i}`} className="text-sm text-white/40 italic">
+                    <div key={`missing-${i}`} className={"text-sm italic " + (darkMode ? "text-white/40" : "text-slate-400")}>
                       {formatDateFR(item.date)} — {item.labelLieuOuClient}
                     </div>
                   ))}
                 </div>
                 {kmFraisThisWeek.totalAmount > 0 && (
-                  <div className="pt-2 border-t border-white/10 flex justify-between">
-                    <span className="text-white/60 text-sm">{Math.round(kmFraisThisWeek.totalKm * 10) / 10} km total</span>
+                  <div className={"pt-2 border-t flex justify-between " + (darkMode ? "border-white/10" : "border-slate-200")}>
+                    <span className={"text-sm " + (darkMode ? "text-white/60" : "text-slate-500")}>{Math.round(kmFraisThisWeek.totalKm * 10) / 10} km total</span>
                     <span className="font-black text-blue-300">{formatEuro(kmFraisThisWeek.totalAmount)}</span>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="mt-2 p-4 bg-[#0A1628]/40 rounded-[25px] border border-blue-600/10 text-sm text-white/40 italic">
+              <div className={"mt-2 p-4 rounded-[25px] border text-sm italic " +
+                (darkMode ? "bg-[#0A1628]/40 border-blue-600/10 text-white/40" : "bg-blue-50/60 border-blue-100 text-slate-400")}>
                 🚗 Frais kilométriques —{" "}
                 {!domicileLatLng
                   ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"
@@ -147,13 +151,18 @@ export const BilanTab = ({
       </button>
 
       {/* HEADER BILAN */}
-      <div className="bg-gradient-to-br from-[#0A1628] to-[#020818] p-8 rounded-[45px] shadow-2xl mb-8 border border-yellow-600/30">
+      <div className={"p-8 rounded-[45px] shadow-2xl mb-8 border " +
+        (darkMode
+          ? "bg-gradient-to-br from-[#0A1628] to-[#020818] border-yellow-600/30"
+          : "bg-gradient-to-br from-white to-slate-50 border-slate-200/80")}>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <p className="text-[10px] font-black uppercase text-yellow-500/70 tracking-[0.3em] mb-1">
+            <p className={"text-[10px] font-black uppercase tracking-[0.3em] mb-1 " +
+              (darkMode ? "text-yellow-500/70" : "text-amber-600")}>
               {bilan.bilanContent.titre}
             </p>
-            <h2 className="text-4xl font-black text-white italic font-['Playfair_Display']">Bilan</h2>
+            <h2 className={"text-4xl font-black italic font-['Playfair_Display'] " +
+              (darkMode ? "text-white" : "text-slate-800")}>Bilan</h2>
           </div>
           <WeekPicker
             value={bilan.bilanPeriodValue}
@@ -166,23 +175,29 @@ export const BilanTab = ({
           />
         </div>
 
-        <p className="text-center text-sm text-white/70 mb-4">
+        <p className={"text-center text-sm mb-4 " + (darkMode ? "text-white/70" : "text-slate-600")}>
           Pour : {bilan.bilanContent.selectedPatronNom}
         </p>
 
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-[#0A1628]/80 p-4 rounded-2xl border border-yellow-600/20">
-            <p className="text-[9px] font-black text-yellow-500/70 uppercase mb-1">Heures</p>
-            <p className="text-xl font-black text-white">{formatHeures(bilan.bilanContent.totalH)}</p>
+          <div className={"p-4 rounded-2xl border " +
+            (darkMode ? "bg-[#0A1628]/80 border-yellow-600/20" : "bg-white border-slate-200")}>
+            <p className={"text-[9px] font-black uppercase mb-1 " +
+              (darkMode ? "text-yellow-500/70" : "text-amber-600")}>Heures</p>
+            <p className={"text-xl font-black " +
+              (darkMode ? "text-white" : "text-slate-800")}>{formatHeures(bilan.bilanContent.totalH)}</p>
           </div>
 
-          <div className="bg-[#0A1628]/80 p-4 rounded-2xl border border-yellow-600/20">
-            <p className="text-[9px] font-black text-yellow-500/70 uppercase mb-1">Total Brut</p>
+          <div className={"p-4 rounded-2xl border " +
+            (darkMode ? "bg-[#0A1628]/80 border-yellow-600/20" : "bg-white border-slate-200")}>
+            <p className={"text-[9px] font-black uppercase mb-1 " +
+              (darkMode ? "text-yellow-500/70" : "text-amber-600")}>Total Brut</p>
             <p className="text-xl font-black text-emerald-400">{formatEuro(bilan.bilanContent.totalE)}</p>
           </div>
 
           {bilan.bilanContent.impayePrecedent > 0 && (
-            <div className="col-span-2 bg-[#0A1628]/80 p-4 rounded-2xl border border-orange-500/30 flex justify-between items-center">
+            <div className={"col-span-2 p-4 rounded-2xl border flex justify-between items-center " +
+              (darkMode ? "bg-[#0A1628]/80 border-orange-500/30" : "bg-white border-orange-200")}>
               <p className="text-[9px] font-black text-orange-400/70 uppercase">⏳ Impayé précédent</p>
               <p className="text-xl font-black text-orange-400">
                 +{formatEuro(bilan.bilanContent.impayePrecedent)}
@@ -196,8 +211,10 @@ export const BilanTab = ({
   <>
     {/* ── BLOC 1 : FRAIS ── affiché uniquement si frais */}
     {bilan.bilanContent.fraisDivers.length > 0 && (
-      <div className="mb-4 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
-        <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
+      <div className={"mb-4 p-6 rounded-[35px] border backdrop-blur-md " +
+        (darkMode ? "bg-[#0A1628]/60 border-yellow-600/20" : "bg-white/80 border-slate-200")}>
+        <p className={"text-[10px] font-black uppercase mb-4 tracking-[0.2em] " +
+          (darkMode ? "text-yellow-500/70" : "text-amber-600")}>
           Frais
         </p>
         {[...bilan.bilanContent.fraisDivers]
@@ -233,8 +250,10 @@ export const BilanTab = ({
 
     {/* ── BLOC FRAIS KM ── */}
     {kmSettings?.km_enable === true && bilan.bilanContent.fraisKilometriques?.items?.length > 0 && bilan.bilanPeriodType === "semaine" && (
-      <div className="mb-4 p-6 bg-[#0A1628]/60 rounded-[35px] border border-blue-600/20 backdrop-blur-md">
-        <p className="text-[10px] font-black uppercase text-blue-400/70 mb-4 tracking-[0.2em]">
+      <div className={"mb-4 p-6 rounded-[35px] border backdrop-blur-md " +
+        (darkMode ? "bg-[#0A1628]/60 border-blue-600/20" : "bg-white/80 border-blue-200")}>
+        <p className={"text-[10px] font-black uppercase mb-4 tracking-[0.2em] " +
+          (darkMode ? "text-blue-400/70" : "text-blue-600")}>
           🚗 Frais kilométriques
         </p>
         <div className="space-y-2 mb-4">
@@ -243,8 +262,8 @@ export const BilanTab = ({
             .map((item, i) => (
               <div key={i} className="flex justify-between items-center text-sm">
                 <div>
-                  <span className="text-white/80 font-bold">{formatDateFR(item.date)}</span>
-                  <span className="text-white/50 ml-2">{item.labelLieuOuClient}</span>
+                  <span className={"font-bold " + (darkMode ? "text-white/80" : "text-slate-700")}>{formatDateFR(item.date)}</span>
+                  <span className={"ml-2 " + (darkMode ? "text-white/50" : "text-slate-400")}>{item.labelLieuOuClient}</span>
                 </div>
                 <div className="text-right">
                   <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal * 10) / 10} km</span>
@@ -255,13 +274,13 @@ export const BilanTab = ({
           {bilan.bilanContent.fraisKilometriques.items
             .filter((item) => item.amount === null)
             .map((item, i) => (
-              <div key={`missing-${i}`} className="text-sm text-white/40 italic">
+              <div key={`missing-${i}`} className={"text-sm italic " + (darkMode ? "text-white/40" : "text-slate-400")}>
                 {formatDateFR(item.date)} — {item.labelLieuOuClient}
               </div>
             ))}
         </div>
-        <div className="pt-3 border-t border-white/10 flex justify-between">
-          <span className="text-white/60 text-sm">{Math.round(bilan.bilanContent.fraisKilometriques.totalKm * 10) / 10} km total</span>
+        <div className={"pt-3 border-t flex justify-between " + (darkMode ? "border-white/10" : "border-slate-200")}>
+          <span className={"text-sm " + (darkMode ? "text-white/60" : "text-slate-500")}>{Math.round(bilan.bilanContent.fraisKilometriques.totalKm * 10) / 10} km total</span>
           <span className="font-black text-blue-300">{formatEuro(bilan.bilanContent.fraisKilometriques.totalAmount)}</span>
         </div>
       </div>
@@ -270,7 +289,8 @@ export const BilanTab = ({
     {/* ── BLOC FRAIS KM – fallback domicile manquant ── */}
     {kmSettings?.km_enable === true && bilan.bilanPeriodType === "semaine" &&
       !bilan.bilanContent.fraisKilometriques?.items?.length && (
-      <div className="mb-4 p-4 bg-[#0A1628]/40 rounded-[25px] border border-blue-600/10 text-sm text-white/40 italic">
+      <div className={"mb-4 p-4 rounded-[25px] border text-sm italic " +
+        (darkMode ? "bg-[#0A1628]/40 border-blue-600/10 text-white/40" : "bg-blue-50/60 border-blue-100 text-slate-400")}>
         🚗 Frais kilométriques —{" "}
         {!domicileLatLng
           ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"
@@ -280,20 +300,22 @@ export const BilanTab = ({
 
 {/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── */}
 {bilan.bilanPeriodType === "semaine" && (
-  bilan.bilanContent.acomptesDansPeriode > 0 || 
+  bilan.bilanContent.acomptesDansPeriode > 0 ||
   bilan.bilanContent.totalAcomptes > 0 ||
   bilan.bilanContent.soldeAcomptesAvant > 0 ||
   bilan.bilanContent.soldeAcomptesApres > 0
 ) && (
-  <div className="mb-8 p-6 bg-[#0A1628]/60 rounded-[35px] border border-yellow-600/20 backdrop-blur-md">
-    <p className="text-[10px] font-black uppercase text-yellow-500/70 mb-4 tracking-[0.2em]">
+  <div className={"mb-8 p-6 rounded-[35px] border backdrop-blur-md " +
+    (darkMode ? "bg-[#0A1628]/60 border-yellow-600/20" : "bg-white/80 border-slate-200")}>
+    <p className={"text-[10px] font-black uppercase mb-4 tracking-[0.2em] " +
+      (darkMode ? "text-yellow-500/70" : "text-amber-600")}>
       Suivi du solde acompte & impayés
     </p>
     <div className="space-y-3">
 
       {/* 💳 Acompte disponible précédent */}
       <div className="flex justify-between text-sm">
-        <span className="text-white/60">💳 Acompte disponible précédent :</span>
+        <span className={darkMode ? "text-white/60" : "text-slate-500"}>💳 Acompte disponible précédent :</span>
         <span className="font-bold text-cyan-300">
           {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
         </span>
@@ -302,7 +324,7 @@ export const BilanTab = ({
       {/* 📥 Reçus cette période */}
       {bilan.bilanContent.acomptesDansPeriode > 0 && (
         <div className="flex justify-between text-sm">
-          <span className="text-white/60">📥 Reçus cette période :</span>
+          <span className={darkMode ? "text-white/60" : "text-slate-500"}>📥 Reçus cette période :</span>
           <span className="font-bold text-cyan-300">
             +{formatEuro(bilan.bilanContent.acomptesDansPeriode)}
           </span>
@@ -312,7 +334,7 @@ export const BilanTab = ({
       {/* ✂️ Consommé cette période */}
       {bilan.bilanContent.totalAcomptes > 0 && (
         <div className="flex justify-between text-sm">
-          <span className="text-white/60">✂️ Consommé cette période :</span>
+          <span className={darkMode ? "text-white/60" : "text-slate-500"}>✂️ Consommé cette période :</span>
           <span className="font-bold text-red-400">
             -{formatEuro(bilan.bilanContent.totalAcomptes)}
           </span>
@@ -320,8 +342,8 @@ export const BilanTab = ({
       )}
 
       {/* Solde restant à reporter */}
-      <div className="pt-3 border-t border-white/10 flex justify-between items-center">
-        <span className="text-[10px] font-black uppercase text-white/80">
+      <div className={"pt-3 border-t flex justify-between items-center " + (darkMode ? "border-white/10" : "border-slate-200")}>
+        <span className={"text-[10px] font-black uppercase " + (darkMode ? "text-white/80" : "text-slate-700")}>
           Solde restant à reporter :
         </span>
         <span className="text-xl font-black text-green-400">
@@ -391,7 +413,9 @@ export const BilanTab = ({
           disabled={!canExportExcel}
           title={!canExportExcel ? "Fonctionnalité Pro" : undefined}
           className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
-            (canExportExcel ? "bg-green-600/20 text-green-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
+            (canExportExcel
+              ? (darkMode ? "bg-green-600/20 text-green-400 border-yellow-600/20" : "bg-green-50 text-green-700 border-green-200")
+              : (darkMode ? "bg-white/5 text-white/20 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed"))}
         >
           {canExportExcel ? "Excel" : "🔒 Excel"}
         </button>
@@ -404,7 +428,9 @@ export const BilanTab = ({
           disabled={!canExportPDF}
           title={!canExportPDF ? "Fonctionnalité Pro" : undefined}
           className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
-            (canExportPDF ? "bg-red-600/20 text-red-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
+            (canExportPDF
+              ? (darkMode ? "bg-red-600/20 text-red-400 border-yellow-600/20" : "bg-red-50 text-red-700 border-red-200")
+              : (darkMode ? "bg-white/5 text-white/20 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed"))}
         >
           {canExportPDF ? "PDF" : "🔒 PDF"}
         </button>
@@ -416,7 +442,9 @@ export const BilanTab = ({
           disabled={!canExportCSV}
           title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
           className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
-            (canExportCSV ? "bg-blue-600/20 text-blue-400 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
+            (canExportCSV
+              ? (darkMode ? "bg-blue-600/20 text-blue-400 border-yellow-600/20" : "bg-blue-50 text-blue-700 border-blue-200")
+              : (darkMode ? "bg-white/5 text-white/20 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed"))}
         >
           {canExportCSV ? "CSV Missions" : "🔒 CSV Missions"}
         </button>
@@ -429,7 +457,9 @@ export const BilanTab = ({
             disabled={!canExportCSV}
             title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
             className={"flex-1 min-w-[140px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
-              (canExportCSV ? "bg-cyan-600/20 text-cyan-300 border-yellow-600/20" : "bg-white/5 text-white/20 border-white/10 cursor-not-allowed")}
+              (canExportCSV
+                ? (darkMode ? "bg-cyan-600/20 text-cyan-300 border-yellow-600/20" : "bg-cyan-50 text-cyan-700 border-cyan-200")
+                : (darkMode ? "bg-white/5 text-white/20 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed"))}
           >
             {canExportCSV ? "CSV + Frais" : "🔒 CSV + Frais"}
           </button>
@@ -444,8 +474,8 @@ export const BilanTab = ({
             disabled={bilan.isRecalculatingKm}
             className={"w-full py-4 rounded-2xl font-black text-[11px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
               (bilan.isRecalculatingKm
-                ? "bg-white/5 text-white/30 border-white/10 cursor-not-allowed"
-                : "bg-blue-600/20 text-blue-400 border-blue-600/30 hover:bg-blue-600/30")}
+                ? (darkMode ? "bg-white/5 text-white/30 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed")
+                : (darkMode ? "bg-blue-600/20 text-blue-400 border-blue-600/30 hover:bg-blue-600/30" : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"))}
           >
             {bilan.isRecalculatingKm ? "⏳ Recalcul en cours…" : "🚗 Recalculer KM"}
           </button>
@@ -465,18 +495,20 @@ export const BilanTab = ({
             const monthShort = date.toLocaleString("fr-FR", { month: "short" }).toUpperCase();
 
             return (
-              <div key={i} className="p-5 rounded-[25px] backdrop-blur-md border border-yellow-600/15 bg-[#0A1628]/60">
+              <div key={i} className={"p-5 rounded-[25px] backdrop-blur-md border " +
+                (darkMode ? "border-yellow-600/15 bg-[#0A1628]/60" : "border-slate-200 bg-white/80")}>
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <div className="flex flex-col items-center min-w-[50px]">
                       <div className="text-[10px] font-black uppercase text-[#D4AF37]/90">{monthShort}</div>
-                      <div className="w-10 h-10 bg-[#0A1628] rounded-md flex items-center justify-center shadow-md border border-yellow-600/30">
-                        <span className="text-white font-black text-xl">{day}</span>
+                      <div className={"w-10 h-10 rounded-md flex items-center justify-center shadow-md border " +
+                        (darkMode ? "bg-[#0A1628] border-yellow-600/30" : "bg-slate-100 border-slate-200/80")}>
+                        <span className={"font-black text-xl " + (darkMode ? "text-white" : "text-slate-800")}>{day}</span>
                       </div>
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm uppercase text-white truncate">{m.client}</p>
+                      <p className={"font-bold text-sm uppercase truncate " + (darkMode ? "text-white" : "text-slate-800")}>{m.client}</p>
                       <p className="text-[11px] opacity-70 truncate">
                         {m.debut} → {m.fin}{m.pause > 0 && ` (${m.pause} min)`}
                       </p>
@@ -516,8 +548,9 @@ export const BilanTab = ({
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {bilan.bilanContent.groupedData.map((group, index) => (
-              <div key={index} className="p-5 bg-white/10 backdrop-blur-md rounded-3xl border border-white/10 shadow-lg">
-                <p className="font-black text-lg text-white mb-2">{group.label}</p>
+              <div key={index} className={"p-5 backdrop-blur-md rounded-3xl border " +
+                (darkMode ? "bg-white/10 border-white/10 shadow-lg" : "bg-white shadow-md border-slate-200")}>
+                <p className={"font-black text-lg mb-2 " + (darkMode ? "text-white" : "text-slate-800")}>{group.label}</p>
                 <div className="flex justify-between text-sm">
                   <span className="opacity-70">Heures :</span>
                   <span className="font-bold text-yellow-400/80">{formatHeures(group.h)}</span>

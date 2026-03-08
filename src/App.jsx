@@ -155,9 +155,9 @@ export default function App({ user }) {
   }
 
   return (
-    <div className={"min-h-screen relative overflow-hidden transition-all duration-700 " + (darkMode ? "bg-[#020818] text-white" : "bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900")}>
+    <div className={"min-h-screen relative overflow-hidden transition-all duration-700 " + (darkMode ? "dark bg-[#020818] text-white" : "light bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900")}>
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-blue-800/10" />
+        {darkMode && <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-blue-800/10" />}
         <div className="absolute inset-0 backdrop-blur-3xl" />
       </div>
 
@@ -170,12 +170,12 @@ export default function App({ user }) {
         </div>
       )}
 
-      <header className="relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-yellow-600/30">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#020818] via-[#0A1628] to-[#020818] backdrop-blur-xl" />
+      <header className={"relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b " + (darkMode ? "border-yellow-600/30" : "border-slate-200/80")}>
+        <div className={"absolute inset-0 backdrop-blur-xl " + (darkMode ? "bg-gradient-to-br from-[#020818] via-[#0A1628] to-[#020818]" : "bg-gradient-to-br from-white via-slate-50 to-indigo-50/60")} />
         <div className="relative z-10 text-center">
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="absolute right-6 top-6 w-12 h-12 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-2xl border border-white/20 shadow-lg active:scale-90 transition-all"
+            className={"absolute right-6 top-6 w-12 h-12 backdrop-blur-xl rounded-full flex items-center justify-center text-2xl shadow-lg active:scale-90 transition-all border " + (darkMode ? "bg-white/10 border-white/20" : "bg-slate-100 border-slate-300")}
           >
             {darkMode ? "☀️" : "🌙"}
           </button>
@@ -185,17 +185,17 @@ export default function App({ user }) {
           {isViewer && <ViewerBadge patronNom={profile?.nom || ""} />}
           {isPro && !isViewer && (
             <div className="text-center py-1">
-              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-yellow-500/15 border border-yellow-500/40 text-yellow-400">
+              <span className={"inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border " + (darkMode ? "bg-yellow-500/15 border-yellow-500/40 text-yellow-400" : "bg-amber-50 border-amber-400/60 text-amber-600")}>
                 ✨ Pro
               </span>
             </div>
           )}
           <div className="flex items-center justify-center gap-2 mb-1">
-            <span className="text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border border-yellow-600/40 text-yellow-500/70">
+            <span className={"text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border " + (darkMode ? "border-yellow-600/40 text-yellow-500/70" : "border-amber-500/50 text-amber-600/80")}>
               v{APP_VERSION} ✓ OTA
             </span>
           </div>
-          <div className="flex items-center justify-center gap-2 text-white/90">
+          <div className={"flex items-center justify-center gap-2 " + (darkMode ? "text-white/90" : "text-slate-700")}>
             <span className="text-[17px] font-black tracking-tight">{liveTime}</span>
             <span className="text-[15px] font-medium opacity-80 lowercase">
               {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
@@ -252,6 +252,7 @@ export default function App({ user }) {
         {activeTab === "suivi" && (
           <SuiviTab
             defaultView={isViewer ? "bilan" : historiqueHook.suiviDefaultView}
+            darkMode={darkMode}
             historiqueProps={{
               historique: historiqueHook.historique,
               historiquePatronId: historiqueHook.historiquePatronId,
@@ -364,7 +365,7 @@ export default function App({ user }) {
 
       <nav className="fixed bottom-6 left-6 right-6 z-[100]">
         {isProNavigationMode ? (
-          <div className="bg-[#030d22]/95 border-yellow-500/30 backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1">
+          <div className={"backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " + (darkMode ? "bg-[#030d22]/95 border-yellow-500/30" : "bg-white/95 border-slate-200/80")}>
             {proNavItems.map((item) => {
               const isActive = activeTab === item.key;
               return (
@@ -376,7 +377,7 @@ export default function App({ user }) {
                   }}
                   className={
                     "flex-1 rounded-[28px] font-black uppercase tracking-widest flex flex-col items-center justify-center py-2 text-[9px] gap-0.5 transition-all duration-200 " +
-                    (isActive ? `bg-gradient-to-br ${item.activeClass} text-white shadow-lg` : "text-white/35")
+                    (isActive ? `bg-gradient-to-br ${item.activeClass} text-white shadow-lg` : (darkMode ? "text-white/35" : "text-slate-400"))
                   }
                 >
                   <span className="text-[14px] leading-none">{item.icon}</span>
@@ -386,17 +387,17 @@ export default function App({ user }) {
             })}
           </div>
         ) : (
-          <div className="bg-[#020818]/90 backdrop-blur-3xl border border-yellow-600/20 p-2 rounded-[35px] shadow-2xl flex gap-1">
+          <div className={"backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " + (darkMode ? "bg-[#020818]/90 border-yellow-600/20" : "bg-white/95 border-slate-200/80")}>
             {!isViewer && (
-              <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : "text-white/30")}>Saisie</button>
+              <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : (darkMode ? "text-white/30" : "text-slate-400"))}>Saisie</button>
             )}
-            <button onClick={() => setActiveTab("suivi")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "suivi" ? "bg-gradient-to-br from-cyan-600 to-indigo-700 text-white" : "text-white/30")}>Suivi</button>
+            <button onClick={() => setActiveTab("suivi")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "suivi" ? "bg-gradient-to-br from-cyan-600 to-indigo-700 text-white" : (darkMode ? "text-white/30" : "text-slate-400"))}>Suivi</button>
             {!isViewer ? (
-              <button onClick={() => setActiveTab("parametres")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "parametres" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : "text-white/30")}>
+              <button onClick={() => setActiveTab("parametres")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "parametres" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : (darkMode ? "text-white/30" : "text-slate-400"))}>
                 <span>Parametres</span>
               </button>
             ) : (
-              <button onClick={() => supabase.auth.signOut()} className="flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 text-white/30">
+              <button onClick={() => supabase.auth.signOut()} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (darkMode ? "text-white/30" : "text-slate-400")}>
                 <span>🚪</span>
               </button>
             )}
