@@ -56,8 +56,27 @@ export default function AuthGate({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white">
-        Chargement...
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a001f]">
+        <div className="flex flex-col items-center gap-5">
+          {/* Icône */}
+          <div className="w-24 h-24 rounded-[28px] bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-700 flex items-center justify-center shadow-2xl shadow-indigo-500/40">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          {/* Nom + tagline */}
+          <div className="text-center">
+            <h1 className="text-5xl font-black text-white tracking-tight">Tracko</h1>
+            <p className="text-white/35 text-xs mt-2 tracking-[0.2em] uppercase">Gérez vos heures &amp; km</p>
+          </div>
+          {/* Dots de chargement */}
+          <div className="flex gap-2 mt-4">
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
+        </div>
       </div>
     );
   }
