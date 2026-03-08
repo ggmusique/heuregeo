@@ -524,6 +524,7 @@ export function ParametresTab({
 function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
+  const [geoLoading, setGeoLoading] = useState(false);
   const [kmEnable, setKmEnable] = useState(() => getKmEnabled(profile?.features));
   const [kmIncludeRetour, setKmIncludeRetour] = useState(() => {
     const f = profile?.features ?? {};
@@ -651,6 +652,40 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
     setSaving(false);
   };
 
+  const handleGeolocate = () => {
+    if (!navigator.geolocation) {
+      setSaveError("Géolocalisation non supportée par ce navigateur.");
+      return;
+    }
+    setGeoLoading(true);
+    setSaveError(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const prevFeatures = profile?.features ?? {};
+        const nextFeatures = {
+          ...prevFeatures,
+          km_domicile_lat: lat,
+          km_domicile_lng: lng,
+          km_settings: {
+            ...(prevFeatures.km_settings ?? {}),
+            homeLat: lat,
+            homeLng: lng,
+          },
+        };
+        const result = await saveProfile({ features: nextFeatures });
+        if (result?.error) setSaveError(result.error);
+        setGeoLoading(false);
+      },
+      (err) => {
+        setSaveError("Impossible d'obtenir votre position : " + err.message);
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   return (
     <div className={"rounded-2xl border p-4 space-y-4 " + (darkMode ? "border-blue-500/25 bg-blue-500/5" : "border-blue-300/50 bg-blue-50/50")}>
       <div className="flex items-center justify-between gap-3">
@@ -713,6 +748,17 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
               }
               className={"w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm backdrop-blur-md " + (darkMode ? "bg-black/20 border-white/10 text-white focus:border-blue-500 placeholder:text-white/30" : "bg-white border-slate-200 text-slate-800 focus:border-blue-500 placeholder:text-slate-400")}
             />
+            <button
+              type="button"
+              onClick={handleGeolocate}
+              disabled={geoLoading || saving}
+              className={"mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                (darkMode
+                  ? "border-blue-400/30 text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 disabled:opacity-40"
+                  : "border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-40")}
+            >
+              {geoLoading ? "⏳ Localisation…" : "📍 Ma position actuelle"}
+            </button>
             {hasDomicileInProfile && !kmDomicileAdresse && (
               <p className={"text-[10px] mt-1 italic " + (darkMode ? "text-white/40" : "text-slate-400")}>
                 Si vide, l&apos;adresse du profil sera utilisée.
