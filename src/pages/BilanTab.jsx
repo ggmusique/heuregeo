@@ -1,8 +1,6 @@
 import React, { useMemo } from "react";
 import { formatEuro, formatHeures, formatDateFR } from "../utils/formatters";
 import { getWeekNumber } from "../utils/dateUtils";
-import { exportToExcel, exportToCSV } from "../utils/exportUtils";
-import { exportToPDFPro } from "../utils/exportPDF_Pro";
 import { MissionCard } from "../components/mission/MissionCard";
 import { WeekPicker } from "../components/common/bilan/WeekPicker";
 import { WeatherIcon } from "../components/common/WeatherIcon";
@@ -406,10 +404,12 @@ export const BilanTab = ({
       {/* EXPORTS */}
       <div className="flex flex-wrap gap-3 mb-8">
         <button
-          onClick={() => canExportExcel && exportToExcel(
-            exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
-            exportBilanContent.titre, exportBilanContent.fraisDivers, profile
-          )}
+          onClick={async () => {
+            if (!canExportExcel) return;
+            const { exportToExcel } = await import("../utils/exportUtils");
+            exportToExcel(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
+              exportBilanContent.titre, exportBilanContent.fraisDivers, profile);
+          }}
           disabled={!canExportExcel}
           title={!canExportExcel ? "Fonctionnalité Pro" : undefined}
           className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
@@ -421,10 +421,12 @@ export const BilanTab = ({
         </button>
 
         <button
-          onClick={() => canExportPDF && exportToPDFPro(
-            exportBilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
-            bilan.bilanPeriodValue, profile
-          )}
+          onClick={async () => {
+            if (!canExportPDF) return;
+            const { exportToPDFPro } = await import("../utils/exportPDF_Pro");
+            exportToPDFPro(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
+              bilan.bilanPeriodValue, profile);
+          }}
           disabled={!canExportPDF}
           title={!canExportPDF ? "Fonctionnalité Pro" : undefined}
           className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
@@ -436,9 +438,11 @@ export const BilanTab = ({
         </button>
 
         <button
-          onClick={() => canExportCSV && exportToCSV(
-            exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false
-          )}
+          onClick={async () => {
+            if (!canExportCSV) return;
+            const { exportToCSV } = await import("../utils/exportUtils");
+            exportToCSV(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false);
+          }}
           disabled={!canExportCSV}
           title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
           className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
@@ -451,9 +455,11 @@ export const BilanTab = ({
 
         {bilan.bilanPeriodType === "semaine" && bilan.bilanContent.fraisDivers.length > 0 && (
           <button
-            onClick={() => canExportCSV && exportToCSV(
-              exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true
-            )}
+            onClick={async () => {
+              if (!canExportCSV) return;
+              const { exportToCSV } = await import("../utils/exportUtils");
+              exportToCSV(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true);
+            }}
             disabled={!canExportCSV}
             title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
             className={"flex-1 min-w-[140px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +

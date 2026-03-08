@@ -50,7 +50,7 @@ export const PeriodModal = ({
     /**
      * Overlay : couche qui recouvre tout l’écran (fond sombre flou)
      */
-    <div className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-[#050510]/95 backdrop-blur-xl">
+    <div className={`fixed inset-0 z-[400] flex items-center justify-center p-6 ${darkMode ? "bg-[#050510]/95" : "bg-black/40"} backdrop-blur-xl`}>
       {/* Boîte de la modale */}
       <div
         className={`w-full max-w-sm p-8 rounded-[45px] border-2 ${
@@ -69,13 +69,13 @@ export const PeriodModal = ({
             - 3 boutons : semaine / mois / année
             - met à jour periodType via setPeriodType(...)
            ====================================================== */}
-        <div className="flex bg-black/20 rounded-2xl p-1 mb-6 backdrop-blur-md">
+        <div className={`flex ${darkMode ? "bg-black/20" : "bg-slate-100"} rounded-2xl p-1 mb-6 backdrop-blur-md`}>
           <button
             onClick={() => setPeriodType("semaine")}
             className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${
               periodType === "semaine"
                 ? "bg-indigo-600 text-white shadow-md"
-                : "text-white/50 hover:bg-white/10"
+                : `${darkMode ? "text-white/50" : "text-slate-500"} hover:bg-white/10`
             }`}
           >
             Semaine
@@ -87,10 +87,10 @@ export const PeriodModal = ({
             title={!canBilanMois ? "Fonctionnalité Pro" : undefined}
             className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${
               !canBilanMois
-                ? "text-white/20 cursor-not-allowed"
+                ? `${darkMode ? "text-white/20" : "text-slate-300"} cursor-not-allowed`
                 : periodType === "mois"
                 ? "bg-indigo-600 text-white shadow-md"
-                : "text-white/50 hover:bg-white/10"
+                : `${darkMode ? "text-white/50" : "text-slate-500"} hover:bg-white/10`
             }`}
           >
             {canBilanMois ? "Mois" : "🔒 Mois"}
@@ -102,10 +102,10 @@ export const PeriodModal = ({
             title={!canBilanAnnee ? "Fonctionnalité Pro" : undefined}
             className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${
               !canBilanAnnee
-                ? "text-white/20 cursor-not-allowed"
+                ? `${darkMode ? "text-white/20" : "text-slate-300"} cursor-not-allowed`
                 : periodType === "annee"
                 ? "bg-indigo-600 text-white shadow-md"
-                : "text-white/50 hover:bg-white/10"
+                : `${darkMode ? "text-white/50" : "text-slate-500"} hover:bg-white/10`
             }`}
           >
             {canBilanAnnee ? "Année" : "🔒 Année"}
@@ -130,7 +130,7 @@ export const PeriodModal = ({
             <select
               value={periodValue || ""}
               onChange={(e) => setPeriodValue(e.target.value)}
-              className="w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase bg-[#1a1f2e] border-2 border-indigo-500/40 text-white appearance-none cursor-pointer focus:outline-none focus:border-indigo-400 transition-all shadow-inner backdrop-blur-md"
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-indigo-500/40 appearance-none cursor-pointer focus:outline-none focus:border-indigo-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[#1a1f2e] text-white" : "bg-white text-slate-900 border-slate-200"}`}
             >
               {/* option placeholder */}
               <option value="" disabled>
@@ -184,7 +184,7 @@ export const PeriodModal = ({
                 // ✅ correction importante : "" => null pour être cohérent partout
                 onPatronChange(value === "" ? null : value);
               }}
-              className="w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase bg-[#1a1f2e] border-2 border-green-500/40 text-white appearance-none cursor-pointer focus:outline-none focus:border-green-400 transition-all shadow-inner backdrop-blur-md"
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-green-500/40 appearance-none cursor-pointer focus:outline-none focus:border-green-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[#1a1f2e] text-white" : "bg-white text-slate-900 border-slate-200"}`}
             >
               {/* Global */}
               <option value="">📊 Tous les patrons (Global)</option>
@@ -240,7 +240,7 @@ export const PeriodModal = ({
                 const value = e.target.value;
                 onClientChange(value === "" ? null : value);
               }}
-              className="w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase bg-[#1a1f2e] border-2 border-amber-500/40 text-white appearance-none cursor-pointer focus:outline-none focus:border-amber-400 transition-all shadow-inner backdrop-blur-md"
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-amber-500/40 appearance-none cursor-pointer focus:outline-none focus:border-amber-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[#1a1f2e] text-white" : "bg-white text-slate-900 border-slate-200"}`}
             >
               <option value="">👥 Tous les clients</option>
 

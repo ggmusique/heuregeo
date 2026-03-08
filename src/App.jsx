@@ -47,7 +47,11 @@ export default function App({ user }) {
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
   const [activeTab, setActiveTab] = useState("saisie");
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const saved = window.localStorage.getItem("darkMode");
+    return saved === null ? true : saved !== "false";
+  });
   const [loading, setLoading] = useState(false);
   const [customAlert, setCustomAlert] = useState({ show: false, message: "" });
   const [isIOS, setIsIOS] = useState(false);
@@ -120,6 +124,12 @@ export default function App({ user }) {
       window.localStorage.setItem("showMissionRateEditor", showMissionRateEditor ? "true" : "false");
     }
   }, [showMissionRateEditor]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("darkMode", darkMode ? "true" : "false");
+    }
+  }, [darkMode]);
 
   useEffect(() => {
     if (isViewer && !profileLoading) {
@@ -340,11 +350,11 @@ export default function App({ user }) {
         )}
       </main>
 
-      <ConfirmModal show={confirmState.show} title={confirmState.title} message={confirmState.message} confirmText={confirmState.confirmText} cancelText={confirmState.cancelText} type={confirmState.type} onConfirm={confirmState.onConfirm} onCancel={hideConfirm} />
+      <ConfirmModal show={confirmState.show} title={confirmState.title} message={confirmState.message} confirmText={confirmState.confirmText} cancelText={confirmState.cancelText} type={confirmState.type} onConfirm={confirmState.onConfirm} onCancel={hideConfirm} darkMode={darkMode} />
 
       <FraisModal show={fraisModal.showFraisModal} editMode={!!fraisModal.editingFraisId} description={fraisModal.fraisDescription} setDescription={fraisModal.setFraisDescription} montant={fraisModal.fraisMontant} setMontant={fraisModal.setFraisMontant} date={fraisModal.fraisDate} setDate={fraisModal.setFraisDate} onSubmit={fraisModal.handleFraisSubmit} onCancel={() => { fraisModal.setShowFraisModal(false); fraisModal.resetFraisForm(); }} loading={loading} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={fraisModal.fraisPatronId} onPatronChange={fraisModal.setFraisPatronId} />
 
-      <AcompteModal show={acompteModal.showAcompteModal} montant={acompteModal.acompteMontant} setMontant={acompteModal.setAcompteMontant} date={acompteModal.acompteDate} setDate={acompteModal.setAcompteDate} onSubmit={acompteModal.handleAcompteSubmit} onCancel={() => { acompteModal.setShowAcompteModal(false); acompteModal.resetAcompteForm(); }} loading={loading || acompteModal.isSavingAcompte} isIOS={isIOS} patrons={patrons} selectedPatronId={acompteModal.acomptePatronId} onPatronChange={acompteModal.setAcomptePatronId} />
+      <AcompteModal show={acompteModal.showAcompteModal} montant={acompteModal.acompteMontant} setMontant={acompteModal.setAcompteMontant} date={acompteModal.acompteDate} setDate={acompteModal.setAcompteDate} onSubmit={acompteModal.handleAcompteSubmit} onCancel={() => { acompteModal.setShowAcompteModal(false); acompteModal.resetAcompteForm(); }} loading={loading || acompteModal.isSavingAcompte} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={acompteModal.acomptePatronId} onPatronChange={acompteModal.setAcomptePatronId} />
 
       <PatronModal show={patronModal.showPatronModal} editMode={!!patronModal.editingPatronId} initialData={patronModal.editingPatronData} onSubmit={patronModal.handlePatronSubmit} onCancel={() => { patronModal.setShowPatronModal(false); patronModal.resetPatronForm(); }} loading={loading} darkMode={darkMode} />
 

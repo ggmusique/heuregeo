@@ -20,6 +20,7 @@ export const AcompteModal = ({
   onSubmit,             // 👈 action quand on clique “Valider”
   onCancel,             // 👈 action quand on clique “Annuler”
   loading = false,      // 👈 true = bouton désactivé + affiche “Chargement...”
+  darkMode = true,      // 👈 style sombre/clair
   isIOS = false,        // 👈 aide DateSelector à gérer les bugs iPhone/iPad
   patrons = [],         // 👈 liste des patrons à afficher dans le select
   selectedPatronId = null, // 👈 patron choisi pour cet acompte
@@ -30,10 +31,10 @@ export const AcompteModal = ({
 
   return (
     // ✅ Fond noir + flou qui recouvre toute l’app
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-[#050510]/90 backdrop-blur-md">
+    <div className={`fixed inset-0 z-[500] flex items-center justify-center p-6 ${darkMode ? "bg-[#050510]/90" : "bg-black/40"} backdrop-blur-md`}>
       
       {/* ✅ La "boîte" centrale */}
-      <div className="w-full max-w-sm p-8 bg-[#121420] rounded-[40px] border-2 border-cyan-500/30 backdrop-blur-xl shadow-2xl">
+      <div className={`w-full max-w-sm p-8 rounded-[40px] border-2 ${darkMode ? "bg-[#121420] border-cyan-500/30" : "bg-white border-cyan-400/50"} backdrop-blur-xl shadow-2xl`}>
         
         {/* ✅ Titre */}
         <h3 className="text-xl font-black uppercase mb-6 text-center italic text-cyan-400">
@@ -48,7 +49,7 @@ export const AcompteModal = ({
             selectedPatronId={selectedPatronId} // 👈 valeur sélectionnée
             onSelect={onPatronChange}         // 👈 quand on choisit un patron
             required={true}                   // 👈 doit être rempli
-            darkMode={true}                   // 👈 force style sombre
+            darkMode={darkMode}                   // 👈 pass through prop
           />
 
           {/* ✅ Champ Montant */}
@@ -60,7 +61,7 @@ export const AcompteModal = ({
             <input
               type="number" // 👈 champ numérique
               placeholder="0.00 €"
-              className="w-full p-6 bg-black/40 rounded-2xl text-white font-black outline-none border border-cyan-500/30 text-center text-3xl focus:border-cyan-400 transition-colors"
+              className={`w-full p-6 rounded-2xl font-black outline-none border text-center text-3xl focus:border-cyan-400 transition-colors ${darkMode ? "bg-black/40 text-white border-cyan-500/30" : "bg-white text-slate-900 border-slate-200"}`}
               value={montant} // 👈 valeur affichée
               onChange={(e) => setMontant(e.target.value)} // 👈 met à jour le state dans App.jsx
             />
@@ -85,7 +86,7 @@ export const AcompteModal = ({
             {/* Annuler */}
             <button
               onClick={onCancel} // 👈 ferme la modal + reset (souvent)
-              className="flex-1 py-4 bg-white/5 rounded-2xl text-[10px] font-black uppercase text-white/60 hover:bg-white/10 transition-colors"
+              className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase transition-colors ${darkMode ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
             >
               Annuler
             </button>

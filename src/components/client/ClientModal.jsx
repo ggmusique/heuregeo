@@ -56,7 +56,7 @@ export const ClientModal = ({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+    <div className={`fixed inset-0 z-[500] flex items-center justify-center p-6 ${darkMode ? "bg-black/60" : "bg-black/30"} backdrop-blur-sm`}>
       <div
         className={`w-full max-w-md p-6 rounded-[30px] max-h-[calc(100vh-8rem)] overflow-y-auto ${
           darkMode
@@ -84,7 +84,7 @@ export const ClientModal = ({
                 darkMode
                   ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
                   : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"
-              } backdrop-blur-md placeholder:text-white/40`}
+              } backdrop-blur-md ${darkMode ? "placeholder:text-white/40" : "placeholder:text-slate-400"}`}
               required
             />
           </div>
@@ -103,7 +103,7 @@ export const ClientModal = ({
                 darkMode
                   ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
                   : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"
-              } backdrop-blur-md placeholder:text-white/40`}
+              } backdrop-blur-md ${darkMode ? "placeholder:text-white/40" : "placeholder:text-slate-400"}`}
             />
           </div>
 
@@ -121,7 +121,7 @@ export const ClientModal = ({
                 darkMode
                   ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
                   : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"
-              } backdrop-blur-md placeholder:text-white/40`}
+              } backdrop-blur-md ${darkMode ? "placeholder:text-white/40" : "placeholder:text-slate-400"}`}
             />
           </div>
 
@@ -130,7 +130,7 @@ export const ClientModal = ({
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-2xl font-black uppercase text-[11px] text-white/60 hover:text-white transition-all border border-white/10"
+              className={`flex-1 py-3 rounded-2xl font-black uppercase text-[11px] transition-all border ${darkMode ? "bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white" : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600 hover:text-slate-800"}`}
             >
               Annuler
             </button>

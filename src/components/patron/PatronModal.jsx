@@ -92,7 +92,7 @@ export function PatronModal({
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className={`absolute inset-0 ${darkMode ? "bg-black/60" : "bg-black/30"} backdrop-blur-sm`}
         onClick={onCancel}
       />
 
@@ -207,7 +207,7 @@ export function PatronModal({
         </div>
 
         {/* Aperçu */}
-        <div className="mt-6 p-4 rounded-2xl bg-black/20 border border-white/10">
+        <div className={`mt-6 p-4 rounded-2xl ${darkMode ? "bg-black/20 border border-white/10" : "bg-slate-100 border border-slate-200"}`}>
           <p className="text-[9px] font-black uppercase opacity-50 mb-2">
             Aperçu
           </p>

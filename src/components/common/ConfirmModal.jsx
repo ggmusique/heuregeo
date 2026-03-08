@@ -20,6 +20,7 @@ export const ConfirmModal = ({
   onConfirm,   // 👈 action quand on clique "confirmer"
   onCancel,    // 👈 action quand on annule (bouton ou clic dehors)
   type = "danger", // 👈 style: danger / warning / info...
+  darkMode = true, // 👈 style sombre/clair
 }) => {
   // ✅ Si la modal ne doit pas être visible, on ne rend rien du tout
   // -> ça évite qu’elle prenne de la place ou capte des clics
@@ -38,7 +39,7 @@ export const ConfirmModal = ({
           - couvre tout l’écran
           - si tu cliques dessus => onCancel (comme "Annuler") */}
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        className={`absolute inset-0 ${darkMode ? "bg-black/70" : "bg-black/30"} backdrop-blur-md`}
         onClick={onCancel}
       />
 
@@ -52,7 +53,7 @@ export const ConfirmModal = ({
 
         {/* ✅ La boîte principale */}
         <div
-          className={`relative bg-[#0f0b1a]/95 backdrop-blur-xl border-2 ${style.border} rounded-[40px] overflow-hidden shadow-2xl`}
+          className={`relative ${darkMode ? "bg-[#0f0b1a]/95" : "bg-white"} backdrop-blur-xl border-2 ${style.border} rounded-[40px] overflow-hidden shadow-2xl`}
         >
           
           {/* ✅ Bandeau du haut (titre + icône) */}
@@ -66,14 +67,14 @@ export const ConfirmModal = ({
               {style.icon}
             </div>
 
-            <h3 className="text-lg font-black uppercase text-white tracking-tight drop-shadow">
+            <h3 className={`text-lg font-black uppercase ${darkMode ? "text-white" : "text-slate-800"} tracking-tight drop-shadow`}>
               {title || "Confirmation requise"}
             </h3>
           </div>
 
           {/* ✅ Corps : le message */}
           <div className="p-8 backdrop-blur-md">
-            <p className="text-white/90 text-[15px] leading-relaxed font-medium">
+            <p className={`${darkMode ? "text-white/90" : "text-slate-700"} text-[15px] leading-relaxed font-medium`}>
               {message}
             </p>
           </div>
@@ -84,7 +85,7 @@ export const ConfirmModal = ({
             {/* Bouton Annuler */}
             <button
               onClick={onCancel}
-              className="flex-1 py-4 px-6 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl font-black uppercase text-[11px] text-white/70 tracking-wider transition-all active:scale-95 backdrop-blur-md"
+              className={`flex-1 py-4 px-6 border rounded-2xl font-black uppercase text-[11px] tracking-wider transition-all active:scale-95 backdrop-blur-md ${darkMode ? "bg-white/5 hover:bg-white/10 border-white/10 text-white/70" : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600"}`}
             >
               {cancelText || "Annuler"}
             </button>

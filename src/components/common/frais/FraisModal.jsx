@@ -50,7 +50,7 @@ export const FraisModal = ({
     : "";
 
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-[#050510]/90 backdrop-blur-md">
+    <div className={`fixed inset-0 z-[500] flex items-center justify-center p-6 ${darkMode ? "bg-[#050510]/90" : "bg-black/40"} backdrop-blur-md`}>
       <div
         className={`w-full max-w-sm p-8 rounded-[40px] border-2 ${
           darkMode
@@ -119,7 +119,7 @@ export const FraisModal = ({
 
         {/* ✅ Mini hint global (facultatif) */}
         {helper && (
-          <p className="mt-4 text-[10px] text-white/50">
+          <p className={`mt-4 text-[10px] ${darkMode ? "text-white/50" : "text-slate-400"}`}>
             ⚠️ {helper}
           </p>
         )}
@@ -128,7 +128,7 @@ export const FraisModal = ({
         <div className="flex gap-3 mt-6">
           <button
             onClick={onCancel}
-            className="flex-1 py-4 bg-white/5 rounded-2xl text-[10px] font-black backdrop-blur-md"
+            className={`flex-1 py-4 rounded-2xl text-[10px] font-black backdrop-blur-md ${darkMode ? "bg-white/5" : "bg-slate-100 text-slate-600"}`}
           >
             ANNULER
           </button>
