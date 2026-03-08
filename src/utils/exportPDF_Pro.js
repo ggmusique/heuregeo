@@ -268,22 +268,26 @@ const drawTableHeader = (doc, startX, y, headers, colWidths, bgColor) => {
 // ─────────────────────────────────────────────
 // TABLEAU MISSIONS (SEMAINE)
 // ─────────────────────────────────────────────
-const drawMissionsTable = (doc, bilanContent, startY) => {
+const drawMissionsTable = (doc, bilanContent, startY, labels = {}) => {
   if (!bilanContent.filteredData?.length) return startY;
   try {
     let y = startY;
+
+    const Lmissions = labels.missions || "missions";
+    const Lclient   = labels.client   || "Client";
+    const Llieu     = labels.lieu     || "Lieu";
 
     // Titre section
     doc.setFontSize(11);
     doc.setFont(undefined, "bold");
     doc.setTextColor(...COLORS.navy);
-    doc.text("Détail des missions", 15, y);
+    doc.text("Détail des " + Lmissions.toLowerCase(), 15, y);
     doc.setDrawColor(...COLORS.gold);
     doc.setLineWidth(0.8);
     doc.line(15, y + 2, 75, y + 2);
     y += 8;
 
-    const headers   = ["Date", "Client", "Lieu", "Horaires", "Pause", "Durée", "Montant"];
+    const headers   = ["Date", Lclient, Llieu, "Horaires", "Pause", "Durée", "Montant"];
     const colWidths = [20, 38, 40, 26, 14, 20, 27];
     const startX    = 15;
     const tableW    = colWidths.reduce((a, b) => a + b, 0);
@@ -371,7 +375,7 @@ const drawMissionsTable = (doc, bilanContent, startY) => {
     doc.setFont(undefined, "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(...COLORS.white);
-    doc.text("TOTAL MISSIONS", startX + 5, y + 5.5);
+    doc.text("TOTAL " + Lmissions.toUpperCase(), startX + 5, y + 5.5);
     doc.text(formatHeures(totH), startX + tableW - 52, y + 5.5, { align: "center" });
     doc.text(formatEuro(totE),   startX + tableW - 13, y + 5.5, { align: "center" });
 
@@ -456,7 +460,7 @@ const drawFraisTable = (doc, bilanContent, startY) => {
 // ─────────────────────────────────────────────
 // FRAIS KILOMÉTRIQUES
 // ─────────────────────────────────────────────
-const drawKmFeesTable = (doc, bilanContent, startY) => {
+const drawKmFeesTable = (doc, bilanContent, startY, labels = {}) => {
   const km = bilanContent.fraisKilometriques;
   if (!km?.totalAmount || km.totalAmount <= 0) return startY;
   const validItems = (km.items || []).filter((i) => i.amount !== null && i.amount > 0);
@@ -474,7 +478,7 @@ const drawKmFeesTable = (doc, bilanContent, startY) => {
     doc.line(15, y + 2, 75, y + 2);
     y += 8;
 
-    const headers = ["Date", "Lieu / Client", "Km (AR)", "Montant"];
+    const headers = ["Date", (labels.lieu || "Lieu") + " / " + (labels.client || "Client"), "Km (AR)", "Montant"];
     const colWidths = [30, 85, 30, 40];
     const startX = 15;
     const tableW = colWidths.reduce((a, b) => a + b, 0);
@@ -812,7 +816,8 @@ export const exportToPDFPro = (
   periodType,
   estPaye = false,
   periodValue = "",
-  profile = null
+  profile = null,
+  labels = {}
 ) => {
   if (!bilanContent) {
     console.error("❌ exportToPDFPro: bilanContent est requis");
@@ -828,9 +833,9 @@ export const exportToPDFPro = (
     y = drawMetrics(doc, bilanContent, periodType, y);
 
     if (periodType === "semaine") {
-      y = drawMissionsTable(doc, bilanContent, y);
+      y = drawMissionsTable(doc, bilanContent, y, labels);
       y = drawFraisTable(doc, bilanContent, y);
-      y = drawKmFeesTable(doc, bilanContent, y);
+      y = drawKmFeesTable(doc, bilanContent, y, labels);
       y = drawAcomptesSection(doc, bilanContent, y);
     } else if (periodType === "mois") {
       y = drawWeeklySummary(doc, bilanContent, y);

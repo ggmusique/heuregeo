@@ -22,7 +22,8 @@ export const exportToExcel = (
   periodValue,
   periodLabel,
   fraisDivers = [],
-  profile = null
+  profile = null,
+  labels = {}
 ) => {
   // Validation des entrées
   if (!bilanData) {
@@ -65,7 +66,7 @@ export const exportToExcel = (
       ).toUpperCase()}`,
     ],
     [],
-    ["DATE", "CLIENT", "LIEU", "DEBUT", "FIN", "PAUSE", "DUREE", "MONTANT"],
+    ["DATE", (labels.client || "CLIENT").toUpperCase(), (labels.lieu || "LIEU").toUpperCase(), "DEBUT", "FIN", "PAUSE", "DUREE", "MONTANT"],
   ];
 
   // Ajouter les missions
@@ -134,7 +135,8 @@ export const exportToCSV = (
   bilanContent,
   periodType,
   periodValue,
-  includeFrais = false
+  includeFrais = false,
+  labels = {}
 ) => {
   // Validation des entrées
   if (!bilanContent) {
@@ -150,8 +152,8 @@ export const exportToCSV = (
   // En-têtes
   const headers = [
     "Date",
-    "Client",
-    "Lieu",
+    labels.client || "Client",
+    labels.lieu   || "Lieu",
     "Début",
     "Fin",
     "Pause (min)",

@@ -64,7 +64,8 @@ export async function generateFacture(
   periodValue,
   profile,
   patron,
-  saveProfile
+  saveProfile,
+  labels = {}
 ) {
   const features = profile?.features || {};
   const { numFacture, newCounter, year } = computeNumFacture(features);
@@ -145,7 +146,7 @@ export async function generateFacture(
   // ── BLOC CLIENT ────────────────────────────────────────────────────────
   doc.setFillColor(...C.light);
   const clientLines = [
-    (patron?.nom || bilanContent?.selectedPatronNom || "Client"),
+    (patron?.nom || bilanContent?.selectedPatronNom || labels.patron || "Client"),
     patron?.adresse,
     [patron?.code_postal, patron?.ville].filter(Boolean).join(" "),
     patron?.telephone ? "Tél : " + patron.telephone : null,
@@ -187,7 +188,7 @@ export async function generateFacture(
       const taux = m.duree > 0 ? fmtEuro(m.montant / m.duree).replace(" €", "") + " €/h" : "-";
       return [
         fmtDate(m.date_iso),
-        m.lieu || m.client || "Prestation",
+        m.lieu || m.client || labels.mission || "Prestation",
         fmtH(m.duree),
         taux,
         fmtEuro(m.montant),
@@ -196,7 +197,7 @@ export async function generateFacture(
 
     autoTable(doc, {
       startY: y,
-      head: [["Date", "Prestation", "Durée", "Taux", "Montant"]],
+      head: [["Date", labels.mission || "Prestation", "Durée", "Taux", "Montant"]],
       body: missionRows,
       margin: { left: ML, right: MR },
       styles: {

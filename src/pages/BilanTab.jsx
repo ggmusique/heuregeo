@@ -412,7 +412,7 @@ export const BilanTab = ({
             if (!canExportExcel) return;
             const { exportToExcel } = await import("../utils/exportUtils");
             exportToExcel(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
-              exportBilanContent.titre, exportBilanContent.fraisDivers, profile);
+              exportBilanContent.titre, exportBilanContent.fraisDivers, profile, L);
           }}
           disabled={!canExportExcel}
           title={!canExportExcel ? "Fonctionnalité Pro" : undefined}
@@ -429,7 +429,7 @@ export const BilanTab = ({
             if (!canExportPDF) return;
             const { exportToPDFPro } = await import("../utils/exportPDF_Pro");
             exportToPDFPro(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
-              bilan.bilanPeriodValue, profile);
+              bilan.bilanPeriodValue, profile, L);
           }}
           disabled={!canExportPDF}
           title={!canExportPDF ? "Fonctionnalité Pro" : undefined}
@@ -446,7 +446,7 @@ export const BilanTab = ({
             onClick={async () => {
               const { generateFacture } = await import("../utils/generateFacture");
               const patron = patrons.find(p => p.id === bilanPatronId) || null;
-              await generateFacture(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, profile, patron, saveProfile);
+              await generateFacture(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, profile, patron, saveProfile, L);
             }}
             className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
               (darkMode ? "bg-amber-600/20 text-amber-400 border-amber-600/20" : "bg-amber-50 text-amber-700 border-amber-200")}
@@ -459,7 +459,7 @@ export const BilanTab = ({
           onClick={async () => {
             if (!canExportCSV) return;
             const { exportToCSV } = await import("../utils/exportUtils");
-            exportToCSV(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false);
+            exportToCSV(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false, L);
           }}
           disabled={!canExportCSV}
           title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
@@ -476,7 +476,7 @@ export const BilanTab = ({
             onClick={async () => {
               if (!canExportCSV) return;
               const { exportToCSV } = await import("../utils/exportUtils");
-              exportToCSV(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true);
+              exportToCSV(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true, L);
             }}
             disabled={!canExportCSV}
             title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
