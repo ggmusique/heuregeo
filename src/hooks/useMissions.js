@@ -4,6 +4,33 @@ import { getWeekNumber } from "../utils/dateUtils";
 import { useLabels } from "../contexts/LabelsContext";
 
 /**
+ * Vérifie si une mission en chevauchement existe déjà pour le même
+ * jour / patron / client.
+ * Retourne la mission en conflit ou null.
+ * excludeId : ignorer cette mission (mode édition).
+ */
+const findOverlappingMission = (missions, data, excludeId = null) => {
+  if (!data.date_iso || !data.debut || !data.fin || !data.patron_id || !data.client_id) return null;
+  const [hD, mD] = data.debut.split(":").map(Number);
+  const [hF, mF] = data.fin.split(":").map(Number);
+  const newStart = hD * 60 + mD;
+  const newEnd   = hF * 60 + mF;
+  return missions.find((m) => {
+    if (excludeId && m.id === excludeId) return false;
+    const mDate = m.date_mission || m.date_iso;
+    if (mDate !== data.date_iso) return false;
+    if (m.patron_id !== data.patron_id) return false;
+    if (m.client_id !== data.client_id) return false;
+    if (!m.debut || !m.fin) return false;
+    const [hS, mS] = m.debut.split(":").map(Number);
+    const [hE, mE] = m.fin.split(":").map(Number);
+    const existStart = hS * 60 + mS;
+    const existEnd   = hE * 60 + mE;
+    return newStart < existEnd && existStart < newEnd;
+  }) || null;
+};
+
+/**
  * Valide les données d'une mission avant envoi en base.
  * Retourne un message d'erreur ou null si tout est valide.
  */
@@ -97,6 +124,14 @@ export const useMissions = (onError) => {
         throw new Error(validationError);
       }
 
+      // Vérifier doublon / chevauchement horaire
+      const conflict = findOverlappingMission(missions, missionData);
+      if (conflict) {
+        const msg = `Doublon : une mission existe déjà de ${conflict.debut?.slice(0,5)} à ${conflict.fin?.slice(0,5)} avec le même ${L.patron} et ${L.client}.`;
+        onError?.(msg);
+        throw new Error(msg);
+      }
+
       try {
         setLoading(true);
 
@@ -116,7 +151,7 @@ export const useMissions = (onError) => {
         setLoading(false);
       }
     },
-    [onError, L]
+    [onError, L, missions]
   );
 
   // ------------------------------------------------------------
@@ -135,6 +170,14 @@ export const useMissions = (onError) => {
       if (validationError) {
         onError?.(validationError);
         throw new Error(validationError);
+      }
+
+      // Vérifier chevauchement (en excluant la mission en cours d'édition)
+      const conflict = findOverlappingMission(missions, missionData, id);
+      if (conflict) {
+        const msg = `Doublon : une mission existe déjà de ${conflict.debut?.slice(0,5)} à ${conflict.fin?.slice(0,5)} avec le même ${L.patron} et ${L.client}.`;
+        onError?.(msg);
+        throw new Error(msg);
       }
 
       try {
@@ -156,7 +199,7 @@ export const useMissions = (onError) => {
         setLoading(false);
       }
     },
-    [onError, L]
+    [onError, L, missions]
   );
 
   // ------------------------------------------------------------
