@@ -4,13 +4,13 @@ import { getWeekNumber } from "../utils/dateUtils";
 import { useLabels } from "../contexts/LabelsContext";
 
 /**
- * Vérifie si une mission en chevauchement existe déjà pour le même
- * jour / patron / client.
+ * Vérifie si une mission en chevauchement existe déjà sur le même jour,
+ * quel que soit le patron ou le client.
  * Retourne la mission en conflit ou null.
  * excludeId : ignorer cette mission (mode édition).
  */
 const findOverlappingMission = (missions, data, excludeId = null) => {
-  if (!data.date_iso || !data.debut || !data.fin || !data.patron_id || !data.client_id) return null;
+  if (!data.date_iso || !data.debut || !data.fin) return null;
   const [hD, mD] = data.debut.split(":").map(Number);
   const [hF, mF] = data.fin.split(":").map(Number);
   const newStart = hD * 60 + mD;
@@ -19,8 +19,6 @@ const findOverlappingMission = (missions, data, excludeId = null) => {
     if (excludeId && m.id === excludeId) return false;
     const mDate = m.date_mission || m.date_iso;
     if (mDate !== data.date_iso) return false;
-    if (m.patron_id !== data.patron_id) return false;
-    if (m.client_id !== data.client_id) return false;
     if (!m.debut || !m.fin) return false;
     const [hS, mS] = m.debut.split(":").map(Number);
     const [hE, mE] = m.fin.split(":").map(Number);
@@ -127,7 +125,7 @@ export const useMissions = (onError) => {
       // Vérifier doublon / chevauchement horaire
       const conflict = findOverlappingMission(missions, missionData);
       if (conflict) {
-        const msg = `Doublon : une mission existe déjà de ${conflict.debut?.slice(0,5)} à ${conflict.fin?.slice(0,5)} avec le même ${L.patron} et ${L.client}.`;
+        const msg = `Créneau déjà occupé : une mission existe de ${conflict.debut?.slice(0,5)} à ${conflict.fin?.slice(0,5)} ce jour-là.`;
         onError?.(msg);
         throw new Error(msg);
       }
@@ -175,7 +173,7 @@ export const useMissions = (onError) => {
       // Vérifier chevauchement (en excluant la mission en cours d'édition)
       const conflict = findOverlappingMission(missions, missionData, id);
       if (conflict) {
-        const msg = `Doublon : une mission existe déjà de ${conflict.debut?.slice(0,5)} à ${conflict.fin?.slice(0,5)} avec le même ${L.patron} et ${L.client}.`;
+        const msg = `Créneau déjà occupé : une mission existe de ${conflict.debut?.slice(0,5)} à ${conflict.fin?.slice(0,5)} ce jour-là.`;
         onError?.(msg);
         throw new Error(msg);
       }
