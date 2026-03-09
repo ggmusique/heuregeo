@@ -777,11 +777,17 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
     let kmDomicileLat = prevFeatures.km_domicile_lat ?? null;
     let kmDomicileLng = prevFeatures.km_domicile_lng ?? null;
     let detectedCountry = null;
-    const addr =
-      (kmDomicileAdresse || "").trim() ||
-      [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
-    if (addr) {
-      const geoResult = await geocodeAddress(addr);
+
+    const storedAddr = (prevFeatures.km_domicile_address || "").trim();
+    const typedAddr = (kmDomicileAdresse || "").trim();
+    const fallbackAddr = [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ");
+    const effectiveAddr = typedAddr || fallbackAddr;
+    const alreadyGeocoded = Number.isFinite(Number(prevFeatures.km_domicile_lat)) && Number.isFinite(Number(prevFeatures.km_domicile_lng));
+    const addrChanged = typedAddr !== storedAddr;
+
+    // Géocoder uniquement si l'adresse a changé ou n'a jamais été géocodée
+    if (effectiveAddr && (addrChanged || !alreadyGeocoded)) {
+      const geoResult = await geocodeAddress(effectiveAddr);
       if (geoResult) {
         kmDomicileLat = geoResult.lat;
         kmDomicileLng = geoResult.lng;
@@ -789,6 +795,8 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
         if (detectedCountry) setKmCountryCode(detectedCountry);
       } else {
         setSaveError("Adresse introuvable via géocodage. Essayez une adresse plus précise (ex: 12 Rue Dupont, 75001 Paris).");
+        setSaving(false);
+        return;
       }
     }
     const effectiveCountry = detectedCountry || kmCountryCode;
