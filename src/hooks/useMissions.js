@@ -228,7 +228,33 @@ export const useMissions = (onError) => {
   );
 
   // ------------------------------------------------------------
-  // 6) LISTES UTILES (AUTOCOMPLETE)
+  // 6) IMPORT EN LOT (BULK CREATE)
+  // ------------------------------------------------------------
+  /**
+   * bulkCreateMissions(validMissions)
+   * => insère plusieurs missions d'un coup (déjà validées par ImportMissionsModal)
+   * puis recharge toutes les missions depuis la DB.
+   */
+  const bulkCreateMissions = useCallback(
+    async (validMissions) => {
+      if (!validMissions?.length) return;
+      try {
+        setLoading(true);
+        await missionsApi.bulkInsertMissions(validMissions);
+        await fetchMissions();
+      } catch (err) {
+        console.error("Erreur import missions:", err);
+        onError?.("Erreur lors de l'import des missions");
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchMissions, onError]
+  );
+
+  // ------------------------------------------------------------
+  // 7) LISTES UTILES (AUTOCOMPLETE)
   // ------------------------------------------------------------
   /**
    * clientsUniques / lieuxUniques
@@ -342,6 +368,7 @@ export const useMissions = (onError) => {
     createMission,
     updateMission,
     deleteMission,
+    bulkCreateMissions,
 
     // Filtres / helpers
     getMissionsByWeek,

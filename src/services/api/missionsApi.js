@@ -115,3 +115,25 @@ export const deleteMission = async (id) => {
 
   if (error) throw error;
 };
+
+// ------------------------------------------------------------
+// 5) INSÉRER plusieurs missions d'un coup (BULK CREATE)
+// ------------------------------------------------------------
+export const bulkInsertMissions = async (missionsArray) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  const payloads = missionsArray.map((m) => ({
+    ...m,
+    user_id: user.id,
+    date_mission: m.date_iso,
+  }));
+
+  const { data, error } = await supabase
+    .from("missions")
+    .insert(payloads)
+    .select();
+
+  if (error) throw error;
+  return data;
+};

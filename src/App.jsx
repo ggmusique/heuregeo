@@ -39,6 +39,7 @@ import { LieuModal } from "./components/lieu/LieuModal";
 import { AgendaModal } from "./components/agenda/AgendaModal";
 import { OnboardingForm } from "./components/auth/OnboardingForm";
 import { ViewerBadge } from "./components/common/ViewerBadge";
+import { ImportMissionsModal } from "./components/mission/ImportMissionsModal";
 
 import { supabase } from "./services/supabase";
 import { LabelsContext } from "./contexts/LabelsContext";
@@ -68,6 +69,7 @@ export default function App({ user }) {
   });
   const [bilanPatronId, setBilanPatronId] = useState(null);
   const [bilanClientId, setBilanClientId] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const triggerAlert = useCallback((msg) => {
     setCustomAlert({ show: true, message: msg });
@@ -75,7 +77,7 @@ export default function App({ user }) {
 
   const { confirmState, showConfirm, hideConfirm } = useConfirm();
 
-  const { missions, loading: missionsLoading, fetchMissions, createMission, updateMission, deleteMission, getMissionsByWeek, getMissionsByPeriod } = useMissions(triggerAlert);
+  const { missions, loading: missionsLoading, fetchMissions, createMission, updateMission, deleteMission, bulkCreateMissions, getMissionsByWeek, getMissionsByPeriod } = useMissions(triggerAlert);
   const { lieux, loading: lieuxLoading, fetchLieux, createLieu, updateLieu, deleteLieu } = useLieux(triggerAlert);
   const { fraisDivers, loading: fraisLoading, fetchFrais, createFrais, updateFrais, deleteFrais, getFraisByWeek, getTotalFrais } = useFrais(triggerAlert);
   const { listeAcomptes, loading: acomptesLoading, fetchAcomptes, createAcompte, deleteAcompte, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua } = useAcomptes(missions, fraisDivers, triggerAlert);
@@ -284,6 +286,7 @@ export default function App({ user }) {
             onShowPatronModal={() => { patronModal.resetPatronForm(); patronModal.setShowPatronModal(true); }}
             onShowFraisModal={() => fraisModal.setShowFraisModal(true)}
             onShowAcompteModal={() => acompteModal.setShowAcompteModal(true)}
+            onShowImportModal={() => setShowImportModal(true)}
             showMissionRateEditor={showMissionRateEditor}
           />
         )}
@@ -436,6 +439,16 @@ export default function App({ user }) {
           darkMode={darkMode}
         />
       )}
+
+      <ImportMissionsModal
+        show={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={bulkCreateMissions}
+        patrons={patrons}
+        clients={clients}
+        lieux={lieux}
+        darkMode={darkMode}
+      />
 
       <nav className="fixed bottom-6 left-6 right-6 z-[100]">
         {isProNavigationMode ? (

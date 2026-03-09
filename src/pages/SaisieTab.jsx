@@ -15,13 +15,13 @@ export const SaisieTab = ({
   loading,
   darkMode,
   isIOS,
-  
+
   // Données
   lieux,
   patrons,
   clients,
   missions,
-  
+
   // Handlers
   onMissionSubmit,
   onMissionCancel,
@@ -34,6 +34,7 @@ export const SaisieTab = ({
   onShowClientModal,
   onShowFraisModal,
   onShowAcompteModal,
+  onShowImportModal,
   showMissionRateEditor = true,
 }) => {
   return (
@@ -78,6 +79,20 @@ export const SaisieTab = ({
           + Acompte
         </button>
       </div>
+
+      {/* Import CSV/Excel */}
+      {onShowImportModal && (
+        <button
+          onClick={onShowImportModal}
+          className={`mt-3 w-full py-3 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all border ${
+            darkMode
+              ? "bg-violet-600/15 text-violet-400 border-violet-500/30"
+              : "bg-violet-50 text-violet-600 border-violet-200"
+          }`}
+        >
+          📥 Importer CSV / Excel
+        </button>
+      )}
     </div>
   );
 };

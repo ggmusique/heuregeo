@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { formatEuro, formatDateFR } from "../utils/formatters";
 import { getWeekNumber } from "../utils/dateUtils";
 import { useLabels } from "../contexts/LabelsContext";
+import { StatsCharts } from "../components/stats/StatsCharts";
 
 /**
  * ✅ HistoriqueTab
@@ -33,6 +34,21 @@ export const HistoriqueTab = ({
 
   // When viewer, use their fixed patron_id for all filtering
   const effectivePatronId = isViewer ? viewerPatronId : historiquePatronId;
+
+  // ── Statistiques (local toggle) ───────────────────────────────────────────
+  const [showStats, setShowStats] = useState(false);
+
+  // ── Filtres onglet Missions ───────────────────────────────────────────────
+  const [mDateFrom, setMDateFrom] = useState("");   // "YYYY-MM"
+  const [mDateTo,   setMDateTo]   = useState("");   // "YYYY-MM"
+  const [mClient,   setMClient]   = useState("");
+  const [mPatronId, setMPatronId] = useState("");
+
+  // ── Clients uniques (pour le filtre missions) ─────────────────────────────
+  const clientsUniques = useMemo(
+    () => [...new Set(missions.map((m) => m.client).filter(Boolean))].sort(),
+    [missions]
+  );
 
   // Build a set of week numbers from existing missions (to filter deleted-mission rows)
   const validWeekNums = useMemo(() => {
@@ -66,6 +82,25 @@ export const HistoriqueTab = ({
         : historique.payes || [],
     [historique.payes, validWeekNums, missions.length]
   );
+
+  // ── Missions filtrées (onglet Missions) ───────────────────────────────────
+  const missionsFiltrees = useMemo(() => {
+    return missions
+      .filter((m) => {
+        if (effectivePatronId && m.patron_id !== effectivePatronId) return false;
+        if (mPatronId && m.patron_id !== mPatronId) return false;
+        if (mClient && m.client !== mClient) return false;
+        const month = m.date_iso?.slice(0, 7) ?? "";
+        if (mDateFrom && month < mDateFrom) return false;
+        if (mDateTo   && month > mDateTo)   return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const d = (b.date_iso ?? "").localeCompare(a.date_iso ?? "");
+        if (d !== 0) return d;
+        return (b.debut ?? "").localeCompare(a.debut ?? "");
+      });
+  }, [missions, effectivePatronId, mPatronId, mClient, mDateFrom, mDateTo]);
   return (
     <div className="animate-in fade-in duration-500 space-y-4 pb-4">
       {/* ── SÉLECTEUR PATRON ── */}
@@ -94,6 +129,38 @@ export const HistoriqueTab = ({
               </option>
             ))}
           </select>
+        </div>
+      )}
+
+      {/* ── STATS TOGGLE ── */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowStats((v) => !v)}
+          className={`px-4 py-2 rounded-2xl font-black uppercase text-[10px] tracking-wider transition-all ${
+            showStats
+              ? "bg-indigo-600/80 text-white"
+              : darkMode
+              ? "bg-white/5 text-white/50 border border-white/10"
+              : "bg-slate-100 text-slate-500 border border-slate-200"
+          }`}
+        >
+          📈 Statistiques
+        </button>
+      </div>
+
+      {/* ── SECTION STATISTIQUES (collapsible) ── */}
+      {showStats && (
+        <div
+          className={`p-4 rounded-[25px] border ${
+            darkMode ? "bg-white/3 border-white/8" : "bg-slate-50 border-slate-200"
+          }`}
+        >
+          <StatsCharts
+            missions={missions}
+            patrons={patrons}
+            effectivePatronId={effectivePatronId}
+            darkMode={darkMode}
+          />
         </div>
       )}
 
@@ -264,8 +331,8 @@ export const HistoriqueTab = ({
         </button>
       )}
 
-      {/* ── ONGLETS IMPAYÉS / PAYÉS ── */}
-      {historique.all?.length > 0 && (
+      {/* ── ONGLETS IMPAYÉS / PAYÉS / MISSIONS ── */}
+      {(historique.all?.length > 0 || missions.length > 0) && (
         <>
           <div className="flex gap-2 mt-2">
             <button
@@ -292,6 +359,19 @@ export const HistoriqueTab = ({
               }`}
             >
               ✅ Payés ({filteredPayes.length})
+            </button>
+
+            <button
+              onClick={() => onTabChange("missions")}
+              className={`flex-1 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${
+                historiqueTab === "missions"
+                  ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-lg"
+                  : darkMode
+                    ? "bg-white/5 text-white/40 border border-white/10"
+                    : "bg-slate-100 text-slate-400 border border-slate-200"
+              }`}
+            >
+              📋 Missions
             </button>
           </div>
 
@@ -400,6 +480,156 @@ export const HistoriqueTab = ({
                           {row.date_paiement
                             ? formatDateFR(row.date_paiement)
                             : ""}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Liste missions avec filtres ── */}
+          {historiqueTab === "missions" && (
+            <div className="space-y-3">
+              {/* Filtres */}
+              <div
+                className={`p-3 rounded-[20px] border grid grid-cols-2 gap-2 ${
+                  darkMode ? "bg-white/4 border-white/8" : "bg-slate-50 border-slate-200"
+                }`}
+              >
+                {/* Date de */}
+                <div>
+                  <p className="text-[9px] font-black uppercase opacity-40 mb-1">De</p>
+                  <input
+                    type="month"
+                    value={mDateFrom}
+                    onChange={(e) => setMDateFrom(e.target.value)}
+                    className={`w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none ${
+                      darkMode ? "bg-black/30 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"
+                    }`}
+                  />
+                </div>
+
+                {/* Date à */}
+                <div>
+                  <p className="text-[9px] font-black uppercase opacity-40 mb-1">À</p>
+                  <input
+                    type="month"
+                    value={mDateTo}
+                    onChange={(e) => setMDateTo(e.target.value)}
+                    className={`w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none ${
+                      darkMode ? "bg-black/30 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"
+                    }`}
+                  />
+                </div>
+
+                {/* Filtre client */}
+                <div>
+                  <p className="text-[9px] font-black uppercase opacity-40 mb-1">{L.client}</p>
+                  <select
+                    value={mClient}
+                    onChange={(e) => setMClient(e.target.value)}
+                    className={`w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none ${
+                      darkMode ? "bg-black/30 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"
+                    }`}
+                  >
+                    <option value="">Tous</option>
+                    {clientsUniques.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filtre patron (masqué si effectivePatronId) */}
+                {!effectivePatronId && (
+                  <div>
+                    <p className="text-[9px] font-black uppercase opacity-40 mb-1">{L.patron}</p>
+                    <select
+                      value={mPatronId}
+                      onChange={(e) => setMPatronId(e.target.value)}
+                      className={`w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none ${
+                        darkMode ? "bg-black/30 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"
+                      }`}
+                    >
+                      <option value="">Tous</option>
+                      {patrons.map((p) => (
+                        <option key={p.id} value={p.id}>{p.nom}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Reset */}
+                {(mDateFrom || mDateTo || mClient || mPatronId) && (
+                  <div className="col-span-2 flex justify-end">
+                    <button
+                      onClick={() => { setMDateFrom(""); setMDateTo(""); setMClient(""); setMPatronId(""); }}
+                      className={`text-[10px] font-black px-3 py-1 rounded-xl ${darkMode ? "text-white/50 hover:text-white/80" : "text-slate-400 hover:text-slate-700"}`}
+                    >
+                      Réinitialiser les filtres
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Total filtré */}
+              {missionsFiltrees.length > 0 && (
+                <div className="flex justify-between items-center px-2 py-1">
+                  <p className="text-[10px] font-black opacity-60 uppercase">
+                    {missionsFiltrees.length} mission(s)
+                  </p>
+                  <p className="text-[11px] font-black text-indigo-400">
+                    {formatEuro(missionsFiltrees.reduce((s, m) => s + (m.montant || 0), 0))}
+                    {" · "}
+                    {missionsFiltrees.reduce((s, m) => s + (m.duree || 0), 0).toFixed(1)} h
+                  </p>
+                </div>
+              )}
+
+              {/* Liste */}
+              {missionsFiltrees.length === 0 ? (
+                <div className="text-center py-8 opacity-50">
+                  <p className="text-2xl mb-2">📭</p>
+                  <p className="text-sm font-bold">Aucune mission trouvée.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {missionsFiltrees.map((m) => (
+                    <div
+                      key={m.id}
+                      className={`p-3 rounded-2xl border flex items-center gap-3 ${
+                        darkMode ? "bg-black/20 border-white/8" : "bg-white border-slate-200"
+                      }`}
+                    >
+                      {/* Date */}
+                      <div className="shrink-0 text-center w-8">
+                        <p className="text-[18px] font-black leading-none">
+                          {m.date_iso?.slice(8)}
+                        </p>
+                        <p className="text-[8px] font-black uppercase opacity-40">
+                          {new Date(m.date_iso + "T12:00:00").toLocaleString("fr-FR", { month: "short" })}
+                        </p>
+                      </div>
+
+                      {/* Détails */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-black text-[11px] truncate">
+                          {m.client || "—"} · {m.lieu || "—"}
+                        </p>
+                        <p className="text-[9px] opacity-50 mt-0.5">
+                          {m.debut?.slice(0, 5)} → {m.fin?.slice(0, 5)}
+                          {m.pause > 0 ? ` (pause ${m.pause}min)` : ""}
+                        </p>
+                      </div>
+
+                      {/* Montant + heures */}
+                      <div className="shrink-0 text-right">
+                        <p className="font-black text-sm text-indigo-400 amount-safe">
+                          {formatEuro(m.montant || 0)}
+                        </p>
+                        <p className="text-[9px] opacity-40">
+                          {(m.duree || 0).toFixed(1)} h
                         </p>
                       </div>
                     </div>
