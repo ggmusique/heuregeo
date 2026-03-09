@@ -3,6 +3,10 @@ import { supabase } from "../services/supabase";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
+import { computeStatutPaye, normalizeBilanForWrite } from "../lib/bilanEngine";
+
+// Rétro-compatibilité : normalizeBilanRow est désormais dans bilanEngine
+export { normalizeBilanForWrite as normalizeBilanRow };
 
 const fetchHistoricalWeather = async (dateIso, lat = 50.63, lon = 5.58) => {
   try {
@@ -34,31 +38,6 @@ const fetchHistoricalWeather = async (dateIso, lat = 50.63, lon = 5.58) => {
 
 const GLOBAL_PATRON_ID = "00000000-0000-0000-0000-000000000000";
 const TABLE = "bilans_status_v2";
-
-/**
- * Normalise une ligne bilan pour respecter l'invariant :
- *   paye <=> reste_a_percevoir === 0  (tolérance 0.01)
- *   reste_a_percevoir >= 0 toujours
- *
- * À utiliser avant toute écriture dans bilans_status_v2.
- */
-export function normalizeBilanRow({
-  ca_brut_periode = 0,
-  acompte_consomme = 0,
-  reste_a_percevoir = 0,
-  paye = false,
-  date_paiement = null,
-} = {}) {
-  const reste = Math.max(0, Number(reste_a_percevoir) || 0);
-  const isPaye = paye === true || reste <= 0.01;
-  return {
-    ca_brut_periode: Number(ca_brut_periode) || 0,
-    acompte_consomme: Number(acompte_consomme) || 0,
-    reste_a_percevoir: isPaye ? 0 : reste,
-    paye: isPaye,
-    date_paiement: isPaye ? (date_paiement || new Date().toISOString()) : null,
-  };
-}
 
 export function useBilan({
   missions,
@@ -205,7 +184,7 @@ export function useBilan({
         if (!data || data.length === 0) return false;
         const row = data[0] || {};
         const reste = parseFloat(row?.reste_a_percevoir ?? 0);
-        return (row?.paye === true) && !(reste > 0.01);
+        return computeStatutPaye(row?.paye, reste);
       } catch (err) {
         console.error("Erreur getStatutPaiement:", err);
         return false;
@@ -707,7 +686,7 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
 
         // 11) Invariant paye<=>reste=0 : dériver l'état final avant tout write DB
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
-        const isPaid = statutPaye || resteCettePeriode <= 0.01;
+        const isPaid = computeStatutPaye(statutPaye, resteCettePeriode);
 
         // Forcer la cohérence UI : resteAPercevoir = resteCettePeriode = valeur nette finale
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
@@ -840,19 +819,17 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
             paye: true,
             date_paiement: new Date().toISOString(),
             reste_a_percevoir: 0,
-            acompte_consomme: caBrutPeriode,
+            acompte_consomme: 0,
           });
 
           if (insertError) throw insertError;
         } else {
-          const caBrutPeriode = Number(existingBilan.ca_brut_periode) || 0;
           const { error: updateError } = await supabase
             .from(TABLE)
             .update({
               paye: true,
               date_paiement: new Date().toISOString(),
               reste_a_percevoir: 0,
-              acompte_consomme: caBrutPeriode,
             })
             .eq("id", existingBilan.id);
 
