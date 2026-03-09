@@ -147,7 +147,7 @@ export const DiagnosticsPage = ({
             .or("paye.eq.false,reste_a_percevoir.gt.0"),
 
           supabase.from("acomptes")
-            .select("id, montant, date_acompte, note")
+            .select("id, montant, date_acompte")
             .eq("patron_id", diagPatronId).order("date_acompte"),
 
           supabase.from("acompte_allocations")
@@ -483,7 +483,6 @@ export const DiagnosticsPage = ({
                       <div className="flex justify-between items-baseline mb-1">
                         <span className="text-[12px] font-black text-white">
                           {new Date(ac.date_acompte).toLocaleDateString("fr-FR")}
-                          {ac.note ? <span className="font-normal text-white/50 ml-1 text-[10px]">{ac.note}</span> : null}
                         </span>
                         <span className="text-[12px] font-black text-yellow-300 font-mono">
                           {parseFloat(ac.montant || 0).toFixed(2)} €
