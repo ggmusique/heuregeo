@@ -162,6 +162,15 @@ export const DiagnosticsPage = ({
             .order("date_frais"),
         ]);
 
+      // Capturer les erreurs individuelles (Supabase ne throw pas)
+      const queryErrors = [
+        bilanRes.error && `Bilan: ${bilanRes.error.message}`,
+        precedentsRes.error && `Précédents: ${precedentsRes.error.message}`,
+        acomptesRes.error && `Acomptes: ${acomptesRes.error.message}`,
+        allocRes.error && `Allocations: ${allocRes.error.message}`,
+        fraisRes.error && `Frais KM: ${fraisRes.error.message}`,
+      ].filter(Boolean);
+
       const impayePrecedent = (precedentsRes.data || []).reduce(
         (sum, r) => sum + Math.max(0, parseFloat(r.reste_a_percevoir) || 0), 0
       );
@@ -172,6 +181,7 @@ export const DiagnosticsPage = ({
         acomptes: acomptesRes.data || [],
         allocations: allocRes.data || [],
         fraisKm: fraisRes.data || [],
+        queryErrors,
       });
     } catch (err) {
       setDiagError(err.message);
@@ -415,6 +425,15 @@ export const DiagnosticsPage = ({
       {/* Résultats */}
       {diagData && (
         <>
+          {/* Erreurs de requête */}
+          {diagData.queryErrors?.length > 0 && (
+            <div className="p-3 rounded-2xl bg-red-600/20 border border-red-500/40 space-y-1">
+              <p className="text-[10px] font-black uppercase text-red-400 tracking-wider">Erreurs de requête</p>
+              {diagData.queryErrors.map((e, i) => (
+                <p key={i} className="text-[11px] text-red-300 font-mono">{e}</p>
+              ))}
+            </div>
+          )}
           {/* Card 1 — Bilan */}
           <Card title={`🔎 Bilan S${diagWeek}`}>
             {diagData.bilan ? (
