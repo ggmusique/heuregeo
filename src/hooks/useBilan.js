@@ -3,7 +3,7 @@ import { supabase } from "../services/supabase";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
-import { computeStatutPaye, normalizeBilanForWrite } from "../lib/bilanEngine";
+import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite } from "../lib/bilanEngine";
 
 // Rétro-compatibilité : normalizeBilanRow est désormais dans bilanEngine
 export { normalizeBilanForWrite as normalizeBilanRow };
@@ -216,10 +216,7 @@ export function useBilan({
         throw error;
       }
 
-      const impayePrecedent = (data || []).reduce((sum, row) => {
-        const reste = parseFloat(row?.reste_a_percevoir ?? 0);
-        return sum + (reste > 0 ? reste : 0);
-      }, 0);
+      const impayePrecedent = computeImpayePrecedent(data);
 
       return impayePrecedent;
     } catch (err) {
