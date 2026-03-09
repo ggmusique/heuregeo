@@ -344,10 +344,13 @@ export default function App({ user }) {
             loading={agendaHook.loading}
             currentYear={agendaHook.currentYear}
             currentMonth={agendaHook.currentMonth}
+            currentWeekStart={agendaHook.currentWeekStart}
             workedDays={agendaWorkedDays}
             onGoToPrev={agendaHook.goToPrevMonth}
             onGoToNext={agendaHook.goToNextMonth}
             onGoToToday={agendaHook.goToToday}
+            onGoToPrevWeek={agendaHook.goToPrevWeek}
+            onGoToNextWeek={agendaHook.goToNextWeek}
             onOpenForDate={agendaModal.openForDate}
             onEventEdit={agendaModal.handleEventEdit}
             darkMode={darkMode}

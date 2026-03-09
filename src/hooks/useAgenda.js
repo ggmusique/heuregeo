@@ -1,14 +1,44 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../services/supabase";
 
+// ─── helpers date ──────────────────────────────────────────────────────────
+
+/** Retourne l'ISO du lundi de la semaine contenant `date` */
+export function getMondayOf(date) {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=dim
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Ajoute `days` jours à un ISO string */
+function addDays(iso, days) {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+
 export function useAgenda({ userId, triggerAlert }) {
   const today = new Date();
-  const [currentYear, setCurrentYear]   = useState(today.getFullYear());
+
+  // ── Vue Mois ──────────────────────────────────────────────────────────────
+  const [currentYear,  setCurrentYear]  = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth() + 1); // 1-12
-  const [events, setEvents]             = useState([]);
-  const [loading, setLoading]           = useState(false);
+
+  // ── Vue Semaine ───────────────────────────────────────────────────────────
+  const [currentWeekStart, setCurrentWeekStart] = useState(() => getMondayOf(today));
+
+  // ── Données ───────────────────────────────────────────────────────────────
+  const [events,  setEvents]  = useState([]);
+  const [loading, setLoading] = useState(false);
   const firedRef = useRef(new Set());
 
+  // ────────────────────────────────────────────────────────────────────────
+  // Fetch — basé sur le mois affiché
+  // ────────────────────────────────────────────────────────────────────────
   const fetchEvents = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
@@ -17,9 +47,6 @@ export function useAgenda({ userId, triggerAlert }) {
       const lastDayDate = new Date(currentYear, currentMonth, 0);
       const lastDay = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(lastDayDate.getDate()).padStart(2, "0")}`;
 
-      // Fetch events that overlap with the month:
-      // - single-day or start-in-month: date_iso in [firstDay, lastDay]
-      // - multi-day congés starting before the month but ending in/after: date_fin >= firstDay
       const { data, error } = await supabase
         .from("agenda_events")
         .select("*")
@@ -42,6 +69,9 @@ export function useAgenda({ userId, triggerAlert }) {
     fetchEvents();
   }, [fetchEvents]);
 
+  // ────────────────────────────────────────────────────────────────────────
+  // CRUD
+  // ────────────────────────────────────────────────────────────────────────
   const createEvent = useCallback(async (data) => {
     if (!userId) return;
     const { error } = await supabase
@@ -69,6 +99,9 @@ export function useAgenda({ userId, triggerAlert }) {
     await fetchEvents();
   }, [fetchEvents]);
 
+  // ────────────────────────────────────────────────────────────────────────
+  // Navigation Mois
+  // ────────────────────────────────────────────────────────────────────────
   const goToPrevMonth = useCallback(() => {
     setCurrentMonth((m) => {
       if (m === 1) { setCurrentYear((y) => y - 1); return 12; }
@@ -87,9 +120,35 @@ export function useAgenda({ userId, triggerAlert }) {
     const now = new Date();
     setCurrentYear(now.getFullYear());
     setCurrentMonth(now.getMonth() + 1);
+    setCurrentWeekStart(getMondayOf(now));
   }, []);
 
-  // Rappels toutes les 60 secondes
+  // ────────────────────────────────────────────────────────────────────────
+  // Navigation Semaine
+  // ────────────────────────────────────────────────────────────────────────
+  const goToPrevWeek = useCallback(() => {
+    setCurrentWeekStart((ws) => {
+      const newMonday = addDays(ws, -7);
+      const d = new Date(newMonday + "T12:00:00");
+      setCurrentYear(d.getFullYear());
+      setCurrentMonth(d.getMonth() + 1);
+      return newMonday;
+    });
+  }, []);
+
+  const goToNextWeek = useCallback(() => {
+    setCurrentWeekStart((ws) => {
+      const newMonday = addDays(ws, 7);
+      const d = new Date(newMonday + "T12:00:00");
+      setCurrentYear(d.getFullYear());
+      setCurrentMonth(d.getMonth() + 1);
+      return newMonday;
+    });
+  }, []);
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Rappels — toutes les 60 secondes
+  // ────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!userId) return;
 
@@ -137,6 +196,7 @@ export function useAgenda({ userId, triggerAlert }) {
     loading,
     currentYear,
     currentMonth,
+    currentWeekStart,
     fetchEvents,
     createEvent,
     updateEvent,
@@ -144,5 +204,7 @@ export function useAgenda({ userId, triggerAlert }) {
     goToPrevMonth,
     goToNextMonth,
     goToToday,
+    goToPrevWeek,
+    goToNextWeek,
   };
 }
