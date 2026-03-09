@@ -50,6 +50,19 @@ export const HistoriqueTab = ({
     [missions]
   );
 
+  // ── Mois disponibles (pour les selects De/À) ──────────────────────────────
+  const availableMonths = useMemo(() => {
+    const months = new Set(missions.map((m) => m.date_iso?.slice(0, 7)).filter(Boolean));
+    return [...months].sort();
+  }, [missions]);
+
+  const MONTH_NAMES = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+  const formatMonthLabel = (ym) => {
+    if (!ym) return "";
+    const [y, m] = ym.split("-");
+    return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
+  };
+
   // Build a set of week numbers from existing missions (to filter deleted-mission rows)
   const validWeekNums = useMemo(() => {
     const set = new Set();
@@ -501,27 +514,35 @@ export const HistoriqueTab = ({
                 {/* Date de */}
                 <div>
                   <p className="text-[9px] font-black uppercase opacity-40 mb-1">De</p>
-                  <input
-                    type="month"
+                  <select
                     value={mDateFrom}
                     onChange={(e) => setMDateFrom(e.target.value)}
                     className={`w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none ${
                       darkMode ? "bg-black/30 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"
                     }`}
-                  />
+                  >
+                    <option value="">Début</option>
+                    {availableMonths.map((m) => (
+                      <option key={m} value={m}>{formatMonthLabel(m)}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Date à */}
                 <div>
                   <p className="text-[9px] font-black uppercase opacity-40 mb-1">À</p>
-                  <input
-                    type="month"
+                  <select
                     value={mDateTo}
                     onChange={(e) => setMDateTo(e.target.value)}
                     className={`w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none ${
                       darkMode ? "bg-black/30 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"
                     }`}
-                  />
+                  >
+                    <option value="">Fin</option>
+                    {[...availableMonths].reverse().map((m) => (
+                      <option key={m} value={m}>{formatMonthLabel(m)}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Filtre client */}
