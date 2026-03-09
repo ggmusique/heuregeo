@@ -98,8 +98,6 @@ export function ImportMissionsModal({
   const [result,   setResult]   = useState(null);     // { created, errors }
   const fileRef = useRef(null);
 
-  if (!show) return null;
-
   // ── Normalise & valide une ligne ─────────────────────────────────────────
   const processRow = useCallback((rowObj, lineIndex) => {
     const errors = [];
@@ -253,6 +251,8 @@ export function ImportMissionsModal({
 
   const validCount   = preview?.rows.filter((r) => r.valid).length  ?? 0;
   const invalidCount = preview?.rows.filter((r) => !r.valid).length ?? 0;
+
+  if (!show) return null;
 
   return (
     <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center p-3 bg-black/80 backdrop-blur-xl">
