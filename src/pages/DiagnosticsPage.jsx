@@ -4,7 +4,8 @@ import { getKmEnabled } from "../utils/kmSettings";
 import { supabase } from "../services/supabase";
 
 /**
- * DiagnosticsPage — Vue admin/dev pour diagnostiquer les problèmes KM/GPS.
+ * DiagnosticsPage — Vue admin pour diagnostiquer l'ensemble du système :
+ * GPS/KM, bilans, acomptes, allocations, rebuild.
  *
  * Sécurité : accessible uniquement si isAdmin === true (vérifié dans ParametresTab).
  * Le viewer ne peut jamais y accéder (il est bloqué hors de l'onglet Paramètres).
@@ -72,6 +73,35 @@ export const DiagnosticsPage = ({
   const nbFraisKmLies = fraisKmLies.length;
   const nbSansFraisKm = missionsSansFraisKm.length;
 
+  // ── Synthèse & anomalies ─────────────────────────────────────────────────
+  const staticAnomalies = getStaticAnomalies({
+    kmEnabled,
+    domLat,
+    domLng,
+    lieuxSansCoords,
+    lieuxSuspects,
+    nbSansFraisKm,
+  });
+  const diagDataAnomalies = diagData ? getDiagDataAnomalies(diagData, diagWeek) : [];
+
+  const globalStatus = getDiagnosticStatus({
+    kmEnabled,
+    domLat,
+    domLng,
+    lieuxSansCoords,
+    lieuxSuspects,
+    nbSansFraisKm,
+  });
+  const globalSummary = getDiagnosticSummary({
+    kmEnabled,
+    domLat,
+    domLng,
+    lieuxSansCoords,
+    lieuxSuspects,
+    nbSansFraisKm,
+  });
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const showMsg = (msg, isError = false) => {
     setActionMsg(msg);
     setActionIsError(isError);
@@ -190,18 +220,31 @@ export const DiagnosticsPage = ({
     }
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="animate-in slide-in-from-right duration-400 space-y-4">
-      <div className="mb-4 text-center">
+
+      {/* Header */}
+      <div className="mb-2 text-center">
         <p className="text-[11px] font-black uppercase opacity-40 tracking-[0.25em] mb-2">
           Admin / Dev
         </p>
         <h2 className="text-2xl font-black text-[#C9A84C] italic font-['Playfair_Display'] mb-1">
-          Diagnostics KM / GPS
+          Diagnostics avancés
         </h2>
-        <p className="text-[11px] opacity-50">Vue réservée admin · non visible des viewers</p>
+        <p className="text-[11px] opacity-40">
+          GPS · bilans · acomptes · allocations · rebuild · erreurs
+        </p>
+        <p className="text-[10px] opacity-30 mt-0.5">Vue réservée admin · non visible des viewers</p>
       </div>
 
+      {/* ── Bloc statut global ─────────────────────────────────────── */}
+      <GlobalStatusCard status={globalStatus} summary={globalSummary} />
+
+      {/* ── Anomalies détectées ────────────────────────────────────── */}
+      <AnomaliesCard anomalies={staticAnomalies} />
+
+      {/* Message d'action (feedback boutons) */}
       {actionMsg && (
         <div
           className={`p-3 rounded-2xl text-sm text-center border ${
@@ -214,10 +257,22 @@ export const DiagnosticsPage = ({
         </div>
       )}
 
+      {/* ── Section : GPS & Frais kilométriques ──────────────────── */}
+      <SectionLabel>GPS &amp; Frais kilométriques</SectionLabel>
+
       {/* KM Enabled */}
       <Card title="Frais kilométriques">
-        <Row label="kmEnabled" value={String(kmEnabled)} valueClass={kmEnabled ? "text-emerald-400" : "text-red-400"} />
+        <Row
+          label="kmEnabled"
+          value={String(kmEnabled)}
+          valueClass={kmEnabled ? "text-emerald-400" : "text-red-400"}
+        />
         <Row label="Source" value={kmEnabledSource} valueClass="text-white/60 text-xs" />
+        <Hint>
+          {kmEnabled
+            ? `Frais KM actifs. ${nbFraisKmLies} entrée${pluralFr(nbFraisKmLies, "", "s")} calculée${pluralFr(nbFraisKmLies, "", "s")} cette semaine.`
+            : "Frais KM désactivés — aucun calcul de distance n'est effectué."}
+        </Hint>
       </Card>
 
       {/* Domicile */}
@@ -233,6 +288,13 @@ export const DiagnosticsPage = ({
           valueClass={Number.isFinite(domLng) ? "text-white" : "text-red-400"}
         />
         <Row label="label" value={domLabel || "—"} valueClass="text-white/60 text-xs" />
+        <Hint>
+          {Number.isFinite(domLat) && Number.isFinite(domLng)
+            ? `Domicile localisé${domLabel ? ` (${domLabel})` : ""}.`
+            : kmEnabled
+              ? "Coordonnées manquantes — le calcul des distances KM est impossible."
+              : "Coordonnées non renseignées (frais KM désactivés)."}
+        </Hint>
       </Card>
 
       {/* Lieux sans coords */}
@@ -241,6 +303,11 @@ export const DiagnosticsPage = ({
         badge={lieuxSansCoords.length}
         badgeClass={lieuxSansCoords.length > 0 ? "text-red-400" : "text-emerald-400"}
       >
+        <Hint>
+          {lieuxSansCoords.length === 0
+            ? "Tous les lieux ont des coordonnées GPS."
+            : `${lieuxSansCoords.length} lieu${pluralFr(lieuxSansCoords.length, "", "x")} sans coordonnées — ils ne génèrent pas de frais km.`}
+        </Hint>
         {lieuxSansCoords.length > 0 && (
           <ul className="mt-1 space-y-1 max-h-40 overflow-y-auto">
             {lieuxSansCoords.map((l) => (
@@ -259,6 +326,11 @@ export const DiagnosticsPage = ({
         badge={lieuxSuspects.length}
         badgeClass={lieuxSuspects.length > 0 ? "text-orange-400" : "text-emerald-400"}
       >
+        <Hint>
+          {lieuxSuspects.length === 0
+            ? "Aucun lieu n'a de coordonnées anormalement proches du domicile."
+            : `${lieuxSuspects.length} lieu${pluralFr(lieuxSuspects.length, "", "x")} avec coordonnées possiblement copiées du domicile.`}
+        </Hint>
         {lieuxSuspects.length > 0 && (
           <ul className="mt-1 space-y-1 max-h-40 overflow-y-auto">
             {lieuxSuspects.map((l) => (
@@ -284,6 +356,15 @@ export const DiagnosticsPage = ({
           value={String(nbSansFraisKm)}
           valueClass={nbSansFraisKm > 0 ? "text-red-400" : "text-emerald-400"}
         />
+        <Hint>
+          {!kmEnabled
+            ? "Frais KM désactivés sur ce profil."
+            : nbSansFraisKm > 0
+              ? `${nbSansFraisKm} mission${pluralFr(nbSansFraisKm, "", "s")} sans frais km — vérifier les lieux associés.`
+              : nbMissions === 0
+                ? "Aucune mission cette semaine."
+                : "Toutes les missions ont des frais km associés."}
+        </Hint>
         {missionsSansFraisKm.length > 0 && (
           <ul className="mt-2 space-y-1 max-h-40 overflow-y-auto border-t border-white/10 pt-2">
             {missionsSansFraisKm.map((f) => (
@@ -295,6 +376,9 @@ export const DiagnosticsPage = ({
           </ul>
         )}
       </Card>
+
+      {/* ── Section : Actions & Rebuild ───────────────────────────── */}
+      <SectionLabel>Actions &amp; Rebuild</SectionLabel>
 
       {/* Rebuild Bilans semaines */}
       {onRebuildBilans && (
@@ -347,8 +431,8 @@ export const DiagnosticsPage = ({
         </Card>
       )}
 
-      {/* Actions */}
-      <Card title="Actions">
+      {/* Actions GPS */}
+      <Card title="Actions GPS">
         <button
           type="button"
           onClick={handleRegeocoderBatch}
@@ -378,10 +462,8 @@ export const DiagnosticsPage = ({
         </button>
       </Card>
 
-      {/* ── Diagnostic financier ─────────────────────── */}
-      <p className="text-[11px] font-black uppercase opacity-40 px-2 tracking-[0.25em] text-center pt-2">
-        Diagnostic financier
-      </p>
+      {/* ── Section : Diagnostic financier ───────────────────────── */}
+      <SectionLabel>Diagnostic financier</SectionLabel>
 
       {/* Sélecteur patron + semaine */}
       <Card title="Sélection">
@@ -422,9 +504,14 @@ export const DiagnosticsPage = ({
         )}
       </Card>
 
-      {/* Résultats */}
+      {/* Résultats financiers */}
       {diagData && (
         <>
+          {/* Anomalies dynamiques (diagData) */}
+          {diagDataAnomalies.length > 0 && (
+            <AnomaliesCard anomalies={diagDataAnomalies} title={`Anomalies détectées — S${diagWeek}`} />
+          )}
+
           {/* Erreurs de requête */}
           {diagData.queryErrors?.length > 0 && (
             <div className="p-3 rounded-2xl bg-red-600/20 border border-red-500/40 space-y-1">
@@ -434,6 +521,7 @@ export const DiagnosticsPage = ({
               ))}
             </div>
           )}
+
           {/* Card 1 — Bilan */}
           <Card title={`🔎 Bilan S${diagWeek}`}>
             {diagData.bilan ? (
@@ -462,6 +550,9 @@ export const DiagnosticsPage = ({
                     : "—"}
                   valueClass="text-white/60"
                 />
+                <Hint>
+                  {formatBilanSummary(diagData.bilan, diagWeek, diagData.impayePrecedent)}
+                </Hint>
               </>
             ) : (
               <p className="text-[11px] text-white/40 text-center py-2">Aucun bilan en DB pour S{diagWeek}</p>
@@ -504,6 +595,7 @@ export const DiagnosticsPage = ({
                           {solde.toFixed(2)} €
                         </span>
                       </div>
+                      <Hint>{formatAcompteAllocationSummary(ac, diagData.allocations)}</Hint>
                     </div>
                   );
                 })}
@@ -547,6 +639,72 @@ export const DiagnosticsPage = ({
   );
 };
 
+// ── Sous-composants UI ─────────────────────────────────────────────────────
+
+function GlobalStatusCard({ status, summary }) {
+  const cfg = {
+    ok:       { dot: "bg-emerald-400", border: "border-emerald-500/30", bg: "bg-emerald-600/10", label: "Cohérent", labelClass: "text-emerald-400" },
+    warning:  { dot: "bg-orange-400",  border: "border-orange-500/30",  bg: "bg-orange-600/10",  label: "Vigilance", labelClass: "text-orange-400" },
+    critical: { dot: "bg-red-400",     border: "border-red-500/30",     bg: "bg-red-600/10",     label: "Critique",  labelClass: "text-red-400" },
+  }[status] ?? {};
+
+  return (
+    <div className={`p-4 rounded-[20px] border ${cfg.border} ${cfg.bg} backdrop-blur-md`}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[10px] font-black uppercase tracking-widest text-white/50">Statut global</p>
+        <span className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${cfg.border} ${cfg.labelClass}`}>
+          {cfg.label}
+        </span>
+      </div>
+      <div className="flex items-center gap-3">
+        <span className={`w-3 h-3 rounded-full shrink-0 ${cfg.dot} shadow-lg`} />
+        <p className="text-[13px] text-white/80 leading-snug">{summary}</p>
+      </div>
+    </div>
+  );
+}
+
+function AnomaliesCard({ anomalies, title = "Anomalies détectées" }) {
+  return (
+    <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[#0A1628]/60 backdrop-blur-md space-y-2">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/70">{title}</p>
+        <span className={`text-sm font-black ${anomalies.length > 0 ? "text-red-400" : "text-emerald-400"}`}>
+          {anomalies.length}
+        </span>
+      </div>
+      {anomalies.length === 0 ? (
+        <p className="text-[12px] text-emerald-400/80">Aucune anomalie détectée.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {anomalies.map((a, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${
+                a.severity === "critical"
+                  ? "bg-red-600/20 text-red-400 border border-red-500/30"
+                  : "bg-orange-600/20 text-orange-400 border border-orange-500/30"
+              }`}>
+                {a.severity === "critical" ? "Critique" : "Vigilance"}
+              </span>
+              <span className="text-[12px] text-white/70 leading-snug">{a.message}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div className="flex items-center gap-3 pt-2 px-1">
+      <div className="flex-1 h-px bg-white/10" />
+      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/30 shrink-0">{children}</p>
+      <div className="flex-1 h-px bg-white/10" />
+    </div>
+  );
+}
+
 function Card({ title, badge, badgeClass = "text-white", children }) {
   return (
     <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[#0A1628]/60 backdrop-blur-md space-y-2">
@@ -569,6 +727,149 @@ function Row({ label, value, valueClass = "text-white" }) {
     </div>
   );
 }
+
+function Hint({ children }) {
+  return (
+    <p className="text-[10px] text-white/35 italic leading-snug pt-0.5 border-t border-white/5 mt-1">
+      {children}
+    </p>
+  );
+}
+
+// ── Utilitaires de diagnostic ─────────────────────────────────────────────
+
+function getDiagnosticStatus({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }) {
+  if (kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng))) return "critical";
+  if (lieuxSansCoords.length >= 3) return "critical";
+  if (lieuxSansCoords.length > 0 || lieuxSuspects.length > 0) return "warning";
+  if (kmEnabled && nbSansFraisKm > 0) return "warning";
+  return "ok";
+}
+
+function getDiagnosticSummary({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }) {
+  if (kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng))) {
+    return "Incohérence critique : coordonnées domicile manquantes — calcul KM impossible.";
+  }
+  const issues = [];
+  if (lieuxSansCoords.length > 0)
+    issues.push(`${lieuxSansCoords.length} lieu${lieuxSansCoords.length > 1 ? "x" : ""} sans coordonnées GPS`);
+  if (lieuxSuspects.length > 0)
+    issues.push(`${lieuxSuspects.length} lieu${lieuxSuspects.length > 1 ? "x suspects" : " suspect"}`);
+  if (kmEnabled && nbSansFraisKm > 0)
+    issues.push(`${nbSansFraisKm} mission${nbSansFraisKm > 1 ? "s" : ""} sans frais km`);
+  if (issues.length === 0) return "Aucune incohérence détectée.";
+  if (issues.length === 1) return `Point de vigilance : ${issues[0]}.`;
+  return `${issues.length} points de vigilance : ${issues.join(", ")}.`;
+}
+
+function getStaticAnomalies({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }) {
+  const anomalies = [];
+  if (kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng))) {
+    anomalies.push({
+      severity: "critical",
+      message: "Coordonnées domicile manquantes — les frais KM ne peuvent pas être calculés.",
+    });
+  }
+  if (lieuxSansCoords.length > 0) {
+    anomalies.push({
+      severity: lieuxSansCoords.length >= 3 ? "critical" : "warning",
+      message: `${lieuxSansCoords.length} lieu${pluralFr(lieuxSansCoords.length, "", "x")} sans coordonnées GPS exploitables.`,
+    });
+  }
+  if (lieuxSuspects.length > 0) {
+    anomalies.push({
+      severity: "warning",
+      message: `${lieuxSuspects.length} lieu${pluralFr(lieuxSuspects.length, "", "x")} ${lieuxSuspects.length > 1 ? "ont des" : "a des"} coordonnées suspectes (trop proches du domicile).`,
+    });
+  }
+  if (kmEnabled && nbSansFraisKm > 0) {
+    anomalies.push({
+      severity: "warning",
+      message: `${nbSansFraisKm} mission${pluralFr(nbSansFraisKm, "", "s")} de la semaine en cours n'${nbSansFraisKm > 1 ? "ont" : "a"} pas de frais km associé${pluralFr(nbSansFraisKm, "", "s")}.`,
+    });
+  }
+  return anomalies;
+}
+
+function getDiagDataAnomalies(diagData, diagWeek) {
+  const anomalies = [];
+  const bilan = diagData.bilan;
+
+  // Semaine payée avec reste > 0
+  if (bilan?.paye && parseFloat(bilan.reste_a_percevoir || 0) > 0.01) {
+    anomalies.push({
+      severity: "critical",
+      message: `S${diagWeek} marquée payée mais reste à percevoir de ${parseFloat(bilan.reste_a_percevoir).toFixed(2)} € en base.`,
+    });
+  }
+
+  // Acomptes sans allocation
+  const acomptesSansAlloc = diagData.acomptes.filter(
+    (ac) => !diagData.allocations.some((al) => al.acompte_id === ac.id)
+  );
+  if (acomptesSansAlloc.length > 0) {
+    anomalies.push({
+      severity: "warning",
+      message: `${acomptesSansAlloc.length} acompte${pluralFr(acomptesSansAlloc.length, "", "s")} sans aucune allocation associée.`,
+    });
+  }
+
+  // Acomptes sur-alloués
+  const acomptesOverAlloues = diagData.acomptes.filter((ac) => {
+    const totalAlloue = diagData.allocations
+      .filter((al) => al.acompte_id === ac.id)
+      .reduce((s, al) => s + parseFloat(al.amount || 0), 0);
+    return totalAlloue > parseFloat(ac.montant || 0) + 0.01;
+  });
+  if (acomptesOverAlloues.length > 0) {
+    anomalies.push({
+      severity: "critical",
+      message: `${acomptesOverAlloues.length} acompte${pluralFr(acomptesOverAlloues.length, "", "s")} sur-alloué${pluralFr(acomptesOverAlloues.length, "", "s")} (total allocations > montant).`,
+    });
+  }
+
+  // Impayé reporté
+  if (diagData.impayePrecedent > 0.01) {
+    anomalies.push({
+      severity: "warning",
+      message: `Impayé antérieur de ${diagData.impayePrecedent.toFixed(2)} € reporté sur cette période.`,
+    });
+  }
+
+  return anomalies;
+}
+
+function formatAcompteAllocationSummary(acompte, allocations) {
+  const allocs = allocations.filter((a) => a.acompte_id === acompte.id);
+  if (allocs.length === 0) return "Aucune allocation — acompte non affecté à une semaine.";
+  const semaines = allocs.map((a) => `S${a.periode_index}`).join(", ");
+  const totalAlloue = allocs.reduce((s, a) => s + parseFloat(a.amount || 0), 0);
+  const montant = parseFloat(acompte.montant || 0);
+  const solde = montant - totalAlloue;
+  if (Math.abs(solde) < 0.01) return `Alloué intégralement sur ${semaines}.`;
+  if (solde > 0) return `Alloué sur ${semaines} · solde non affecté : ${solde.toFixed(2)} €.`;
+  return `Sur-alloué sur ${semaines} (dépassement de ${Math.abs(solde).toFixed(2)} €).`;
+}
+
+function formatBilanSummary(bilan, diagWeek, impayePrecedent) {
+  if (!bilan) return `Aucun bilan enregistré pour S${diagWeek}.`;
+  const reste = parseFloat(bilan.reste_a_percevoir || 0);
+  if (bilan.paye) {
+    const dateStr = bilan.date_paiement
+      ? new Date(bilan.date_paiement).toLocaleDateString("fr-FR")
+      : "date inconnue";
+    return `S${diagWeek} soldée le ${dateStr}.`;
+  }
+  if (reste > 0.01) {
+    const cause = impayePrecedent > 0.01
+      ? `dont ${impayePrecedent.toFixed(2)} € d'impayé antérieur`
+      : "aucun acompte ne couvre entièrement la semaine";
+    return `S${diagWeek} reste impayée (${reste.toFixed(2)} € restants — ${cause}).`;
+  }
+  return `S${diagWeek} à jour, pas de reste à percevoir.`;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
 
 /** Returns singular suffix when count === 1, plural suffix otherwise. */
 function pluralFr(count, singular, plural) {

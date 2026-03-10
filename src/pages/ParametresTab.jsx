@@ -250,8 +250,8 @@ export function ParametresTab({
               key: "diagnostics",
               icon: <IconSearch />,
               color: "cyan",
-              title: "Diagnostics GPS",
-              subtitle: "KM, coordonnées, lieux",
+              title: "Diagnostics avancés",
+              subtitle: "GPS, bilans, acomptes, rebuild",
             },
           ]
         : []),
