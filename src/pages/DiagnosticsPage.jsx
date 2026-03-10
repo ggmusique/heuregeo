@@ -37,6 +37,7 @@ export const DiagnosticsPage = ({
   const [diagData, setDiagData] = useState(null);
   const [diagLoading, setDiagLoading] = useState(false);
   const [diagError, setDiagError] = useState(null);
+  const [clipboardFeedback, setClipboardFeedback] = useState(null);
 
   const features = profile?.features ?? {};
 
@@ -153,6 +154,19 @@ export const DiagnosticsPage = ({
     } finally {
       setRecalcLoading(false);
     }
+  };
+
+  const handleCopyDiagnostic = async () => {
+    if (!diagData) return;
+    const patronNom = patrons.find((p) => p.id === diagPatronId)?.nom || diagPatronId;
+    const text = buildDiagnosticClipboardText(diagData, diagWeek, patronNom);
+    try {
+      await navigator.clipboard.writeText(text);
+      setClipboardFeedback({ ok: true, msg: "Diagnostic copié" });
+    } catch {
+      setClipboardFeedback({ ok: false, msg: "Impossible d'accéder au presse-papiers" });
+    }
+    setTimeout(() => setClipboardFeedback(null), 2500);
   };
 
   const loadDiagnostique = async () => {
@@ -512,6 +526,25 @@ export const DiagnosticsPage = ({
             <AnomaliesCard anomalies={diagDataAnomalies} title={`Anomalies détectées — S${diagWeek}`} />
           )}
 
+          {/* Résumé humain */}
+          <HumanSummaryCard diagData={diagData} diagWeek={diagWeek} />
+
+          {/* Bouton Copier le diagnostic */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopyDiagnostic}
+              className="flex-1 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-white/15 text-white/50 bg-white/5 hover:bg-white/10 hover:text-white/70"
+            >
+              Copier le diagnostic
+            </button>
+            {clipboardFeedback && (
+              <span className={`text-[11px] font-black shrink-0 ${clipboardFeedback.ok ? "text-emerald-400" : "text-red-400"}`}>
+                {clipboardFeedback.msg}
+              </span>
+            )}
+          </div>
+
           {/* Erreurs de requête */}
           {diagData.queryErrors?.length > 0 && (
             <div className="p-3 rounded-2xl bg-red-600/20 border border-red-500/40 space-y-1">
@@ -523,7 +556,7 @@ export const DiagnosticsPage = ({
           )}
 
           {/* Card 1 — Bilan */}
-          <Card title={`🔎 Bilan S${diagWeek}`}>
+          <Card title={`🔎 Bilan S${diagWeek}`} statusBadge={getBilanCardStatus(diagData)}>
             {diagData.bilan ? (
               <>
                 <Row label="CA brut" value={`${parseFloat(diagData.bilan.ca_brut_periode || 0).toFixed(2)} €`} />
@@ -560,7 +593,7 @@ export const DiagnosticsPage = ({
           </Card>
 
           {/* Card 2 — Acomptes & allocations */}
-          <Card title="💳 Acomptes & allocations">
+          <Card title="💳 Acomptes & allocations" statusBadge={getAcompteCardStatus(diagData)}>
             {diagData.acomptes.length === 0 ? (
               <p className="text-[11px] text-white/40 text-center py-2">Aucun acompte pour ce patron</p>
             ) : (
@@ -604,7 +637,10 @@ export const DiagnosticsPage = ({
           </Card>
 
           {/* Card 3 — Frais KM détaillés */}
-          <Card title={`🚗 Frais KM — S${diagWeek} (${isoWeekStart(parseInt(diagWeek))} → ${isoWeekEnd(parseInt(diagWeek))})`}>
+          <Card
+            title={`🚗 Frais KM — S${diagWeek} (${isoWeekStart(parseInt(diagWeek))} → ${isoWeekEnd(parseInt(diagWeek))})`}
+            statusBadge={getKmCardStatus(diagData)}
+          >
             {diagData.fraisKm.length === 0 ? (
               <p className="text-[11px] text-white/40 text-center py-2">Aucun frais KM en DB pour cette semaine</p>
             ) : (
@@ -640,6 +676,12 @@ export const DiagnosticsPage = ({
 };
 
 // ── Sous-composants UI ─────────────────────────────────────────────────────
+
+const STATUS_BADGE_CFG = {
+  ok:       { label: "OK",        cls: "text-emerald-400 border-emerald-500/40 bg-emerald-600/10" },
+  warning:  { label: "Vigilance", cls: "text-orange-400  border-orange-500/40  bg-orange-600/10" },
+  critical: { label: "Critique",  cls: "text-red-400     border-red-500/40     bg-red-600/10"    },
+};
 
 function GlobalStatusCard({ status, summary }) {
   const cfg = {
@@ -695,6 +737,22 @@ function AnomaliesCard({ anomalies, title = "Anomalies détectées" }) {
   );
 }
 
+function HumanSummaryCard({ diagData, diagWeek }) {
+  const sentences = getHumanDiagnosticSummary(diagData, diagWeek);
+  if (!sentences || sentences.length === 0) return null;
+
+  return (
+    <div className="p-4 rounded-[20px] border border-[#C9A84C]/25 bg-[#C9A84C]/5 backdrop-blur-md">
+      <p className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]/60 mb-3">Résumé</p>
+      <div className="space-y-2">
+        {sentences.map((s, i) => (
+          <p key={i} className="text-[13px] text-white/85 leading-relaxed">{s}</p>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3 pt-2 px-1">
@@ -705,14 +763,22 @@ function SectionLabel({ children }) {
   );
 }
 
-function Card({ title, badge, badgeClass = "text-white", children }) {
+function Card({ title, badge, badgeClass = "text-white", statusBadge, children }) {
+  const sbCfg = statusBadge ? STATUS_BADGE_CFG[statusBadge] : null;
   return (
     <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[#0A1628]/60 backdrop-blur-md space-y-2">
       <div className="flex items-center justify-between mb-1">
         <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/70">{title}</p>
-        {badge !== undefined && (
-          <span className={`text-sm font-black ${badgeClass}`}>{badge}</span>
-        )}
+        <div className="flex items-center gap-2">
+          {sbCfg && (
+            <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${sbCfg.cls}`}>
+              {sbCfg.label}
+            </span>
+          )}
+          {badge !== undefined && (
+            <span className={`text-sm font-black ${badgeClass}`}>{badge}</span>
+          )}
+        </div>
       </div>
       {children}
     </div>
@@ -837,6 +903,160 @@ function getDiagDataAnomalies(diagData, diagWeek) {
   }
 
   return anomalies;
+}
+
+function getBilanCardStatus(diagData) {
+  if (diagData.queryErrors?.some((e) => e.startsWith("Bilan:"))) return "critical";
+  if (!diagData.bilan) return "warning";
+  if (diagData.bilan.paye && parseFloat(diagData.bilan.reste_a_percevoir || 0) > 0.01) return "critical";
+  if (diagData.impayePrecedent > 0.01) return "warning";
+  return "ok";
+}
+
+function getAcompteCardStatus(diagData) {
+  if (diagData.queryErrors?.some((e) => e.startsWith("Acomptes:") || e.startsWith("Allocations:"))) return "critical";
+  const overAlloue = diagData.acomptes.some((ac) => {
+    const total = diagData.allocations
+      .filter((al) => al.acompte_id === ac.id)
+      .reduce((s, al) => s + parseFloat(al.amount || 0), 0);
+    return total > parseFloat(ac.montant || 0) + 0.01;
+  });
+  if (overAlloue) return "critical";
+  const sansAlloc = diagData.acomptes.some(
+    (ac) => !diagData.allocations.some((al) => al.acompte_id === ac.id)
+  );
+  if (sansAlloc) return "warning";
+  return "ok";
+}
+
+function getKmCardStatus(diagData) {
+  if (diagData.queryErrors?.some((e) => e.startsWith("Frais KM:"))) return "critical";
+  if (diagData.fraisKm.length === 0) return "warning";
+  return "ok";
+}
+
+function getHumanDiagnosticSummary(diagData, diagWeek) {
+  if (!diagData) return [];
+  const sentences = [];
+  const bilan = diagData.bilan;
+  const wk = parseInt(diagWeek, 10);
+
+  // Phrase 1 : état du bilan
+  if (!bilan) {
+    sentences.push(`Aucun bilan enregistré pour S${diagWeek}.`);
+  } else if (bilan.paye) {
+    const dateStr = bilan.date_paiement
+      ? new Date(bilan.date_paiement).toLocaleDateString("fr-FR")
+      : null;
+    sentences.push(`La semaine S${diagWeek} est soldée${dateStr ? ` le ${dateStr}` : ""}.`);
+    if (parseFloat(bilan.reste_a_percevoir || 0) > 0.01) {
+      sentences.push(
+        `Attention : elle est marquée payée mais un reste de ${parseFloat(bilan.reste_a_percevoir).toFixed(2)} € subsiste en base.`
+      );
+    }
+  } else {
+    const reste = parseFloat(bilan.reste_a_percevoir || 0);
+    if (reste > 0.01) {
+      sentences.push(`La semaine S${diagWeek} reste impayée (${reste.toFixed(2)} € à percevoir).`);
+    } else {
+      sentences.push(`S${diagWeek} n'est pas marquée payée mais le reste à percevoir est nul.`);
+    }
+  }
+
+  // Phrase 2 : acomptes & allocations sur cette semaine
+  const allocsThisWeek = diagData.allocations.filter((al) => al.periode_index === wk);
+  if (allocsThisWeek.length > 0) {
+    const acompteIds = [...new Set(allocsThisWeek.map((al) => al.acompte_id))];
+    if (acompteIds.length === 1) {
+      const ac = diagData.acomptes.find((a) => a.id === acompteIds[0]);
+      if (ac) {
+        const allAllocsForAc = diagData.allocations.filter((al) => al.acompte_id === ac.id);
+        const semaines = allAllocsForAc.map((al) => `S${al.periode_index}`).join(", ");
+        sentences.push(
+          `Un acompte de ${parseFloat(ac.montant || 0).toFixed(2)} € a été alloué sur ${semaines}.`
+        );
+      }
+    } else {
+      const totalCouvert = allocsThisWeek.reduce((s, al) => s + parseFloat(al.amount || 0), 0);
+      sentences.push(
+        `${acompteIds.length} acomptes couvrent ${totalCouvert.toFixed(2)} € sur S${diagWeek}.`
+      );
+    }
+  } else if (diagData.acomptes.length > 0) {
+    sentences.push(`Aucun acompte n'est alloué à S${diagWeek}.`);
+  } else {
+    sentences.push("Aucun acompte enregistré pour ce patron.");
+  }
+
+  // Phrase 3 : impayé précédent
+  if (diagData.impayePrecedent > 0.01) {
+    sentences.push(
+      `Un impayé antérieur de ${diagData.impayePrecedent.toFixed(2)} € est reporté sur cette période.`
+    );
+  }
+
+  return sentences;
+}
+
+function buildDiagnosticClipboardText(diagData, diagWeek, patronNom) {
+  const lines = [];
+  lines.push(`Patron : ${patronNom || "—"}`);
+  lines.push(`Semaine : ${diagWeek}`);
+  lines.push("");
+
+  if (diagData.bilan) {
+    lines.push(`CA brut : ${parseFloat(diagData.bilan.ca_brut_periode || 0).toFixed(2)} €`);
+    lines.push(`Impayé précédent : ${diagData.impayePrecedent.toFixed(2)} €`);
+    lines.push(`Statut payé : ${diagData.bilan.paye ? "Oui" : "Non"}`);
+    lines.push(`Reste à percevoir : ${parseFloat(diagData.bilan.reste_a_percevoir || 0).toFixed(2)} €`);
+  } else {
+    lines.push("Bilan : absent");
+  }
+
+  lines.push("");
+  lines.push("Acomptes :");
+  if (diagData.acomptes.length === 0) {
+    lines.push("- Aucun acompte");
+  } else {
+    diagData.acomptes.forEach((ac) => {
+      lines.push(
+        `- ${new Date(ac.date_acompte).toLocaleDateString("fr-FR")} : ${parseFloat(ac.montant || 0).toFixed(2)} €`
+      );
+    });
+  }
+
+  lines.push("");
+  lines.push("Allocations :");
+  if (diagData.allocations.length === 0) {
+    lines.push("- Aucune allocation");
+  } else {
+    diagData.allocations.forEach((al) => {
+      lines.push(`- S${al.periode_index} : ${parseFloat(al.amount || 0).toFixed(2)} €`);
+    });
+  }
+
+  lines.push("");
+  lines.push("Frais KM :");
+  if (diagData.fraisKm.length === 0) {
+    lines.push("- 0 ligne");
+  } else {
+    diagData.fraisKm.forEach((f) => {
+      lines.push(
+        `- ${new Date(f.date_frais).toLocaleDateString("fr-FR")} : ${parseFloat(f.distance_km).toFixed(1)} km — ${parseFloat(f.amount).toFixed(2)} €`
+      );
+    });
+  }
+
+  const anomalies = getDiagDataAnomalies(diagData, diagWeek);
+  if (anomalies.length > 0) {
+    lines.push("");
+    lines.push("Anomalies :");
+    anomalies.forEach((a) => {
+      lines.push(`- [${a.severity === "critical" ? "Critique" : "Vigilance"}] ${a.message}`);
+    });
+  }
+
+  return lines.join("\n");
 }
 
 function formatAcompteAllocationSummary(acompte, allocations) {
