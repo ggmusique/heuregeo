@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+﻿import React, { useState, useEffect, useCallback, useMemo } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
 import { SuiviTab } from "./pages/SuiviTab";
@@ -38,6 +38,7 @@ import { CustomAlert } from "./components/common/CustomAlert";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
 import { LieuModal } from "./components/lieu/LieuModal";
 import { AgendaModal } from "./components/agenda/AgendaModal";
+import { DashboardPanel } from "./components/dashboard/DashboardPanel";
 import { OnboardingForm } from "./components/auth/OnboardingForm";
 import { ViewerBadge } from "./components/common/ViewerBadge";
 import { ImportMissionsModal } from "./components/mission/ImportMissionsModal";
@@ -55,13 +56,13 @@ export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
-  // ─── THEME ──────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ THEME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const themeProvider = useThemeProvider();
   const { theme, cycleTheme, isDark, themeConfig } = themeProvider;
-  // darkMode conservé comme alias booléen pour compatibilité avec les composants
-  // qui reçoivent encore darkMode en prop (migration progressive).
+  // darkMode conservÃ© comme alias boolÃ©en pour compatibilitÃ© avec les composants
+  // qui reÃ§oivent encore darkMode en prop (migration progressive).
   const darkMode = isDark;
-  // ────────────────────────────────────────────────────────────────────────────
+  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const [activeTab, setActiveTab] = useState("saisie");
   const [loading, setLoading] = useState(false);
@@ -181,10 +182,10 @@ export default function App({ user }) {
   const isProNavigationMode = isPro && !isViewer;
 
   const proNavItems = [
-    { key: "saisie",     label: "Saisie",     icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
-    { key: "suivi",      label: "Suivi",      icon: "📊", activeClass: "from-cyan-600 to-indigo-700" },
-    ...(canAgenda ? [{ key: "agenda", label: "Agenda", icon: "📅", activeClass: "from-emerald-600 to-teal-700" }] : []),
-    { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
+    { key: "saisie",     label: "Saisie",     icon: "ðŸ“", activeClass: "from-indigo-600 to-indigo-800" },
+    { key: "suivi",      label: "Suivi",      icon: "ðŸ“Š", activeClass: "from-cyan-600 to-indigo-700" },
+    ...(canAgenda ? [{ key: "agenda", label: "Agenda", icon: "ðŸ“…", activeClass: "from-emerald-600 to-teal-700" }] : []),
+    { key: "parametres", label: "Parametres", icon: "âš™ï¸", activeClass: "from-indigo-600 to-purple-700" },
   ];
 
   const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || historiqueHook.loadingHistorique || agendaHook.loading;
@@ -214,11 +215,11 @@ export default function App({ user }) {
       <header className={"relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b " + themeConfig.accentBorder}>
         <div className={"absolute inset-0 backdrop-blur-xl " + themeConfig.headerBg} />
         <div className="relative z-10 text-center">
-          {/* Bouton cycle thème : affiche l'icône du thème SUIVANT */}
+          {/* Bouton cycle thÃ¨me : affiche l'icÃ´ne du thÃ¨me SUIVANT */}
           <button
             onClick={cycleTheme}
             className={"absolute right-6 top-6 w-12 h-12 backdrop-blur-xl rounded-full flex items-center justify-center text-2xl shadow-lg active:scale-90 transition-all border " + (isDark ? "bg-white/10 border-white/20" : "bg-slate-100 border-slate-300")}
-            title={"Changer de thème (actuel : " + themeConfig.label + ")"}
+            title={"Changer de thÃ¨me (actuel : " + themeConfig.label + ")"}
           >
             {themeConfig.icon}
           </button>
@@ -229,13 +230,13 @@ export default function App({ user }) {
           {isPro && !isViewer && (
             <div className="text-center py-1">
               <span className={"inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border " + (isDark ? "bg-yellow-500/15 border-yellow-500/40 text-yellow-400" : "bg-amber-50 border-amber-400/60 text-amber-600")}>
-                ✨ Pro
+                âœ¨ Pro
               </span>
             </div>
           )}
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className={"text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border " + themeConfig.accentBorder + " " + themeConfig.accent.replace("text-", "text-") + "/70"} >
-              v{APP_VERSION} ✓ OTA
+              v{APP_VERSION} âœ“ OTA
             </span>
           </div>
           <div className={"flex items-center justify-center gap-2 " + (isDark ? "text-white/90" : "text-slate-700")}>
@@ -358,6 +359,19 @@ export default function App({ user }) {
             onGoToNextWeek={agendaHook.goToNextWeek}
             onOpenForDate={agendaModal.openForDate}
             onEventEdit={agendaModal.handleEventEdit}
+            darkMode={darkMode}
+          />
+        )}
+
+        {activeTab === "dashboard" && canDashboard && !isViewer && (
+          <DashboardPanel
+            missions={missions}
+            fraisDivers={fraisDivers}
+            listeAcomptes={listeAcomptes}
+            patrons={patrons}
+            clients={clients}
+            lieux={lieux}
+            profile={profile}
             darkMode={darkMode}
           />
         )}
@@ -487,7 +501,7 @@ export default function App({ user }) {
               </button>
             ) : (
               <button onClick={() => supabase.auth.signOut()} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + themeConfig.navInactiveText}>
-                <span>🚪</span>
+                <span>ðŸšª</span>
               </button>
             )}
           </div>
@@ -498,3 +512,4 @@ export default function App({ user }) {
     </LabelsContext.Provider>
   );
 }
+
