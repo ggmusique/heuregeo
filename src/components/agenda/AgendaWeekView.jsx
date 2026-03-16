@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useTheme } from "../../contexts/ThemeContext";
 
 // ─── Constantes ────────────────────────────────────────────────────────────
 
@@ -98,8 +99,8 @@ export function AgendaWeekView({
   workedDays    = new Set(),
   onOpenForDate,
   onEventEdit,
-  darkMode      = true,
 }) {
+  const { isDark } = useTheme();
   const [now, setNow] = useState(new Date());
 
   // Mise à jour de l'heure courante toutes les minutes
@@ -157,12 +158,11 @@ export function AgendaWeekView({
   const allDayHeight  = nbAllDayLanes * 22 + (nbAllDayLanes > 0 ? 8 : 0);
 
   // ── Styles ────────────────────────────────────────────────────────────
-  const card   = darkMode ? "bg-[#0f111a] border-white/10" : "bg-white border-slate-200";
-  const sep    = darkMode ? "border-white/5"               : "border-slate-100";
-  const text   = darkMode ? "text-white"                   : "text-slate-900";
-  const muted  = darkMode ? "text-white/35"                : "text-slate-400";
-  const colSep = darkMode ? "border-white/5"               : "border-slate-100";
-  const hourLn = darkMode ? "border-white/5"               : "border-slate-100";
+  const card   = isDark ? "bg-[#0f111a] border-white/10" : "bg-white border-slate-200";
+  const sep    = isDark ? "border-white/5"               : "border-slate-100";
+  const muted  = isDark ? "text-white/35"                : "text-slate-400";
+  const colSep = isDark ? "border-white/5"               : "border-slate-100";
+  const hourLn = isDark ? "border-white/5"               : "border-slate-100";
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
@@ -183,9 +183,9 @@ export function AgendaWeekView({
               onClick={() => onOpenForDate?.(d.iso)}
               className={`flex-1 flex flex-col items-center py-2 px-0.5 gap-0.5 transition-colors ${
                 isWeekend
-                  ? (darkMode ? "text-white/30" : "text-slate-300")
-                  : (darkMode ? "text-white/70" : "text-slate-600")
-              } ${darkMode ? "hover:bg-white/5" : "hover:bg-slate-50"}`}
+                  ? (isDark ? "text-white/30" : "text-slate-300")
+                  : (isDark ? "text-white/70" : "text-slate-600")
+              } ${isDark ? "hover:bg-white/5" : "hover:bg-slate-50"}`}
             >
               <span className="text-[8px] font-black uppercase">{DAYS_ABBR[i].charAt(0)}</span>
               <span className={`text-[13px] font-black w-7 h-7 flex items-center justify-center rounded-full ${
@@ -269,7 +269,7 @@ export function AgendaWeekView({
                   <div
                     key={colIdx}
                     className={`relative h-full border-l ${colSep} first:border-l-0 ${
-                      isToday ? (darkMode ? "bg-emerald-500/5" : "bg-emerald-50/40") : ""
+                      isToday ? (isDark ? "bg-emerald-500/5" : "bg-emerald-50/40") : ""
                     }`}
                   >
                     {rdvEvts.map((e) => {
