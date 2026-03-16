@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useLabels } from "../../contexts/LabelsContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 /**
  * ✅ Sélecteur de lieu avec autocomplete - VERSION UUID
- * 
+ *
  * IMPORTANT : Tous les IDs sont des UUID (strings)
  * - lieu_id : UUID string
  * - client_id : UUID string
- * 
+ *
  * Fonctionnalités :
  * - Filtrage par recherche (nom + adresse)
  * - Priorise les lieux déjà utilisés par le client (historique)
@@ -18,13 +19,12 @@ export const LieuSelector = ({
   selectedLieuId = null,
   onSelect = () => {},
   required = false,
-  darkMode = true,
   onAddNew = null,
-
   selectedClientId = null,
   missions = [],
 }) => {
   const L = useLabels();
+  const { isDark } = useTheme();
   // ========= STATE UI =========
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -63,21 +63,18 @@ export const LieuSelector = ({
   const lieuxHistorique = useMemo(() => {
     if (selectedClientIdStr == null || missionsArray.length === 0) return [];
 
-    // Filtrer missions du client + avec lieu_id
     const missionsClient = missionsArray.filter((m) => {
       const cid = m?.client_id == null ? null : String(m.client_id);
       const lid = m?.lieu_id == null ? null : String(m.lieu_id);
       return cid === selectedClientIdStr && lid != null;
     });
 
-    // Compter fréquence d'utilisation par lieu_id
     const frequence = {};
     missionsClient.forEach((m) => {
       const lid = String(m.lieu_id);
       frequence[lid] = (frequence[lid] || 0) + 1;
     });
 
-    // IDs triés du plus utilisé au moins utilisé (strings)
     return Object.entries(frequence)
       .sort(([, a], [, b]) => b - a)
       .map(([id]) => String(id));
@@ -119,7 +116,6 @@ export const LieuSelector = ({
   const filteredLieux = useMemo(() => {
     let filtered = lieuxArray;
 
-    // Filtrer par recherche
     if (searchNorm) {
       filtered = filtered.filter((lieu) => {
         const nom = (lieu?.nom || "").toLowerCase();
@@ -128,7 +124,6 @@ export const LieuSelector = ({
       });
     }
 
-    // Séparer lieux du client vs autres
     const lieuxDuClient = filtered.filter((l) =>
       lieuxHistoriqueSet.has(String(l?.id))
     );
@@ -136,14 +131,12 @@ export const LieuSelector = ({
       (l) => !lieuxHistoriqueSet.has(String(l?.id))
     );
 
-    // Tri lieux du client = par fréquence
     lieuxDuClient.sort(
       (a, b) =>
         lieuxHistorique.indexOf(String(a?.id)) -
         lieuxHistorique.indexOf(String(b?.id))
     );
 
-    // Tri autres = alphabétique
     autresLieux.sort((a, b) => (a?.nom || "").localeCompare(b?.nom || ""));
 
     return [...lieuxDuClient, ...autresLieux];
@@ -185,7 +178,6 @@ export const LieuSelector = ({
 
   // ========= ACTIONS =========
   const handleSelect = (lieu) => {
-    // ✅ UUID : renvoyer string tel quel
     onSelect(lieu?.id || null);
     setSearch(lieu?.nom || "");
     setShowDropdown(false);
@@ -217,19 +209,17 @@ export const LieuSelector = ({
 
   return (
     <div className="relative">
-      {/* Label */}
       <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-80">
         Lieu {required && <span className="text-red-400">*</span>}
       </label>
 
-      {/* Input avec autocomplete */}
       <div className="relative">
         <input
           ref={inputRef}
           type="text"
           placeholder="📍 Rechercher ou sélectionner..."
           className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all ${
-            darkMode
+            isDark
               ? "bg-black/20 border-white/5 text-white focus:border-purple-500"
               : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"
           } backdrop-blur-md placeholder:text-white/40`}
@@ -238,7 +228,6 @@ export const LieuSelector = ({
           onFocus={handleInputFocus}
         />
 
-        {/* Bouton "Nouveau lieu" */}
         {onAddNew && (
           <button
             type="button"
@@ -254,19 +243,17 @@ export const LieuSelector = ({
         )}
       </div>
 
-      {/* Dropdown des lieux */}
       {showDropdown && (
         <div
           ref={dropdownRef}
           className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${
-            darkMode
+            isDark
               ? "bg-[#1a1f2e] border-purple-500/40"
               : "bg-white border-slate-200"
           } backdrop-blur-xl`}
         >
           {filteredLieux.length > 0 ? (
             <div className="p-2">
-              {/* ✅ Section : Lieux habituels */}
               {lieuxDuClientList.length > 0 && (
                 <>
                   <div className="px-3 py-2 text-[10px] font-black uppercase text-green-400 opacity-60">
@@ -283,7 +270,7 @@ export const LieuSelector = ({
                         className={`w-full text-left p-3 rounded-xl transition-all mb-1 ${
                           idStr === selectedLieuIdStr
                             ? "bg-purple-600 text-white"
-                            : darkMode
+                            : isDark
                             ? "hover:bg-green-600/20 text-white border border-green-500/30"
                             : "hover:bg-green-100 text-slate-900 border border-green-300"
                         }`}
@@ -306,7 +293,6 @@ export const LieuSelector = ({
                 </>
               )}
 
-              {/* ✅ Section : Autres lieux */}
               {autresLieuxList.length > 0 && (
                 <>
                   {lieuxDuClientList.length > 0 && (
@@ -325,7 +311,7 @@ export const LieuSelector = ({
                         className={`w-full text-left p-3 rounded-xl transition-all ${
                           idStr === selectedLieuIdStr
                             ? "bg-purple-600 text-white"
-                            : darkMode
+                            : isDark
                             ? "hover:bg-white/10 text-white"
                             : "hover:bg-slate-100 text-slate-900"
                         }`}
@@ -359,7 +345,6 @@ export const LieuSelector = ({
         </div>
       )}
 
-      {/* Affichage du lieu sélectionné */}
       {selectedLieu && !showDropdown && (
         <div className="mt-2 p-3 bg-purple-600/20 rounded-xl border border-purple-500/30">
           <div className="text-xs font-bold text-white flex items-center justify-between">
