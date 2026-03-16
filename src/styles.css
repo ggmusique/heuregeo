@@ -2,12 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Optionnel: petit reset sympa */
 html,
 body {
   height: 100%;
 }
-
 
 .amount-safe {
   display: inline-block;
@@ -17,4 +15,46 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: bottom;
+}
+
+/* ============================================================
+   VARIABLES CSS PAR THÈME
+   Utilisées via var(--color-accent) etc. dans les composants
+   qui ne peuvent pas utiliser Tailwind dynamiquement.
+   ============================================================ */
+
+:root[data-theme="navy"] {
+  --color-bg: #020818;
+  --color-bg-secondary: #0A1628;
+  --color-accent: #D4AF37;
+  --color-accent-light: rgba(212, 175, 55, 0.15);
+  --color-text: #ffffff;
+  --color-text-muted: rgba(255,255,255,0.6);
+  --color-border: rgba(212, 175, 55, 0.3);
+  --color-card: rgba(255,255,255,0.05);
+  --color-nav-bg: rgba(3, 13, 34, 0.95);
+}
+
+:root[data-theme="purple"] {
+  --color-bg: #0D0520;
+  --color-bg-secondary: #1A0A3A;
+  --color-accent: #C084FC;
+  --color-accent-light: rgba(192, 132, 252, 0.15);
+  --color-text: #ffffff;
+  --color-text-muted: rgba(255,255,255,0.6);
+  --color-border: rgba(168, 85, 247, 0.3);
+  --color-card: rgba(255,255,255,0.05);
+  --color-nav-bg: rgba(26, 10, 58, 0.95);
+}
+
+:root[data-theme="emerald"] {
+  --color-bg: #f8fafc;
+  --color-bg-secondary: #ffffff;
+  --color-accent: #D97706;
+  --color-accent-light: rgba(217, 119, 6, 0.1);
+  --color-text: #0f172a;
+  --color-text-muted: rgba(15,23,42,0.6);
+  --color-border: rgba(203, 213, 225, 0.8);
+  --color-card: rgba(255,255,255,0.9);
+  --color-nav-bg: rgba(255,255,255,0.95);
 }
