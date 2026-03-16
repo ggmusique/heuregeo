@@ -11,6 +11,7 @@ import { ClientSelector } from "../client/ClientSelector";
 import { WeatherIcon } from "../common/WeatherIcon";
 import { LieuSelector } from "../lieu/LieuSelector";
 import { useLabels } from "../../contexts/LabelsContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const JOURNEE_TYPE = { debut: "08:00", fin: "17:00", pause: 30 };
 const MAX_TIME_MINUTES = 23 * 60 + 45;
@@ -30,7 +31,6 @@ export const MissionForm = ({
   onCopyLast,
   onSubmit,
   onCancel,
-  darkMode = true,
   isIOS = false,
   loading = false,
   patrons = [],
@@ -49,6 +49,7 @@ export const MissionForm = ({
   missions = [],
 }) => {
   const L = useLabels();
+  const { isDark } = useTheme();
   const [pause, setPause] = useState(initialData?.pause ?? 30);
   const [dateMission, setDateMission] = useState(() => {
     return initialData?.date_iso || new Date().toISOString().split("T")[0];
@@ -241,19 +242,19 @@ export const MissionForm = ({
   const getDay = () => safeDate.getDate().toString().padStart(2, "0");
   const getYear = () => safeDate.getFullYear();
 
-  const adjustBtnClass = darkMode
+  const adjustBtnClass = isDark
     ? "flex-1 py-1 rounded-xl text-[11px] font-black border transition-all active:scale-95 bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
     : "flex-1 py-1 rounded-xl text-[11px] font-black border transition-all active:scale-95 bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200";
 
   return (
     <section
       className={`relative p-8 rounded-[50px] shadow-2xl border backdrop-blur-2xl overflow-hidden ${
-        darkMode ? "bg-white/5 border-indigo-500/20" : "bg-white/70 border-slate-200/80"
+        isDark ? "bg-white/5 border-indigo-500/20" : "bg-white/70 border-slate-200/80"
       }`}
     >
       <div
         className={`relative mb-6 rounded-[28px] overflow-hidden backdrop-blur-2xl shadow-xl border ${
-          darkMode ? "border-yellow-600/20" : "bg-white/35 border-white/25"
+          isDark ? "border-yellow-600/20" : "bg-white/35 border-white/25"
         }`}
         style={{
           background: weather
@@ -330,7 +331,7 @@ export const MissionForm = ({
         >
           <div
             className={`w-full max-w-sm p-6 rounded-[30px] ${
-              darkMode
+              isDark
                 ? "bg-[#1a1f2e] border-2 border-indigo-500/40"
                 : "bg-white border-2 border-slate-200"
             } shadow-2xl`}
@@ -363,7 +364,6 @@ export const MissionForm = ({
           selectedPatronId={selectedPatronId}
           onSelect={(id) => { onPatronChange(id); clearError("patron"); }}
           required={true}
-          darkMode={darkMode}
           onAddNew={onAddNewPatron}
         />
         {formErrors.patron && (
@@ -371,7 +371,7 @@ export const MissionForm = ({
         )}
 
         {showRateEditorControl && (
-          <div className={`mt-3 p-3 rounded-xl border ${darkMode ? "bg-emerald-900/15 border-emerald-500/20" : "bg-emerald-50 border-emerald-200"}`}>
+          <div className={`mt-3 p-3 rounded-xl border ${isDark ? "bg-emerald-900/15 border-emerald-500/20" : "bg-emerald-50 border-emerald-200"}`}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-black uppercase opacity-60 tracking-wider">Taux mission</p>
@@ -403,7 +403,7 @@ export const MissionForm = ({
                   value={tarifHoraire}
                   onChange={(e) => setTarifHoraire(e.target.value)}
                   className={`w-full p-3 rounded-xl font-black text-sm border-2 outline-none ${
-                    darkMode
+                    isDark
                       ? "bg-black/30 border-emerald-500/30 text-white"
                       : "bg-white border-emerald-300 text-slate-900"
                   }`}
@@ -426,7 +426,6 @@ export const MissionForm = ({
           selectedClientId={selectedClientId}
           onSelect={(id) => { onClientChange(id); clearError("client"); }}
           required={true}
-          darkMode={darkMode}
           onAddNew={onAddNewClient}
         />
         {formErrors.client && (
@@ -440,7 +439,6 @@ export const MissionForm = ({
           selectedLieuId={selectedLieuId}
           onSelect={(id) => { onLieuChange(id); clearError("lieu"); }}
           required={true}
-          darkMode={darkMode}
           onAddNew={() => {
             const prefill = selectedClient?.nom
               ? { nom: "", notes: `Lieu pour ${selectedClient.nom}` }
@@ -455,13 +453,12 @@ export const MissionForm = ({
         )}
       </div>
 
-      {/* Preset + Duplicate row */}
       <div className="flex gap-2 mb-3">
         <button
           type="button"
           onClick={() => { setDebut(JOURNEE_TYPE.debut); setFin(JOURNEE_TYPE.fin); setPause(JOURNEE_TYPE.pause); }}
           className={`flex-1 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider border transition-all active:scale-95 ${
-            darkMode
+            isDark
               ? "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
               : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
           }`}
@@ -473,7 +470,7 @@ export const MissionForm = ({
             type="button"
             onClick={onCopyLast}
             className={`flex-1 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider border transition-all active:scale-95 ${
-              darkMode
+              isDark
                 ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20"
                 : "bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100"
             }`}
@@ -484,11 +481,10 @@ export const MissionForm = ({
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        {/* Début */}
         <div className="flex flex-col gap-1">
           <div
             className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
-              formErrors.fin ? "border-red-500" : darkMode ? "border-slate-700" : "border-slate-300"
+              formErrors.fin ? "border-red-500" : isDark ? "border-slate-700" : "border-slate-300"
             } backdrop-blur-md`}
           >
             <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Début</span>
@@ -507,11 +503,10 @@ export const MissionForm = ({
           </div>
         </div>
 
-        {/* Pause */}
         <div className="flex flex-col gap-1">
           <div
             className={`p-4 bg-black/40 rounded-[28px] border-2 relative flex flex-col items-center justify-center text-center min-h-[90px] ${
-              formErrors.pause ? "border-red-500" : darkMode ? "border-slate-700" : "border-slate-300"
+              formErrors.pause ? "border-red-500" : isDark ? "border-slate-700" : "border-slate-300"
             } backdrop-blur-md`}
           >
             <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Pause</span>
@@ -530,11 +525,10 @@ export const MissionForm = ({
           </div>
         </div>
 
-        {/* Fin */}
         <div className="flex flex-col gap-1">
           <div
             className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
-              formErrors.fin ? "border-red-500" : darkMode ? "border-slate-700" : "border-slate-300"
+              formErrors.fin ? "border-red-500" : isDark ? "border-slate-700" : "border-slate-300"
             } backdrop-blur-md`}
           >
             <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Fin</span>

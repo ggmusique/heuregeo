@@ -1,10 +1,12 @@
 import React, { useMemo } from "react";
 import { formatEuro } from "../../utils/formatters";
 import { useLabels } from "../../contexts/LabelsContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 // ─── Barre verticale ─────────────────────────────────────────────────────────
 
-function VerticalBars({ data, color, darkMode }) {
+function VerticalBars({ data, color }) {
+  const { isDark } = useTheme();
   const max = Math.max(...data.map((d) => d.value), 0.01);
   return (
     <div className="flex items-end gap-[2px] h-[56px]">
@@ -21,7 +23,7 @@ function VerticalBars({ data, color, darkMode }) {
           />
           <span
             className="text-[6px] font-black"
-            style={{ opacity: 0.4, color: darkMode ? "#fff" : "#334155" }}
+            style={{ opacity: 0.4, color: isDark ? "#fff" : "#334155" }}
           >
             {d.label}
           </span>
@@ -33,7 +35,8 @@ function VerticalBars({ data, color, darkMode }) {
 
 // ─── Barre horizontale (top items) ───────────────────────────────────────────
 
-function HorizontalBars({ items, color, formatVal, darkMode }) {
+function HorizontalBars({ items, color, formatVal }) {
+  const { isDark } = useTheme();
   const max = Math.max(...items.map((i) => i.value), 0.01);
   return (
     <div className="space-y-[6px]">
@@ -41,13 +44,13 @@ function HorizontalBars({ items, color, formatVal, darkMode }) {
         <div key={i} className="flex items-center gap-2">
           <span
             className="text-[9px] font-black truncate shrink-0 w-20 opacity-70"
-            style={{ color: darkMode ? "#fff" : "#334155" }}
+            style={{ color: isDark ? "#fff" : "#334155" }}
           >
             {item.label}
           </span>
           <div
             className="flex-1 h-[6px] rounded-full overflow-hidden"
-            style={{ background: darkMode ? "rgba(255,255,255,0.06)" : "#f1f5f9" }}
+            style={{ background: isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9" }}
           >
             <div
               className="h-full rounded-full"
@@ -60,7 +63,7 @@ function HorizontalBars({ items, color, formatVal, darkMode }) {
           </div>
           <span
             className="text-[9px] font-black shrink-0 w-16 text-right opacity-70"
-            style={{ color: darkMode ? "#fff" : "#334155" }}
+            style={{ color: isDark ? "#fff" : "#334155" }}
           >
             {formatVal(item.value)}
           </span>
@@ -72,16 +75,17 @@ function HorizontalBars({ items, color, formatVal, darkMode }) {
 
 // ─── Carte encadrée ──────────────────────────────────────────────────────────
 
-function StatCard({ title, children, darkMode }) {
+function StatCard({ title, children }) {
+  const { isDark } = useTheme();
   return (
     <div
       className={`p-3 rounded-[18px] border ${
-        darkMode ? "bg-white/4 border-white/8" : "bg-slate-50 border-slate-200"
+        isDark ? "bg-white/4 border-white/8" : "bg-slate-50 border-slate-200"
       }`}
     >
       <p
         className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50"
-        style={{ color: darkMode ? "#fff" : "#334155" }}
+        style={{ color: isDark ? "#fff" : "#334155" }}
       >
         {title}
       </p>
@@ -92,7 +96,7 @@ function StatCard({ title, children, darkMode }) {
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
-export function StatsCharts({ missions, patrons, effectivePatronId, darkMode }) {
+export function StatsCharts({ missions, patrons, effectivePatronId }) {
   const L = useLabels();
 
   const filtered = useMemo(
@@ -103,12 +107,11 @@ export function StatsCharts({ missions, patrons, effectivePatronId, darkMode }) 
     [missions, effectivePatronId]
   );
 
-  // ── CA et heures par mois ──────────────────────────────────────────────────
   const { monthlyCA, monthlyHours } = useMemo(() => {
     const byMonth = {};
     filtered.forEach((m) => {
       if (!m.date_iso) return;
-      const month = m.date_iso.slice(0, 7); // "2026-03"
+      const month = m.date_iso.slice(0, 7);
       if (!byMonth[month]) byMonth[month] = { ca: 0, hours: 0 };
       byMonth[month].ca += m.montant || 0;
       byMonth[month].hours += m.duree || 0;
@@ -117,7 +120,6 @@ export function StatsCharts({ missions, patrons, effectivePatronId, darkMode }) 
     const keys = Object.keys(byMonth).sort().slice(-10);
 
     const monthLabel = (k) => {
-      const [y, mo] = k.split("-");
       const abbr = new Date(`${k}-15`).toLocaleString("fr-FR", { month: "short" });
       return abbr.replace(".", "");
     };
@@ -128,7 +130,6 @@ export function StatsCharts({ missions, patrons, effectivePatronId, darkMode }) 
     return { monthlyCA, monthlyHours };
   }, [filtered]);
 
-  // ── Top clients ────────────────────────────────────────────────────────────
   const topClients = useMemo(() => {
     const by = {};
     filtered.forEach((m) => {
@@ -141,7 +142,6 @@ export function StatsCharts({ missions, patrons, effectivePatronId, darkMode }) 
       .slice(0, 5);
   }, [filtered]);
 
-  // ── Top patrons ────────────────────────────────────────────────────────────
   const topPatrons = useMemo(() => {
     const by = {};
     filtered.forEach((m) => {
@@ -164,36 +164,31 @@ export function StatsCharts({ missions, patrons, effectivePatronId, darkMode }) 
 
   return (
     <div className="space-y-3">
-      {/* CA et heures côte à côte */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard title="CA mensuel (€)" darkMode={darkMode}>
-          <VerticalBars data={monthlyCA} color="#6366f1" darkMode={darkMode} />
+        <StatCard title="CA mensuel (€)">
+          <VerticalBars data={monthlyCA} color="#6366f1" />
         </StatCard>
-        <StatCard title="Heures / mois" darkMode={darkMode}>
-          <VerticalBars data={monthlyHours} color="#10b981" darkMode={darkMode} />
+        <StatCard title="Heures / mois">
+          <VerticalBars data={monthlyHours} color="#10b981" />
         </StatCard>
       </div>
 
-      {/* Top clients */}
       {topClients.length > 0 && (
-        <StatCard title={`Top ${L.clients}`} darkMode={darkMode}>
+        <StatCard title={`Top ${L.clients}`}>
           <HorizontalBars
             items={topClients}
             color="#3b82f6"
             formatVal={formatEuro}
-            darkMode={darkMode}
           />
         </StatCard>
       )}
 
-      {/* Top patrons (masqué si patron déjà filtré) */}
       {!effectivePatronId && topPatrons.length > 1 && (
-        <StatCard title={`Top ${L.patrons}`} darkMode={darkMode}>
+        <StatCard title={`Top ${L.patrons}`}>
           <HorizontalBars
             items={topPatrons}
             color="#f59e0b"
             formatVal={formatEuro}
-            darkMode={darkMode}
           />
         </StatCard>
       )}

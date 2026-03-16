@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLabels } from "../../contexts/LabelsContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 export function PatronSelector({
   patrons = [],
@@ -7,10 +8,11 @@ export function PatronSelector({
   onSelect,
   required = false,
   disabled = false,
-  darkMode = true,
   onAddNew,
 }) {
   const L = useLabels();
+  const { isDark } = useTheme();
+
   useEffect(() => {
     if (required && !selectedPatronId && patrons.length === 1) {
       onSelect?.(patrons[0].id);
@@ -46,10 +48,10 @@ export function PatronSelector({
                 disabled={disabled}
                 className={`p-4 rounded-[20px] flex items-center gap-3 transition-all ${
                   selectedPatronId === patron.id
-                    ? darkMode
+                    ? isDark
                       ? "bg-white/20 border-2 border-white/40"
                       : "bg-indigo-100 border-2 border-indigo-500"
-                    : darkMode
+                    : isDark
                     ? "bg-white/5 border-2 border-white/10 hover:bg-white/10"
                     : "bg-slate-100 border-2 border-slate-200 hover:bg-slate-200"
                 } disabled:opacity-50 active:scale-95`}
@@ -79,7 +81,7 @@ export function PatronSelector({
               onClick={onAddNew}
               disabled={disabled}
               className={`w-full py-3 rounded-[20px] font-black uppercase text-[10px] transition-all border-2 border-dashed ${
-                darkMode
+                isDark
                   ? "border-white/20 text-white/60 hover:border-white/40 hover:text-white"
                   : "border-slate-300 text-slate-600 hover:border-slate-400 hover:text-slate-900"
               } disabled:opacity-50 active:scale-95`}
@@ -99,11 +101,11 @@ export function PatronSelectorCompact({
   onSelect,
   required = false,
   disabled = false,
-  darkMode = true,
   className = "",
   onAddNew,
 }) {
   const L = useLabels();
+  const { isDark } = useTheme();
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef(null);
@@ -177,7 +179,7 @@ export function PatronSelectorCompact({
           type="text"
           placeholder="👔 Rechercher ou sélectionner..."
           className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all ${
-            darkMode
+            isDark
               ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
               : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"
           } backdrop-blur-md placeholder:text-white/40 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
@@ -207,7 +209,7 @@ export function PatronSelectorCompact({
         <div
           ref={dropdownRef}
           className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${
-            darkMode
+            isDark
               ? "bg-[#1a1f2e] border-indigo-500/40"
               : "bg-white border-slate-300"
           } backdrop-blur-xl`}
@@ -219,10 +221,10 @@ export function PatronSelectorCompact({
                 type="button"
                 className={`w-full p-4 text-left transition-all border-b border-white/5 last:border-b-0 ${
                   selectedPatronId === patron.id
-                    ? darkMode
+                    ? isDark
                       ? "bg-indigo-600/30"
                       : "bg-indigo-100"
-                    : darkMode
+                    : isDark
                     ? "hover:bg-white/10"
                     : "hover:bg-slate-100"
                 }`}
@@ -253,7 +255,7 @@ export function PatronSelectorCompact({
       {selectedPatron && !showDropdown && (
         <div
           className={`mt-3 p-3 rounded-xl border ${
-            darkMode ? "bg-indigo-900/20 border-indigo-500/20" : "bg-indigo-50 border-indigo-200"
+            isDark ? "bg-indigo-900/20 border-indigo-500/20" : "bg-indigo-50 border-indigo-200"
           }`}
         >
           <div className="flex items-center gap-2">

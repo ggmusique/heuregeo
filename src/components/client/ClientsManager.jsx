@@ -1,34 +1,23 @@
 import React, { useState, useMemo } from "react";
 import { formatEuro, formatHeures } from "../../utils/formatters";
 import { useLabels } from "../../contexts/LabelsContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 /**
  * Gestionnaire complet des clients avec liste et stats
- *
- * ✅ Optimisations / Correctifs :
- * - Index missions par client_id (Map) + fallback par client (nom)
- * - Dédoublonnage strict des missions (mission.id sinon clé fallback)
- * - Dédoublonnage des clients par nom (évite 2 cartes "Confluence" si 2 adresses)
- * - Agrégation des adresses multiples dans lieuxTravail[]
- * - UI inchangée (même style)
  */
 export const ClientsManager = ({
   clients = [],
   onEdit = () => {},
   onDelete = () => {},
   onAdd = () => {},
-  darkMode = true,
   missions = [],
   allowActions = true,
 }) => {
   const L = useLabels();
+  const { isDark } = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
 
-  /**
-   * ✅ 1) Dédoublonnage CLIENTS par nom (affichage)
-   * -> si tu as 2 lignes clients avec même nom mais lieu_travail différent,
-   *    on affiche 1 seule carte + liste d'adresses.
-   */
   const clientsDeduped = useMemo(() => {
     const safeClients = Array.isArray(clients) ? clients : [];
     const map = new Map();
@@ -40,7 +29,7 @@ export const ClientsManager = ({
       if (!map.has(key)) {
         map.set(key, {
           ...c,
-          _ids: [c.id], // tous les ids regroupés
+          _ids: [c.id],
           lieuxTravail: c.lieu_travail ? [c.lieu_travail] : [],
         });
       } else {
@@ -51,7 +40,6 @@ export const ClientsManager = ({
           existing.lieuxTravail.push(c.lieu_travail);
         }
 
-        // on garde aussi contact/notes si jamais le 1er était vide
         if (!existing.contact && c.contact) existing.contact = c.contact;
         if (!existing.notes && c.notes) existing.notes = c.notes;
       }
@@ -60,11 +48,6 @@ export const ClientsManager = ({
     return Array.from(map.values());
   }, [clients]);
 
-  /**
-   * ✅ 2) Index MISSIONS
-   * - byClientId : Map(client_id => missions[])
-   * - byClientName : Map(clientName => missions[]) (fallback legacy)
-   */
   const missionIndex = useMemo(() => {
     const safeMissions = Array.isArray(missions) ? missions : [];
 
@@ -90,25 +73,14 @@ export const ClientsManager = ({
     return { byClientId, byClientName };
   }, [missions]);
 
-  /**
-   * ✅ 3) Calcul stats clients
-   * - récupère missions depuis:
-   *   a) toutes les missions liées à un des ids regroupés (_ids)
-   *   b) fallback missions par nom exact (legacy)
-   * - dédoublonne les missions (id sinon clé fallback)
-   */
   const clientsWithStats = useMemo(() => {
     const safeClients = Array.isArray(clientsDeduped) ? clientsDeduped : [];
 
     return safeClients.map((client) => {
-      // a) missions par IDs regroupés
       const ids = Array.isArray(client._ids) ? client._ids : [client.id];
       const fromIds = ids.flatMap((id) => missionIndex.byClientId.get(id) || []);
-
-      // b) fallback par nom (ancienne DB: mission.client = "Nom")
       const fromName = missionIndex.byClientName.get(client.nom) || [];
 
-      // fusion + dédoublonnage
       const merged = [...fromIds, ...fromName];
       const seen = new Set();
 
@@ -152,9 +124,6 @@ export const ClientsManager = ({
     });
   }, [clientsDeduped, missionIndex]);
 
-  /**
-   * ✅ 4) Filtrage (recherche nom)
-   */
   const filteredClients = useMemo(() => {
     const term = (searchTerm || "").toLowerCase().trim();
     if (!term) return clientsWithStats;
@@ -164,18 +133,12 @@ export const ClientsManager = ({
     );
   }, [clientsWithStats, searchTerm]);
 
-  /**
-   * ✅ 5) Tri (plus actifs en premier)
-   */
   const sortedClients = useMemo(() => {
     return [...filteredClients].sort(
       (a, b) => (b.nombreMissions || 0) - (a.nombreMissions || 0)
     );
   }, [filteredClients]);
 
-  /**
-   * ✅ 6) Stats globales
-   */
   const globalStats = useMemo(() => {
     return {
       totalClients: clientsDeduped.length,
@@ -193,14 +156,13 @@ export const ClientsManager = ({
 
   return (
     <div className="space-y-6">
-      {/* Header avec bouton ajouter et recherche */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="flex-1 w-full sm:w-auto">
           <input
             type="text"
             placeholder="🔍 Rechercher un client..."
             className={`w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all ${
-              darkMode
+              isDark
                 ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
                 : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"
             } backdrop-blur-md`}
@@ -217,11 +179,10 @@ export const ClientsManager = ({
         </button>
       </div>
 
-      {/* Stats globales */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
           className={`p-4 rounded-2xl ${
-            darkMode
+            isDark
               ? "bg-gradient-to-br from-indigo-600/20 to-purple-600/20 border border-indigo-500/30"
               : "bg-gradient-to-br from-indigo-100 to-purple-100 border border-indigo-300"
           } backdrop-blur-md`}
@@ -236,7 +197,7 @@ export const ClientsManager = ({
 
         <div
           className={`p-4 rounded-2xl ${
-            darkMode
+            isDark
               ? "bg-gradient-to-br from-green-600/20 to-emerald-600/20 border border-green-500/30"
               : "bg-gradient-to-br from-green-100 to-emerald-100 border border-green-300"
           } backdrop-blur-md`}
@@ -251,7 +212,7 @@ export const ClientsManager = ({
 
         <div
           className={`p-4 rounded-2xl ${
-            darkMode
+            isDark
               ? "bg-gradient-to-br from-cyan-600/20 to-blue-600/20 border border-cyan-500/30"
               : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-300"
           } backdrop-blur-md`}
@@ -266,7 +227,7 @@ export const ClientsManager = ({
 
         <div
           className={`p-4 rounded-2xl ${
-            darkMode
+            isDark
               ? "bg-gradient-to-br from-amber-600/20 to-orange-600/20 border border-amber-500/30"
               : "bg-gradient-to-br from-amber-100 to-orange-100 border border-amber-300"
           } backdrop-blur-md`}
@@ -280,7 +241,6 @@ export const ClientsManager = ({
         </div>
       </div>
 
-      {/* Liste des clients */}
       <div className="space-y-3">
         {sortedClients.length === 0 ? (
           <div className="text-center py-12">
@@ -302,13 +262,12 @@ export const ClientsManager = ({
             <div
               key={client.id}
               className={`p-5 rounded-[25px] backdrop-blur-md border-2 ${
-                darkMode
+                isDark
                   ? "bg-white/5 border-white/10 hover:border-indigo-500/40"
                   : "bg-white border-slate-200 hover:border-indigo-300"
               } transition-all`}
             >
               <div className="flex items-start justify-between gap-4">
-                {/* Infos client */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-black text-white truncate">
@@ -321,7 +280,6 @@ export const ClientsManager = ({
                     )}
                   </div>
 
-                  {/* Contact & lieu_travail (multi) */}
                   <div className="space-y-1 mb-3">
                     {client.contact && (
                       <div className="text-xs text-white/60 flex items-center gap-2">
@@ -353,7 +311,6 @@ export const ClientsManager = ({
                     )}
                   </div>
 
-                  {/* Stats */}
                   <div className="grid grid-cols-3 gap-3">
                     <div className="bg-black/20 px-3 py-2 rounded-xl">
                       <div className="text-[9px] font-black uppercase opacity-40">
@@ -381,7 +338,6 @@ export const ClientsManager = ({
                     </div>
                   </div>
 
-                  {/* Dernière mission */}
                   {client.derniereMission && (
                     <div className="mt-2 text-[10px] text-white/40">
                       Dernière mission :{" "}
@@ -392,13 +348,12 @@ export const ClientsManager = ({
                   )}
                 </div>
 
-                {/* Actions */}
                 {allowActions && (
                 <div className="flex gap-2">
                   <button
                     onClick={() => onEdit(client)}
                     className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-                      darkMode
+                      isDark
                         ? "bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30"
                         : "bg-blue-100 text-blue-600 border border-blue-300 hover:bg-blue-200"
                     }`}
@@ -409,7 +364,7 @@ export const ClientsManager = ({
                   <button
                     onClick={() => onDelete(client)}
                     className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-                      darkMode
+                      isDark
                         ? "bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30"
                         : "bg-red-100 text-red-600 border border-red-300 hover:bg-red-200"
                     }`}
