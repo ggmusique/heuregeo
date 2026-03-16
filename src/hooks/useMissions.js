@@ -1,11 +1,24 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import * as missionsApi from "../services/api/missionsApi";
-import { getWeekNumber } from "../utils/dateUtils";
 import { useLabels } from "../contexts/LabelsContext";
 
 /**
- * Vérifie si une mission en chevauchement existe déjà sur le même jour,
- * quel que soit le patron ou le client.
+ * Retourne { week, year } ISO d'une date.
+ * Utilisé en interne pour comparer semaine ET année (eviter le bug semaine sur plusieurs ans).
+ * Fix Perplexity : l'ancienne version ne comparait que le n° de semaine sans l'année.
+ */
+const getWeekAndYear = (date) => {
+  if (!date || isNaN(date.getTime())) return { week: 0, year: 0 };
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const isoYear = d.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+  const week = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  return { week, year: isoYear };
+};
+
+/**
+ * Vérifie si une mission en chevauchement existe déjà sur le même jour.
  * Retourne la mission en conflit ou null.
  * excludeId : ignorer cette mission (mode édition).
  */
@@ -50,51 +63,25 @@ const validateMissionData = (data, L) => {
 
 /**
  * Hook complet pour gérer les missions - Multi-Patrons
- *
- * Rôle dans l’app :
- * - Stocker la liste des missions en mémoire (state React)
- * - Aller chercher / modifier les missions dans la base (via missionsApi)
- * - Donner des outils de tri/filtre : par semaine, par mois/année, par patron
- * - Fournir des listes “autocomplete” : clients uniques, lieux uniques
- *
- * @param {Function} onError - fonction pour afficher une alerte (ex: triggerAlert)
  */
 export const useMissions = (onError) => {
-  // ------------------------------------------------------------
-  // 1) STATES PRINCIPAUX
-  // ------------------------------------------------------------
-  // missions = toutes les missions chargées depuis la DB
   const [missions, setMissions] = useState([]);
-  // loading = pour afficher le spinner pendant une action
   const [loading, setLoading] = useState(false);
 
   const L = useLabels();
 
-  // Ref = "verrou" anti double-clic : empêche fetchMissions d’être lancé 2 fois
   const isFetching = useRef(false);
 
-  // ------------------------------------------------------------
-  // 2) CHARGEMENT (READ)
-  // ------------------------------------------------------------
-  /**
-   * fetchMissions()
-   * => appelle l'API, récupère toutes les missions, les met dans le state
-   */
   const fetchMissions = useCallback(async () => {
-    // Si une requête est déjà en cours, on ne relance pas
     if (isFetching.current) return;
-
     try {
       isFetching.current = true;
       setLoading(true);
-
-      const data = await missionsApi.fetchMissions(); // 🔌 DB → récupère missions
-      setMissions(data || []); // 🧠 stocke dans React
-
+      const data = await missionsApi.fetchMissions();
+      setMissions(data || []);
       return data || [];
     } catch (err) {
       console.error("Erreur fetch missions:", err);
-      // onError = ton triggerAlert dans App.jsx
       onError?.("Erreur connexion. Vérifie internet.");
       throw err;
     } finally {
@@ -103,138 +90,68 @@ export const useMissions = (onError) => {
     }
   }, [onError]);
 
-  // ------------------------------------------------------------
-  // 3) CRÉATION (CREATE)
-  // ------------------------------------------------------------
-  /**
-   * createMission(missionData)
-   * => enregistre une mission en DB puis l'ajoute au state
-   */
   const createMission = useCallback(
     async (missionData) => {
-      if (!missionData) {
-        throw new Error("Données de la mission manquantes");
-      }
-
+      if (!missionData) throw new Error("Données de la mission manquantes");
       const validationError = validateMissionData(missionData, L);
-      if (validationError) {
-        onError?.(validationError);
-        throw new Error(validationError);
-      }
-
-      // Vérifier doublon / chevauchement horaire
+      if (validationError) { onError?.(validationError); throw new Error(validationError); }
       const conflict = findOverlappingMission(missions, missionData);
       if (conflict) {
         const msg = `Créneau déjà occupé : une mission existe de ${conflict.debut?.slice(0,5)} à ${conflict.fin?.slice(0,5)} ce jour-là.`;
-        onError?.(msg);
-        throw new Error(msg);
+        onError?.(msg); throw new Error(msg);
       }
-
       try {
         setLoading(true);
-
-        const newMission = await missionsApi.createMission(missionData); // 🔌 DB insert
-
-        if (newMission) {
-          // on la met tout en haut (comme “dernière ajoutée”)
-          setMissions((prev) => [newMission, ...prev]);
-        }
-
+        const newMission = await missionsApi.createMission(missionData);
+        if (newMission) setMissions((prev) => [newMission, ...prev]);
         return newMission;
       } catch (err) {
         console.error("Erreur création mission:", err);
-        onError?.("Erreur création mission");
-        throw err;
-      } finally {
-        setLoading(false);
-      }
+        onError?.("Erreur création mission"); throw err;
+      } finally { setLoading(false); }
     },
     [onError, L, missions]
   );
 
-  // ------------------------------------------------------------
-  // 4) MISE À JOUR (UPDATE)
-  // ------------------------------------------------------------
-  /**
-   * updateMission(id, missionData)
-   * => met à jour en DB puis remplace dans le state
-   */
   const updateMission = useCallback(
     async (id, missionData) => {
       if (!id) throw new Error("ID de la mission manquant");
       if (!missionData) throw new Error("Données de la mission manquantes");
-
       const validationError = validateMissionData(missionData, L);
-      if (validationError) {
-        onError?.(validationError);
-        throw new Error(validationError);
-      }
-
-      // Vérifier chevauchement (en excluant la mission en cours d'édition)
+      if (validationError) { onError?.(validationError); throw new Error(validationError); }
       const conflict = findOverlappingMission(missions, missionData, id);
       if (conflict) {
         const msg = `Créneau déjà occupé : une mission existe de ${conflict.debut?.slice(0,5)} à ${conflict.fin?.slice(0,5)} ce jour-là.`;
-        onError?.(msg);
-        throw new Error(msg);
+        onError?.(msg); throw new Error(msg);
       }
-
       try {
         setLoading(true);
-
-        const updated = await missionsApi.updateMission(id, missionData); // 🔌 DB update
-
-        if (updated) {
-          // Remplace uniquement la mission concernée
-          setMissions((prev) => prev.map((m) => (m.id === id ? updated : m)));
-        }
-
+        const updated = await missionsApi.updateMission(id, missionData);
+        if (updated) setMissions((prev) => prev.map((m) => (m.id === id ? updated : m)));
         return updated;
       } catch (err) {
         console.error("Erreur mise à jour mission:", err);
-        onError?.("Erreur mise à jour");
-        throw err;
-      } finally {
-        setLoading(false);
-      }
+        onError?.("Erreur mise à jour"); throw err;
+      } finally { setLoading(false); }
     },
     [onError, L, missions]
   );
 
-  // ------------------------------------------------------------
-  // 5) SUPPRESSION (DELETE)
-  // ------------------------------------------------------------
-  /**
-   * deleteMission(id)
-   * => supprime en DB puis enlève du state
-   */
   const deleteMission = useCallback(
     async (id) => {
       if (!id) throw new Error("ID de la mission manquant");
-
       try {
         setLoading(true);
-
-        await missionsApi.deleteMission(id); // 🔌 DB delete
-        setMissions((prev) => prev.filter((m) => m.id !== id)); // 🧠 retire du state
+        await missionsApi.deleteMission(id);
+        setMissions((prev) => prev.filter((m) => m.id !== id));
       } catch (err) {
         console.error("Erreur suppression mission:", err);
-        onError?.("Erreur suppression");
-        throw err;
-      } finally {
-        setLoading(false);
-      }
+        onError?.("Erreur suppression"); throw err;
+      } finally { setLoading(false); }
     },
     [onError]
   );
 
-  // ------------------------------------------------------------
-  // 6) IMPORT EN LOT (BULK CREATE)
-  // ------------------------------------------------------------
-  /**
-   * bulkCreateMissions(validMissions)
-   * => insère plusieurs missions d'un coup (déjà validées par ImportMissionsModal)
-   * puis recharge toutes les missions depuis la DB.
-   */
   const bulkCreateMissions = useCallback(
     async (validMissions) => {
       if (!validMissions?.length) return;
@@ -246,106 +163,68 @@ export const useMissions = (onError) => {
         console.error("Erreur import missions:", err);
         onError?.("Erreur lors de l'import des missions");
         throw err;
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     },
     [fetchMissions, onError]
   );
 
-  // ------------------------------------------------------------
-  // 7) LISTES UTILES (AUTOCOMPLETE)
-  // ------------------------------------------------------------
-  /**
-   * clientsUniques / lieuxUniques
-   * => sert à remplir des dropdowns / suggestions dans le formulaire MissionForm
-   * useMemo = recalculé seulement quand missions change
-   */
   const { clientsUniques, lieuxUniques } = useMemo(() => {
     const missionsArray = Array.isArray(missions) ? missions : [];
-
     return {
       clientsUniques: [...new Set(missionsArray.map((m) => m?.client))].filter(Boolean),
       lieuxUniques: [...new Set(missionsArray.map((m) => m?.lieu))].filter(Boolean),
     };
   }, [missions]);
 
-  // ------------------------------------------------------------
-  // 7) FILTRES “BUSINESS” POUR L’APP
-  // ------------------------------------------------------------
-  /**
-   * getMissionsByWeek(weekNumber, patronId)
-   * => utilisé dans App.jsx : "Semaine en cours"
-   */
+  // -----------------------------------------------------------------------
+  // FILTRES BUSINESS - Corrigés pour prendre en compte l'ANNÉE ISO
+  // Fix Perplexity : antérieurement, on ne comparait que le n° de semaine
+  // sans l'année => les missions de la semaine 10 de 2025 apparaissaient
+  // dans le bilan de la semaine 10 de 2026.
+  // -----------------------------------------------------------------------
+
   const getMissionsByWeek = useCallback(
-    (weekNumber, patronId = null) => {
+    (weekNumber, patronId = null, year = new Date().getFullYear()) => {
       if (!weekNumber) return [];
-
       const missionsArray = Array.isArray(missions) ? missions : [];
-
-      // Filtre semaine ISO (date_mission en priorité, date_iso en fallback)
       let filtered = missionsArray.filter((m) => {
         const mDate = m?.date_mission || m?.date_iso;
         if (!mDate) return false;
         try {
-          return getWeekNumber(new Date(mDate)) === weekNumber;
-        } catch {
-          return false;
-        }
+          // FIX : on compare la semaine ET l'année ISO
+          const { week, year: isoYear } = getWeekAndYear(new Date(mDate));
+          return week === weekNumber && isoYear === year;
+        } catch { return false; }
       });
-
-      // Filtre patron (si demandé)
-      if (patronId) {
-        filtered = filtered.filter((m) => m?.patron_id === patronId);
-      }
-
+      if (patronId) filtered = filtered.filter((m) => m?.patron_id === patronId);
       return filtered;
     },
     [missions]
   );
 
-  /**
-   * getMissionsByPeriod(periodType, periodValue, patronId)
-   * => utilisé dans useBilan : bilan semaine/mois/année
-   *
-   * - semaine : compare getWeekNumber(date) avec periodValue
-   * - mois/année : utilise startsWith() sur date_iso ("YYYY-MM" ou "YYYY")
-   */
   const getMissionsByPeriod = useCallback(
-    (periodType, periodValue, patronId = null) => {
+    (periodType, periodValue, patronId = null, year = new Date().getFullYear()) => {
       if (!periodType || !periodValue) return [];
-
       const missionsArray = Array.isArray(missions) ? missions : [];
-
       let filtered = missionsArray.filter((m) => {
-        // date_mission en priorité, date_iso en fallback
         const mDate = m?.date_mission || m?.date_iso;
         if (!mDate) return false;
-
         try {
           if (periodType === "semaine") {
-            return getWeekNumber(new Date(mDate)) === parseInt(periodValue);
+            // FIX : on compare la semaine ET l'année ISO
+            const { week, year: isoYear } = getWeekAndYear(new Date(mDate));
+            return week === parseInt(periodValue) && isoYear === year;
           }
           // mois "YYYY-MM" ou année "YYYY"
           return mDate.startsWith(periodValue);
-        } catch {
-          return false;
-        }
+        } catch { return false; }
       });
-
-      if (patronId) {
-        filtered = filtered.filter((m) => m?.patron_id === patronId);
-      }
-
+      if (patronId) filtered = filtered.filter((m) => m?.patron_id === patronId);
       return filtered;
     },
     [missions]
   );
 
-  /**
-   * getMissionsByPatron(patronId)
-   * => renvoie toutes les missions d’un patron (utile pour pages / stats)
-   */
   const getMissionsByPatron = useCallback(
     (patronId = null) => {
       if (!patronId) return missions;
@@ -354,23 +233,16 @@ export const useMissions = (onError) => {
     [missions]
   );
 
-  // ------------------------------------------------------------
-  // 8) CE QUE useMissions “DONNE” À App.jsx
-  // ------------------------------------------------------------
   return {
     missions,
     loading,
     clientsUniques,
     lieuxUniques,
-
-    // CRUD
     fetchMissions,
     createMission,
     updateMission,
     deleteMission,
     bulkCreateMissions,
-
-    // Filtres / helpers
     getMissionsByWeek,
     getMissionsByPeriod,
     getMissionsByPatron,
