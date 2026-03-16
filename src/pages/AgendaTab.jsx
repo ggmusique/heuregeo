@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
 import { getWeekNumber } from "../utils/dateUtils";
 import { AgendaWeekView } from "../components/agenda/AgendaWeekView";
+import { useTheme } from "../contexts/ThemeContext";
 
-// ─── Constantes ────────────────────────────────────────────────────────────
+// ─── Constantes ────────────────────────────────────────────
 
 const MONTHS_FR = [
   "Janvier","Février","Mars","Avril","Mai","Juin",
@@ -14,19 +15,17 @@ const MONTHS_SHORT = [
 ];
 const DAYS_FR = ["L","M","M","J","V","S","D"];
 
-// Couleurs barres multi-jours (congés)
 const TYPE_BAR = {
   conge: { bg: "rgba(249,115,22,0.80)", text: "#fff" },
 };
 
-// Couleurs pills dans les cellules
 const TYPE_PILL = {
   rdv:   "bg-blue-500/25   text-blue-300",
   conge: "bg-orange-500/25 text-orange-300",
   note:  "bg-emerald-500/25 text-emerald-300",
 };
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────
 
 function toIso(year, month, day) {
   return `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
@@ -35,7 +34,7 @@ function toIso(year, month, day) {
 function buildCalendarGrid(year, month) {
   const firstDay    = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
-  const startOffset = (firstDay.getDay() + 6) % 7; // lundi = 0
+  const startOffset = (firstDay.getDay() + 6) % 7;
   const cells = [];
   for (let i = 0; i < startOffset; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
@@ -43,10 +42,6 @@ function buildCalendarGrid(year, month) {
   return cells;
 }
 
-/**
- * Calcule les barres visuelles pour les congés multi-jours dans une ligne de semaine.
- * Retourne [{ id, titre, startCol, spanCols, lane }]
- */
 function computeWeekBars(weekDays, year, month, rawEvents) {
   const multiMap = new Map();
 
@@ -74,7 +69,6 @@ function computeWeekBars(weekDays, year, month, rawEvents) {
     bars.push({ id: e.id, titre: e.titre, startCol, spanCols: endCol - startCol + 1, lane: 0 });
   });
 
-  // Greedy lane assignment
   bars.sort((a, b) => a.startCol - b.startCol || b.spanCols - a.spanCols);
   const occ = [];
   bars.forEach((bar) => {
@@ -97,7 +91,7 @@ function computeWeekBars(weekDays, year, month, rawEvents) {
   return bars;
 }
 
-// ─── Composant ──────────────────────────────────────────────────────────────
+// ─── Composant ─────────────────────────────────────────────
 
 export function AgendaTab({
   events           = [],
@@ -113,15 +107,14 @@ export function AgendaTab({
   onGoToNextWeek,
   onOpenForDate,
   onEventEdit,
-  darkMode         = true,
 }) {
+  const { isDark } = useTheme();
   const today    = new Date();
   const todayIso = toIso(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
   const [view,         setView]         = useState("month");
   const [selectedDay,  setSelectedDay]  = useState(null);
 
-  // ── Données dérivées ─────────────────────────────────────────────────────
   const cells = useMemo(() => buildCalendarGrid(currentYear, currentMonth), [currentYear, currentMonth]);
   const weeks = useMemo(() => {
     const rows = [];
@@ -152,17 +145,14 @@ export function AgendaTab({
   const selectedIso    = selectedDay ? toIso(currentYear, currentMonth, selectedDay) : null;
   const selectedEvents = selectedIso ? (eventsByDate[selectedIso] || []) : [];
 
-  // ── Styles ───────────────────────────────────────────────────────────────
-  const bg    = darkMode ? "bg-[#050510]"                : "bg-slate-50";
-  const card  = darkMode ? "bg-[#0f111a] border-white/10" : "bg-white border-slate-200";
-  const text  = darkMode ? "text-white"                  : "text-slate-900";
-  const muted = darkMode ? "text-white/40"               : "text-slate-400";
+  const bg    = isDark ? "bg-[#050510]"                 : "bg-slate-50";
+  const card  = isDark ? "bg-[#0f111a] border-white/10"  : "bg-white border-slate-200";
+  const text  = isDark ? "text-white"                   : "text-slate-900";
+  const muted = isDark ? "text-white/40"                : "text-slate-400";
 
-  // ── Navigation ───────────────────────────────────────────────────────────
   const handlePrev = () => (view === "week" ? onGoToPrevWeek?.() : onGoToPrev?.());
   const handleNext = () => (view === "week" ? onGoToNextWeek?.() : onGoToNext?.());
 
-  // Titre semaine
   const weekTitle = useMemo(() => {
     if (!currentWeekStart) return "";
     const mon = new Date(currentWeekStart + "T12:00:00");
@@ -182,37 +172,32 @@ export function AgendaTab({
     ? weekTitle
     : `${MONTHS_FR[currentMonth - 1]} ${currentYear}`;
 
-  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div className={`flex flex-col min-h-screen ${bg} pb-32`}>
       <div className="p-4 space-y-4 max-w-sm mx-auto w-full">
 
-        {/* ── En-tête ─────────────────────────────────────────────────────── */}
         <div className="text-center pt-4 pb-1">
           <div className="text-4xl mb-2">📅</div>
           <h2 className={`text-xl font-black uppercase tracking-tighter italic ${text}`}>Agenda</h2>
         </div>
 
-        {/* ── Barre de navigation ──────────────────────────────────────────── */}
         <div className={`flex items-center justify-between px-3 py-2.5 rounded-[24px] border-2 ${card}`}>
           <button
             onClick={handlePrev}
-            className={`w-9 h-9 rounded-full flex items-center justify-center text-xl font-black transition-all ${darkMode ? "bg-white/10 text-white hover:bg-white/20" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+            className={`w-9 h-9 rounded-full flex items-center justify-center text-xl font-black transition-all ${isDark ? "bg-white/10 text-white hover:bg-white/20" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
           >
             ‹
           </button>
 
           <div className="flex flex-col items-center gap-1.5">
             <p className={`text-[14px] font-black uppercase tracking-wider ${text}`}>{navTitle}</p>
-
-            {/* Toggle Mois / Semaine */}
-            <div className={`flex rounded-xl overflow-hidden border ${darkMode ? "border-white/10" : "border-slate-200"}`}>
+            <div className={`flex rounded-xl overflow-hidden border ${isDark ? "border-white/10" : "border-slate-200"}`}>
               <button
                 onClick={() => setView("month")}
                 className={`px-3 py-1 text-[9px] font-black uppercase transition-all ${
                   view === "month"
                     ? "bg-indigo-600 text-white"
-                    : darkMode ? "text-white/40 hover:text-white/70" : "text-slate-400 hover:text-slate-600"
+                    : isDark ? "text-white/40 hover:text-white/70" : "text-slate-400 hover:text-slate-600"
                 }`}
               >
                 Mois
@@ -222,7 +207,7 @@ export function AgendaTab({
                 className={`px-3 py-1 text-[9px] font-black uppercase transition-all ${
                   view === "week"
                     ? "bg-indigo-600 text-white"
-                    : darkMode ? "text-white/40 hover:text-white/70" : "text-slate-400 hover:text-slate-600"
+                    : isDark ? "text-white/40 hover:text-white/70" : "text-slate-400 hover:text-slate-600"
                 }`}
               >
                 Semaine
@@ -233,34 +218,29 @@ export function AgendaTab({
           <div className="flex items-center gap-1.5">
             <button
               onClick={onGoToToday}
-              className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase transition-all ${darkMode ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30" : "bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100"}`}
+              className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase transition-all ${isDark ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30" : "bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100"}`}
             >
               Auj.
             </button>
             <button
               onClick={handleNext}
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-xl font-black transition-all ${darkMode ? "bg-white/10 text-white hover:bg-white/20" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+              className={`w-9 h-9 rounded-full flex items-center justify-center text-xl font-black transition-all ${isDark ? "bg-white/10 text-white hover:bg-white/20" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
             >
               ›
             </button>
           </div>
         </div>
 
-        {/* ══════════════════════════════════════════════════════════════════
-            VUE MOIS
-        ══════════════════════════════════════════════════════════════════ */}
         {view === "month" && (
           <div className={`rounded-[28px] border-2 overflow-hidden ${card}`}>
-
-            {/* En-têtes jours de semaine */}
-            <div className={`grid grid-cols-7 border-b ${darkMode ? "border-white/5" : "border-slate-100"}`}>
+            <div className={`grid grid-cols-7 border-b ${isDark ? "border-white/5" : "border-slate-100"}`}>
               {DAYS_FR.map((d, i) => (
                 <div
                   key={i}
                   className={`py-2 text-center text-[9px] font-black uppercase ${
                     i >= 5
-                      ? (darkMode ? "text-white/25" : "text-slate-300")
-                      : (darkMode ? "text-white/45" : "text-slate-400")
+                      ? (isDark ? "text-white/25" : "text-slate-300")
+                      : (isDark ? "text-white/45" : "text-slate-400")
                   }`}
                 >
                   {d}
@@ -268,7 +248,6 @@ export function AgendaTab({
               ))}
             </div>
 
-            {/* Lignes de semaines */}
             {weeks.map((weekDays, wIdx) => {
               const bars        = computeWeekBars(weekDays, currentYear, currentMonth, events);
               const nbLanes     = bars.length > 0 ? Math.max(...bars.map((b) => b.lane)) + 1 : 0;
@@ -278,9 +257,8 @@ export function AgendaTab({
               return (
                 <div
                   key={wIdx}
-                  className={`border-b last:border-b-0 ${darkMode ? "border-white/5" : "border-slate-100"}`}
+                  className={`border-b last:border-b-0 ${isDark ? "border-white/5" : "border-slate-100"}`}
                 >
-                  {/* ── Barres congés multi-jours ── */}
                   {nbLanes > 0 && (
                     <div className="relative mx-0.5" style={{ height: barsHeight + "px" }}>
                       {bars.map((bar) => (
@@ -306,7 +284,6 @@ export function AgendaTab({
                     </div>
                   )}
 
-                  {/* ── Cellules jours ── */}
                   <div className="grid grid-cols-7">
                     {weekDays.map((day, dIdx) => {
                       if (!day) return <div key={dIdx} className="min-h-[60px]" />;
@@ -317,7 +294,6 @@ export function AgendaTab({
                       const isWeekend  = dIdx % 7 >= 5;
                       const isWorked   = workedDays.has(iso);
                       const allEvts    = eventsByDate[iso] || [];
-                      // Masquer les événements déjà affichés comme barre
                       const pillEvts   = allEvts.filter((e) => !barIdsInWeek.has(e.id));
 
                       return (
@@ -326,31 +302,28 @@ export function AgendaTab({
                           onClick={() => setSelectedDay(isSelected ? null : day)}
                           className={`flex flex-col items-start p-0.5 min-h-[60px] rounded-xl transition-all active:scale-95 ${
                             isSelected
-                              ? (darkMode ? "bg-emerald-600/25 ring-1 ring-emerald-500/40" : "bg-emerald-50 ring-1 ring-emerald-400/40")
+                              ? (isDark ? "bg-emerald-600/25 ring-1 ring-emerald-500/40" : "bg-emerald-50 ring-1 ring-emerald-400/40")
                               : isToday
-                              ? (darkMode ? "bg-emerald-500/10" : "bg-emerald-50/60")
-                              : (darkMode ? "hover:bg-white/5" : "hover:bg-slate-50")
+                              ? (isDark ? "bg-emerald-500/10" : "bg-emerald-50/60")
+                              : (isDark ? "hover:bg-white/5" : "hover:bg-slate-50")
                           }`}
                         >
-                          {/* Numéro jour */}
                           <span className={`text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0 ${
                             isSelected
                               ? "bg-emerald-500 text-white"
                               : isToday
-                              ? (darkMode ? "bg-emerald-500/30 text-emerald-300" : "bg-emerald-100 text-emerald-700")
+                              ? (isDark ? "bg-emerald-500/30 text-emerald-300" : "bg-emerald-100 text-emerald-700")
                               : isWeekend
-                              ? (darkMode ? "text-white/25" : "text-slate-300")
-                              : (darkMode ? "text-white/80" : "text-slate-700")
+                              ? (isDark ? "text-white/25" : "text-slate-300")
+                              : (isDark ? "text-white/80" : "text-slate-700")
                           }`}>
                             {day}
                           </span>
 
-                          {/* Dot "travaillé" */}
                           {isWorked && (
                             <span className="w-1.5 h-1.5 rounded-full bg-yellow-400/60 self-center flex-shrink-0 mt-0.5" />
                           )}
 
-                          {/* Pills événements */}
                           <div className="w-full flex flex-col gap-[2px] mt-0.5">
                             {pillEvts.slice(0, 2).map((e, ei) => (
                               <div
@@ -377,8 +350,7 @@ export function AgendaTab({
               );
             })}
 
-            {/* Légende */}
-            <div className={`px-4 py-3 border-t ${darkMode ? "border-white/5" : "border-slate-100"} flex flex-wrap gap-3`}>
+            <div className={`px-4 py-3 border-t ${isDark ? "border-white/5" : "border-slate-100"} flex flex-wrap gap-3`}>
               {[
                 { dot: "bg-yellow-400",  label: "Travaillé" },
                 { dot: "bg-blue-500",    label: "RDV"       },
@@ -394,9 +366,6 @@ export function AgendaTab({
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════════════
-            VUE SEMAINE
-        ══════════════════════════════════════════════════════════════════ */}
         {view === "week" && currentWeekStart && (
           <AgendaWeekView
             events={events}
@@ -404,13 +373,9 @@ export function AgendaTab({
             workedDays={workedDays}
             onOpenForDate={onOpenForDate}
             onEventEdit={onEventEdit}
-            darkMode={darkMode}
           />
         )}
 
-        {/* ══════════════════════════════════════════════════════════════════
-            PANEL JOUR SÉLECTIONNÉ (vue mois)
-        ══════════════════════════════════════════════════════════════════ */}
         {view === "month" && selectedDay && (
           <div className={`rounded-[28px] border-2 p-5 space-y-3 ${card}`}>
             <div className="flex items-center justify-between">
@@ -481,7 +446,6 @@ export function AgendaTab({
           </div>
         )}
 
-        {/* Bouton créer (vue mois, aucun jour sélectionné) */}
         {view === "month" && !selectedDay && (
           <button
             onClick={() => onOpenForDate?.(todayIso)}

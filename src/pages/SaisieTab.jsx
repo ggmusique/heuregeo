@@ -1,28 +1,19 @@
 import React from "react";
 import { MissionForm } from "../components/mission/MissionForm";
+import { useTheme } from "../contexts/ThemeContext";
 
-/**
- * ✅ SaisieTab
- * Onglet pour saisir les missions et ajouter frais/acomptes
- */
 export const SaisieTab = ({
-  // État
   editingMissionId,
   editingMissionData,
   selectedClientId,
   selectedLieuId,
   selectedPatronId,
   loading,
-  darkMode,
   isIOS,
-
-  // Données
   lieux,
   patrons,
   clients,
   missions,
-
-  // Handlers
   onMissionSubmit,
   onMissionCancel,
   onCopyLast,
@@ -37,6 +28,8 @@ export const SaisieTab = ({
   onShowImportModal,
   showMissionRateEditor = true,
 }) => {
+  const { isDark } = useTheme();
+
   return (
     <div className="animate-in fade-in duration-500">
       <MissionForm
@@ -49,7 +42,6 @@ export const SaisieTab = ({
         onSubmit={onMissionSubmit}
         onCancel={onMissionCancel}
         onCopyLast={onCopyLast}
-        darkMode={darkMode}
         isIOS={isIOS}
         loading={loading}
         patrons={patrons}
@@ -64,7 +56,6 @@ export const SaisieTab = ({
         showRateEditorControl={showMissionRateEditor}
       />
 
-      {/* Boutons rapides */}
       <div className="grid grid-cols-2 gap-4 mt-6">
         <button
           onClick={() => onShowFraisModal()}
@@ -80,12 +71,11 @@ export const SaisieTab = ({
         </button>
       </div>
 
-      {/* Import CSV/Excel */}
       {onShowImportModal && (
         <button
           onClick={onShowImportModal}
           className={`mt-3 w-full py-3 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all border ${
-            darkMode
+            isDark
               ? "bg-violet-600/15 text-violet-400 border-violet-500/30"
               : "bg-violet-50 text-violet-600 border-violet-200"
           }`}

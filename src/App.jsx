@@ -55,13 +55,12 @@ export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
-  // ─── THEME ──────────────────────────────────────────────────────────────────
+  // ─── THEME ─────────────────────────────────────────────────────────────────────
   const themeProvider = useThemeProvider();
   const { theme, cycleTheme, isDark, themeConfig } = themeProvider;
-  // darkMode conservé comme alias booléen pour compatibilité avec les composants
-  // qui reçoivent encore darkMode en prop (migration progressive).
+  // darkMode conservé pour les pages pas encore migrées (ParametresTab, BilanTab, HistoriqueTab)
   const darkMode = isDark;
-  // ────────────────────────────────────────────────────────────────────────────
+  // ───────────────────────────────────────────────────────────────────────────
 
   const [activeTab, setActiveTab] = useState("saisie");
   const [loading, setLoading] = useState(false);
@@ -214,7 +213,6 @@ export default function App({ user }) {
       <header className={"relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b " + themeConfig.accentBorder}>
         <div className={"absolute inset-0 backdrop-blur-xl " + themeConfig.headerBg} />
         <div className="relative z-10 text-center">
-          {/* Bouton cycle thème : affiche l'icône du thème SUIVANT */}
           <button
             onClick={cycleTheme}
             className={"absolute right-6 top-6 w-12 h-12 backdrop-blur-xl rounded-full flex items-center justify-center text-2xl shadow-lg active:scale-90 transition-all border " + (isDark ? "bg-white/10 border-white/20" : "bg-slate-100 border-slate-300")}
@@ -262,7 +260,6 @@ export default function App({ user }) {
             patrons={patrons}
             clients={clients}
             missions={missions}
-            darkMode={darkMode}
             isIOS={isIOS}
             loading={loading}
             onLieuChange={(lieuId) => {
@@ -296,7 +293,6 @@ export default function App({ user }) {
         {activeTab === "suivi" && (
           <SuiviTab
             defaultView={isViewer ? "bilan" : historiqueHook.suiviDefaultView}
-            darkMode={darkMode}
             historiqueProps={{
               historique: historiqueHook.historique,
               historiquePatronId: historiqueHook.historiquePatronId,
@@ -358,7 +354,6 @@ export default function App({ user }) {
             onGoToNextWeek={agendaHook.goToNextWeek}
             onOpenForDate={agendaModal.openForDate}
             onEventEdit={agendaModal.handleEventEdit}
-            darkMode={darkMode}
           />
         )}
 
@@ -405,28 +400,97 @@ export default function App({ user }) {
         )}
       </main>
 
-      <ConfirmModal show={confirmState.show} title={confirmState.title} message={confirmState.message} confirmText={confirmState.confirmText} cancelText={confirmState.cancelText} type={confirmState.type} onConfirm={confirmState.onConfirm} onCancel={hideConfirm} darkMode={darkMode} />
-
-      <FraisModal show={fraisModal.showFraisModal} editMode={!!fraisModal.editingFraisId} description={fraisModal.fraisDescription} setDescription={fraisModal.setFraisDescription} montant={fraisModal.fraisMontant} setMontant={fraisModal.setFraisMontant} date={fraisModal.fraisDate} setDate={fraisModal.setFraisDate} onSubmit={fraisModal.handleFraisSubmit} onCancel={() => { fraisModal.setShowFraisModal(false); fraisModal.resetFraisForm(); }} loading={loading} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={fraisModal.fraisPatronId} onPatronChange={fraisModal.setFraisPatronId} />
-
-      <AcompteModal show={acompteModal.showAcompteModal} montant={acompteModal.acompteMontant} setMontant={acompteModal.setAcompteMontant} date={acompteModal.acompteDate} setDate={acompteModal.setAcompteDate} onSubmit={acompteModal.handleAcompteSubmit} onCancel={() => { acompteModal.setShowAcompteModal(false); acompteModal.resetAcompteForm(); }} loading={loading || acompteModal.isSavingAcompte} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={acompteModal.acomptePatronId} onPatronChange={acompteModal.setAcomptePatronId} />
-
-      <PatronModal show={patronModal.showPatronModal} editMode={!!patronModal.editingPatronId} initialData={patronModal.editingPatronData} onSubmit={patronModal.handlePatronSubmit} onCancel={() => { patronModal.setShowPatronModal(false); patronModal.resetPatronForm(); }} loading={loading} darkMode={darkMode} />
-
-      <ClientModal show={clientModal.showClientModal} editMode={!!clientModal.editingClientId} initialData={clientModal.editingClientData} onSubmit={clientModal.handleClientSubmit} onCancel={() => { clientModal.setShowClientModal(false); clientModal.resetClientForm(); }} loading={loading} darkMode={darkMode} />
-
-      <PeriodModal
-        show={bilan.showPeriodModal} periodType={bilan.bilanPeriodType} setPeriodType={bilan.setBilanPeriodType}
-        periodValue={bilan.bilanPeriodValue} setPeriodValue={bilan.setBilanPeriodValue} availablePeriods={bilan.availablePeriods}
-        formatPeriodLabel={bilan.formatPeriodLabel} onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}
-        onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}
-        darkMode={darkMode} patrons={patrons} selectedPatronId={bilanPatronId} onPatronChange={(id) => !isViewer && setBilanPatronId(id)}
-        clients={clients} selectedClientId={bilanClientId} onClientChange={setBilanClientId}
-        isViewer={isViewer}
-        canBilanMois={canBilanMois} canBilanAnnee={canBilanAnnee}
+      <ConfirmModal
+        show={confirmState.show}
+        title={confirmState.title}
+        message={confirmState.message}
+        confirmText={confirmState.confirmText}
+        cancelText={confirmState.cancelText}
+        type={confirmState.type}
+        onConfirm={confirmState.onConfirm}
+        onCancel={hideConfirm}
       />
 
-      <LieuModal show={lieuModal.showLieuModal} editMode={!!lieuModal.editingLieuId} initialData={lieuModal.editingLieuData} onSubmit={lieuModal.handleLieuSubmit} onCancel={() => { lieuModal.setShowLieuModal(false); lieuModal.resetLieuForm(); }} loading={loading} darkMode={darkMode} />
+      <FraisModal
+        show={fraisModal.showFraisModal}
+        editMode={!!fraisModal.editingFraisId}
+        description={fraisModal.fraisDescription}
+        setDescription={fraisModal.setFraisDescription}
+        montant={fraisModal.fraisMontant}
+        setMontant={fraisModal.setFraisMontant}
+        date={fraisModal.fraisDate}
+        setDate={fraisModal.setFraisDate}
+        onSubmit={fraisModal.handleFraisSubmit}
+        onCancel={() => { fraisModal.setShowFraisModal(false); fraisModal.resetFraisForm(); }}
+        loading={loading}
+        isIOS={isIOS}
+        patrons={patrons}
+        selectedPatronId={fraisModal.fraisPatronId}
+        onPatronChange={fraisModal.setFraisPatronId}
+      />
+
+      <AcompteModal
+        show={acompteModal.showAcompteModal}
+        montant={acompteModal.acompteMontant}
+        setMontant={acompteModal.setAcompteMontant}
+        date={acompteModal.acompteDate}
+        setDate={acompteModal.setAcompteDate}
+        onSubmit={acompteModal.handleAcompteSubmit}
+        onCancel={() => { acompteModal.setShowAcompteModal(false); acompteModal.resetAcompteForm(); }}
+        loading={loading || acompteModal.isSavingAcompte}
+        isIOS={isIOS}
+        patrons={patrons}
+        selectedPatronId={acompteModal.acomptePatronId}
+        onPatronChange={acompteModal.setAcomptePatronId}
+      />
+
+      <PatronModal
+        show={patronModal.showPatronModal}
+        editMode={!!patronModal.editingPatronId}
+        initialData={patronModal.editingPatronData}
+        onSubmit={patronModal.handlePatronSubmit}
+        onCancel={() => { patronModal.setShowPatronModal(false); patronModal.resetPatronForm(); }}
+        loading={loading}
+      />
+
+      <ClientModal
+        show={clientModal.showClientModal}
+        editMode={!!clientModal.editingClientId}
+        initialData={clientModal.editingClientData}
+        onSubmit={clientModal.handleClientSubmit}
+        onCancel={() => { clientModal.setShowClientModal(false); clientModal.resetClientForm(); }}
+        loading={loading}
+      />
+
+      <PeriodModal
+        show={bilan.showPeriodModal}
+        periodType={bilan.bilanPeriodType}
+        setPeriodType={bilan.setBilanPeriodType}
+        periodValue={bilan.bilanPeriodValue}
+        setPeriodValue={bilan.setBilanPeriodValue}
+        availablePeriods={bilan.availablePeriods}
+        formatPeriodLabel={bilan.formatPeriodLabel}
+        onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}
+        onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}
+        patrons={patrons}
+        selectedPatronId={bilanPatronId}
+        onPatronChange={(id) => !isViewer && setBilanPatronId(id)}
+        clients={clients}
+        selectedClientId={bilanClientId}
+        onClientChange={setBilanClientId}
+        isViewer={isViewer}
+        canBilanMois={canBilanMois}
+        canBilanAnnee={canBilanAnnee}
+      />
+
+      <LieuModal
+        show={lieuModal.showLieuModal}
+        editMode={!!lieuModal.editingLieuId}
+        initialData={lieuModal.editingLieuData}
+        onSubmit={lieuModal.handleLieuSubmit}
+        onCancel={() => { lieuModal.setShowLieuModal(false); lieuModal.resetLieuForm(); }}
+        loading={loading}
+      />
 
       {agendaModal.showAgendaModal && (
         <AgendaModal
@@ -438,7 +502,6 @@ export default function App({ user }) {
           onCancel={() => { agendaModal.setShowAgendaModal(false); agendaModal.resetEventForm(); }}
           onDelete={() => agendaModal.handleEventDelete(agendaModal.editingEventId)}
           loading={loading}
-          darkMode={darkMode}
         />
       )}
 
@@ -487,7 +550,7 @@ export default function App({ user }) {
               </button>
             ) : (
               <button onClick={() => supabase.auth.signOut()} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + themeConfig.navInactiveText}>
-                <span>🚪</span>
+                <span>🚶</span>
               </button>
             )}
           </div>
