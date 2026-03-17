@@ -182,7 +182,7 @@ export default function App({ user }) {
     <LabelsContext.Provider value={labels}>
       <ThemeContext.Provider value={themeProvider}>
         {/* NOUVEAU: Utilisation du MainLayout */}
-        <MainLayout isPro={isPro} isViewer={isViewer} APP_VERSION={APP_VERSION} isPro={isPro} isViewer={isViewer} APP_VERSION={APP_VERSION} 
+        <MainLayout isPro={isPro} isViewer={isViewer} APP_VERSION={APP_VERSION} 
           profile={profile} 
           themeConfig={themeConfig} 
           isDark={isDark} 
@@ -241,5 +241,6 @@ export default function App({ user }) {
     </LabelsContext.Provider>
   );
 }
+
 
 
