@@ -1,15 +1,17 @@
 ﻿name: Auto Version Bump
-
 on:
   push:
     branches:
       - develop
-
 jobs:
   bump-version:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'chore: bump version') && !contains(github.event.head_commit.message, 'ci:')"
     
+    # ✅ FIX : permissions d'écriture explicites
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,19 +30,14 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           
-          # Lire la version actuelle
           current_version=$(node -p "require('./package.json').version")
-          
-          # Incrémenter le patch
           IFS='.' read -r major minor patch <<< "$current_version"
           new_version="$major.$minor.$((patch + 1))"
           
-          # Mettre à jour package.json
           npm version $new_version --no-git-tag-version
           
-          # Créer le commit et le tag
           git add package.json
-          git commit -m "chore: bump version to $new_version [skip ci]"
+          git commit -m "chore: bump version to $new_version"
           git tag "v$new_version"
           git push origin develop --tags
           
