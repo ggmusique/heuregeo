@@ -205,8 +205,19 @@ export default function App({ user }) {
             <AgendaTab events={agendaHook.events} loading={agendaHook.loading} currentYear={agendaHook.currentYear} currentMonth={agendaHook.currentMonth} currentWeekStart={agendaHook.currentWeekStart} workedDays={agendaWorkedDays} onGoToPrev={agendaHook.goToPrevMonth} onGoToNext={agendaHook.goToNextMonth} onGoToToday={agendaHook.goToToday} onGoToPrevWeek={agendaHook.goToPrevWeek} onGoToNextWeek={agendaHook.goToNextWeek} onOpenForDate={agendaModal.openForDate} onEventEdit={agendaModal.handleEventEdit} darkMode={darkMode} />
           )}
           {activeTab === "dashboard" && canDashboard && !isViewer && (
-            <DashboardPanel missions={missions} fraisDivers={fraisDivers} listeAcomptes={listeAcomptes} patrons={patrons} clients={clients} lieux={lieux} profile={profile} darkMode={darkMode} />
-          )}
+  <DashboardPanel
+    missions={missions}
+    fraisDivers={fraisDivers}
+    listeAcomptes={listeAcomptes}
+    patrons={patrons}
+    clients={clients}
+    lieux={lieux}
+    profile={profile}
+    darkMode={darkMode}
+    kmSettings={kmSettings}
+    domicileLatLng={domicileLatLng}
+  />
+)}
           {activeTab === "parametres" && !isViewer && (
             <ParametresTab profile={profile} profileSaving={profileSaving} saveProfile={saveProfile} userEmail={user?.email} darkMode={darkMode} isAdmin={isAdmin} isPro={isPro} patrons={patrons} clients={clients} lieux={lieux} missions={missions} fraisDivers={fraisDivers} acomptes={listeAcomptes} deleteAcompte={deleteAcompte} fetchAcomptes={fetchAcomptes} showConfirm={showConfirm} triggerAlert={triggerAlert} isViewer={isViewer} onPatronEdit={patronModal.handlePatronEdit} onPatronDelete={patronModal.handlePatronDelete} onPatronAdd={() => { patronModal.resetPatronForm(); patronModal.setShowPatronModal(true); }} onClientEdit={clientModal.handleClientEdit} onClientDelete={clientModal.handleClientDelete} onClientAdd={() => { clientModal.resetClientForm(); clientModal.setShowClientModal(true); }} onLieuEdit={lieuModal.handleLieuEdit} onLieuDelete={lieuModal.handleLieuDelete} onLieuAdd={() => { lieuModal.resetLieuForm(); lieuModal.setShowLieuModal(true); }} showMissionRateEditor={showMissionRateEditor} onToggleMissionRateEditor={setShowMissionRateEditor} kmSettings={kmSettings} onRegeocoderLieu={lieuModal.handleRegeocoderLieu} domicileLatLng={domicileLatLng} missionsThisWeek={missionsThisWeek} kmFraisThisWeek={kmFraisThisWeek} onRegeocoderBatch={lieuModal.handleRegeocoderBatch} onRecalculerKmSemaine={handleRecalculerKmSemaine} onRebuildBilans={bilan.rebuildBilans} />
           )}
