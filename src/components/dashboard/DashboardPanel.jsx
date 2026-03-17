@@ -1,9 +1,9 @@
-﻿import React, { useMemo, useEffect, useRef, useState, memo } from "react";
+﻿import React, { useMemo, useEffect, useRef, useState, useCallback, memo } from "react";
 import { getWeekNumber } from "../../utils/dateUtils";
 import { formatEuro, formatHeures } from "../../utils/formatters";
-import { chartColors, chartOptions } from "../../utils/chartConfig"; // NOUVEAU
-import { tokens } from "../../utils/designTokens"; // NOUVEAU
-import { KPICard } from "./KPICard"; // NOUVEAU
+import { chartColors, chartOptions } from "../../utils/chartConfig";
+import { tokens } from "../../utils/designTokens";
+import { KPICard } from "./KPICard";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getISOWeekYear(date) {
@@ -29,9 +29,10 @@ export function DashboardPanel({
   const [barsReady, setBarsReady] = useState(false);
   const [chartLoaded, setChartLoaded] = useState(false);
 
-  const now = new Date();
-  const currentWeek = getWeekNumber(now);
-  const currentYear = now.getFullYear();
+  // ✅ FIX : `now` stable, ne change pas à chaque render
+  const now = useMemo(() => new Date(), []);
+  const currentWeek = useMemo(() => getWeekNumber(now), [now]);
+  const currentYear = useMemo(() => now.getFullYear(), [now]);
 
   // ── Filtre missions ──────────────────────────────────────────────────────
   const filteredMissions = useMemo(() => {
@@ -39,18 +40,18 @@ export function DashboardPanel({
     return missions.filter((m) => m.patron_id === selectedPatronId);
   }, [missions, selectedPatronId]);
 
-  // ── Missions cette semaine / semaine dernière ───────────────────────────
-  const getMissionsForWeek = (weekOffset = 0) => {
+  // ✅ FIX : getMissionsForWeek en useCallback pour éviter la recréation à chaque render
+  const getMissionsForWeek = useCallback((weekOffset = 0) => {
     const targetWeek = currentWeek + weekOffset;
     return filteredMissions.filter((m) => {
       if (!m.date_iso) return false;
       const d = new Date(m.date_iso + "T12:00:00");
       return getWeekNumber(d) === targetWeek && getISOWeekYear(d) === currentYear;
     });
-  };
+  }, [filteredMissions, currentWeek, currentYear]);
 
-  const missionsThisWeek = useMemo(() => getMissionsForWeek(0), [filteredMissions, currentWeek, currentYear]);
-  const missionsLastWeek = useMemo(() => getMissionsForWeek(-1), [filteredMissions, currentWeek, currentYear]);
+  const missionsThisWeek = useMemo(() => getMissionsForWeek(0), [getMissionsForWeek]);
+  const missionsLastWeek = useMemo(() => getMissionsForWeek(-1), [getMissionsForWeek]);
 
   // ── KPIs calculés ────────────────────────────────────────────────────────
   const kpis = useMemo(() => {
@@ -61,7 +62,7 @@ export function DashboardPanel({
     });
     const thisW = calc(missionsThisWeek);
     const lastW = calc(missionsLastWeek);
-    
+
     return {
       ca: { value: thisW.ca, delta: lastW.ca ? Math.round(((thisW.ca - lastW.ca) / lastW.ca) * 100) : null },
       hours: { value: thisW.hours, delta: Math.round((thisW.hours - lastW.hours) * 10) / 10 },
@@ -76,13 +77,13 @@ export function DashboardPanel({
     const filterWeek = (items, dateField) => items.filter((item) => {
       if (!item[dateField]) return false;
       const d = new Date(item[dateField] + "T12:00:00");
-      return getWeekNumber(d) === currentWeek && getISOWeekYear(d) === currentYear && 
+      return getWeekNumber(d) === currentWeek && getISOWeekYear(d) === currentYear &&
              (!selectedPatronId || item.patron_id === selectedPatronId);
     });
-    
+
     const fraisWeek = filterWeek(fraisDivers, 'date_frais').reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
     const acomptesWeek = filterWeek(listeAcomptes, 'date_acompte').reduce((s, a) => s + (parseFloat(a.montant) || 0), 0);
-    
+
     return {
       caWeek: kpis.ca.value,
       fraisWeek,
@@ -111,15 +112,15 @@ export function DashboardPanel({
       months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     }
     const labels = months.map(fmtMonthShort);
-    
+
     const getMonthlyCA = (ym) => filteredMissions
       .filter((m) => getMonthKey(m.date_iso) === ym)
       .reduce((s, m) => s + (m.montant || 0), 0);
-    
+
     const getMonthlyFrais = (ym) => fraisDivers
       .filter((f) => getMonthKey(f.date_frais) === ym && (!selectedPatronId || f.patron_id === selectedPatronId))
       .reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
-    
+
     return {
       labels,
       caData: months.map(getMonthlyCA),
@@ -128,14 +129,14 @@ export function DashboardPanel({
   }, [filteredMissions, fraisDivers, selectedPatronId, now]);
 
   // ── Missions récentes ────────────────────────────────────────────────────
-  const recentMissions = useMemo(() => 
+  const recentMissions = useMemo(() =>
     [...missionsThisWeek].sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || "")).slice(0, 5),
   [missionsThisWeek]);
 
-  // ── Chart.js initialisation ─────────────────────────────────────────────
+  // ── Chart.js : initialisation unique + update sans recréer ──────────────
   useEffect(() => {
     if (!chartRef.current) return;
-    
+
     const initChart = async () => {
       if (!window.Chart) {
         await new Promise((resolve, reject) => {
@@ -145,21 +146,28 @@ export function DashboardPanel({
           document.head.appendChild(s);
         });
       }
-      
-      if (chartInstance.current) chartInstance.current.destroy();
-      
-      // Gradients pour les barres
-      const caCtx = chartRef.current.getContext('2d');
-      const caGradient = caCtx.createLinearGradient(0, 0, 0, 400);
+
+      // ✅ FIX : si le chart existe déjà, on met à jour les données sans le détruire
+      if (chartInstance.current) {
+        chartInstance.current.data.labels = chartData.labels;
+        chartInstance.current.data.datasets[0].data = chartData.caData;
+        chartInstance.current.data.datasets[1].data = chartData.fraisData;
+        chartInstance.current.update("active");
+        return;
+      }
+
+      // ✅ FIX : un seul ctx pour les deux gradients
+      const ctx = chartRef.current.getContext('2d');
+
+      const caGradient = ctx.createLinearGradient(0, 0, 0, 400);
       caGradient.addColorStop(0, chartColors.indigo.gradient[0]);
       caGradient.addColorStop(1, chartColors.indigo.gradient[1]);
-      
-      const fraisCtx = chartRef.current.getContext('2d');
-      const fraisGradient = fraisCtx.createLinearGradient(0, 0, 0, 400);
+
+      const fraisGradient = ctx.createLinearGradient(0, 0, 0, 400);
       fraisGradient.addColorStop(0, chartColors.amber.gradient[0]);
       fraisGradient.addColorStop(1, chartColors.amber.gradient[1]);
-      
-      chartInstance.current = new window.Chart(chartRef.current, {
+
+      chartInstance.current = new window.Chart(ctx, {
         type: "bar",
         data: {
           labels: chartData.labels,
@@ -187,12 +195,17 @@ export function DashboardPanel({
           },
         },
       });
-      
+
       setChartLoaded(true);
     };
-    
+
     initChart();
-    return () => { if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; } };
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+        chartInstance.current = null;
+      }
+    };
   }, [chartData]);
 
   // ── Animation barres clients ─────────────────────────────────────────────
@@ -211,20 +224,17 @@ export function DashboardPanel({
   }, [patrons]);
 
   const maxClientCA = topClients[0]?.ca || 1;
-  const nowStr = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
     <div className="geo-dash" style={{ fontFamily: "'Syne', sans-serif", color: '#fff', padding: '0 0 40px' }}>
-      
+
       {/* ── Header ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexWrap: 'wrap', gap: '12px', padding: '18px 0 16px',
         borderBottom: '1px solid rgba(212,175,55,0.2)', marginBottom: '24px',
       }}>
-        <div>
-
-        </div>
+        <div></div>
         <div style={{
           fontFamily: "'DM Mono', monospace", fontSize: '11px',
           color: 'rgba(255,255,255,0.45)', padding: '6px 14px',
@@ -235,47 +245,47 @@ export function DashboardPanel({
         </div>
       </div>
 
-{/* ── Patron selector ── */}
-{patrons.length > 0 && (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-    <span style={{
-      fontSize: '10px', color: 'rgba(255,255,255,0.35)',
-      textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 600, whiteSpace: 'nowrap',
-    }}>
-      Patron
-    </span>
-    <select
-      value={selectedPatronId || ""}
-      onChange={(e) => setSelectedPatronId(e.target.value || null)}
-      style={{
-        fontFamily: "'Syne', sans-serif",
-        fontSize: '13px', fontWeight: 600,
-        color: selectedPatronId ? '#D4AF37' : 'rgba(255,255,255,0.7)',
-        background: 'rgba(10,22,40,0.9)',
-        border: `1px solid ${selectedPatronId ? 'rgba(212,175,55,0.4)' : 'rgba(255,255,255,0.12)'}`,
-        borderRadius: '12px',
-        padding: '8px 36px 8px 14px',
-        cursor: 'pointer',
-        outline: 'none',
-        appearance: 'none',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(212,175,55,0.6)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'right 12px center',
-        transition: 'border-color 0.2s, color 0.2s',
-        minWidth: '180px',
-      }}
-    >
-      <option value="" style={{ background: '#0A1628', color: '#fff' }}>
-        Tous les patrons
-      </option>
-      {patrons.map((p) => (
-        <option key={p.id} value={p.id} style={{ background: '#0A1628', color: '#fff' }}>
-          {p.nom}
-        </option>
-      ))}
-    </select>
-  </div>
-)}
+      {/* ── Patron selector ── */}
+      {patrons.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+          <span style={{
+            fontSize: '10px', color: 'rgba(255,255,255,0.35)',
+            textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 600, whiteSpace: 'nowrap',
+          }}>
+            Patron
+          </span>
+          <select
+            value={selectedPatronId || ""}
+            onChange={(e) => setSelectedPatronId(e.target.value || null)}
+            style={{
+              fontFamily: "'Syne', sans-serif",
+              fontSize: '13px', fontWeight: 600,
+              color: selectedPatronId ? '#D4AF37' : 'rgba(255,255,255,0.7)',
+              background: 'rgba(10,22,40,0.9)',
+              border: `1px solid ${selectedPatronId ? 'rgba(212,175,55,0.4)' : 'rgba(255,255,255,0.12)'}`,
+              borderRadius: '12px',
+              padding: '8px 36px 8px 14px',
+              cursor: 'pointer',
+              outline: 'none',
+              appearance: 'none',
+              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(212,175,55,0.6)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 12px center',
+              transition: 'border-color 0.2s, color 0.2s',
+              minWidth: '180px',
+            }}
+          >
+            <option value="" style={{ background: '#0A1628', color: '#fff' }}>
+              Tous les patrons
+            </option>
+            {patrons.map((p) => (
+              <option key={p.id} value={p.id} style={{ background: '#0A1628', color: '#fff' }}>
+                {p.nom}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* ── KPIs Grid ── */}
       <div style={{
@@ -414,7 +424,7 @@ export function DashboardPanel({
         </div>
       </div>
 
-      {/* ── Bas : bilan + clients + impayés ── */}
+      {/* ── Bas : bilan + clients + semaines précédentes ── */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px',
       }}>
@@ -518,7 +528,6 @@ export function DashboardPanel({
           }}>
             Semaines <span style={{ color: '#D4AF37' }}>précédentes</span>
           </div>
-          {/* Ici tu peux ajouter la logique des impayés si nécessaire */}
           <div style={{
             marginTop: '14px', padding: '12px', borderRadius: '12px',
             background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
