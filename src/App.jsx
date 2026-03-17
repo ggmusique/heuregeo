@@ -103,6 +103,37 @@ export default function App({ user }) {
     fetchMissions(); fetchFrais(); fetchAcomptes(); fetchLieux();
   }, [fetchMissions, fetchFrais, fetchAcomptes, fetchLieux]);
 
+  {/* NOUVEAU : Badge Pro */}
+{isPro && !isViewer && (
+  <div className="text-center py-1">
+    <span
+      className={
+        "inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border " +
+        (isDark
+          ? "bg-yellow-500/15 border-yellow-500/40 text-yellow-400"
+          : "bg-amber-50 border-amber-400/60 text-amber-600")
+      }
+    >
+      ✨ Pro
+    </span>
+  </div>
+)}
+
+  {/* NOUVEAU : Badge version */}
+<div className="flex items-center justify-center gap-2 mb-1">
+  <span
+    className={
+      "text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border " +
+      themeConfig.accentBorder +
+      " " +
+      themeConfig.accent.replace("text-", "text-") +
+      "/70"
+    }
+  >
+    v{APP_VERSION} ✓ OTA
+  </span>
+</div>
+
   useEffect(() => {
     const interval = setInterval(() => {
       const now = new Date();
