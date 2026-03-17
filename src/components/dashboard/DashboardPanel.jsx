@@ -223,19 +223,7 @@ export function DashboardPanel({
         borderBottom: '1px solid rgba(212,175,55,0.2)', marginBottom: '24px',
       }}>
         <div>
-          <h1 style={{
-            fontSize: '22px', fontWeight: 800, fontStyle: 'italic',
-            letterSpacing: '0.12em', color: '#D4AF37', textTransform: 'uppercase',
-            margin: 0, textShadow: tokens.shadows.gold,
-          }}>
-            Heures de {profile?.prenom?.trim()?.toUpperCase() || "Géo"}
-          </h1>
-          <p style={{
-            fontSize: '11px', color: 'rgba(255,255,255,0.4)',
-            letterSpacing: '0.18em', textTransform: 'uppercase', marginTop: '4px', margin: 0,
-          }}>
-            Dashboard · {nowStr}
-          </p>
+
         </div>
         <div style={{
           fontFamily: "'DM Mono', monospace", fontSize: '11px',
