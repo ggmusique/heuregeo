@@ -235,59 +235,47 @@ export function DashboardPanel({
         </div>
       </div>
 
-      {/* ── Patron tabs ── */}
-      {patrons.length > 0 && (
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '24px' }}>
-          <span style={{
-            fontSize: '10px', color: 'rgba(255,255,255,0.35)',
-            textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 600,
-          }}>Patron</span>
-          <button
-            onClick={() => setSelectedPatronId(null)}
-            aria-pressed={!selectedPatronId}
-            style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '6px 14px', borderRadius: '20px',
-              border: `1px solid ${!selectedPatronId ? 'rgba(212,175,55,0.5)' : 'rgba(255,255,255,0.1)'}`,
-              background: !selectedPatronId ? 'rgba(212,175,55,0.1)' : 'transparent',
-              color: !selectedPatronId ? '#D4AF37' : 'rgba(255,255,255,0.55)',
-              fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-              transition: 'all 0.18s ease', fontFamily: "'Syne', sans-serif",
-            }}
-            onMouseEnter={(e) => { if (!selectedPatronId) return; e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-            onMouseLeave={(e) => { if (!selectedPatronId) return; e.currentTarget.style.background = 'transparent'; }}
-          >
-            Tous
-          </button>
-          {patrons.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setSelectedPatronId(p.id)}
-              aria-pressed={selectedPatronId === p.id}
-              aria-label={`Filtrer par ${p.nom}`}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '6px 14px', borderRadius: '20px',
-                border: `1px solid ${selectedPatronId === p.id ? 'rgba(212,175,55,0.5)' : 'rgba(255,255,255,0.1)'}`,
-                background: selectedPatronId === p.id ? 'rgba(212,175,55,0.1)' : 'transparent',
-                color: selectedPatronId === p.id ? '#D4AF37' : 'rgba(255,255,255,0.55)',
-                fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                transition: 'all 0.18s ease', fontFamily: "'Syne', sans-serif",
-              }}
-              onMouseEnter={(e) => { if (selectedPatronId !== p.id) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
-              onMouseLeave={(e) => { if (selectedPatronId !== p.id) e.currentTarget.style.background = 'transparent'; }}
-            >
-              <span style={{
-                width: '8px', height: '8px', borderRadius: '50%',
-                background: patronColorMap[p.id], flexShrink: 0,
-                boxShadow: selectedPatronId === p.id ? `0 0 8px ${patronColorMap[p.id]}` : 'none',
-                transition: 'box-shadow 0.2s ease',
-              }} aria-hidden="true" />
-              {p.nom}
-            </button>
-          ))}
-        </div>
-      )}
+{/* ── Patron selector ── */}
+{patrons.length > 0 && (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
+    <span style={{
+      fontSize: '10px', color: 'rgba(255,255,255,0.35)',
+      textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 600, whiteSpace: 'nowrap',
+    }}>
+      Patron
+    </span>
+    <select
+      value={selectedPatronId || ""}
+      onChange={(e) => setSelectedPatronId(e.target.value || null)}
+      style={{
+        fontFamily: "'Syne', sans-serif",
+        fontSize: '13px', fontWeight: 600,
+        color: selectedPatronId ? '#D4AF37' : 'rgba(255,255,255,0.7)',
+        background: 'rgba(10,22,40,0.9)',
+        border: `1px solid ${selectedPatronId ? 'rgba(212,175,55,0.4)' : 'rgba(255,255,255,0.12)'}`,
+        borderRadius: '12px',
+        padding: '8px 36px 8px 14px',
+        cursor: 'pointer',
+        outline: 'none',
+        appearance: 'none',
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(212,175,55,0.6)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 12px center',
+        transition: 'border-color 0.2s, color 0.2s',
+        minWidth: '180px',
+      }}
+    >
+      <option value="" style={{ background: '#0A1628', color: '#fff' }}>
+        Tous les patrons
+      </option>
+      {patrons.map((p) => (
+        <option key={p.id} value={p.id} style={{ background: '#0A1628', color: '#fff' }}>
+          {p.nom}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
 
       {/* ── KPIs Grid ── */}
       <div style={{
