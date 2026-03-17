@@ -1,1 +1,7 @@
-bm9kZV9tb2R1bGVzCmRpc3QKZGV2LWRpc3QKCiMgVmFyaWFibGVzIGQnZW52aXJvbm5lbWVudCAobmUgamFtYWlzIGNvbW1pdGVyKQouZW52Ci5lbnYubG9jYWwKLmVudi53b3JrCi5lbnYubWFpbgoKIyBGaWNoaWVycyBiYWNrdXAKKi5iYWNrdXAKKi5iYWNrdXAtKgoqLk9MRC0qCg==
+﻿node_modules
+.env
+.env.local
+.DS_Store
+*.log
+.vscode
+.DS_Store
