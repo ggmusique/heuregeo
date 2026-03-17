@@ -1,575 +1,723 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useRef, useState } from "react";
+import { getWeekNumber } from "../../utils/dateUtils";
+import { formatEuro, formatHeures } from "../../utils/formatters";
 
-function formatCurrency(value) {
-  const safe = Number(value || 0);
-  return safe.toLocaleString("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
-  });
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getWeekNumber(date = new Date()) {
+function getISOWeekYear(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const dayNum = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  return d.getUTCFullYear();
 }
 
-function formatLongDate(date = new Date()) {
-  return date.toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).toUpperCase();
+function getMonthKey(dateIso) {
+  return dateIso ? dateIso.slice(0, 7) : null;
 }
 
-function isSameWeek(a, b = new Date()) {
-  if (!a) return false;
-  const da = new Date(a);
-  return getWeekNumber(da) === getWeekNumber(b) && da.getFullYear() === b.getFullYear();
+function fmtMonthShort(ym) {
+  if (!ym) return "";
+  const [y, m] = ym.split("-");
+  return new Date(y, parseInt(m) - 1).toLocaleString("fr-FR", { month: "short" });
 }
 
-function isSameMonth(a, b = new Date()) {
-  if (!a) return false;
-  const da = new Date(a);
-  return da.getMonth() === b.getMonth() && da.getFullYear() === b.getFullYear();
+function fmtDateShort(iso) {
+  if (!iso) return "";
+  const d = new Date(iso + "T12:00:00");
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "short" });
 }
 
-function startOfDay(date) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+// ─── Styles injectés une seule fois ───────────────────────────────────────────
 
-function toDateSafe(value) {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&display=swap');
 
-function parseAmount(item) {
-  const candidates = [
-    item?.montant,
-    item?.amount,
-    item?.total,
-    item?.prix,
-    item?.tarif,
-    item?.rate,
-  ];
-  for (const c of candidates) {
-    const n = Number(c);
-    if (!Number.isNaN(n)) return n;
+  .geo-dash {
+    font-family: 'Syne', sans-serif;
+    background: transparent;
+    color: #fff;
+    padding: 0 0 40px;
   }
-  return 0;
-}
+  .geo-dash * { box-sizing: border-box; margin: 0; padding: 0; }
 
-function parseHours(item) {
-  const candidates = [
-    item?.duree_heures,
-    item?.hours,
-    item?.heures,
-    item?.duration_hours,
-  ];
-  for (const c of candidates) {
-    const n = Number(c);
-    if (!Number.isNaN(n)) return n;
+  .geo-dash .gdash-header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    padding: 18px 0 16px;
+    border-bottom: 1px solid rgba(212,175,55,0.2);
+    margin-bottom: 20px;
+  }
+  .geo-dash .gdash-title {
+    font-size: 22px; font-weight: 800; font-style: italic;
+    letter-spacing: 0.12em; color: #D4AF37; text-transform: uppercase;
+  }
+  .geo-dash .gdash-sub {
+    font-size: 11px; color: rgba(255,255,255,0.4);
+    letter-spacing: 0.18em; text-transform: uppercase; margin-top: 2px;
+  }
+  .geo-dash .gdash-week-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: rgba(255,255,255,0.45);
+    padding: 5px 12px; border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
   }
 
-  const start = item?.heure_debut || item?.start_time;
-  const end = item?.heure_fin || item?.end_time;
+  .geo-dash .gdash-patron-strip {
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 20px;
+  }
+  .geo-dash .gdash-patron-label {
+    font-size: 10px; color: rgba(255,255,255,0.35);
+    text-transform: uppercase; letter-spacing: 0.18em; font-weight: 600;
+  }
+  .geo-dash .gdash-patron-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.18s; background: transparent;
+    color: rgba(255,255,255,0.55); font-family: 'Syne', sans-serif;
+  }
+  .geo-dash .gdash-patron-chip:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.18); }
+  .geo-dash .gdash-patron-chip.active {
+    border-color: rgba(212,175,55,0.5); background: rgba(212,175,55,0.1); color: #D4AF37;
+  }
+  .geo-dash .gdash-patron-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
-  if (start && end) {
-    const [sh, sm] = String(start).split(":").map(Number);
-    const [eh, em] = String(end).split(":").map(Number);
-    if (![sh, sm, eh, em].some(Number.isNaN)) {
-      return Math.max(0, (eh * 60 + em - (sh * 60 + sm)) / 60);
-    }
+  .geo-dash .gdash-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 12px; margin-bottom: 20px;
+  }
+  @media (max-width: 680px) { .geo-dash .gdash-kpi-row { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+
+  .geo-dash .gdash-kpi {
+    background: rgba(10,22,40,0.85);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 16px 18px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .geo-dash .gdash-kpi:hover { border-color: rgba(255,255,255,0.15); }
+  .geo-dash .gdash-kpi::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; border-radius: 16px 16px 0 0;
+  }
+  .geo-dash .gdash-kpi.k-gold::before  { background: linear-gradient(90deg,#D4AF37,transparent); }
+  .geo-dash .gdash-kpi.k-indigo::before { background: linear-gradient(90deg,#4F46E5,transparent); }
+  .geo-dash .gdash-kpi.k-emerald::before{ background: linear-gradient(90deg,#10B981,transparent); }
+  .geo-dash .gdash-kpi.k-cyan::before   { background: linear-gradient(90deg,#06B6D4,transparent); }
+
+  .geo-dash .gdash-kpi-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; margin-bottom: 10px;
+  }
+  .geo-dash .gdash-kpi.k-gold   .gdash-kpi-icon { background: rgba(212,175,55,0.12); }
+  .geo-dash .gdash-kpi.k-indigo .gdash-kpi-icon { background: rgba(79,70,229,0.15); }
+  .geo-dash .gdash-kpi.k-emerald.gdash-kpi-icon { background: rgba(16,185,129,0.12); }
+  .geo-dash .gdash-kpi.k-cyan   .gdash-kpi-icon { background: rgba(6,182,212,0.12); }
+
+  .geo-dash .gdash-kpi-label {
+    font-size: 9px; color: rgba(255,255,255,0.35);
+    text-transform: uppercase; letter-spacing: 0.2em; font-weight: 700; margin-bottom: 6px;
+  }
+  .geo-dash .gdash-kpi-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px; font-weight: 500; line-height: 1; margin-bottom: 5px;
+  }
+  .geo-dash .gdash-kpi.k-gold   .gdash-kpi-value { color: #D4AF37; }
+  .geo-dash .gdash-kpi.k-indigo .gdash-kpi-value { color: #818CF8; }
+  .geo-dash .gdash-kpi.k-emerald .gdash-kpi-value { color: #10B981; }
+  .geo-dash .gdash-kpi.k-cyan   .gdash-kpi-value { color: #06B6D4; }
+  .geo-dash .gdash-kpi-delta { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); }
+  .geo-dash .gdash-kpi-delta.up   { color: #10B981; }
+  .geo-dash .gdash-kpi-delta.down { color: #EF4444; }
+
+  .geo-dash .gdash-mid {
+    display: grid; grid-template-columns: 1fr 320px; gap: 16px; margin-bottom: 20px;
+  }
+  @media (max-width: 780px) { .geo-dash .gdash-mid { grid-template-columns: 1fr; } }
+
+  .geo-dash .gdash-panel {
+    background: rgba(10,22,40,0.85);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; padding: 18px 20px;
+  }
+  .geo-dash .gdash-panel-title {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.2em; color: rgba(255,255,255,0.35);
+    margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .geo-dash .gdash-panel-accent { color: #D4AF37; }
+
+  .geo-dash .gdash-chart-wrap { position: relative; height: 190px; width: 100%; }
+
+  .geo-dash .gdash-mission-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 6px; border-radius: 8px; cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.15s;
+  }
+  .geo-dash .gdash-mission-item:hover { background: rgba(255,255,255,0.03); }
+  .geo-dash .gdash-mission-item:last-child { border-bottom: none; }
+  .geo-dash .gdash-mission-badge {
+    width: 38px; height: 38px; flex-shrink: 0;
+    border-radius: 10px; background: rgba(79,70,229,0.15);
+    border: 1px solid rgba(79,70,229,0.3);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+  }
+  .geo-dash .gdash-m-day   { font-size: 13px; font-weight: 500; line-height: 1; color: #818CF8; }
+  .geo-dash .gdash-m-month { font-size: 8px; color: rgba(255,255,255,0.35); text-transform: uppercase; }
+  .geo-dash .gdash-m-client { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .geo-dash .gdash-m-meta  { font-size: 10px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .geo-dash .gdash-m-amount {
+    font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500;
+    color: #10B981; white-space: nowrap; text-align: right;
   }
 
-  return 0;
+  .geo-dash .gdash-bottom {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+  }
+  @media (max-width: 780px) { .geo-dash .gdash-bottom { grid-template-columns: 1fr; } }
+
+  .geo-dash .gdash-bilan-card {
+    background: linear-gradient(135deg, rgba(15,31,61,0.95), rgba(10,22,40,0.95));
+    border: 1px solid rgba(212,175,55,0.25); border-radius: 16px; padding: 18px 20px;
+  }
+  .geo-dash .gdash-bilan-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px;
+  }
+  .geo-dash .gdash-bilan-row:last-of-type { border-bottom: none; }
+  .geo-dash .gdash-bilan-lbl { color: rgba(255,255,255,0.4); }
+  .geo-dash .gdash-bilan-val { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12px; }
+  .geo-dash .gdash-bilan-total {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid rgba(212,175,55,0.2);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .geo-dash .gdash-bilan-total-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.18em; color: #D4AF37; font-weight: 700; }
+  .geo-dash .gdash-bilan-total-val { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; color: #D4AF37; }
+
+  .geo-dash .gdash-bar-row { margin-bottom: 11px; }
+  .geo-dash .gdash-bar-label { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px; }
+  .geo-dash .gdash-bar-name { color: rgba(255,255,255,0.7); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%; }
+  .geo-dash .gdash-bar-val  { font-family: 'DM Mono', monospace; color: rgba(255,255,255,0.4); font-size: 10px; }
+  .geo-dash .gdash-bar-track { height: 4px; background: rgba(255,255,255,0.07); border-radius: 4px; overflow: hidden; }
+  .geo-dash .gdash-bar-fill  { height: 100%; border-radius: 4px; transition: width 0.9s cubic-bezier(0.16,1,0.3,1); }
+
+  .geo-dash .gdash-impayes-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 11px;
+  }
+  .geo-dash .gdash-impayes-row:last-child { border-bottom: none; }
+  .geo-dash .gdash-empty {
+    text-align: center; padding: 24px 0;
+    font-size: 12px; color: rgba(255,255,255,0.25); font-style: italic;
+  }
+
+  .geo-dash .gdash-action-btn {
+    width: 100%; margin-top: 12px; padding: 9px;
+    border-radius: 10px; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.15em;
+    cursor: pointer; font-family: 'Syne', sans-serif;
+    transition: background 0.2s; border: none;
+  }
+`;
+
+let styleInjected = false;
+function injectStyle() {
+  if (styleInjected) return;
+  const el = document.createElement("style");
+  el.textContent = CSS;
+  document.head.appendChild(el);
+  styleInjected = true;
 }
 
-function missionDate(mission) {
-  return (
-    mission?.date_iso ||
-    mission?.date ||
-    mission?.start_date ||
-    mission?.created_at ||
-    null
-  );
-}
+// ─── Palette couleurs patrons ──────────────────────────────────────────────────
+const PATRON_COLORS = [
+  "#8B5CF6", "#10B981", "#F59E0B", "#06B6D4",
+  "#F472B6", "#EF4444", "#3B82F6", "#84CC16",
+];
 
-function eventDateLabel(date) {
-  if (!date) return "";
-  return date.toLocaleDateString("fr-FR", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-}
-
-function eventTimeLabel(date) {
-  if (!date) return "";
-  const h = date.getHours();
-  const m = date.getMinutes();
-  if (h === 0 && m === 0) return "";
-  return date.toLocaleTimeString("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function Card({ title, accent = "from-yellow-500/40 to-transparent", children, rightLabel }) {
-  return (
-    <div className="rounded-[24px] border border-white/10 bg-[#07162d]/95 shadow-[0_10px_30px_rgba(0,0,0,0.25)] overflow-hidden">
-      <div className={`h-[2px] w-full bg-gradient-to-r ${accent}`} />
-      <div className="p-5">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <h3 className="text-[12px] font-black tracking-[0.24em] uppercase text-white/55">
-            {title}
-          </h3>
-          {rightLabel ? (
-            <span className="text-[11px] font-bold tracking-[0.15em] uppercase text-[#D4AF37]">
-              {rightLabel}
-            </span>
-          ) : null}
-        </div>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ icon, title, value, sub, accent }) {
-  return (
-    <Card title={title} accent={accent}>
-      <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-lg shadow-inner">
-        {icon}
-      </div>
-      <div className="text-[19px] font-black tracking-wide text-white">
-        {value}
-      </div>
-      <div className="mt-2 text-[12px] text-white/45">
-        {sub}
-      </div>
-    </Card>
-  );
-}
+// ─── Composant principal ───────────────────────────────────────────────────────
 
 export function DashboardPanel({
   missions = [],
   fraisDivers = [],
   listeAcomptes = [],
   patrons = [],
-  profile = {},
+  clients = [],
+  lieux = [],
+  profile,
+  darkMode = true,
 }) {
+  injectStyle();
+
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
+  const [selectedPatronId, setSelectedPatronId] = useState(null); // null = tous
+  const [barsReady, setBarsReady] = useState(false);
+
   const now = new Date();
   const currentWeek = getWeekNumber(now);
-  const todayLabel = formatLongDate(now);
+  const currentYear = now.getFullYear();
 
-  const metrics = useMemo(() => {
-    const weekMissions = missions.filter((m) => isSameWeek(missionDate(m), now));
-    const monthMissions = missions.filter((m) => isSameMonth(missionDate(m), now));
-    const weekFrais = fraisDivers.filter((f) => isSameWeek(f?.date || f?.date_iso || f?.created_at, now));
+  // ── Filtre missions selon patron sélectionné ──────────────────────────────
+  const filteredMissions = useMemo(() => {
+    if (!selectedPatronId) return missions;
+    return missions.filter((m) => m.patron_id === selectedPatronId);
+  }, [missions, selectedPatronId]);
 
-    const caWeek = weekMissions.reduce((sum, m) => sum + parseAmount(m), 0);
-    const hoursWeek = weekMissions.reduce((sum, m) => sum + parseHours(m), 0);
-    const missionCountWeek = weekMissions.length;
-    const tauxMoyen = hoursWeek > 0 ? caWeek / hoursWeek : 0;
-    const kmWeek = weekFrais
-      .filter((f) => /km|kilom/i.test(String(f?.description || f?.libelle || f?.nom || "")))
-      .reduce((sum, f) => {
-        const km = Number(f?.kilometres || f?.km || f?.distance || 0);
-        return sum + (Number.isNaN(km) ? 0 : km);
-      }, 0);
-
-    const kmAmountWeek = weekFrais
-      .filter((f) => /km|kilom/i.test(String(f?.description || f?.libelle || f?.nom || "")))
-      .reduce((sum, f) => sum + parseAmount(f), 0);
-
-    const totalAcomptes = listeAcomptes
-      .filter((a) => isSameMonth(a?.date || a?.date_iso || a?.created_at, now))
-      .reduce((sum, a) => sum + parseAmount(a), 0);
-
-    const monthlyRevenue = {};
-    const monthlyFrais = {};
-
-    for (let i = 5; i >= 0; i -= 1) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-      monthlyRevenue[key] = 0;
-      monthlyFrais[key] = 0;
-    }
-
-    monthMissions.forEach(() => {});
-
-    missions.forEach((m) => {
-      const d = toDateSafe(missionDate(m));
-      if (!d) return;
-      const diffMonths =
-        (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
-      if (diffMonths >= 0 && diffMonths < 6) {
-        const key = `${d.getFullYear()}-${d.getMonth()}`;
-        monthlyRevenue[key] = (monthlyRevenue[key] || 0) + parseAmount(m);
-      }
+  // ── Semaine courante ──────────────────────────────────────────────────────
+  const missionsThisWeek = useMemo(() => {
+    return filteredMissions.filter((m) => {
+      if (!m.date_iso) return false;
+      const d = new Date(m.date_iso + "T12:00:00");
+      return getWeekNumber(d) === currentWeek && getISOWeekYear(d) === currentYear;
     });
+  }, [filteredMissions, currentWeek, currentYear]);
 
-    fraisDivers.forEach((f) => {
-      const d = toDateSafe(f?.date || f?.date_iso || f?.created_at);
-      if (!d) return;
-      const diffMonths =
-        (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
-      if (diffMonths >= 0 && diffMonths < 6) {
-        const key = `${d.getFullYear()}-${d.getMonth()}`;
-        monthlyFrais[key] = (monthlyFrais[key] || 0) + parseAmount(f);
-      }
+  const missionsLastWeek = useMemo(() => {
+    return filteredMissions.filter((m) => {
+      if (!m.date_iso) return false;
+      const d = new Date(m.date_iso + "T12:00:00");
+      return getWeekNumber(d) === currentWeek - 1 && getISOWeekYear(d) === currentYear;
     });
+  }, [filteredMissions, currentWeek, currentYear]);
 
-    const chartData = [];
-    let maxValue = 0;
+  // ── KPIs ──────────────────────────────────────────────────────────────────
+  const kpis = useMemo(() => {
+    const caWeek = missionsThisWeek.reduce((s, m) => s + (m.montant || 0), 0);
+    const caLastWeek = missionsLastWeek.reduce((s, m) => s + (m.montant || 0), 0);
+    const hWeek = missionsThisWeek.reduce((s, m) => s + (m.duree || 0), 0);
+    const hLastWeek = missionsLastWeek.reduce((s, m) => s + (m.duree || 0), 0);
+    const nbMissions = missionsThisWeek.length;
+    const tauxMoyen = hWeek > 0 ? caWeek / hWeek : 0;
 
-    for (let i = 5; i >= 0; i -= 1) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${d.getMonth()}`;
-      const missionsValue = monthlyRevenue[key] || 0;
-      const fraisValue = monthlyFrais[key] || 0;
-      maxValue = Math.max(maxValue, missionsValue, fraisValue);
-      chartData.push({
-        label: d.toLocaleDateString("fr-FR", { month: "short" }).replace(".", ""),
-        missions: missionsValue,
-        frais: fraisValue,
-      });
-    }
+    const caDelta = caLastWeek > 0 ? Math.round(((caWeek - caLastWeek) / caLastWeek) * 100) : null;
+    const hDelta = hWeek - hLastWeek;
 
-    const patronsMap = new Map(patrons.map((p) => [String(p.id), p.nom || p.name || "Sans nom"]));
-    const topClientsMap = new Map();
+    return { caWeek, hWeek, nbMissions, tauxMoyen, caDelta, hDelta };
+  }, [missionsThisWeek, missionsLastWeek]);
 
-    missions.forEach((m) => {
-      const label =
-        m?.client ||
-        m?.client_nom ||
-        m?.nom_client ||
-        patronsMap.get(String(m?.patron_id)) ||
-        "Sans client";
-      topClientsMap.set(label, (topClientsMap.get(label) || 0) + parseAmount(m));
-    });
+  // ── Bilan semaine courante ────────────────────────────────────────────────
+  const bilanSemaine = useMemo(() => {
+    const caWeek = kpis.caWeek;
 
-    const topClients = Array.from(topClientsMap.entries())
-      .map(([name, total]) => ({ name, total }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 4);
-
-    const previousWeeks = [];
-    for (let i = 1; i <= 4; i += 1) {
-      const ref = new Date(now);
-      ref.setDate(now.getDate() - i * 7);
-      const total = missions
-        .filter((m) => isSameWeek(missionDate(m), ref))
-        .reduce((sum, m) => sum + parseAmount(m), 0);
-      previousWeeks.push({
-        label: `Semaine ${getWeekNumber(ref)}`,
-        total,
-      });
-    }
-
-    const nextEvents = missions
-      .map((m) => {
-        const d = toDateSafe(missionDate(m));
-        if (!d) return null;
-        return {
-          id: `${m?.id || m?.date_iso || Math.random()}`,
-          date: d,
-          title:
-            m?.libelle ||
-            m?.titre ||
-            m?.client ||
-            m?.client_nom ||
-            m?.lieu ||
-            "Mission",
-          subtitle:
-            m?.lieu ||
-            m?.adresse ||
-            m?.client ||
-            m?.client_nom ||
-            "",
-        };
+    const fraisWeek = fraisDivers
+      .filter((f) => {
+        if (!f.date_frais) return false;
+        const d = new Date(f.date_frais + "T12:00:00");
+        const ok = getWeekNumber(d) === currentWeek && getISOWeekYear(d) === currentYear;
+        return ok && (!selectedPatronId || f.patron_id === selectedPatronId);
       })
-      .filter((e) => e && startOfDay(e.date) >= startOfDay(now))
-      .sort((a, b) => a.date - b.date)
-      .slice(0, 3);
+      .reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
 
-    return {
-      caWeek,
-      hoursWeek,
-      missionCountWeek,
-      tauxMoyen,
-      kmWeek,
-      kmAmountWeek,
-      totalAcomptes,
-      chartData,
-      maxChart: maxValue || 1,
-      topClients,
-      previousWeeks,
-      nextEvents,
+    const acomptesWeek = listeAcomptes
+      .filter((a) => {
+        if (!a.date_acompte) return false;
+        const d = new Date(a.date_acompte + "T12:00:00");
+        const ok = getWeekNumber(d) === currentWeek && getISOWeekYear(d) === currentYear;
+        return ok && (!selectedPatronId || a.patron_id === selectedPatronId);
+      })
+      .reduce((s, a) => s + (parseFloat(a.montant) || 0), 0);
+
+    const resteApercevoir = Math.max(0, caWeek + fraisWeek - acomptesWeek);
+    return { caWeek, fraisWeek, acomptesWeek, resteApercevoir };
+  }, [kpis.caWeek, fraisDivers, listeAcomptes, currentWeek, currentYear, selectedPatronId]);
+
+  // ── Top clients ───────────────────────────────────────────────────────────
+  const topClients = useMemo(() => {
+    const map = {};
+    filteredMissions.forEach((m) => {
+      const key = m.client_id || m.client || "?";
+      const name = m.client || clients.find((c) => c.id === m.client_id)?.nom || "Client";
+      if (!map[key]) map[key] = { name, ca: 0 };
+      map[key].ca += m.montant || 0;
+    });
+    return Object.values(map)
+      .sort((a, b) => b.ca - a.ca)
+      .slice(0, 5);
+  }, [filteredMissions, clients]);
+
+  // ── Impayés récents ───────────────────────────────────────────────────────
+  const impayes = useMemo(() => {
+    // On simule les semaines avec missions non payées sur les 8 dernières semaines
+    const result = [];
+    for (let w = currentWeek - 1; w >= Math.max(1, currentWeek - 8); w--) {
+      const mWeek = filteredMissions.filter((m) => {
+        if (!m.date_iso) return false;
+        const d = new Date(m.date_iso + "T12:00:00");
+        return getWeekNumber(d) === w && getISOWeekYear(d) === currentYear;
+      });
+      if (mWeek.length === 0) continue;
+      const total = mWeek.reduce((s, m) => s + (m.montant || 0), 0);
+      if (total > 0) result.push({ week: w, total });
+      if (result.length >= 4) break;
+    }
+    return result;
+  }, [filteredMissions, currentWeek, currentYear]);
+
+  // ── Données graphique CA 6 derniers mois ─────────────────────────────────
+  const chartData = useMemo(() => {
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    const labels = months.map(fmtMonthShort);
+    const caData = months.map((ym) =>
+      filteredMissions
+        .filter((m) => getMonthKey(m.date_iso) === ym)
+        .reduce((s, m) => s + (m.montant || 0), 0)
+    );
+    const fraisData = months.map((ym) =>
+      fraisDivers
+        .filter((f) => {
+          const ok = getMonthKey(f.date_frais) === ym;
+          return ok && (!selectedPatronId || f.patron_id === selectedPatronId);
+        })
+        .reduce((s, f) => s + (parseFloat(f.montant) || 0), 0)
+    );
+    return { labels, caData, fraisData };
+  }, [filteredMissions, fraisDivers, selectedPatronId]);
+
+  // ── Missions récentes triées ──────────────────────────────────────────────
+  const recentMissions = useMemo(() => {
+    return [...missionsThisWeek]
+      .sort((a, b) => (b.date_iso || "").localeCompare(a.date_iso || ""))
+      .slice(0, 5);
+  }, [missionsThisWeek]);
+
+  // ── Chart.js ──────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    const load = async () => {
+      // Charger Chart.js dynamiquement si pas déjà chargé
+      if (!window.Chart) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js";
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+        chartInstance.current = null;
+      }
+      chartInstance.current = new window.Chart(chartRef.current, {
+        type: "bar",
+        data: {
+          labels: chartData.labels,
+          datasets: [
+            {
+              label: "Missions",
+              data: chartData.caData,
+              backgroundColor: "rgba(79,70,229,0.65)",
+              borderRadius: 6, borderSkipped: false,
+            },
+            {
+              label: "Frais",
+              data: chartData.fraisData,
+              backgroundColor: "rgba(245,158,11,0.55)",
+              borderRadius: 6, borderSkipped: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "rgba(10,22,40,0.96)",
+              borderColor: "rgba(212,175,55,0.3)", borderWidth: 1,
+              titleColor: "#D4AF37", bodyColor: "rgba(255,255,255,0.7)",
+              padding: 10,
+              callbacks: { label: (ctx) => ` ${ctx.dataset.label} : ${Math.round(ctx.raw).toLocaleString("fr-FR")} €` },
+            },
+          },
+          scales: {
+            x: {
+              grid: { color: "rgba(255,255,255,0.05)" },
+              ticks: { color: "rgba(255,255,255,0.4)", font: { size: 11 } },
+              border: { color: "rgba(255,255,255,0.08)" },
+            },
+            y: {
+              grid: { color: "rgba(255,255,255,0.05)" },
+              ticks: {
+                color: "rgba(255,255,255,0.4)",
+                font: { size: 10, family: "'DM Mono', monospace" },
+                callback: (v) => v >= 1000 ? (v / 1000).toFixed(1) + "k €" : v + " €",
+              },
+              border: { color: "rgba(255,255,255,0.08)" },
+            },
+          },
+        },
+      });
     };
-  }, [missions, fraisDivers, listeAcomptes, patrons]);
+    load();
+    return () => { if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; } };
+  }, [chartData]);
 
-  const principalTrip =
-    metrics.nextEvents[0]?.subtitle
-      ? `Domicile → ${metrics.nextEvents[0].subtitle}`
-      : "Domicile → Studio";
+  // ── Animation barres clients ───────────────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => setBarsReady(true), 100);
+    return () => clearTimeout(t);
+  }, [topClients]);
+
+  // ── Couleurs patrons ───────────────────────────────────────────────────────
+  const patronColorMap = useMemo(() => {
+    const map = {};
+    patrons.forEach((p, i) => {
+      map[p.id] = p.couleur || PATRON_COLORS[i % PATRON_COLORS.length];
+    });
+    return map;
+  }, [patrons]);
+
+  const maxClientCA = topClients[0]?.ca || 1;
+
+  const nowStr = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   return (
-    <div className="space-y-5">
-      <div className="border-b border-[#D4AF37]/20 pb-4">
-        <div className="text-[14px] font-black uppercase tracking-[0.22em] text-white/75">
-          Dashboard
+    <div className="geo-dash">
+
+      {/* ── Header ── */}
+      <div className="gdash-header">
+        <div>
+          <div className="gdash-title">
+            Heures de {profile?.prenom?.trim()?.toUpperCase() || "Géo"}
+          </div>
+          <div className="gdash-sub">Dashboard · {nowStr}</div>
         </div>
-        <div className="mt-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/35">
-          {todayLabel}
-        </div>
+        <div className="gdash-week-badge">Semaine {currentWeek} · {currentYear}</div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-[11px] font-black uppercase tracking-[0.22em] text-white/35">
-          Patron
-        </span>
-        <div className="rounded-full border border-white/10 px-4 py-2 text-[13px] text-white/75">
-          Tous
-        </div>
-        {patrons.slice(0, 2).map((p, idx) => (
-          <div
-            key={p.id || idx}
-            className={`rounded-full border px-4 py-2 text-[13px] ${
-              idx === 1
-                ? "border-[#D4AF37]/60 text-[#D4AF37]"
-                : "border-white/10 text-white/75"
-            }`}
+      {/* ── Patron tabs ── */}
+      {patrons.length > 0 && (
+        <div className="gdash-patron-strip">
+          <span className="gdash-patron-label">Patron</span>
+          <button
+            className={"gdash-patron-chip" + (!selectedPatronId ? " active" : "")}
+            onClick={() => setSelectedPatronId(null)}
           >
-            {p.nom || p.name}
-          </div>
-        ))}
-        <div className="ml-auto rounded-full border border-white/10 px-4 py-2 text-[12px] text-white/45">
-          {`Semaine ${currentWeek} · ${now.getFullYear()}`}
+            Tous
+          </button>
+          {patrons.map((p) => (
+            <button
+              key={p.id}
+              className={"gdash-patron-chip" + (selectedPatronId === p.id ? " active" : "")}
+              onClick={() => setSelectedPatronId(p.id)}
+            >
+              <span className="gdash-patron-dot" style={{ background: patronColorMap[p.id] }} />
+              {p.nom}
+            </button>
+          ))}
         </div>
-      </div>
+      )}
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-        <StatCard
-          icon="💶"
-          title="CA CETTE SEMAINE"
-          value={formatCurrency(metrics.caWeek)}
-          sub={metrics.caWeek > 0 ? "activité en cours" : "aucun chiffre cette semaine"}
-          accent="from-[#D4AF37]/90 via-[#D4AF37]/20 to-transparent"
-        />
-        <StatCard
-          icon="⏱️"
-          title="HEURES TRAVAILLÉES"
-          value={`${metrics.hoursWeek.toFixed(2).replace(".", ",")} h`}
-          sub={metrics.hoursWeek > 0 ? "temps cumulé cette semaine" : "aucune heure enregistrée"}
-          accent="from-violet-500/90 via-violet-500/20 to-transparent"
-        />
-        <StatCard
-          icon="✓"
-          title="MISSIONS CETTE SEM."
-          value={String(metrics.missionCountWeek)}
-          sub={metrics.missionCountWeek > 0 ? "missions planifiées / réalisées" : "aucune mission"}
-          accent="from-emerald-400/90 via-emerald-400/20 to-transparent"
-        />
-        <StatCard
-          icon="📍"
-          title="TAUX HORAIRE MOYEN"
-          value={metrics.tauxMoyen > 0 ? formatCurrency(metrics.tauxMoyen) : "—"}
-          sub={metrics.tauxMoyen > 0 ? "sur les missions de la semaine" : "aucune heure"}
-          accent="from-cyan-400/90 via-cyan-400/20 to-transparent"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.65fr_0.75fr]">
-        <Card
-          title="CA MENSUEL (6 DERNIERS MOIS)"
-          accent="from-[#D4AF37]/40 to-transparent"
-          rightLabel="MISSIONS   FRAIS"
-        >
-          <div className="flex h-[210px] items-end gap-5 pt-4">
-            {metrics.chartData.map((item) => {
-              const missionHeight = Math.max(8, (item.missions / metrics.maxChart) * 150);
-              const fraisHeight = Math.max(4, (item.frais / metrics.maxChart) * 50);
-
-              return (
-                <div key={item.label} className="flex flex-1 flex-col items-center justify-end gap-3">
-                  <div className="flex h-[165px] items-end gap-2">
-                    <div
-                      className="w-12 rounded-t-[10px] bg-violet-600/85 shadow-[0_0_20px_rgba(124,58,237,0.25)]"
-                      style={{ height: `${missionHeight}px` }}
-                    />
-                    <div
-                      className="w-3 rounded-t-[6px] bg-[#D4AF37]/80"
-                      style={{ height: `${fraisHeight}px` }}
-                    />
-                  </div>
-                  <span className="text-[12px] text-white/45">{item.label}</span>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        <Card
-          title="AGENDA À VENIR"
-          accent="from-cyan-400/60 to-transparent"
-          rightLabel={`${metrics.nextEvents.length} ÉVÉNEMENTS`}
-        >
-          {metrics.nextEvents.length > 0 ? (
-            <div className="space-y-4">
-              {metrics.nextEvents.map((event) => (
-                <div key={event.id} className="rounded-2xl border border-white/8 bg-white/3 px-4 py-3">
-                  <div className="text-[14px] font-bold text-white">{event.title}</div>
-                  <div className="mt-1 text-[12px] uppercase tracking-[0.16em] text-[#D4AF37]">
-                    {eventDateLabel(event.date)}
-                    {eventTimeLabel(event.date) ? ` · ${eventTimeLabel(event.date)}` : ""}
-                  </div>
-                  {event.subtitle ? (
-                    <div className="mt-2 text-[12px] text-white/45">{event.subtitle}</div>
-                  ) : null}
-                </div>
-              ))}
+      {/* ── KPIs ── */}
+      <div className="gdash-kpi-row">
+        <div className="gdash-kpi k-gold">
+          <div className="gdash-kpi-icon">💶</div>
+          <div className="gdash-kpi-label">CA cette semaine</div>
+          <div className="gdash-kpi-value">{formatEuro(kpis.caWeek)}</div>
+          {kpis.caDelta !== null ? (
+            <div className={"gdash-kpi-delta " + (kpis.caDelta >= 0 ? "up" : "down")}>
+              {kpis.caDelta >= 0 ? "▲" : "▼"} {Math.abs(kpis.caDelta)} % vs sem. préc.
             </div>
           ) : (
-            <div className="flex h-[210px] flex-col items-center justify-center text-center">
-              <div className="text-[15px] font-bold text-white/80">
-                Aucun événement à venir
-              </div>
-              <div className="mt-2 max-w-[220px] text-[13px] leading-relaxed text-white/40">
-                Ton agenda est dégagé pour le moment.
-              </div>
-            </div>
+            <div className="gdash-kpi-delta">— première semaine</div>
           )}
-        </Card>
+        </div>
+        <div className="gdash-kpi k-indigo">
+          <div className="gdash-kpi-icon">⏱</div>
+          <div className="gdash-kpi-label">Heures travaillées</div>
+          <div className="gdash-kpi-value">{formatHeures(kpis.hWeek)}</div>
+          <div className={"gdash-kpi-delta " + (kpis.hDelta >= 0 ? "up" : "down")}>
+            {kpis.hDelta >= 0 ? "▲" : "▼"} {Math.abs(Math.round(kpis.hDelta * 10) / 10)} h vs sem. préc.
+          </div>
+        </div>
+        <div className="gdash-kpi k-emerald">
+          <div className="gdash-kpi-icon">✓</div>
+          <div className="gdash-kpi-label">Missions cette sem.</div>
+          <div className="gdash-kpi-value">{kpis.nbMissions}</div>
+          <div className="gdash-kpi-delta">
+            {missionsThisWeek.length > 0
+              ? new Set(missionsThisWeek.map((m) => m.client || m.client_id)).size + " client(s)"
+              : "— aucune mission"}
+          </div>
+        </div>
+        <div className="gdash-kpi k-cyan">
+          <div className="gdash-kpi-icon">📍</div>
+          <div className="gdash-kpi-label">Taux horaire moyen</div>
+          <div className="gdash-kpi-value">
+            {kpis.tauxMoyen > 0 ? (Math.round(kpis.tauxMoyen * 10) / 10).toLocaleString("fr-FR") + " €" : "—"}
+          </div>
+          <div className="gdash-kpi-delta">
+            {kpis.hWeek > 0 ? formatHeures(kpis.hWeek) + " facturées" : "— aucune heure"}
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Card
-          title="FRAIS KILOMÉTRIQUES"
-          accent="from-[#D4AF37]/50 to-transparent"
-          rightLabel="SEMAINE"
-        >
-          <div className="space-y-5">
-            <div className="border-b border-white/8 pb-4">
-              <div className="text-[12px] uppercase tracking-[0.18em] text-white/35">
-                Kilomètres
-              </div>
-              <div className="mt-2 text-[28px] font-black text-white">
-                {`${Number(metrics.kmWeek || 0).toLocaleString("fr-FR")} km`}
-              </div>
-              <div className="mt-1 text-[12px] text-white/40">
-                parcourus cette semaine
-              </div>
-            </div>
-
-            <div className="border-b border-white/8 pb-4">
-              <div className="text-[12px] uppercase tracking-[0.18em] text-white/35">
-                Montant estimé
-              </div>
-              <div className="mt-2 text-[24px] font-black text-[#D4AF37]">
-                {formatCurrency(metrics.kmAmountWeek)}
-              </div>
-              <div className="mt-1 text-[12px] text-white/40">
-                de frais estimés
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[12px] uppercase tracking-[0.18em] text-white/35">
-                Trajet principal
-              </div>
-              <div className="mt-2 text-[14px] font-semibold text-white/85">
-                {principalTrip}
-              </div>
+      {/* ── Milieu : graphique + missions ── */}
+      <div className="gdash-mid">
+        {/* Graphique CA */}
+        <div className="gdash-panel">
+          <div class="gdash-panel-title">
+            <span>CA mensuel <span class="gdash-panel-accent">(6 derniers mois)</span></span>
+            <div style={{ display:"flex", gap:8 }}>
+              <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:10, color:"rgba(255,255,255,0.35)" }}>
+                <span style={{ width:8, height:8, borderRadius:2, background:"#4F46E5", display:"inline-block" }}></span>Missions
+              </span>
+              <span style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:10, color:"rgba(255,255,255,0.35)" }}>
+                <span style={{ width:8, height:8, borderRadius:2, background:"#F59E0B", display:"inline-block" }}></span>Frais
+              </span>
             </div>
           </div>
-        </Card>
+          <div className="gdash-chart-wrap">
+            <canvas ref={chartRef}></canvas>
+          </div>
+        </div>
 
-        <Card
-          title="TOP CLIENTS"
-          accent="from-violet-500/60 to-transparent"
-          rightLabel="CA CUMULÉ"
-        >
-          <div className="space-y-4">
-            {metrics.topClients.length > 0 ? (
-              metrics.topClients.map((client, index) => {
-                const max = metrics.topClients[0]?.total || 1;
-                const width = Math.max(12, (client.total / max) * 100);
-                const barClass =
-                  index === 0
-                    ? "bg-violet-500"
-                    : index === 1
-                    ? "bg-emerald-400"
-                    : index === 2
-                    ? "bg-[#D4AF37]"
-                    : "bg-cyan-400";
-
-                return (
-                  <div key={client.name}>
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <span className="text-[14px] text-white/85">{client.name}</span>
-                      <span className="text-[13px] font-semibold text-white/55">
-                        {formatCurrency(client.total)}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-white/8">
-                      <div
-                        className={`h-1.5 rounded-full ${barClass}`}
-                        style={{ width: `${width}%` }}
-                      />
+        {/* Missions récentes */}
+        <div className="gdash-panel">
+          <div className="gdash-panel-title">
+            <span>Missions <span className="gdash-panel-accent">cette semaine</span></span>
+            <span style={{ fontSize:9, color:"rgba(79,70,229,0.8)", fontWeight:700 }}>
+              {missionsThisWeek.length} / {filteredMissions.length} total
+            </span>
+          </div>
+          {recentMissions.length === 0 ? (
+            <div className="gdash-empty">Aucune mission cette semaine</div>
+          ) : (
+            recentMissions.map((m) => {
+              const d = m.date_iso ? new Date(m.date_iso + "T12:00:00") : new Date();
+              const day = d.getDate().toString().padStart(2, "0");
+              const month = d.toLocaleString("fr-FR", { month: "short" });
+              return (
+                <div key={m.id} className="gdash-mission-item">
+                  <div className="gdash-mission-badge">
+                    <span className="gdash-m-day">{day}</span>
+                    <span className="gdash-m-month">{month}</span>
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div className="gdash-m-client">{m.client || "—"}</div>
+                    <div className="gdash-m-meta">
+                      {m.lieu ? `📍 ${m.lieu} · ` : ""}{m.debut}–{m.fin}
                     </div>
                   </div>
-                );
-              })
-            ) : (
-              <div className="flex h-[210px] items-center justify-center text-[13px] text-white/40">
-                Aucune donnée client disponible.
-              </div>
-            )}
-          </div>
-        </Card>
+                  <div className="gdash-m-amount">
+                    <div>{formatEuro(m.montant || 0)}</div>
+                    <div style={{ fontSize:9, color:"rgba(255,255,255,0.3)", fontFamily:"'DM Mono',monospace", marginTop:2 }}>
+                      {formatHeures(m.duree || 0)}
+                    </div>
+                  </div>
+                  {patronColorMap[m.patron_id] && (
+                    <span style={{ width:6, height:6, borderRadius:"50%", background:patronColorMap[m.patron_id], flexShrink:0 }} />
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
 
-        <Card
-          title="SEMAINES"
-          accent="from-emerald-400/50 to-transparent"
-          rightLabel="PRÉCÉDENTES"
-        >
-          <div className="space-y-4">
-            {metrics.previousWeeks.map((week) => (
-              <div
-                key={week.label}
-                className="flex items-center justify-between border-b border-white/6 pb-3 last:border-b-0"
-              >
-                <span className="text-[14px] text-white/75">{week.label}</span>
-                <span className="text-[15px] font-black text-[#D4AF37]">
-                  {formatCurrency(week.total)}
+      {/* ── Bas : bilan + clients + impayés ── */}
+      <div className="gdash-bottom">
+
+        {/* Bilan semaine */}
+        <div className="gdash-bilan-card">
+          <div className="gdash-panel-title" style={{ marginBottom:12 }}>
+            <span>Bilan <span className="gdash-panel-accent">semaine {currentWeek}</span></span>
+          </div>
+          <div className="gdash-bilan-row">
+            <span className="gdash-bilan-lbl">Missions</span>
+            <span className="gdash-bilan-val">{formatEuro(bilanSemaine.caWeek)}</span>
+          </div>
+          {bilanSemaine.fraisWeek > 0 && (
+            <div className="gdash-bilan-row">
+              <span className="gdash-bilan-lbl">Frais divers</span>
+              <span className="gdash-bilan-val" style={{ color:"#F59E0B" }}>+{formatEuro(bilanSemaine.fraisWeek)}</span>
+            </div>
+          )}
+          {bilanSemaine.acomptesWeek > 0 && (
+            <div className="gdash-bilan-row">
+              <span className="gdash-bilan-lbl">Acomptes reçus</span>
+              <span className="gdash-bilan-val" style={{ color:"#06B6D4" }}>−{formatEuro(bilanSemaine.acomptesWeek)}</span>
+            </div>
+          )}
+          <div className="gdash-bilan-total">
+            <span className="gdash-bilan-total-lbl">Reste à percevoir</span>
+            <span className="gdash-bilan-total-val">{formatEuro(bilanSemaine.resteApercevoir)}</span>
+          </div>
+        </div>
+
+        {/* Top clients */}
+        <div className="gdash-panel">
+          <div className="gdash-panel-title">
+            Top clients <span className="gdash-panel-accent">(CA cumulé)</span>
+          </div>
+          {topClients.length === 0 ? (
+            <div className="gdash-empty">Aucun client trouvé</div>
+          ) : (
+            topClients.map((c, i) => {
+              const pct = Math.round((c.ca / maxClientCA) * 100);
+              const colors = ["#8B5CF6","#10B981","#F59E0B","#06B6D4","#F472B6"];
+              return (
+                <div key={i} className="gdash-bar-row">
+                  <div className="gdash-bar-label">
+                    <span className="gdash-bar-name">{c.name}</span>
+                    <span className="gdash-bar-val">{Math.round(c.ca).toLocaleString("fr-FR")} €</span>
+                  </div>
+                  <div className="gdash-bar-track">
+                    <div
+                      className="gdash-bar-fill"
+                      style={{ width: barsReady ? pct + "%" : "0%", background: colors[i % colors.length] }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Impayés récents */}
+        <div className="gdash-panel">
+          <div className="gdash-panel-title">
+            Semaines <span className="gdash-panel-accent">précédentes</span>
+          </div>
+          {impayes.length === 0 ? (
+            <div className="gdash-empty">Tout est à jour ✓</div>
+          ) : (
+            impayes.map((row) => (
+              <div key={row.week} className="gdash-impayes-row">
+                <span style={{ color:"rgba(255,255,255,0.55)", fontWeight:600, fontSize:12 }}>
+                  Semaine {row.week}
+                </span>
+                <span style={{ fontFamily:"'DM Mono',monospace", fontSize:12, color:"#F59E0B", fontWeight:500 }}>
+                  {formatEuro(row.total)}
                 </span>
               </div>
-            ))}
-
-            <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/8 px-4 py-4">
-              <div className="text-[12px] uppercase tracking-[0.18em] text-emerald-300/70">
-                CA total cumulé
-              </div>
-              <div className="mt-2 text-right text-[28px] font-black text-emerald-300">
-                {formatCurrency(
-                  metrics.previousWeeks.reduce((sum, w) => sum + w.total, 0)
-                )}
-              </div>
-            </div>
+            ))
+          )}
+          <div style={{
+            marginTop:14, padding:"10px 12px", borderRadius:10,
+            background:"rgba(16,185,129,0.08)", border:"1px solid rgba(16,185,129,0.2)",
+            display:"flex", justifyContent:"space-between", alignItems:"center"
+          }}>
+            <span style={{ fontSize:9, textTransform:"uppercase", letterSpacing:"0.15em", color:"rgba(16,185,129,0.8)", fontWeight:700 }}>
+              CA total cumulé
+            </span>
+            <span style={{ fontFamily:"'DM Mono',monospace", fontSize:14, color:"#10B981", fontWeight:500 }}>
+              {formatEuro(filteredMissions.reduce((s, m) => s + (m.montant || 0), 0))}
+            </span>
           </div>
-        </Card>
+        </div>
+
       </div>
     </div>
   );
 }
-
-export default DashboardPanel;
