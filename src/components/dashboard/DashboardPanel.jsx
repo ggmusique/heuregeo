@@ -1,9 +1,12 @@
-﻿import React, { useMemo, useEffect, useRef, useState, useCallback, memo } from "react";
+﻿import React, { useMemo, useEffect, useRef, useState, useCallback } from "react";
 import { getWeekNumber } from "../../utils/dateUtils";
 import { formatEuro, formatHeures } from "../../utils/formatters";
 import { chartColors, chartOptions } from "../../utils/chartConfig";
 import { tokens } from "../../utils/designTokens";
 import { KPICard } from "./KPICard";
+import { getKmEnabled } from "../../utils/kmFeatureHelpers";
+import { KM_RATES } from "../../utils/kmRatesByCountry";
+import { haversineKm, getLieuLabel } from "../../utils/calculators";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getISOWeekYear(date) {
@@ -22,6 +25,7 @@ function fmtMonthShort(ym) {
 export function DashboardPanel({
   missions = [], fraisDivers = [], listeAcomptes = [], patrons = [],
   clients = [], lieux = [], profile, darkMode = true,
+  kmSettings = null, domicileLatLng = null,
 }) {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
@@ -29,10 +33,14 @@ export function DashboardPanel({
   const [barsReady, setBarsReady] = useState(false);
   const [chartLoaded, setChartLoaded] = useState(false);
 
-  // ✅ FIX : `now` stable, ne change pas à chaque render
+  // ✅ FIX : `now` stable
   const now = useMemo(() => new Date(), []);
   const currentWeek = useMemo(() => getWeekNumber(now), [now]);
   const currentYear = useMemo(() => now.getFullYear(), [now]);
+
+  // ── Km activés ? ────────────────────────────────────────────────────────
+  const features = profile?.features || {};
+  const kmEnabled = getKmEnabled(features) && kmSettings?.km_enable === true;
 
   // ── Filtre missions ──────────────────────────────────────────────────────
   const filteredMissions = useMemo(() => {
@@ -40,7 +48,7 @@ export function DashboardPanel({
     return missions.filter((m) => m.patron_id === selectedPatronId);
   }, [missions, selectedPatronId]);
 
-  // ✅ FIX : getMissionsForWeek en useCallback pour éviter la recréation à chaque render
+  // ✅ FIX : getMissionsForWeek en useCallback
   const getMissionsForWeek = useCallback((weekOffset = 0) => {
     const targetWeek = currentWeek + weekOffset;
     return filteredMissions.filter((m) => {
@@ -52,6 +60,46 @@ export function DashboardPanel({
 
   const missionsThisWeek = useMemo(() => getMissionsForWeek(0), [getMissionsForWeek]);
   const missionsLastWeek = useMemo(() => getMissionsForWeek(-1), [getMissionsForWeek]);
+
+  // ── Calcul frais km pour une liste de missions ───────────────────────────
+  const computeKmForMissions = useCallback((missionsList) => {
+    if (!kmEnabled || !missionsList?.length) return { totalKm: 0, totalAmount: 0 };
+    const effectiveDomicile = domicileLatLng ?? (
+      Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng)
+        ? { lat: kmSettings.km_domicile_lat, lng: kmSettings.km_domicile_lng }
+        : null
+    );
+    if (!effectiveDomicile?.lat || !effectiveDomicile?.lng) return { totalKm: 0, totalAmount: 0 };
+
+    const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
+      ? (parseFloat(kmSettings.km_rate) || 0)
+      : (KM_RATES[kmSettings.km_country_code || "FR"] || 0.42);
+    const multiplicateur = kmSettings.km_include_retour ? 2 : 1;
+
+    let totalKm = 0;
+    let totalAmount = 0;
+
+    missionsList.forEach((m) => {
+      const lieuById = lieux.find((l) => l.id === m.lieu_id);
+      const lieuByName = !lieuById && m.lieu
+        ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
+        : null;
+      const lieu = lieuById || lieuByName;
+      const latLieu = Number(lieu?.latitude);
+      const lngLieu = Number(lieu?.longitude);
+      if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+        const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
+        const kmTotal = kmOneWay * multiplicateur;
+        totalKm += kmTotal;
+        totalAmount += kmTotal * kmRateEffectif;
+      }
+    });
+
+    return { totalKm, totalAmount };
+  }, [kmEnabled, kmSettings, domicileLatLng, lieux]);
+
+  // ── KPI km cette semaine ─────────────────────────────────────────────────
+  const kmThisWeek = useMemo(() => computeKmForMissions(missionsThisWeek), [computeKmForMissions, missionsThisWeek]);
 
   // ── KPIs calculés ────────────────────────────────────────────────────────
   const kpis = useMemo(() => {
@@ -88,9 +136,54 @@ export function DashboardPanel({
       caWeek: kpis.ca.value,
       fraisWeek,
       acomptesWeek,
-      resteApercevoir: Math.max(0, kpis.ca.value + fraisWeek - acomptesWeek),
+      kmWeek: kmThisWeek.totalAmount,
+      resteApercevoir: Math.max(0, kpis.ca.value + fraisWeek + kmThisWeek.totalAmount - acomptesWeek),
     };
-  }, [kpis.ca.value, fraisDivers, listeAcomptes, currentWeek, currentYear, selectedPatronId]);
+  }, [kpis.ca.value, fraisDivers, listeAcomptes, currentWeek, currentYear, selectedPatronId, kmThisWeek]);
+
+  // ── 5 semaines précédentes ───────────────────────────────────────────────
+  const previousWeeks = useMemo(() => {
+    return Array.from({ length: 5 }, (_, i) => {
+      const weekNum = currentWeek - (i + 1);
+      if (weekNum < 1) return null;
+
+      const weekMissions = filteredMissions.filter((m) => {
+        if (!m.date_iso) return false;
+        const d = new Date(m.date_iso + "T12:00:00");
+        return getWeekNumber(d) === weekNum && getISOWeekYear(d) === currentYear;
+      });
+
+      const fraisWeek = fraisDivers.filter((f) => {
+        if (!f.date_frais) return false;
+        const d = new Date(f.date_frais + "T12:00:00");
+        return getWeekNumber(d) === weekNum && getISOWeekYear(d) === currentYear &&
+               (!selectedPatronId || f.patron_id === selectedPatronId);
+      }).reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
+
+      const acomptesWeek = listeAcomptes.filter((a) => {
+        if (!a.date_acompte) return false;
+        const d = new Date(a.date_acompte + "T12:00:00");
+        return getWeekNumber(d) === weekNum && getISOWeekYear(d) === currentYear &&
+               (!selectedPatronId || a.patron_id === selectedPatronId);
+      }).reduce((s, a) => s + (parseFloat(a.montant) || 0), 0);
+
+      const ca = weekMissions.reduce((s, m) => s + (m.montant || 0), 0);
+      const hours = weekMissions.reduce((s, m) => s + (m.duree || 0), 0);
+      const km = computeKmForMissions(weekMissions);
+
+      return {
+        weekNum,
+        ca,
+        hours,
+        frais: fraisWeek,
+        acomptes: acomptesWeek,
+        km: km.totalAmount,
+        kmKm: km.totalKm,
+        reste: Math.max(0, ca + fraisWeek + km.totalAmount - acomptesWeek),
+        missionsCount: weekMissions.length,
+      };
+    }).filter(Boolean);
+  }, [filteredMissions, fraisDivers, listeAcomptes, currentWeek, currentYear, selectedPatronId, computeKmForMissions]);
 
   // ── Top clients ──────────────────────────────────────────────────────────
   const topClients = useMemo(() => {
@@ -112,20 +205,9 @@ export function DashboardPanel({
       months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     }
     const labels = months.map(fmtMonthShort);
-
-    const getMonthlyCA = (ym) => filteredMissions
-      .filter((m) => getMonthKey(m.date_iso) === ym)
-      .reduce((s, m) => s + (m.montant || 0), 0);
-
-    const getMonthlyFrais = (ym) => fraisDivers
-      .filter((f) => getMonthKey(f.date_frais) === ym && (!selectedPatronId || f.patron_id === selectedPatronId))
-      .reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
-
-    return {
-      labels,
-      caData: months.map(getMonthlyCA),
-      fraisData: months.map(getMonthlyFrais),
-    };
+    const getMonthlyCA = (ym) => filteredMissions.filter((m) => getMonthKey(m.date_iso) === ym).reduce((s, m) => s + (m.montant || 0), 0);
+    const getMonthlyFrais = (ym) => fraisDivers.filter((f) => getMonthKey(f.date_frais) === ym && (!selectedPatronId || f.patron_id === selectedPatronId)).reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
+    return { labels, caData: months.map(getMonthlyCA), fraisData: months.map(getMonthlyFrais) };
   }, [filteredMissions, fraisDivers, selectedPatronId, now]);
 
   // ── Missions récentes ────────────────────────────────────────────────────
@@ -136,7 +218,6 @@ export function DashboardPanel({
   // ── Chart.js : initialisation unique + update sans recréer ──────────────
   useEffect(() => {
     if (!chartRef.current) return;
-
     const initChart = async () => {
       if (!window.Chart) {
         await new Promise((resolve, reject) => {
@@ -146,8 +227,6 @@ export function DashboardPanel({
           document.head.appendChild(s);
         });
       }
-
-      // ✅ FIX : si le chart existe déjà, on met à jour les données sans le détruire
       if (chartInstance.current) {
         chartInstance.current.data.labels = chartData.labels;
         chartInstance.current.data.datasets[0].data = chartData.caData;
@@ -155,60 +234,34 @@ export function DashboardPanel({
         chartInstance.current.update("active");
         return;
       }
-
-      // ✅ FIX : un seul ctx pour les deux gradients
       const ctx = chartRef.current.getContext('2d');
-
       const caGradient = ctx.createLinearGradient(0, 0, 0, 400);
       caGradient.addColorStop(0, chartColors.indigo.gradient[0]);
       caGradient.addColorStop(1, chartColors.indigo.gradient[1]);
-
       const fraisGradient = ctx.createLinearGradient(0, 0, 0, 400);
       fraisGradient.addColorStop(0, chartColors.amber.gradient[0]);
       fraisGradient.addColorStop(1, chartColors.amber.gradient[1]);
-
       chartInstance.current = new window.Chart(ctx, {
         type: "bar",
         data: {
           labels: chartData.labels,
           datasets: [
-            {
-              label: "Missions",
-              data: chartData.caData,
-              backgroundColor: caGradient,
-              borderRadius: 8, borderSkipped: false,
-              barPercentage: 0.7, categoryPercentage: 0.8,
-            },
-            {
-              label: "Frais",
-              data: chartData.fraisData,
-              backgroundColor: fraisGradient,
-              borderRadius: 8, borderSkipped: false,
-              barPercentage: 0.7, categoryPercentage: 0.8,
-            },
+            { label: "Missions", data: chartData.caData, backgroundColor: caGradient, borderRadius: 8, borderSkipped: false, barPercentage: 0.7, categoryPercentage: 0.8 },
+            { label: "Frais", data: chartData.fraisData, backgroundColor: fraisGradient, borderRadius: 8, borderSkipped: false, barPercentage: 0.7, categoryPercentage: 0.8 },
           ],
         },
         options: {
           ...chartOptions,
-          onHover: (e, activeElements) => {
-            e.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-          },
+          onHover: (e, activeElements) => { e.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default'; },
         },
       });
-
       setChartLoaded(true);
     };
-
     initChart();
-    return () => {
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-        chartInstance.current = null;
-      }
-    };
+    return () => { if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; } };
   }, [chartData]);
 
-  // ── Animation barres clients ─────────────────────────────────────────────
+  // ── Animation barres ─────────────────────────────────────────────────────
   useEffect(() => {
     const t = setTimeout(() => setBarsReady(true), 150);
     return () => clearTimeout(t);
@@ -217,30 +270,20 @@ export function DashboardPanel({
   // ── Couleurs patrons ─────────────────────────────────────────────────────
   const patronColorMap = useMemo(() => {
     const map = {};
-    patrons.forEach((p, i) => {
-      map[p.id] = p.couleur || ["#8B5CF6","#10B981","#F59E0B","#06B6D4","#F472B6","#EF4444","#3B82F6","#84CC16"][i % 8];
-    });
+    patrons.forEach((p, i) => { map[p.id] = p.couleur || ["#8B5CF6","#10B981","#F59E0B","#06B6D4","#F472B6","#EF4444","#3B82F6","#84CC16"][i % 8]; });
     return map;
   }, [patrons]);
 
   const maxClientCA = topClients[0]?.ca || 1;
+  const maxWeekCA = Math.max(...previousWeeks.map(w => w.ca), bilanSemaine.caWeek, 1);
 
   return (
     <div className="geo-dash" style={{ fontFamily: "'Syne', sans-serif", color: '#fff', padding: '0 0 40px' }}>
 
       {/* ── Header ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexWrap: 'wrap', gap: '12px', padding: '18px 0 16px',
-        borderBottom: '1px solid rgba(212,175,55,0.2)', marginBottom: '24px',
-      }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: '18px 0 16px', borderBottom: '1px solid rgba(212,175,55,0.2)', marginBottom: '24px' }}>
         <div></div>
-        <div style={{
-          fontFamily: "'DM Mono', monospace", fontSize: '11px',
-          color: 'rgba(255,255,255,0.45)', padding: '6px 14px',
-          borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(255,255,255,0.03)',
-        }}>
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.45)', padding: '6px 14px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}>
           Semaine {currentWeek} · {currentYear}
         </div>
       </div>
@@ -248,124 +291,70 @@ export function DashboardPanel({
       {/* ── Patron selector ── */}
       {patrons.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-          <span style={{
-            fontSize: '10px', color: 'rgba(255,255,255,0.35)',
-            textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 600, whiteSpace: 'nowrap',
-          }}>
-            Patron
-          </span>
-          <select
-            value={selectedPatronId || ""}
-            onChange={(e) => setSelectedPatronId(e.target.value || null)}
-            style={{
-              fontFamily: "'Syne', sans-serif",
-              fontSize: '13px', fontWeight: 600,
-              color: selectedPatronId ? '#D4AF37' : 'rgba(255,255,255,0.7)',
-              background: 'rgba(10,22,40,0.9)',
-              border: `1px solid ${selectedPatronId ? 'rgba(212,175,55,0.4)' : 'rgba(255,255,255,0.12)'}`,
-              borderRadius: '12px',
-              padding: '8px 36px 8px 14px',
-              cursor: 'pointer',
-              outline: 'none',
-              appearance: 'none',
-              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(212,175,55,0.6)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 12px center',
-              transition: 'border-color 0.2s, color 0.2s',
-              minWidth: '180px',
-            }}
-          >
-            <option value="" style={{ background: '#0A1628', color: '#fff' }}>
-              Tous les patrons
-            </option>
-            {patrons.map((p) => (
-              <option key={p.id} value={p.id} style={{ background: '#0A1628', color: '#fff' }}>
-                {p.nom}
-              </option>
-            ))}
+          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.18em', fontWeight: 600, whiteSpace: 'nowrap' }}>Patron</span>
+          <select value={selectedPatronId || ""} onChange={(e) => setSelectedPatronId(e.target.value || null)} style={{ fontFamily: "'Syne', sans-serif", fontSize: '13px', fontWeight: 600, color: selectedPatronId ? '#D4AF37' : 'rgba(255,255,255,0.7)', background: 'rgba(10,22,40,0.9)', border: `1px solid ${selectedPatronId ? 'rgba(212,175,55,0.4)' : 'rgba(255,255,255,0.12)'}`, borderRadius: '12px', padding: '8px 36px 8px 14px', cursor: 'pointer', outline: 'none', appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(212,175,55,0.6)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', transition: 'border-color 0.2s, color 0.2s', minWidth: '180px' }}>
+            <option value="" style={{ background: '#0A1628', color: '#fff' }}>Tous les patrons</option>
+            {patrons.map((p) => (<option key={p.id} value={p.id} style={{ background: '#0A1628', color: '#fff' }}>{p.nom}</option>))}
           </select>
         </div>
       )}
 
       {/* ── KPIs Grid ── */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '14px', marginBottom: '24px',
-      }}>
-        <KPICard
-          icon="💶" label="CA cette semaine" value={formatEuro(kpis.ca.value)}
-          delta={kpis.ca.delta} accentColor="gold" delay={0}
-          ariaLabel={`Chiffre d'affaires: ${formatEuro(kpis.ca.value)}`}
-        />
-        <KPICard
-          icon="⏱" label="Heures travaillées" value={formatHeures(kpis.hours.value)}
-          delta={kpis.hours.delta} accentColor="indigo" delay={100}
-          ariaLabel={`${formatHeures(kpis.hours.value)} travaillées`}
-        />
-        <KPICard
-          icon="✓" label="Missions" value={kpis.missionsCount}
-          delta={null} accentColor="emerald" delay={200}
-          ariaLabel={`${kpis.missionsCount} missions cette semaine`}
-        />
-        <KPICard
-          icon="📍" label="Taux horaire"
-          value={kpis.avgRate > 0 ? `${Math.round(kpis.avgRate * 10) / 10}€` : "—"}
-          delta={null} accentColor="cyan" delay={300}
-          ariaLabel={`Taux horaire moyen: ${kpis.avgRate.toFixed(2)} euros`}
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: kmEnabled ? 'repeat(auto-fit, minmax(175px, 1fr))' : 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+        <KPICard icon="💶" label="CA cette semaine" value={formatEuro(kpis.ca.value)} delta={kpis.ca.delta} accentColor="gold" delay={0} ariaLabel={`Chiffre d'affaires: ${formatEuro(kpis.ca.value)}`} />
+        <KPICard icon="⏱" label="Heures travaillées" value={formatHeures(kpis.hours.value)} delta={kpis.hours.delta} accentColor="indigo" delay={100} ariaLabel={`${formatHeures(kpis.hours.value)} travaillées`} />
+        <KPICard icon="✓" label="Missions" value={kpis.missionsCount} delta={null} accentColor="emerald" delay={200} ariaLabel={`${kpis.missionsCount} missions cette semaine`} />
+        <KPICard icon="📍" label="Taux horaire" value={kpis.avgRate > 0 ? `${Math.round(kpis.avgRate * 10) / 10}€` : "—"} delta={null} accentColor="cyan" delay={300} ariaLabel={`Taux horaire moyen: ${kpis.avgRate.toFixed(2)} euros`} />
+
+        {/* ── KPI Frais km ── */}
+        {kmEnabled && (
+          <div style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(16,185,129,0.04))', border: '1px solid rgba(16,185,129,0.25)', borderRadius: '18px', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative', overflow: 'hidden', animation: 'fadeSlideUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.4s both' }}>
+            <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(16,185,129,0.7)', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '6px', padding: '2px 6px' }}>KM</div>
+            <span style={{ fontSize: '18px', lineHeight: 1 }}>🚗</span>
+            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'rgba(255,255,255,0.35)', marginTop: '2px' }}>Frais km</span>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '22px', fontWeight: 600, color: kmThisWeek.totalAmount > 0 ? '#10B981' : 'rgba(255,255,255,0.25)', lineHeight: 1.1 }}>
+              {kmThisWeek.totalAmount > 0 ? formatEuro(kmThisWeek.totalAmount) : '—'}
+            </span>
+            {kmThisWeek.totalKm > 0 && (
+              <span style={{ fontSize: '10px', color: 'rgba(16,185,129,0.6)', fontFamily: "'DM Mono', monospace" }}>
+                {Math.round(kmThisWeek.totalKm)} km
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Milieu : graphique + missions ── */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 320px', gap: '16px', marginBottom: '24px',
-      }} className="dashboard-grid">
-        {/* Graphique CA */}
-        <div style={{
-          background: tokens.colors.bg.surface, border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '20px', padding: '20px', backdropFilter: 'blur(12px)',
-        }}>
-          <div style={{
-            fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)',
-            marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <span>CA mensuel <span style={{ color: '#D4AF37' }}>(6 derniers mois)</span></span>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '16px', marginBottom: '24px' }} className="dashboard-grid">
+
+        {/* Graphique CA — hauteur réduite */}
+        <div style={{ background: tokens.colors.bg.surface, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '20px', backdropFilter: 'blur(12px)' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>CA mensuel <span style={{ color: '#D4AF37' }}>(6 mois)</span></span>
             <div style={{ display: 'flex', gap: '12px' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: chartColors.indigo.primary, display: 'inline-block' }} aria-hidden="true"></span>Missions
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: chartColors.indigo.primary, display: 'inline-block' }} aria-hidden="true" />Missions
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '9px', color: 'rgba(255,255,255,0.4)' }}>
-                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: chartColors.amber.primary, display: 'inline-block' }} aria-hidden="true"></span>Frais
+                <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: chartColors.amber.primary, display: 'inline-block' }} aria-hidden="true" />Frais
               </span>
             </div>
           </div>
-          <div style={{ position: 'relative', height: '220px', width: '100%' }}>
-            {!chartLoaded && (
-              <div className="skeleton" style={{ position: 'absolute', inset: 0, borderRadius: '12px' }} aria-label="Chargement du graphique" />
-            )}
+          {/* ✅ Hauteur réduite : 180px au lieu de 220px */}
+          <div style={{ position: 'relative', height: '180px', width: '100%' }}>
+            {!chartLoaded && (<div className="skeleton" style={{ position: 'absolute', inset: 0, borderRadius: '12px' }} aria-label="Chargement du graphique" />)}
             <canvas ref={chartRef} role="img" aria-label="Graphique du chiffre d'affaires sur 6 mois" />
           </div>
         </div>
 
         {/* Missions récentes */}
-        <div style={{
-          background: tokens.colors.bg.surface, border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '20px', padding: '20px', backdropFilter: 'blur(12px)',
-        }}>
-          <div style={{
-            fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)',
-            marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
+        <div style={{ background: tokens.colors.bg.surface, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '20px', backdropFilter: 'blur(12px)' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>Missions <span style={{ color: '#D4AF37' }}>cette semaine</span></span>
-            <span style={{ fontSize: '9px', color: chartColors.indigo.primary, fontWeight: 700 }}>
-              {missionsThisWeek.length} / {filteredMissions.length}
-            </span>
+            <span style={{ fontSize: '9px', color: chartColors.indigo.primary, fontWeight: 700 }}>{missionsThisWeek.length} / {filteredMissions.length}</span>
           </div>
           {recentMissions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 0', fontSize: '12px', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>
-              Aucune mission cette semaine
-            </div>
+            <div style={{ textAlign: 'center', padding: '24px 0', fontSize: '12px', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>Aucune mission cette semaine</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {recentMissions.map((m, idx) => {
@@ -373,48 +362,23 @@ export function DashboardPanel({
                 const day = d.getDate().toString().padStart(2, "0");
                 const month = d.toLocaleString("fr-FR", { month: "short" });
                 return (
-                  <div key={m.id || idx} style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '10px', borderRadius: '12px',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    transition: 'background 0.15s ease, transform 0.15s ease',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.transform = 'translateX(4px)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'translateX(0)'; }}
-                  >
-                    <div style={{
-                      width: '42px', height: '42px', flexShrink: 0,
-                      borderRadius: '12px', background: 'rgba(79,70,229,0.15)',
-                      border: '1px solid rgba(79,70,229,0.3)',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                      fontFamily: "'DM Mono', monospace",
-                    }}>
+                  <div key={m.id || idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.15s ease, transform 0.15s ease', cursor: 'pointer' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.transform = 'translateX(4px)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'translateX(0)'; }}>
+                    <div style={{ width: '42px', height: '42px', flexShrink: 0, borderRadius: '12px', background: 'rgba(79,70,229,0.15)', border: '1px solid rgba(79,70,229,0.3)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Mono', monospace" }}>
                       <span style={{ fontSize: '14px', fontWeight: 500, color: chartColors.indigo.primary, lineHeight: 1 }}>{day}</span>
                       <span style={{ fontSize: '8px', color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase' }}>{month}</span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {m.client || "—"}
-                      </div>
-                      <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>
-                        {m.lieu ? `📍 ${m.lieu} · ` : ""}{m.debut}–{m.fin}
-                      </div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.client || "—"}</div>
+                      <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', marginTop: '2px' }}>{m.lieu ? `📍 ${m.lieu} · ` : ""}{m.debut}–{m.fin}</div>
                     </div>
                     <div style={{ textAlign: 'right', fontFamily: "'DM Mono', monospace" }}>
-                      <div style={{ fontSize: '13px', fontWeight: 500, color: chartColors.emerald.primary }}>
-                        {formatEuro(m.montant || 0)}
-                      </div>
-                      <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', marginTop: '2px' }}>
-                        {formatHeures(m.duree || 0)}
-                      </div>
+                      <div style={{ fontSize: '13px', fontWeight: 500, color: chartColors.emerald.primary }}>{formatEuro(m.montant || 0)}</div>
+                      <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', marginTop: '2px' }}>{formatHeures(m.duree || 0)}</div>
                     </div>
                     {patronColorMap[m.patron_id] && (
-                      <span style={{
-                        width: '6px', height: '6px', borderRadius: '50%',
-                        background: patronColorMap[m.patron_id], flexShrink: 0,
-                        boxShadow: `0 0 6px ${patronColorMap[m.patron_id]}`,
-                      }} aria-hidden="true" />
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: patronColorMap[m.patron_id], flexShrink: 0, boxShadow: `0 0 6px ${patronColorMap[m.patron_id]}` }} aria-hidden="true" />
                     )}
                   </div>
                 );
@@ -425,19 +389,11 @@ export function DashboardPanel({
       </div>
 
       {/* ── Bas : bilan + clients + semaines précédentes ── */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px',
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+
         {/* Bilan semaine */}
-        <div style={{
-          background: `linear-gradient(135deg, ${tokens.colors.bg.surfaceElevated}, ${tokens.colors.bg.surface})`,
-          border: `1px solid ${tokens.colors.gold.glow}`, borderRadius: '20px', padding: '20px',
-          backdropFilter: 'blur(12px)',
-        }}>
-          <div style={{
-            fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', marginBottom: '14px',
-          }}>
+        <div style={{ background: `linear-gradient(135deg, ${tokens.colors.bg.surfaceElevated}, ${tokens.colors.bg.surface})`, border: `1px solid ${tokens.colors.gold.glow}`, borderRadius: '20px', padding: '20px', backdropFilter: 'blur(12px)' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', marginBottom: '14px' }}>
             Bilan <span style={{ color: '#D4AF37' }}>semaine {currentWeek}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '12px' }}>
@@ -450,40 +406,31 @@ export function DashboardPanel({
               <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 500, color: chartColors.amber.primary }}>+{formatEuro(bilanSemaine.fraisWeek)}</span>
             </div>
           )}
+          {kmEnabled && bilanSemaine.kmWeek > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '12px' }}>
+              <span style={{ color: 'rgba(255,255,255,0.4)' }}>Frais km</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 500, color: '#10B981' }}>+{formatEuro(bilanSemaine.kmWeek)}</span>
+            </div>
+          )}
           {bilanSemaine.acomptesWeek > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '12px' }}>
               <span style={{ color: 'rgba(255,255,255,0.4)' }}>Acomptes reçus</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 500, color: chartColors.cyan.primary }}>−{formatEuro(bilanSemaine.acomptesWeek)}</span>
             </div>
           )}
-          <div style={{
-            marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${tokens.colors.gold.glow}`,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#D4AF37', fontWeight: 700 }}>
-              Reste à percevoir
-            </span>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '20px', fontWeight: 600, color: '#D4AF37' }}>
-              {formatEuro(bilanSemaine.resteApercevoir)}
-            </span>
+          <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${tokens.colors.gold.glow}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#D4AF37', fontWeight: 700 }}>Reste à percevoir</span>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '20px', fontWeight: 600, color: '#D4AF37' }}>{formatEuro(bilanSemaine.resteApercevoir)}</span>
           </div>
         </div>
 
         {/* Top clients */}
-        <div style={{
-          background: tokens.colors.bg.surface, border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '20px', padding: '20px', backdropFilter: 'blur(12px)',
-        }}>
-          <div style={{
-            fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', marginBottom: '14px',
-          }}>
+        <div style={{ background: tokens.colors.bg.surface, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '20px', backdropFilter: 'blur(12px)' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', marginBottom: '14px' }}>
             Top clients <span style={{ color: '#D4AF37' }}>(CA cumulé)</span>
           </div>
           {topClients.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '24px 0', fontSize: '12px', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>
-              Aucun client trouvé
-            </div>
+            <div style={{ textAlign: 'center', padding: '24px 0', fontSize: '12px', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>Aucun client trouvé</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {topClients.map((c, i) => {
@@ -496,19 +443,8 @@ export function DashboardPanel({
                       <span style={{ fontFamily: "'DM Mono', monospace", color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>{Math.round(c.ca).toLocaleString("fr-FR")} €</span>
                     </div>
                     <div style={{ height: '5px', background: 'rgba(255,255,255,0.07)', borderRadius: '4px', overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          height: '100%', borderRadius: '4px',
-                          width: barsReady ? pct + '%' : '0%',
-                          background: colors[i % colors.length],
-                          transition: 'width 0.9s cubic-bezier(0.16, 1, 0.3, 1)',
-                        }}
-                        role="progressbar"
-                        aria-valuenow={pct}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-label={`${c.name}: ${pct}% du CA`}
-                      />
+                      <div style={{ height: '100%', borderRadius: '4px', width: barsReady ? pct + '%' : '0%', background: colors[i % colors.length], transition: 'width 0.9s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                        role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={`${c.name}: ${pct}% du CA`} />
                     </div>
                   </div>
                 );
@@ -517,26 +453,90 @@ export function DashboardPanel({
           )}
         </div>
 
-        {/* Semaines précédentes */}
-        <div style={{
-          background: tokens.colors.bg.surface, border: '1px solid rgba(255,255,255,0.08)',
-          borderRadius: '20px', padding: '20px', backdropFilter: 'blur(12px)',
-        }}>
-          <div style={{
-            fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', marginBottom: '14px',
-          }}>
+        {/* ── Semaines précédentes ── */}
+        <div style={{ background: tokens.colors.bg.surface, border: '1px solid rgba(255,255,255,0.08)', borderRadius: '20px', padding: '20px', backdropFilter: 'blur(12px)' }}>
+          <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.35)', marginBottom: '14px' }}>
             Semaines <span style={{ color: '#D4AF37' }}>précédentes</span>
           </div>
-          <div style={{
-            marginTop: '14px', padding: '12px', borderRadius: '12px',
-            background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.15em', color: chartColors.emerald.primary, fontWeight: 700 }}>
-              CA total cumulé
-            </span>
-            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '16px', color: chartColors.emerald.primary, fontWeight: 600 }}>
+
+          {previousWeeks.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '24px 0', fontSize: '12px', color: 'rgba(255,255,255,0.25)', fontStyle: 'italic' }}>Aucune donnée</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              {previousWeeks.map((w, idx) => {
+                const barPct = Math.round((w.ca / maxWeekCA) * 100);
+                const hasData = w.ca > 0 || w.missionsCount > 0;
+                const hasDetails = w.frais > 0 || (kmEnabled && w.km > 0) || w.acomptes > 0;
+                return (
+                  <div key={w.weekNum} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)', opacity: hasData ? 1 : 0.4 }}>
+                    {/* Ligne principale */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '9px 12px', background: idx === 0 ? 'rgba(212,175,55,0.04)' : 'transparent' }}>
+                      {/* Badge S## */}
+                      <div style={{ flexShrink: 0, width: '32px', height: '32px', borderRadius: '8px', background: idx === 0 ? 'rgba(212,175,55,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${idx === 0 ? 'rgba(212,175,55,0.25)' : 'rgba(255,255,255,0.07)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: '7px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', lineHeight: 1 }}>S</span>
+                        <span style={{ fontSize: '13px', fontWeight: 700, lineHeight: 1, fontFamily: "'DM Mono', monospace", color: idx === 0 ? '#D4AF37' : 'rgba(255,255,255,0.55)' }}>{w.weekNum}</span>
+                      </div>
+
+                      {/* Centre */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        {/* Mini barre CA */}
+                        <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden', marginBottom: '5px' }}>
+                          <div style={{ height: '100%', borderRadius: '2px', width: barsReady ? barPct + '%' : '0%', background: idx === 0 ? 'linear-gradient(90deg, #D4AF37, #F5D06A)' : `linear-gradient(90deg, ${chartColors.indigo.primary}, rgba(79,70,229,0.3))`, transition: `width ${0.5 + idx * 0.08}s cubic-bezier(0.16, 1, 0.3, 1)` }} />
+                        </div>
+                        {/* CA + heures + missions */}
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '12px', fontWeight: 600, color: hasData ? '#fff' : 'rgba(255,255,255,0.2)' }}>
+                            {formatEuro(w.ca)}
+                          </span>
+                          <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)' }}>·</span>
+                          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)' }}>{formatHeures(w.hours)}</span>
+                          {w.missionsCount > 0 && (
+                            <>
+                              <span style={{ fontSize: '9px', color: 'rgba(255,255,255,0.2)' }}>·</span>
+                              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)' }}>{w.missionsCount}×</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Reste à percevoir / payé */}
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        {w.reste > 0.01 ? (
+                          <div style={{ fontSize: '10px', fontFamily: "'DM Mono', monospace", color: '#F59E0B', fontWeight: 600, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.18)', borderRadius: '6px', padding: '2px 7px' }}>
+                            {formatEuro(w.reste)}
+                          </div>
+                        ) : w.ca > 0 ? (
+                          <div style={{ fontSize: '9px', color: '#10B981', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.18)', borderRadius: '6px', padding: '2px 7px' }}>✓ payé</div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {/* Ligne détails frais/km/acomptes */}
+                    {hasData && hasDetails && (
+                      <div style={{ display: 'flex', gap: '10px', padding: '4px 12px 7px 54px', borderTop: '1px solid rgba(255,255,255,0.04)', flexWrap: 'wrap' }}>
+                        {w.frais > 0 && (
+                          <span style={{ fontSize: '9px', color: chartColors.amber.primary, fontFamily: "'DM Mono', monospace" }}>+{formatEuro(w.frais)} frais</span>
+                        )}
+                        {kmEnabled && w.km > 0 && (
+                          <span style={{ fontSize: '9px', color: '#10B981', fontFamily: "'DM Mono', monospace" }}>
+                            🚗 {formatEuro(w.km)}{w.kmKm > 0 ? ` · ${Math.round(w.kmKm)}km` : ''}
+                          </span>
+                        )}
+                        {w.acomptes > 0 && (
+                          <span style={{ fontSize: '9px', color: chartColors.cyan.primary, fontFamily: "'DM Mono', monospace" }}>−{formatEuro(w.acomptes)} acompte</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Total cumulé */}
+          <div style={{ marginTop: '12px', padding: '10px 12px', borderRadius: '12px', background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.15em', color: chartColors.emerald.primary, fontWeight: 700 }}>CA total cumulé</span>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: '15px', color: chartColors.emerald.primary, fontWeight: 600 }}>
               {formatEuro(filteredMissions.reduce((s, m) => s + (m.montant || 0), 0))}
             </span>
           </div>
