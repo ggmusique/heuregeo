@@ -48,7 +48,7 @@ import { getLabels } from "./utils/labels";
 import "./time-inputs-fix.css";
 import "./fix-time-pickers-emergency.css";
 import "./fix-selects.css";
-import "../../animations-premium.css";
+import "./animations-premium.css";
 
 export default function App({ user }) {
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
