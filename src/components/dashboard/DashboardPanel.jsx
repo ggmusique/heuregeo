@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useRef, useState, memo } from "react";
+﻿import React, { useMemo, useEffect, useRef, useState, memo } from "react";
 import { getWeekNumber } from "../../utils/dateUtils";
 import { formatEuro, formatHeures } from "../../utils/formatters";
 import { chartColors, chartOptions } from "../../utils/chartConfig"; // NOUVEAU
