@@ -1,7 +1,7 @@
 ﻿import React from "react";
 import { tokens } from "../../utils/designTokens";
 
-export function MainLayout({ children, profile, themeConfig, isDark, liveTime, isLoading, loadingMessage }) {
+export function MainLayout({ isPro, isViewer, APP_VERSION,  children, profile, themeConfig, isDark, liveTime, isLoading, loadingMessage }) {
   return (
     <div className={isDark ? "dark bg-[#020818] text-white" : "light " + themeConfig.bg}>
       {/* Background Effects */}
@@ -16,6 +16,33 @@ export function MainLayout({ children, profile, themeConfig, isDark, liveTime, i
           <h1 className="text-[#D4AF37] font-black text-2xl italic tracking-[0.2em] mb-4 animate-pulse">
             HEURES DE {profile?.prenom?.trim()?.toUpperCase() || "GEO"}
           </h1>
+      {/* Badge Pro */}
+      {isPro && !isViewer && (
+        <div className="text-center py-1 mb-2">
+          <span
+            className={
+              "inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border " +
+              (isDark
+                ? "bg-yellow-500/15 border-yellow-500/40 text-yellow-400"
+                : "bg-amber-50 border-amber-400/60 text-amber-600")
+            }
+          >
+            ✨ Pro
+          </span>
+        </div>
+      )}
+
+      {/* Badge Version */}
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <span
+          className={
+            "text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border " +
+            (isDark ? "border-white/20 text-white/40" : "border-slate-300 text-slate-500/70")
+          }
+        >
+          v{APP_VERSION} ✓ OTA
+        </span>
+      </div>
           <div className="w-64 h-1 bg-white/10 rounded-full overflow-hidden">
             <div className="h-full bg-[#D4AF37] animate-[shimmer_1.5s_infinite]" style={{ width: '60%' }} />
           </div>
@@ -30,6 +57,33 @@ export function MainLayout({ children, profile, themeConfig, isDark, liveTime, i
           <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[#D4AF37] mb-2 drop-shadow-2xl font-['Playfair_Display']">
             {"HEURES DE " + (profile?.prenom?.trim()?.toUpperCase() || "GEO")}
           </h1>
+      {/* Badge Pro */}
+      {isPro && !isViewer && (
+        <div className="text-center py-1 mb-2">
+          <span
+            className={
+              "inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border " +
+              (isDark
+                ? "bg-yellow-500/15 border-yellow-500/40 text-yellow-400"
+                : "bg-amber-50 border-amber-400/60 text-amber-600")
+            }
+          >
+            ✨ Pro
+          </span>
+        </div>
+      )}
+
+      {/* Badge Version */}
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <span
+          className={
+            "text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border " +
+            (isDark ? "border-white/20 text-white/40" : "border-slate-300 text-slate-500/70")
+          }
+        >
+          v{APP_VERSION} ✓ OTA
+        </span>
+      </div>
           <div className={"flex items-center justify-center gap-2 " + (isDark ? "text-white/90" : "text-slate-700")}>
             <span className="text-[17px] font-black tracking-tight">{liveTime}</span>
             <span className="text-[15px] font-medium opacity-80 lowercase">
@@ -46,3 +100,5 @@ export function MainLayout({ children, profile, themeConfig, isDark, liveTime, i
     </div>
   );
 }
+
+
