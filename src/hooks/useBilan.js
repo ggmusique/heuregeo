@@ -193,7 +193,7 @@ export function useBilan({
     [bilanPeriodType, bilanPeriodValue]
   );
 
- const getImpayePrecedent = useCallback(
+const getImpayePrecedent = useCallback(
   async (currentWeek, patronId = null) => {
     const pId = effectivePatronId(patronId);
     const currentIndex = parseInt(currentWeek, 10) || 0;
@@ -205,18 +205,22 @@ export function useBilan({
 
       const { data, error } = await supabase
         .from(TABLE)
-        .select("periode_index, paye, reste_a_percevoir")
+        .select("periode_index, paye, reste_a_percevoir, ca_brut_periode, acompte_consomme")
         .eq("periode_type", PERIOD_TYPES.SEMAINE)
         .eq("patron_id", pId)
         .lt("periode_index", currentIndex)
-        .or("paye.eq.false,reste_a_percevoir.gt.0");
+        .eq("paye", false);
 
-      if (error) {
-        console.error("BILANS_QUERY_ERROR", { scope: "impaye_precedent", patronId: pId, currentIndex, error });
-        throw error;
-      }
+      if (error) throw error;
 
-      const impayePrecedent = computeImpayePrecedent(data);
+      // Recalcule le vrai reste depuis ca_brut - acompte_consomme
+      // pour éviter de lire un reste_a_percevoir corrompu en DB
+      const impayePrecedent = (data || []).reduce((sum, r) => {
+        const ca = parseFloat(r.ca_brut_periode || 0);
+        const consomme = parseFloat(r.acompte_consomme || 0);
+        const resteReel = Math.max(0, ca - consomme);
+        return sum + resteReel;
+      }, 0);
 
       return impayePrecedent;
     } catch (err) {
@@ -712,21 +716,21 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
             return false;
           }
 
-          if (!existingBilan?.id) {
-            const { error: insertError } = await supabase
-              .from(TABLE)
-              .insert({
-                user_id: user.id,
-                periode_type: bilanPeriodType,
-                periode_value: bilanPeriodValue,
-                periode_index: periodeIndex,
-                patron_id: pId,
-                ca_brut_periode: caBrutPeriode,
-                paye: false,
-                date_paiement: null,
-                acompte_consomme: 0,
-                reste_a_percevoir: caBrutPeriode,
-              });
+       if (!existingBilan?.id) {
+  const { error: insertError } = await supabase
+    .from(TABLE)
+    .insert({
+      user_id: user.id,
+      periode_type: bilanPeriodType,
+      periode_value: bilanPeriodValue,
+      periode_index: periodeIndex,
+      patron_id: pId,
+      ca_brut_periode: caBrutPeriode,
+      paye: false,
+      date_paiement: null,
+      acompte_consomme: acompteConsomme,        // ← était 0
+      reste_a_percevoir: resteCettePeriode,      // ← était caBrutPeriode
+    });
 
             if (insertError) {
               triggerAlert?.("Erreur sauvegarde bilan.");
