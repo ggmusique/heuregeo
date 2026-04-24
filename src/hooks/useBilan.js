@@ -732,16 +732,15 @@ if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
               triggerAlert?.("Erreur sauvegarde bilan.");
               return false;
             }
-          } else {
-            const { error: updateError } = await supabase
-              .from(TABLE)
-              .update({
-                ca_brut_periode: caBrutPeriode,
-                periode_index: periodeIndex,
-                // Corrige les valeurs reste_a_percevoir périmées (ex: incluaient les frais KM par erreur)
-                reste_a_percevoir: isPaid ? 0 : caBrutPeriode,
-              })
-              .eq("id", existingBilan.id);
+         } else {
+    const { error: updateError } = await supabase
+      .from(TABLE)
+      .update({
+        ca_brut_periode: caBrutPeriode,
+        periode_index: periodeIndex,
+        reste_a_percevoir: isPaid ? 0 : resteCettePeriode,  // ← utilise la valeur nette calculée
+      })
+      .eq("id", existingBilan.id);
 
             if (updateError) {
               triggerAlert?.("Erreur sauvegarde bilan.");
