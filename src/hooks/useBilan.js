@@ -284,15 +284,22 @@ export function useBilan({
           allocByWeek[idx] = (allocByWeek[idx] || 0) + (parseFloat(a.amount) || 0);
         });
 
-        const rows = (data || []).map((r) => {
-          const patron_nom = resolvePatronNom(r.patron_id);
-          // ✅ Vrai reste = ca_brut de CETTE semaine - allocations de CETTE semaine
-          const ca = parseFloat(r.ca_brut_periode || 0);
-          const alloue = allocByWeek[r.periode_index] || 0;
-          const resteReel = Math.max(0, ca - alloue);
-          const payeNormalise = r?.paye === true && !(resteReel > 0.01);
-          return { ...r, patron_nom, paye: payeNormalise, reste_a_percevoir: resteReel };
-        });
+      const rows = (data || []).map((r) => {
+  const patron_nom = resolvePatronNom(r.patron_id);
+  
+  // ✅ Si déjà marqué payé en DB, on lui fait confiance
+  if (r.paye === true) {
+    return { ...r, patron_nom, paye: true, reste_a_percevoir: 0 };
+  }
+
+  // ✅ Pour les non payés, calcul depuis les allocations réelles
+  const ca = parseFloat(r.ca_brut_periode || 0);
+  const alloue = allocByWeek[r.periode_index] || 0;
+  const resteReel = Math.max(0, ca - alloue);
+  const payeNormalise = resteReel <= 0.01;
+
+  return { ...r, patron_nom, paye: payeNormalise, reste_a_percevoir: resteReel };
+});
 
         const impayes = rows
           .filter((r) => r.paye === false)
