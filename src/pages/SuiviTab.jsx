@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { HistoriqueTab } from "./HistoriqueTab";
 import { BilanTab } from "./BilanTab";
 
@@ -8,11 +8,7 @@ export function SuiviTab({
   historiqueProps,
   bilanProps,
 }) {
-  const [view, setView] = useState(defaultView);
-
-  useEffect(() => {
-    setView(defaultView);
-  }, [defaultView]);
+  const [view, setView] = useState(defaultView === "bilan" ? "bilan" : "historique");
 
   const tabs = useMemo(
     () => [

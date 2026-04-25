@@ -76,13 +76,14 @@ export const useProfile = (user) => {
   const canKilometrage = isPro || features?.kilometrage === true
   const canAgenda      = features?.agenda   === true
   const canFacture     = features?.facture  === true
+  const canDashboard   = features?.dashboard === true
 
   return {
     profile, loading, saving, error, saveProfile, fetchProfile,
     isProfileComplete, isViewer, viewerPatronId,
     isAdmin, features, isPro,
     canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV,
-    canMultiPatron, canViewerMode, canHistoriqueComplet, canKilometrage, canAgenda, canFacture,
+    canMultiPatron, canViewerMode, canHistoriqueComplet, canKilometrage, canAgenda, canFacture, canDashboard,
   }
 }
 
