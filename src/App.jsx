@@ -319,6 +319,18 @@ export default function App({ user }) {
           <SuiviTab
             defaultView={isViewer ? "bilan" : historiqueHook.suiviDefaultView}
             darkMode={darkMode}
+            dashboardProps={{
+              missions,
+              fraisDivers,
+              listeAcomptes,
+              patrons,
+              clients,
+              lieux,
+              profile,
+              darkMode,
+              kmSettings,
+              domicileLatLng,
+            }}
             historiqueProps={{
               historique: historiqueHook.historique,
               historiquePatronId: historiqueHook.historiquePatronId,

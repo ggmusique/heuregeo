@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { HistoriqueTab } from "./HistoriqueTab";
 import { BilanTab } from "./BilanTab";
+import { DashboardPanel } from "../components/dashboard/DashboardPanel";
 
 export function SuiviTab({
   defaultView = "historique",
   darkMode = true,
+  dashboardProps,
   historiqueProps,
   bilanProps,
 }) {
@@ -12,6 +14,7 @@ export function SuiviTab({
 
   const tabs = useMemo(
     () => [
+      { key: "dashboard", label: "📊 Dashboard" },
       { key: "historique", label: "Historique" },
       { key: "bilan", label: "Bilan" },
     ],
@@ -38,6 +41,20 @@ export function SuiviTab({
         })}
       </div>
 
+      {view === "dashboard" && (
+        <DashboardPanel
+          missions={dashboardProps.missions}
+          fraisDivers={dashboardProps.fraisDivers}
+          listeAcomptes={dashboardProps.listeAcomptes}
+          patrons={dashboardProps.patrons}
+          clients={dashboardProps.clients}
+          lieux={dashboardProps.lieux}
+          profile={dashboardProps.profile}
+          darkMode={dashboardProps.darkMode}
+          kmSettings={dashboardProps.kmSettings}
+          domicileLatLng={dashboardProps.domicileLatLng}
+        />
+      )}
       {view === "historique" && <HistoriqueTab {...historiqueProps} />}
       {view === "bilan" && <BilanTab {...bilanProps} />}
     </section>
