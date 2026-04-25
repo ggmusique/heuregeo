@@ -6,6 +6,7 @@ import { tokens } from "../../utils/designTokens";
 import { KPICard } from "./KPICard";
 import { KM_RATES } from "../../utils/kmRatesByCountry";
 import { haversineKm } from "../../utils/calculators";
+import { supabase } from "../../services/supabase";
 
 function getISOWeekYear(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -41,6 +42,7 @@ export function DashboardPanel({
   const [selectedPatronId, setSelectedPatronId] = useState(null);
   const [barsReady, setBarsReady] = useState(false);
   const [chartLoaded, setChartLoaded] = useState(false);
+  const [allocByWeek, setAllocByWeek] = useState({});
 
   const now = useMemo(() => new Date(), []);
   const currentWeek = useMemo(() => getWeekNumber(now), [now]);
@@ -219,11 +221,11 @@ export function DashboardPanel({
         acomptes: acomptesWeek,
         km: km.totalAmount,
         kmKm: km.totalKm,
-        reste: Math.max(0, ca + fraisWeek + km.totalAmount - acomptesWeek),
+        reste: Math.max(0, ca - (allocByWeek[weekNum] || 0)),
         missionsCount: weekMissions.length,
       };
     }).filter(Boolean);
-  }, [filteredMissions, fraisDivers, listeAcomptes, currentWeek, currentYear, selectedPatronId, computeKmForMissions]);
+  }, [filteredMissions, fraisDivers, listeAcomptes, currentWeek, currentYear, selectedPatronId, computeKmForMissions, allocByWeek]);
 
   const topClients = useMemo(() => {
     const map = {};
@@ -263,6 +265,32 @@ export function DashboardPanel({
       fraisData: months.map(getMonthlyFrais),
     };
   }, [filteredMissions, fraisDivers, selectedPatronId, now]);
+
+  useEffect(() => {
+    const fetchAllocs = async () => {
+      try {
+        let query = supabase.from("acompte_allocations").select("periode_index, amount, patron_id");
+
+        if (selectedPatronId) {
+          query = query.eq("patron_id", selectedPatronId);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const map = {};
+        (data || []).forEach((a) => {
+          const idx = a.periode_index;
+          map[idx] = (map[idx] || 0) + (parseFloat(a.amount) || 0);
+        });
+        setAllocByWeek(map);
+      } catch (err) {
+        console.error("DashboardPanel fetchAllocs error:", err);
+      }
+    };
+
+    fetchAllocs();
+  }, [selectedPatronId]);
 
   useEffect(() => {
     if (!chartRef.current) return;
