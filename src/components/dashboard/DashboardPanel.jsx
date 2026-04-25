@@ -286,17 +286,26 @@ export function DashboardPanel({
         });
         setAllocByWeek(map);
 
+        // Fetch past unpaid bilans using ca_brut_periode (not reste_a_percevoir which is
+        // a cascaded/cumulative value that would double-count historical debts if summed).
+        // Only look at weeks strictly before the current week.
         const { data: bilansImpayes, error: bilansError } = await supabase
           .from("bilans_status_v2")
-          .select("reste_a_percevoir, patron_id")
+          .select("ca_brut_periode, patron_id, periode_index")
           .eq("paye", false)
-          .gt("reste_a_percevoir", 0.01);
+          .eq("periode_type", "semaine")
+          .lt("periode_index", currentWeek)
+          .gt("ca_brut_periode", 0.01);
 
         if (bilansError) throw bilansError;
 
         const totalImpayesFiltered = (bilansImpayes || [])
           .filter((b) => !selectedPatronId || b.patron_id === selectedPatronId)
-          .reduce((s, b) => s + parseFloat(b.reste_a_percevoir || 0), 0);
+          .reduce((s, b) => {
+            const ca = parseFloat(b.ca_brut_periode || 0);
+            const alloue = map[b.periode_index] || 0;
+            return s + Math.max(0, ca - alloue);
+          }, 0);
 
         setTotalImpayesDB(totalImpayesFiltered);
       } catch (err) {
@@ -305,7 +314,7 @@ export function DashboardPanel({
     };
 
     fetchAllocs();
-  }, [selectedPatronId]);
+  }, [selectedPatronId, currentWeek]);
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -558,7 +567,7 @@ export function DashboardPanel({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 260px",
+          gridTemplateColumns: "minmax(200px, 420px) 260px",
           gap: "16px",
           marginBottom: "24px",
         }}
@@ -795,7 +804,7 @@ export function DashboardPanel({
                 Total à percevoir (impayés inclus)
               </span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "20px", fontWeight: 600, color: "#F97316" }}>
-                {formatEuro(totalImpayesDB)}
+                {formatEuro(bilanSemaine.resteApercevoir + totalImpayesDB)}
               </span>
             </div>
           )}
