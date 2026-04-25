@@ -795,7 +795,7 @@ export function DashboardPanel({
                 Total à percevoir (impayés inclus)
               </span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "20px", fontWeight: 600, color: "#F97316" }}>
-                {formatEuro(totalImpayesDB + bilanSemaine.resteApercevoir)}
+                {formatEuro(totalImpayesDB)}
               </span>
             </div>
           )}
