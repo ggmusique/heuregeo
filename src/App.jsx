@@ -4,6 +4,7 @@ import { SaisieTab } from "./pages/SaisieTab";
 import { SuiviTab } from "./pages/SuiviTab";
 import { ParametresTab } from "./pages/ParametresTab";
 import { AgendaTab } from "./pages/AgendaTab";
+import { DashboardPanel } from "./components/dashboard/DashboardPanel";
 
 import { useClients } from "./hooks/useClients";
 import { useMissions } from "./hooks/useMissions";
@@ -88,7 +89,7 @@ export default function App({ user }) {
     (error) => triggerAlert(error)
   );
 
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canAgenda, canFacture } = useProfile(user);
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canAgenda, canFacture, canDashboard } = useProfile(user);
 
   const labels = getLabels(profile);
 
@@ -174,6 +175,12 @@ export default function App({ user }) {
     if (!canAgenda && activeTab === "agenda") setActiveTab("saisie");
   }, [canAgenda, activeTab]);
 
+  useEffect(() => {
+    if (!canDashboard && activeTab === "dashboard") {
+      setActiveTab("suivi");
+    }
+  }, [canDashboard, activeTab]);
+
   const handleMarquerCommePaye = async () => {
     const confirmed = await showConfirm({ title: "Marquer comme paye", message: "Voulez-vous marquer ce bilan comme paye ?", confirmText: "Confirmer", cancelText: "Annuler", type: "info" });
     if (!confirmed) return;
@@ -183,8 +190,9 @@ export default function App({ user }) {
   const isProNavigationMode = isPro && !isViewer;
 
   const proNavItems = [
-    { key: "saisie",     label: "Saisie",     icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
-    { key: "suivi",      label: "Suivi",      icon: "📊", activeClass: "from-cyan-600 to-indigo-700" },
+    { key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
+    ...(canDashboard && !isViewer ? [{ key: "dashboard", label: "Dashboard", icon: "📊", activeClass: "from-violet-600 to-indigo-700" }] : []),
+    { key: "suivi", label: "Suivi", icon: "📈", activeClass: "from-cyan-600 to-indigo-700" },
     ...(canAgenda ? [{ key: "agenda", label: "Agenda", icon: "📅", activeClass: "from-emerald-600 to-teal-700" }] : []),
     { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
   ];
@@ -289,6 +297,21 @@ export default function App({ user }) {
             onShowAcompteModal={() => acompteModal.setShowAcompteModal(true)}
             onShowImportModal={() => setShowImportModal(true)}
             showMissionRateEditor={showMissionRateEditor}
+          />
+        )}
+
+        {activeTab === "dashboard" && canDashboard && (
+          <DashboardPanel
+            missions={missions}
+            fraisDivers={fraisDivers}
+            listeAcomptes={listeAcomptes}
+            patrons={patrons}
+            clients={clients}
+            lieux={lieux}
+            profile={profile}
+            darkMode={darkMode}
+            kmSettings={kmSettings}
+            domicileLatLng={domicileLatLng}
           />
         )}
 
@@ -491,6 +514,9 @@ export default function App({ user }) {
           <div className={"backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " + (darkMode ? "bg-[#020818]/90 border-yellow-600/20" : "bg-white/95 border-slate-200/80")}>
             {!isViewer && (
               <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : (darkMode ? "text-white/30" : "text-slate-400"))}>Saisie</button>
+            )}
+            {canDashboard && !isViewer && (
+              <button onClick={() => setActiveTab("dashboard")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "dashboard" ? "bg-gradient-to-br from-violet-600 to-indigo-700 text-white" : (darkMode ? "text-white/30" : "text-slate-400"))}>Dashboard</button>
             )}
             <button onClick={() => setActiveTab("suivi")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "suivi" ? "bg-gradient-to-br from-cyan-600 to-indigo-700 text-white" : (darkMode ? "text-white/30" : "text-slate-400"))}>Suivi</button>
             {!isViewer ? (

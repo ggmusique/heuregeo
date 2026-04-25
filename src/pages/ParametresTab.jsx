@@ -470,6 +470,33 @@ export function ParametresTab({
                         </button>
                       </div>
                     </div>
+                    <div className={"rounded-2xl border p-4 " + (darkMode ? "border-indigo-500/25 bg-indigo-500/5" : "border-indigo-300/50 bg-indigo-50/50")}>
+                      <p className={"text-[10px] font-black uppercase tracking-widest mb-3 " + (darkMode ? "text-indigo-200/80" : "text-indigo-700")}>
+                        Dashboard
+                      </p>
+                      <div className="flex items-center justify-between gap-3">
+                        <p className={"text-sm " + (darkMode ? "text-white/70" : "text-slate-600")}>
+                          Tableau de bord avancé (KPIs, graphiques, top clients)
+                        </p>
+                        <button
+                          type="button"
+                          disabled={!isPro || profileSaving}
+                          onClick={async () => {
+                            const current = profile?.features?.dashboard === true;
+                            await saveProfile({ features: { ...(profile?.features || {}), dashboard: !current } });
+                          }}
+                          className={
+                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                            (profile?.features?.dashboard
+                              ? "border-indigo-400/40 text-indigo-300 bg-indigo-500/10"
+                              : (darkMode ? "border-white/20 text-white/60" : "border-slate-300 text-slate-500")) +
+                            (!isPro || profileSaving ? " opacity-40 cursor-not-allowed" : "")
+                          }
+                        >
+                          {profile?.features?.dashboard ? "Activé" : "Désactivé"}
+                        </button>
+                      </div>
+                    </div>
                     <div className={"rounded-2xl border p-4 " + (darkMode ? "border-amber-500/25 bg-amber-500/5" : "border-amber-300/50 bg-amber-50/50")}>
                       <p className={"text-[10px] font-black uppercase tracking-widest mb-3 " + (darkMode ? "text-amber-200/80" : "text-amber-700")}>
                         Facturation

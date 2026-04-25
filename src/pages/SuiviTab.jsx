@@ -10,7 +10,7 @@ export function SuiviTab({
   historiqueProps,
   bilanProps,
 }) {
-  const [view, setView] = useState("dashboard");
+  const [view, setView] = useState(defaultView === "bilan" ? "bilan" : "historique");
 
   const tabs = useMemo(
     () => [

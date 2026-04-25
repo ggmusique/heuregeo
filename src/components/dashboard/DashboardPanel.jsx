@@ -43,6 +43,7 @@ export function DashboardPanel({
   const [barsReady, setBarsReady] = useState(false);
   const [chartLoaded, setChartLoaded] = useState(false);
   const [allocByWeek, setAllocByWeek] = useState({});
+  const [totalImpayesDB, setTotalImpayesDB] = useState(0);
 
   const now = useMemo(() => new Date(), []);
   const currentWeek = useMemo(() => getWeekNumber(now), [now]);
@@ -284,6 +285,20 @@ export function DashboardPanel({
           map[idx] = (map[idx] || 0) + (parseFloat(a.amount) || 0);
         });
         setAllocByWeek(map);
+
+        const { data: bilansImpayes, error: bilansError } = await supabase
+          .from("bilans_status_v2")
+          .select("reste_a_percevoir, patron_id")
+          .eq("paye", false)
+          .gt("reste_a_percevoir", 0.01);
+
+        if (bilansError) throw bilansError;
+
+        const totalImpayesFiltered = (bilansImpayes || [])
+          .filter((b) => !selectedPatronId || b.patron_id === selectedPatronId)
+          .reduce((s, b) => s + parseFloat(b.reste_a_percevoir || 0), 0);
+
+        setTotalImpayesDB(totalImpayesFiltered);
       } catch (err) {
         console.error("DashboardPanel fetchAllocs error:", err);
       }
@@ -543,7 +558,7 @@ export function DashboardPanel({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 320px",
+          gridTemplateColumns: "1fr 260px",
           gap: "16px",
           marginBottom: "24px",
         }}
@@ -554,7 +569,7 @@ export function DashboardPanel({
             background: tokens.colors.bg.surface,
             border: "1px solid rgba(255,255,255,0.08)",
             borderRadius: "20px",
-            padding: "20px",
+            padding: "14px",
             backdropFilter: "blur(12px)",
           }}
         >
@@ -588,7 +603,7 @@ export function DashboardPanel({
             </div>
           </div>
 
-          <div style={{ position: "relative", height: "180px", width: "100%" }}>
+          <div style={{ position: "relative", height: "140px", width: "100%" }}>
             {!chartLoaded && <div className="skeleton" style={{ position: "absolute", inset: 0, borderRadius: "12px" }} aria-label="Chargement du graphique" />}
             <canvas ref={chartRef} role="img" aria-label="Graphique du chiffre d'affaires sur 3 mois" />
           </div>
@@ -765,6 +780,25 @@ export function DashboardPanel({
             <span style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.18em", color: "#D4AF37", fontWeight: 700 }}>Reste à percevoir</span>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "20px", fontWeight: 600, color: "#D4AF37" }}>{formatEuro(bilanSemaine.resteApercevoir)}</span>
           </div>
+          {totalImpayesDB > 0 && (
+            <div
+              style={{
+                marginTop: "12px",
+                paddingTop: "12px",
+                borderTop: `1px solid ${tokens.colors.gold.glow}`,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span style={{ fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.18em", color: "#F97316", fontWeight: 700 }}>
+                Total à percevoir (impayés inclus)
+              </span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "20px", fontWeight: 600, color: "#F97316" }}>
+                {formatEuro(totalImpayesDB + bilanSemaine.resteApercevoir)}
+              </span>
+            </div>
+          )}
         </div>
 
         <div
