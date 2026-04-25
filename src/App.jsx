@@ -95,6 +95,7 @@ export default function App({ user }) {
   const { kmSettings, domicileLatLng, currentWeek, missionsThisWeek, kmFraisThisWeek, handleRecalculerKmSemaine } = useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek });
 
   const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
+  const { repairBilansDB } = bilan;
 
   const missionForm = useMissionForm({ createMission, updateMission, deleteMission, missions, setLoading, triggerAlert, showConfirm, setActiveTab });
 
@@ -399,6 +400,7 @@ export default function App({ user }) {
             onRegeocoderBatch={lieuModal.handleRegeocoderBatch}
             onRecalculerKmSemaine={handleRecalculerKmSemaine}
             onRebuildBilans={bilan.rebuildBilans}
+            onRepairBilans={repairBilansDB}
           />
         )}
       </main>
