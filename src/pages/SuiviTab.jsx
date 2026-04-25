@@ -4,13 +4,17 @@ import { BilanTab } from "./BilanTab";
 import { DashboardPanel } from "../components/dashboard/DashboardPanel";
 
 export function SuiviTab({
-  defaultView = "historique",
+  defaultView = "dashboard",
   darkMode = true,
   dashboardProps,
   historiqueProps,
   bilanProps,
 }) {
-  const [view, setView] = useState(defaultView === "bilan" ? "bilan" : "historique");
+  const [view, setView] = useState(
+    defaultView === "bilan" ? "bilan" :
+    defaultView === "historique" ? "historique" :
+    "dashboard"
+  );
 
   const tabs = useMemo(
     () => [
