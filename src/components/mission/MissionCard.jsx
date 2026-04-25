@@ -1,6 +1,8 @@
 import React, { useMemo, useCallback } from "react";
 import { getDateParts } from "../../utils/dateUtils";
 import { formatEuro, formatHeures } from "../../utils/formatters";
+import { tokens } from "../../utils/designTokens";
+import { Card } from "../common/Card";
 
 /**
  * ✅ Carte mission avec actions - Multi-Patrons
@@ -43,35 +45,111 @@ export const MissionCard = React.memo(
     );
 
     const monthShort = (month || "JAN").substring(0, 3);
-    const safePatronColor = patronColor || "#8b5cf6";
+    const safePatronColor = patronColor || tokens.colors.gold.primary;
 
     return (
-      <div className="relative p-5 bg-gradient-to-br from-[#1a0f2e]/80 to-[#0f0b1a]/80 backdrop-blur-xl rounded-[35px] border border-indigo-500/30 shadow-[0_15px_40px_rgba(79,70,229,0.3)] text-white flex items-center gap-4 mb-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/10 via-transparent to-indigo-900/10 pointer-events-none" />
-
+      <Card
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          gap: tokens.spacing.lg,
+          marginBottom: tokens.spacing.md,
+          overflow: "hidden",
+          fontFamily: tokens.font.base,
+        }}
+      >
         {/* Date */}
-        <div className="flex flex-col items-center justify-center min-w-[65px] h-[65px] bg-gradient-to-br from-indigo-600/40 to-purple-700/40 rounded-2xl border border-indigo-400/30 backdrop-blur-md">
-          <span className="text-[11px] font-black text-indigo-200 leading-none mb-1 drop-shadow">
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minWidth: "60px",
+            height: "60px",
+            background: tokens.colors.bg.surfaceElevated,
+            border: `1px solid ${tokens.colors.border.accent}`,
+            borderRadius: "14px",
+            backdropFilter: tokens.effects.blur,
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              ...tokens.text.badge,
+              color: tokens.colors.gold.primary,
+              lineHeight: 1,
+              marginBottom: "4px",
+            }}
+          >
             {monthShort}
           </span>
-          <span className="text-2xl font-black drop-shadow-lg">{day}</span>
+          <span
+            style={{
+              fontSize: "22px",
+              fontWeight: 700,
+              color: tokens.colors.text.primary,
+              fontFamily: tokens.font.mono,
+              lineHeight: 1,
+            }}
+          >
+            {day}
+          </span>
         </div>
 
         {/* Infos */}
-        <div className="flex-1 overflow-hidden">
-          <p className="font-black uppercase text-[14px] text-white truncate mb-0.5 drop-shadow">
+        <div style={{ flex: 1, overflow: "hidden" }}>
+          <p
+            style={{
+              fontWeight: 700,
+              textTransform: "uppercase",
+              fontSize: "14px",
+              color: tokens.colors.text.primary,
+              margin: "0 0 4px",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              fontFamily: tokens.font.base,
+            }}
+          >
             {clientLabel}
           </p>
 
           {/* ✅ Ligne heures + badge pause */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-[11px] opacity-80 uppercase font-bold tracking-tight drop-shadow-sm">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              flexWrap: "wrap",
+            }}
+          >
+            <p
+              style={{
+                ...tokens.text.caption,
+                textTransform: "uppercase",
+                fontWeight: 600,
+                letterSpacing: "0.05em",
+                margin: 0,
+                fontFamily: tokens.font.mono,
+              }}
+            >
               {formatHeures(duree)}
               {hasPause ? ` (pause ${pauseMin} min)` : ""} • {debut}-{fin}
             </p>
 
             {hasPause && (
-              <span className="px-2 py-1 rounded-full bg-amber-600/20 border border-amber-500/30 text-[9px] font-black uppercase text-amber-300 tracking-wider">
+              <span
+                style={{
+                  ...tokens.text.badge,
+                  padding: "3px 8px",
+                  borderRadius: "20px",
+                  background: tokens.colors.amber.glow,
+                  border: `1px solid ${tokens.colors.amber.primary}4D`,
+                  color: tokens.colors.amber.primary,
+                }}
+              >
                 ⏱ pause
               </span>
             )}
@@ -80,14 +158,29 @@ export const MissionCard = React.memo(
           {/* Patron */}
           {patronNom && (
             <div
-              className="flex items-center gap-2 mt-2"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                marginTop: tokens.spacing.sm,
+              }}
               title={`Patron: ${patronNom}`}
             >
               <div
-                className="w-3 h-3 rounded-full shadow-sm"
-                style={{ backgroundColor: safePatronColor }}
+                style={{
+                  width: "10px",
+                  height: "10px",
+                  borderRadius: "50%",
+                  backgroundColor: safePatronColor,
+                  flexShrink: 0,
+                }}
               />
-              <span className="text-[10px] opacity-60 uppercase tracking-wide font-bold">
+              <span
+                style={{
+                  ...tokens.text.badge,
+                  color: tokens.colors.text.muted,
+                }}
+              >
                 {patronNom}
               </span>
             </div>
@@ -95,38 +188,72 @@ export const MissionCard = React.memo(
         </div>
 
         {/* Montant + actions */}
-        <div className="flex items-center gap-4">
-          <span className="text-[16px] font-black text-green-400 drop-shadow-lg">
+        <div style={{ display: "flex", alignItems: "center", gap: tokens.spacing.lg }}>
+          <span
+            style={{
+              fontSize: "16px",
+              fontWeight: 700,
+              color: tokens.colors.emerald.primary,
+              fontFamily: tokens.font.mono,
+              whiteSpace: "nowrap",
+            }}
+          >
             {formatEuro(montant)}
           </span>
 
           {(onEdit || onDelete) && (
-          <div className="flex flex-col gap-3">
-            <button
-              type="button"
-              onPointerDown={handleEdit}
-              onClick={handleEdit}
-              className="w-11 h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-xl active:bg-indigo-600/70 active:scale-110 transition-all shadow-lg cursor-pointer"
-              aria-label="Modifier mission"
-              title="Modifier"
-            >
-              ✏️
-            </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button
+                type="button"
+                onPointerDown={handleEdit}
+                onClick={handleEdit}
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  background: tokens.colors.border.default,
+                  border: `1px solid ${tokens.colors.border.hover}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "18px",
+                  cursor: "pointer",
+                  transition: tokens.transitions.default,
+                  outline: "none",
+                }}
+                aria-label="Modifier mission"
+                title="Modifier"
+              >
+                ✏️
+              </button>
 
-            <button
-              type="button"
-              onPointerDown={handleDelete}
-              onClick={handleDelete}
-              className="w-11 h-11 rounded-full bg-red-600/30 backdrop-blur-md border border-red-500/40 flex items-center justify-center text-xl active:bg-red-700/70 active:scale-110 transition-all shadow-lg cursor-pointer"
-              aria-label="Supprimer mission"
-              title="Supprimer"
-            >
-              🗑️
-            </button>
-          </div>
+              <button
+                type="button"
+                onPointerDown={handleDelete}
+                onClick={handleDelete}
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "50%",
+                  background: `${tokens.colors.rose.glow}`,
+                  border: `1px solid ${tokens.colors.rose.primary}4D`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "18px",
+                  cursor: "pointer",
+                  transition: tokens.transitions.default,
+                  outline: "none",
+                }}
+                aria-label="Supprimer mission"
+                title="Supprimer"
+              >
+                🗑️
+              </button>
+            </div>
           )}
         </div>
-      </div>
+      </Card>
     );
   }
 );
