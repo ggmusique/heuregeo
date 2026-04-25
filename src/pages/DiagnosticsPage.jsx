@@ -20,6 +20,7 @@ export const DiagnosticsPage = ({
   onRegeocoderBatch = null,
   onRecalculerKmSemaine = null,
   onRebuildBilans = null,
+  onRepairBilans = null,
   patrons = [],
 }) => {
   const [regeoLoading, setRegeoLoading] = useState(false);
@@ -28,6 +29,9 @@ export const DiagnosticsPage = ({
   const [rebuildPatronId, setRebuildPatronId] = useState("");
   const [rebuildStart, setRebuildStart] = useState("1");
   const [rebuildEnd, setRebuildEnd] = useState("20");
+  const [repairLoading, setRepairLoading] = useState(false);
+  const [repairResult, setRepairResult] = useState(null);
+  const [repairPatronId, setRepairPatronId] = useState("");
   const [actionMsg, setActionMsg] = useState(null);
   const [actionIsError, setActionIsError] = useState(false);
 
@@ -125,6 +129,21 @@ export const DiagnosticsPage = ({
       showMsg("Erreur : " + (err?.message || "Rebuild échoué"), true);
     } finally {
       setRebuildLoading(false);
+    }
+  };
+
+  const handleRepairBilans = async () => {
+    if (!onRepairBilans) return;
+    setRepairLoading(true);
+    setRepairResult(null);
+    try {
+      const result = await onRepairBilans(repairPatronId || null);
+      setRepairResult(result);
+      showMsg(result.message, !result.success);
+    } catch (err) {
+      showMsg("Erreur : " + (err?.message || "Réparation échouée"), true);
+    } finally {
+      setRepairLoading(false);
     }
   };
 
@@ -444,6 +463,48 @@ export const DiagnosticsPage = ({
           </button>
         </Card>
       )}
+
+      <Card title="🔧 Réparer bilans_status_v2">
+        <p className="text-[10px] text-white/40 mb-2">
+          Recalcule acompte_consomme et reste_a_percevoir depuis acompte_allocations (source de vérité).
+          Corrige les lignes corrompues sans toucher aux données payées correctement.
+        </p>
+        <div className="mb-2">
+          <label className="text-[10px] uppercase text-white/40 tracking-wider">Patron</label>
+          <select
+            value={repairPatronId}
+            onChange={(e) => setRepairPatronId(e.target.value)}
+            className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono"
+          >
+            <option value="">Tous les patrons</option>
+            {patrons.map((p) => (
+              <option key={p.id} value={p.id}>{p.nom}</option>
+            ))}
+          </select>
+        </div>
+        {repairResult && (
+          <div className={`mb-2 p-2 rounded-xl text-[10px] font-black ${
+            repairResult.success
+              ? "bg-emerald-600/20 border border-emerald-500/30 text-emerald-300"
+              : "bg-red-600/20 border border-red-500/30 text-red-400"
+          }`}>
+            {repairResult.message}
+            {repairResult.success && (
+              <span className="ml-2 opacity-60">
+                ({repairResult.fixed} corrigée(s) / {repairResult.skipped} ok)
+              </span>
+            )}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={handleRepairBilans}
+          disabled={repairLoading || !onRepairBilans}
+          className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-emerald-500/40 text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/20 ${repairLoading ? "opacity-50 cursor-wait" : ""}`}
+        >
+          {repairLoading ? "Réparation en cours…" : "🔧 Réparer les bilans corrompus"}
+        </button>
+      </Card>
 
       {/* Actions GPS */}
       <Card title="Actions GPS">

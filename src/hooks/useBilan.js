@@ -974,6 +974,90 @@ export function useBilan({
     [getMissionsByPeriod, getFraisByWeek, getTotalFrais, getImpayePrecedent]
   );
 
+  const repairBilansDB = useCallback(async (patronId) => {
+    const pId = effectivePatronId(patronId);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { success: false, message: "Non connecté", fixed: 0, skipped: 0 };
+
+      const { data: bilans, error: bilansError } = await supabase
+        .from("bilans_status_v2")
+        .select("id, periode_index, ca_brut_periode, acompte_consomme, reste_a_percevoir, paye")
+        .eq("patron_id", pId)
+        .eq("periode_type", "semaine");
+
+      if (bilansError) throw bilansError;
+      if (!bilans || bilans.length === 0) {
+        return { success: true, message: "Aucune ligne à réparer", fixed: 0, skipped: 0 };
+      }
+
+      const { data: allocs, error: allocsError } = await supabase
+        .from("acompte_allocations")
+        .select("periode_index, amount")
+        .eq("patron_id", pId);
+
+      if (allocsError) throw allocsError;
+
+      const allocByWeek = {};
+      (allocs || []).forEach((a) => {
+        const idx = a.periode_index;
+        allocByWeek[idx] = (allocByWeek[idx] || 0) + (parseFloat(a.amount) || 0);
+      });
+
+      let fixed = 0;
+      let skipped = 0;
+
+      for (const bilan of bilans) {
+        const ca = parseFloat(bilan.ca_brut_periode || 0);
+        const alloueReel = allocByWeek[bilan.periode_index] || 0;
+        const resteReel = Math.max(0, ca - alloueReel);
+        const payeReel = bilan.paye === true || resteReel <= 0.01;
+
+        const acompteConsommeInDB = parseFloat(bilan.acompte_consomme || 0);
+        const resteInDB = parseFloat(bilan.reste_a_percevoir || 0);
+
+        const needsFix =
+          Math.abs(acompteConsommeInDB - alloueReel) > 0.01 ||
+          Math.abs(resteInDB - (payeReel ? 0 : resteReel)) > 0.01;
+
+        if (!needsFix) {
+          skipped++;
+          continue;
+        }
+
+        const updatePayload = {
+          acompte_consomme: alloueReel,
+          reste_a_percevoir: payeReel ? 0 : resteReel,
+          paye: payeReel,
+        };
+        if (payeReel && !bilan.paye) {
+          updatePayload.date_paiement = new Date().toISOString();
+        }
+
+        const { error: updateError } = await supabase
+          .from("bilans_status_v2")
+          .update(updatePayload)
+          .eq("id", bilan.id);
+
+        if (updateError) {
+          console.error("repairBilansDB update error", { id: bilan.id, error: updateError });
+        } else {
+          fixed++;
+        }
+      }
+
+      return {
+        success: true,
+        message: `Réparation terminée : ${fixed} ligne(s) corrigée(s), ${skipped} déjà correcte(s)`,
+        fixed,
+        skipped,
+      };
+    } catch (err) {
+      console.error("repairBilansDB error:", err);
+      return { success: false, message: err?.message || "Erreur inconnue", fixed: 0, skipped: 0 };
+    }
+  }, []);
+
   const gotoPreviousWeek = useCallback(() => {
     const currentIndex = availablePeriods.indexOf(bilanPeriodValue);
     if (currentIndex < availablePeriods.length - 1) {
@@ -1028,5 +1112,6 @@ export function useBilan({
     recalculerFraisKm,
     isRecalculatingKm,
     rebuildBilans,
+    repairBilansDB,
   };
 }

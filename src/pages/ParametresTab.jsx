@@ -199,6 +199,7 @@ export function ParametresTab({
   onRegeocoderBatch = null,
   onRecalculerKmSemaine = null,
   onRebuildBilans = null,
+  onRepairBilans = null,
   deleteAcompte = null,
   fetchAcomptes = null,
   showConfirm = null,
@@ -562,6 +563,7 @@ export function ParametresTab({
                         onRegeocoderBatch={onRegeocoderBatch}
                         onRecalculerKmSemaine={onRecalculerKmSemaine}
                         onRebuildBilans={onRebuildBilans}
+                        onRepairBilans={onRepairBilans}
                         patrons={patrons}
                       />
                     </Suspense>
