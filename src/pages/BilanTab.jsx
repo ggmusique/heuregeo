@@ -1,10 +1,9 @@
 import React, { useMemo } from "react";
-import { formatEuro, formatHeures, formatDateFR } from "../utils/formatters";
-import { getWeekNumber } from "../utils/dateUtils";
+import { formatEuro, formatDateFR } from "../utils/formatters";
 import { MissionCard } from "../components/mission/MissionCard";
 import { WeekPicker } from "../components/common/bilan/WeekPicker";
-import { WeatherIcon } from "../components/common/WeatherIcon";
 import { useLabels } from "../contexts/LabelsContext";
+import { BilanPanel } from "../components/stats/BilanPanel";
 
 export const BilanTab = ({
   bilan,
@@ -152,442 +151,66 @@ export const BilanTab = ({
         ← Retour
       </button>
 
-      {/* HEADER BILAN */}
-      <div className={"p-8 rounded-[45px] shadow-2xl mb-8 border " +
-        (darkMode
-          ? "bg-gradient-to-br from-[#0A1628] to-[#020818] border-yellow-600/30"
-          : "bg-gradient-to-br from-white to-slate-50 border-slate-200/80")}>
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className={"text-[10px] font-black uppercase tracking-[0.3em] mb-1 " +
-              (darkMode ? "text-yellow-500/70" : "text-amber-600")}>
-              {bilan.bilanContent.titre}
-            </p>
-            <h2 className={"text-4xl font-black italic font-['Playfair_Display'] " +
-              (darkMode ? "text-white" : "text-slate-800")}>Bilan</h2>
-          </div>
-          <WeekPicker
-            value={bilan.bilanPeriodValue}
-            weeks={bilan.availablePeriods}
-            onChange={bilan.handleWeekChange}
-            onPrevious={bilan.gotoPreviousWeek}
-            onNext={bilan.gotoNextWeek}
-            hasPrevious={bilan.hasPreviousWeek}
-            hasNext={bilan.hasNextWeek}
-          />
-        </div>
-
-        <p className={"text-center text-sm mb-4 " + (darkMode ? "text-white/70" : "text-slate-600")}>
-          Pour : {bilan.bilanContent.selectedPatronNom}
-        </p>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className={"p-4 rounded-2xl border " +
-            (darkMode ? "bg-[#0A1628]/80 border-yellow-600/20" : "bg-white border-slate-200")}>
-            <p className={"text-[9px] font-black uppercase mb-1 " +
-              (darkMode ? "text-yellow-500/70" : "text-amber-600")}>Heures</p>
-            <p className={"text-xl font-black " +
-              (darkMode ? "text-white" : "text-slate-800")}>{formatHeures(bilan.bilanContent.totalH)}</p>
-          </div>
-
-          <div className={"p-4 rounded-2xl border " +
-            (darkMode ? "bg-[#0A1628]/80 border-yellow-600/20" : "bg-white border-slate-200")}>
-            <p className={"text-[9px] font-black uppercase mb-1 " +
-              (darkMode ? "text-yellow-500/70" : "text-amber-600")}>Total Brut</p>
-            <p className="text-xl font-black text-emerald-400">{formatEuro(bilan.bilanContent.totalE)}</p>
-          </div>
-
-          {bilan.bilanContent.impayePrecedent > 0 && (
-            <div className={"col-span-2 p-4 rounded-2xl border flex justify-between items-center " +
-              (darkMode ? "bg-[#0A1628]/80 border-orange-500/30" : "bg-white border-orange-200")}>
-              <p className="text-[9px] font-black text-orange-400/70 uppercase">⏳ Impayé précédent</p>
-              <p className="text-xl font-black text-orange-400">
-                +{formatEuro(bilan.bilanContent.impayePrecedent)}
-              </p>
-            </div>
-          )}
-        </div>
+      {/* Navigation de période */}
+      <div className="flex justify-end mb-4">
+        <WeekPicker
+          value={bilan.bilanPeriodValue}
+          weeks={bilan.availablePeriods}
+          onChange={bilan.handleWeekChange}
+          onPrevious={bilan.gotoPreviousWeek}
+          onNext={bilan.gotoNextWeek}
+          hasPrevious={bilan.hasPreviousWeek}
+          hasNext={bilan.hasNextWeek}
+        />
       </div>
 
-      {bilan.bilanPeriodType === "semaine" && (
-  <>
-    {/* ── BLOC 1 : FRAIS ── affiché uniquement si frais */}
-    {bilan.bilanContent.fraisDivers.length > 0 && (
-      <div className={"mb-4 p-6 rounded-[35px] border backdrop-blur-md " +
-        (darkMode ? "bg-[#0A1628]/60 border-yellow-600/20" : "bg-white/80 border-slate-200")}>
-        <p className={"text-[10px] font-black uppercase mb-4 tracking-[0.2em] " +
-          (darkMode ? "text-yellow-500/70" : "text-amber-600")}>
-          Frais
-        </p>
-        {[...bilan.bilanContent.fraisDivers]
-          .sort((a, b) => new Date(a.date_frais) - new Date(b.date_frais))
-          .map((f) => (
-            <div key={f.id} className="flex justify-between items-center mb-3 gap-3">
-              <div className="flex-1">
-                <span className="text-sm font-bold opacity-70 uppercase">
-                  {f.description} – {formatDateFR(f.date_frais)}
-                </span>
-              </div>
-              <span className="text-sm font-black text-amber-500">
-                +{formatEuro(f.montant)}
-              </span>
-              <div className="flex gap-2">
-                {!isViewer && (
-                  <>
-                    <button
-                      onClick={() => onFraisEdit(f)}
-                      className="w-8 h-8 bg-blue-600/20 text-blue-400 rounded-lg flex items-center justify-center border border-blue-500/30 active:scale-90 transition-all"
-                    >✏️</button>
-                    <button
-                      onClick={() => onFraisDelete(f)}
-                      className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all"
-                    >🗑️</button>
-                  </>
-                )}
-              </div>
-            </div>
-          ))}
-      </div>
-    )}
-
-    {/* ── BLOC FRAIS KM ── */}
-    {kmSettings?.km_enable === true && bilan.bilanContent.fraisKilometriques?.items?.length > 0 && bilan.bilanPeriodType === "semaine" && (
-      <div className={"mb-4 p-6 rounded-[35px] border backdrop-blur-md " +
-        (darkMode ? "bg-[#0A1628]/60 border-blue-600/20" : "bg-white/80 border-blue-200")}>
-        <p className={"text-[10px] font-black uppercase mb-4 tracking-[0.2em] " +
-          (darkMode ? "text-blue-400/70" : "text-blue-600")}>
-          🚗 Frais kilométriques
-        </p>
-        <div className="space-y-2 mb-4">
-          {bilan.bilanContent.fraisKilometriques.items
-            .filter((item) => item.amount !== null)
-            .map((item, i) => (
-              <div key={i} className="flex justify-between items-center text-sm">
-                <div>
-                  <span className={"font-bold " + (darkMode ? "text-white/80" : "text-slate-700")}>{formatDateFR(item.date)}</span>
-                  <span className={"ml-2 " + (darkMode ? "text-white/50" : "text-slate-400")}>{item.labelLieuOuClient}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal)} km</span>
-                  <span className="font-bold text-blue-300 ml-2">{formatEuro(item.amount)}</span>
-                </div>
-              </div>
-            ))}
-          {bilan.bilanContent.fraisKilometriques.items
-            .filter((item) => item.amount === null)
-            .map((item, i) => (
-              <div key={`missing-${i}`} className={"text-sm italic " + (darkMode ? "text-white/40" : "text-slate-400")}>
-                {formatDateFR(item.date)} — {item.labelLieuOuClient}
-              </div>
-            ))}
-        </div>
-        <div className={"pt-3 border-t flex justify-between " + (darkMode ? "border-white/10" : "border-slate-200")}>
-          <span className={"text-sm " + (darkMode ? "text-white/60" : "text-slate-500")}>{Math.round(bilan.bilanContent.fraisKilometriques.totalKm)} km total</span>
-          <span className="font-black text-blue-300">{formatEuro(bilan.bilanContent.fraisKilometriques.totalAmount)}</span>
-        </div>
-      </div>
-    )}
-
-    {/* ── BLOC FRAIS KM – fallback domicile manquant ── */}
-    {kmSettings?.km_enable === true && bilan.bilanPeriodType === "semaine" &&
-      !bilan.bilanContent.fraisKilometriques?.items?.length && (
-      <div className={"mb-4 p-4 rounded-[25px] border text-sm italic " +
-        (darkMode ? "bg-[#0A1628]/40 border-blue-600/10 text-white/40" : "bg-blue-50/60 border-blue-100 text-slate-400")}>
-        🚗 Frais kilométriques —{" "}
-        {!domicileLatLng
-          ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"
-          : "coordonnées GPS manquantes pour les lieux de mission"}
-      </div>
-    )}
-
-{/* ── BLOC 2 : SUIVI SOLDE ACOMPTE & IMPAYÉS ── */}
-{bilan.bilanPeriodType === "semaine" && (
-  bilan.bilanContent.acomptesDansPeriode > 0 ||
-  bilan.bilanContent.totalAcomptes > 0 ||
-  bilan.bilanContent.soldeAcomptesAvant > 0 ||
-  bilan.bilanContent.soldeAcomptesApres > 0
-) && (
-  <div className={"mb-8 p-6 rounded-[35px] border backdrop-blur-md " +
-    (darkMode ? "bg-[#0A1628]/60 border-yellow-600/20" : "bg-white/80 border-slate-200")}>
-    <p className={"text-[10px] font-black uppercase mb-4 tracking-[0.2em] " +
-      (darkMode ? "text-yellow-500/70" : "text-amber-600")}>
-      Suivi du solde acompte & impayés
-    </p>
-    <div className="space-y-3">
-
-      {/* 💳 Acompte disponible précédent */}
-      <div className="flex justify-between text-sm">
-        <span className={darkMode ? "text-white/60" : "text-slate-500"}>💳 Acompte disponible précédent :</span>
-        <span className="font-bold text-cyan-300">
-          {formatEuro(bilan.bilanContent.soldeAcomptesAvant)}
-        </span>
-      </div>
-
-      {/* 📥 Reçus cette période */}
-      {bilan.bilanContent.acomptesDansPeriode > 0 && (
-        <div className="flex justify-between text-sm">
-          <span className={darkMode ? "text-white/60" : "text-slate-500"}>📥 Reçus cette période :</span>
-          <span className="font-bold text-cyan-300">
-            +{formatEuro(bilan.bilanContent.acomptesDansPeriode)}
-          </span>
-        </div>
-      )}
-
-      {/* ✂️ Consommé cette période */}
-      {bilan.bilanContent.totalAcomptes > 0 && (
-        <div className="flex justify-between text-sm">
-          <span className={darkMode ? "text-white/60" : "text-slate-500"}>✂️ Consommé cette période :</span>
-          <span className="font-bold text-red-400">
-            -{formatEuro(bilan.bilanContent.totalAcomptes)}
-          </span>
-        </div>
-      )}
-
-      {/* Solde restant à reporter */}
-      <div className={"pt-3 border-t flex justify-between items-center " + (darkMode ? "border-white/10" : "border-slate-200")}>
-        <span className={"text-[10px] font-black uppercase " + (darkMode ? "text-white/80" : "text-slate-700")}>
-          Solde restant à reporter :
-        </span>
-        <span className="text-xl font-black text-green-400">
-          {formatEuro(bilan.bilanContent.soldeAcomptesApres)}
-        </span>
-      </div>
-
-    </div>
-  </div>
-)}
-  </>
-)}
-
-      {/* PAIEMENT */}
-      {bilan.bilanPeriodType === "semaine" &&
-        (!bilan.bilanPaye ? (
-          <div className="mb-8 mt-2 p-5 bg-gradient-to-r from-[#7B1A1A] to-[#5C1010] rounded-2xl shadow-lg border border-red-700/50">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-[11px] font-black uppercase text-white/70">
-                Reste à percevoir (Net)
-              </span>
-              <span className="text-3xl font-black text-orange-400">
-                {formatEuro(
-  (() => {
-    const net = Number(bilan.bilanContent?.resteAPercevoir);
-    const net2 = Number(bilan.bilanContent?.resteCettePeriode);
-    return Number.isFinite(net) && net > 0 ? net : Number.isFinite(net2) ? net2 : 0;
-  })()
-)}
-              </span>
-            </div>
-            {!isViewer && (
-              <button
-                onClick={onMarquerCommePaye}
-                className="w-full py-3 bg-[#8B2020] hover:bg-[#A02525] rounded-xl font-black uppercase text-[11px] text-white tracking-wider transition-all active:scale-95 border border-red-500/50"
-              >
-                💰 MARQUER COMME PAYÉ
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="mb-8 mt-2 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-emerald-600/20 animate-pulse"></div>
-            <div className="relative p-6 bg-gradient-to-r from-green-600 to-emerald-700 rounded-2xl shadow-2xl border-2 border-green-400">
-              <div className="flex items-center justify-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md">
-                  <span className="text-4xl">✓</span>
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase text-white/80 tracking-wider">
-                    Statut du paiement
-                  </p>
-                  <p className="text-3xl font-black text-white uppercase tracking-tight">PAYÉ</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-
-      {/* EXPORTS */}
-      <div className="flex flex-wrap gap-3 mb-8">
-        <button
-          onClick={async () => {
-            if (!canExportExcel) return;
-            const { exportToExcel } = await import("../utils/exportUtils");
-            exportToExcel(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
-              exportBilanContent.titre, exportBilanContent.fraisDivers, profile, L);
-          }}
-          disabled={!canExportExcel}
-          title={!canExportExcel ? "Fonctionnalité Pro" : undefined}
-          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
-            (canExportExcel
-              ? (darkMode ? "bg-green-600/20 text-green-400 border-yellow-600/20" : "bg-green-50 text-green-700 border-green-200")
-              : (darkMode ? "bg-white/5 text-white/20 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed"))}
-        >
-          {canExportExcel ? "Excel" : "🔒 Excel"}
-        </button>
-
-        <button
-          onClick={async () => {
-            if (!canExportPDF) return;
-            const { exportToPDFPro } = await import("../utils/exportPDF_Pro");
-            exportToPDFPro(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
-              bilan.bilanPeriodValue, profile, L);
-          }}
-          disabled={!canExportPDF}
-          title={!canExportPDF ? "Fonctionnalité Pro" : undefined}
-          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
-            (canExportPDF
-              ? (darkMode ? "bg-red-600/20 text-red-400 border-yellow-600/20" : "bg-red-50 text-red-700 border-red-200")
-              : (darkMode ? "bg-white/5 text-white/20 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed"))}
-        >
-          {canExportPDF ? "PDF" : "🔒 PDF"}
-        </button>
-
-        {canFacture && (
-          <button
-            onClick={async () => {
-              const { generateFacture } = await import("../utils/generateFacture");
-              const patron = patrons.find(p => p.id === bilanPatronId) || null;
-              await generateFacture(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, profile, patron, saveProfile, L);
-            }}
-            className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
-              (darkMode ? "bg-amber-600/20 text-amber-400 border-amber-600/20" : "bg-amber-50 text-amber-700 border-amber-200")}
-          >
-            🧾 Facture
-          </button>
-        )}
-
-        <button
-          onClick={async () => {
-            if (!canExportCSV) return;
-            const { exportToCSV } = await import("../utils/exportUtils");
-            exportToCSV(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false, L);
-          }}
-          disabled={!canExportCSV}
-          title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
-          className={"flex-1 min-w-[120px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
-            (canExportCSV
-              ? (darkMode ? "bg-blue-600/20 text-blue-400 border-yellow-600/20" : "bg-blue-50 text-blue-700 border-blue-200")
-              : (darkMode ? "bg-white/5 text-white/20 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed"))}
-        >
-          {canExportCSV ? `CSV ${L.missions}` : `🔒 CSV ${L.missions}`}
-        </button>
-
-        {bilan.bilanPeriodType === "semaine" && bilan.bilanContent.fraisDivers.length > 0 && (
-          <button
-            onClick={async () => {
-              if (!canExportCSV) return;
-              const { exportToCSV } = await import("../utils/exportUtils");
-              exportToCSV(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true, L);
-            }}
-            disabled={!canExportCSV}
-            title={!canExportCSV ? "Fonctionnalité Pro" : undefined}
-            className={"flex-1 min-w-[140px] py-4 rounded-2xl font-black text-[10px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
-              (canExportCSV
-                ? (darkMode ? "bg-cyan-600/20 text-cyan-300 border-yellow-600/20" : "bg-cyan-50 text-cyan-700 border-cyan-200")
-                : (darkMode ? "bg-white/5 text-white/20 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-700 border-slate-200 cursor-not-allowed"))}
-          >
-            {canExportCSV ? "CSV + Frais" : "🔒 CSV + Frais"}
-          </button>
-        )}
-      </div>
-
-      {/* RECALCUL KM */}
-      {kmSettings?.km_enable === true && !isViewer && onRecalculerFraisKm && (
-        <div className="mb-8">
-          <button
-            onClick={onRecalculerFraisKm}
-            disabled={bilan.isRecalculatingKm}
-            className={"w-full py-4 rounded-2xl font-black text-[11px] uppercase border active:scale-95 transition-all backdrop-blur-md " +
-              (bilan.isRecalculatingKm
-                ? (darkMode ? "bg-white/5 text-white/30 border-white/10 cursor-not-allowed" : "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed")
-                : (darkMode ? "bg-blue-600/20 text-blue-400 border-blue-600/30 hover:bg-blue-600/30" : "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"))}
-          >
-            {bilan.isRecalculatingKm ? "⏳ Recalcul en cours…" : "🚗 Recalculer KM"}
-          </button>
-        </div>
-      )}
-
-      {/* DÉTAIL MISSIONS OU REGROUPEMENT */}
-      {bilan.bilanPeriodType === "semaine" ? (
-        <div className="space-y-3">
-          <p className="text-[10px] font-black uppercase opacity-40 tracking-widest px-2">
-            Détail des missions
-          </p>
-
-          {sortedBilanMissions.map((m, i) => {
-            const date = new Date(m.date_iso);
-            const day = date.getDate().toString().padStart(2, "0");
-            const monthShort = date.toLocaleString("fr-FR", { month: "short" }).toUpperCase();
-
-            return (
-              <div key={i} className={"p-5 rounded-[25px] backdrop-blur-md border " +
-                (darkMode ? "border-yellow-600/15 bg-[#0A1628]/60" : "border-slate-200 bg-white/80")}>
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 flex-1 min-w-0">
-                    <div className="flex flex-col items-center min-w-[50px]">
-                      <div className="text-[10px] font-black uppercase text-[#D4AF37]/90">{monthShort}</div>
-                      <div className={"w-10 h-10 rounded-md flex items-center justify-center shadow-md border " +
-                        (darkMode ? "bg-[#0A1628] border-yellow-600/30" : "bg-slate-100 border-slate-200/80")}>
-                        <span className={"font-black text-xl " + (darkMode ? "text-white" : "text-slate-800")}>{day}</span>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className={"font-bold text-sm uppercase truncate " + (darkMode ? "text-white" : "text-slate-800")}>{m.client}</p>
-                      <p className="text-[11px] opacity-70 truncate">
-                        {m.debut} → {m.fin}{m.pause > 0 && ` (${m.pause} min)`}
-                      </p>
-                      {m.lieu && (
-                        <p className="text-[11px] opacity-60 mt-1 truncate">{m.lieu}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-6 shrink-0">
-                    <div className="text-right">
-                      <p className="text-[12px] font-bold text-yellow-400/80">{formatHeures(m.duree || 0)}</p>
-                      <p className="text-lg font-black text-emerald-400">{formatEuro(m.montant)}</p>
-                    </div>
-
-                    {m.weather ? (
-                      <div className="flex items-center gap-2 min-w-[90px] justify-end">
-                        <WeatherIcon code={m.weather.icon} className="w-8 h-8 flex-shrink-0" />
-                        <div className="text-right text-xs leading-tight">
-                          <div className="font-medium">{m.weather.tempMin}–{m.weather.tempMax}°</div>
-                          <div className="opacity-70 capitalize truncate max-w-[60px]">{m.weather.desc}</div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-xs opacity-40 italic text-right">?</div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="mt-8">
-          <p className="text-[10px] font-black uppercase opacity-60 px-2 mb-4 tracking-widest">
-            Regroupement
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {bilan.bilanContent.groupedData.map((group, index) => (
-              <div key={index} className={"p-5 backdrop-blur-md rounded-3xl border " +
-                (darkMode ? "bg-white/10 border-white/10 shadow-lg" : "bg-white shadow-md border-slate-200")}>
-                <p className={"font-black text-lg mb-2 " + (darkMode ? "text-white" : "text-slate-800")}>{group.label}</p>
-                <div className="flex justify-between text-sm">
-                  <span className="opacity-70">Heures :</span>
-                  <span className="font-bold text-yellow-400/80">{formatHeures(group.h)}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="opacity-70">Montant :</span>
-                  <span className="font-bold text-green-400">{formatEuro(group.e)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <BilanPanel
+        bilanContent={bilan.bilanContent}
+        bilanPeriodType={bilan.bilanPeriodType}
+        bilanPaye={bilan.bilanPaye}
+        sortedMissions={sortedBilanMissions}
+        onMarquerCommePaye={onMarquerCommePaye}
+        isViewer={isViewer}
+        canExportExcel={canExportExcel}
+        canExportPDF={canExportPDF}
+        canExportCSV={canExportCSV}
+        canFacture={canFacture}
+        onExportExcel={async () => {
+          if (!canExportExcel) return;
+          const { exportToExcel } = await import("../utils/exportUtils");
+          exportToExcel(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
+            exportBilanContent.titre, exportBilanContent.fraisDivers, profile, L);
+        }}
+        onExportPDF={async () => {
+          if (!canExportPDF) return;
+          const { exportToPDFPro } = await import("../utils/exportPDF_Pro");
+          exportToPDFPro(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
+            bilan.bilanPeriodValue, profile, L);
+        }}
+        onExportCSV={async () => {
+          if (!canExportCSV) return;
+          const { exportToCSV } = await import("../utils/exportUtils");
+          exportToCSV(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, false, L);
+        }}
+        onExportCSVWithFrais={async () => {
+          if (!canExportCSV) return;
+          const { exportToCSV } = await import("../utils/exportUtils");
+          exportToCSV(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue, true, L);
+        }}
+        onExportFacture={async () => {
+          const { generateFacture } = await import("../utils/generateFacture");
+          const patron = patrons.find((p) => p.id === bilanPatronId) || null;
+          await generateFacture(exportBilanContent, bilan.bilanPeriodType,
+            bilan.bilanPeriodValue, profile, patron, saveProfile, L);
+        }}
+        onFraisEdit={onFraisEdit}
+        onFraisDelete={onFraisDelete}
+        kmSettings={kmSettings}
+        onRecalculerFraisKm={onRecalculerFraisKm}
+        isRecalculatingKm={bilan.isRecalculatingKm}
+        domicileLatLng={domicileLatLng}
+      />
     </div>
   );
 };
+
