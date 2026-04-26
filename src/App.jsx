@@ -28,22 +28,17 @@ import { useAcompteModal } from "./hooks/useAcompteModal";
 import { useAgenda } from "./hooks/useAgenda";
 import { useAgendaModal } from "./hooks/useAgendaModal";
 
-import { FraisModal } from "./components/common/frais/FraisModal";
-import { AcompteModal } from "./components/common/acompte/AcompteModal";
-import { PatronModal } from "./components/patron/PatronModal";
-import { ClientModal } from "./components/client/ClientModal";
-import { PeriodModal } from "./components/common/bilan/PeriodModal";
-import { ConfirmModal } from "./components/common/ConfirmModal";
+import { OnboardingForm } from "./components/auth/OnboardingForm";
 import { CustomAlert } from "./components/common/CustomAlert";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
-import { LieuModal } from "./components/lieu/LieuModal";
-import { AgendaModal } from "./components/agenda/AgendaModal";
-import { OnboardingForm } from "./components/auth/OnboardingForm";
-import { ViewerBadge } from "./components/common/ViewerBadge";
-import { ImportMissionsModal } from "./components/mission/ImportMissionsModal";
 
-import { supabase } from "./services/supabase";
+import { AppHeader } from "./components/layout/AppHeader";
+import { AppNavBar } from "./components/layout/AppNavBar";
+import { AppModals } from "./components/layout/AppModals";
+
 import { LabelsContext } from "./contexts/LabelsContext";
+import { AppContext } from "./contexts/AppContext";
+import { DataContext } from "./contexts/DataContext";
 import { getLabels } from "./utils/labels";
 
 import "./time-inputs-fix.css";
@@ -54,6 +49,7 @@ export default function App({ user }) {
   const APP_CHANNEL = import.meta.env.VITE_APP_CHANNEL || "LOCAL";
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
+  // ─── State local ────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState("saisie");
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -76,6 +72,7 @@ export default function App({ user }) {
     setCustomAlert({ show: true, message: msg });
   }, []);
 
+  // ─── Hooks de données ──────────────────────────────────────────
   const { confirmState, showConfirm, hideConfirm } = useConfirm();
 
   const { missions, loading: missionsLoading, fetchMissions, createMission, updateMission, deleteMission, bulkCreateMissions, getMissionsByWeek, getMissionsByPeriod } = useMissions(triggerAlert);
@@ -99,26 +96,36 @@ export default function App({ user }) {
   const { repairBilansDB } = bilan;
 
   const missionForm = useMissionForm({ createMission, updateMission, deleteMission, missions, setLoading, triggerAlert, showConfirm, setActiveTab });
-
   const lieuModal = useLieuModal({ createLieu, updateLieu, deleteLieu, fetchLieux, setLoading, triggerAlert, showConfirm, onLieuCreated: missionForm.onLieuCreated });
-
   const historiqueHook = useHistorique({ fetchHistoriqueBilans: bilan.fetchHistoriqueBilans, triggerAlert });
-
   const acompteModal = useAcompteModal({ createAcompte, fetchAcomptes, setLoading, triggerAlert, bilanPatronId, chargerHistorique: historiqueHook.chargerHistorique, bilan });
-
   const fraisModal = useFraisModal({ createFrais, updateFrais, deleteFrais, setLoading, triggerAlert, showConfirm });
   const patronModal = usePatronModal({ createPatron, updatePatron, deletePatron, setLoading, triggerAlert, showConfirm });
   const clientModal = useClientModal({ createClient, updateClient, deleteClient, setLoading, triggerAlert, showConfirm });
 
-  const agendaHook  = useAgenda({ userId: user?.id, triggerAlert });
+  const agendaHook = useAgenda({ userId: user?.id, triggerAlert });
   const agendaModal = useAgendaModal({ createEvent: agendaHook.createEvent, updateEvent: agendaHook.updateEvent, deleteEvent: agendaHook.deleteEvent, triggerAlert });
 
+  // ─── Valeurs dérivées ──────────────────────────────────────────
   const agendaWorkedDays = useMemo(() => {
     const s = new Set();
     missions.forEach((m) => { if (m.date_iso) s.add(m.date_iso); });
     return s;
   }, [missions]);
 
+  const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || historiqueHook.loadingHistorique || agendaHook.loading;
+
+  const isProNavigationMode = isPro && !isViewer;
+
+  const proNavItems = [
+    { key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
+    ...(canDashboard && !isViewer ? [{ key: "dashboard", label: "Dashboard", icon: "📊", activeClass: "from-violet-600 to-indigo-700" }] : []),
+    { key: "suivi", label: "Suivi", icon: "📈", activeClass: "from-cyan-600 to-indigo-700" },
+    ...(canAgenda ? [{ key: "agenda", label: "Agenda", icon: "📅", activeClass: "from-emerald-600 to-teal-700" }] : []),
+    { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
+  ];
+
+  // ─── Effects ───────────────────────────────────────────────────
   useEffect(() => {
     document.title = "Heures de Geo";
     setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
@@ -181,29 +188,116 @@ export default function App({ user }) {
     }
   }, [canDashboard, activeTab]);
 
+  // ─── Handlers ──────────────────────────────────────────────────
   const handleMarquerCommePaye = async () => {
     const confirmed = await showConfirm({ title: "Marquer comme paye", message: "Voulez-vous marquer ce bilan comme paye ?", confirmText: "Confirmer", cancelText: "Annuler", type: "info" });
     if (!confirmed) return;
     await bilan.marquerCommePaye(bilanPatronId);
   };
 
-  const isProNavigationMode = isPro && !isViewer;
+  // ─── Context values ────────────────────────────────────────────
+  const appContextValue = useMemo(() => ({
+    darkMode,
+    setDarkMode,
+    user,
+    profile,
+    isPro,
+    isViewer,
+    isAdmin,
+    isProfileComplete,
+    profileSaving,
+    saveProfile,
+    canBilanMois,
+    canBilanAnnee,
+    canExportPDF,
+    canExportExcel,
+    canExportCSV,
+    canKilometrage,
+    canAgenda,
+    canFacture,
+    canDashboard,
+    triggerAlert,
+    loading: isLoading,
+    isIOS,
+    showMissionRateEditor,
+    setShowMissionRateEditor,
+    liveTime,
+    APP_VERSION,
+    APP_CHANNEL,
+  }), [
+    darkMode, user, profile, isPro, isViewer, isAdmin, isProfileComplete,
+    profileSaving, saveProfile, canBilanMois, canBilanAnnee, canExportPDF,
+    canExportExcel, canExportCSV, canKilometrage, canAgenda, canFacture,
+    canDashboard, triggerAlert, isLoading, isIOS, showMissionRateEditor,
+    liveTime, APP_VERSION, APP_CHANNEL,
+  ]);
 
-  const proNavItems = [
-    { key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
-    ...(canDashboard && !isViewer ? [{ key: "dashboard", label: "Dashboard", icon: "📊", activeClass: "from-violet-600 to-indigo-700" }] : []),
-    { key: "suivi", label: "Suivi", icon: "📈", activeClass: "from-cyan-600 to-indigo-700" },
-    ...(canAgenda ? [{ key: "agenda", label: "Agenda", icon: "📅", activeClass: "from-emerald-600 to-teal-700" }] : []),
-    { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
-  ];
+  const dataContextValue = useMemo(() => ({
+    missions,
+    lieux,
+    fraisDivers,
+    listeAcomptes,
+    patrons,
+    clients,
+    kmSettings,
+    domicileLatLng,
+    currentWeek,
+    missionsThisWeek,
+    kmFraisThisWeek,
+    // CRUD
+    createMission,
+    updateMission,
+    deleteMission,
+    bulkCreateMissions,
+    createLieu,
+    updateLieu,
+    deleteLieu,
+    createFrais,
+    updateFrais,
+    deleteFrais,
+    createAcompte,
+    deleteAcompte,
+    createPatron,
+    updatePatron,
+    deletePatron,
+    createClient,
+    updateClient,
+    deleteClient,
+    // Helpers
+    getMissionsByWeek,
+    getMissionsByPeriod,
+    getFraisByWeek,
+    getTotalFrais,
+    getSoldeAvant,
+    getAcomptesDansPeriode,
+    getTotalAcomptesJusqua,
+    getPatronNom,
+    getPatronColor,
+    fetchAcomptes,
+    handleRecalculerKmSemaine,
+  }), [
+    missions, lieux, fraisDivers, listeAcomptes, patrons, clients,
+    kmSettings, domicileLatLng, currentWeek, missionsThisWeek, kmFraisThisWeek,
+    createMission, updateMission, deleteMission, bulkCreateMissions,
+    createLieu, updateLieu, deleteLieu,
+    createFrais, updateFrais, deleteFrais,
+    createAcompte, deleteAcompte,
+    createPatron, updatePatron, deletePatron,
+    createClient, updateClient, deleteClient,
+    getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais,
+    getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua,
+    getPatronNom, getPatronColor, fetchAcomptes, handleRecalculerKmSemaine,
+  ]);
 
-  const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || historiqueHook.loadingHistorique || agendaHook.loading;
-
+  // ─── Onboarding ────────────────────────────────────────────────
   if (user && !profileLoading && !isViewer && !isProfileComplete) {
     return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
   }
 
+  // ─── Render ────────────────────────────────────────────────────
   return (
+    <AppContext.Provider value={appContextValue}>
+    <DataContext.Provider value={dataContextValue}>
     <LabelsContext.Provider value={labels}>
     <div className={"min-h-screen relative overflow-hidden transition-all duration-700 " + (darkMode ? "dark bg-[#020818] text-white" : "light bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900")}>
       <div className="fixed inset-0 pointer-events-none">
@@ -220,39 +314,7 @@ export default function App({ user }) {
         </div>
       )}
 
-      <header className={"relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b " + (darkMode ? "border-yellow-600/30" : "border-slate-200/80")}>
-        <div className={"absolute inset-0 backdrop-blur-xl " + (darkMode ? "bg-gradient-to-br from-[#020818] via-[#0A1628] to-[#020818]" : "bg-gradient-to-br from-white via-slate-50 to-indigo-50/60")} />
-        <div className="relative z-10 text-center">
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className={"absolute right-6 top-6 w-12 h-12 backdrop-blur-xl rounded-full flex items-center justify-center text-2xl shadow-lg active:scale-90 transition-all border " + (darkMode ? "bg-white/10 border-white/20" : "bg-slate-100 border-slate-300")}
-          >
-            {darkMode ? "☀️" : "🌙"}
-          </button>
-          <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[#D4AF37] mb-2 drop-shadow-2xl font-['Playfair_Display']">
-            {("HEURES DE " + (profile?.prenom?.trim()?.toUpperCase() || "GEO"))}
-          </h1>
-          {isViewer && <ViewerBadge patronNom={profile?.nom || ""} />}
-          {isPro && !isViewer && (
-            <div className="text-center py-1">
-              <span className={"inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border " + (darkMode ? "bg-yellow-500/15 border-yellow-500/40 text-yellow-400" : "bg-amber-50 border-amber-400/60 text-amber-600")}>
-                ✨ Pro
-              </span>
-            </div>
-          )}
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <span className={"text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border " + (darkMode ? "border-yellow-600/40 text-yellow-500/70" : "border-amber-500/50 text-amber-600/80")}>
-              v{APP_VERSION} ✓ OTA
-            </span>
-          </div>
-          <div className={"flex items-center justify-center gap-2 " + (darkMode ? "text-white/90" : "text-slate-700")}>
-            <span className="text-[17px] font-black tracking-tight">{liveTime}</span>
-            <span className="text-[15px] font-medium opacity-80 lowercase">
-              {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
-            </span>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="relative px-5 -mt-10 pb-32 z-10">
         {activeTab === "saisie" && (
@@ -440,98 +502,34 @@ export default function App({ user }) {
         )}
       </main>
 
-      <ConfirmModal show={confirmState.show} title={confirmState.title} message={confirmState.message} confirmText={confirmState.confirmText} cancelText={confirmState.cancelText} type={confirmState.type} onConfirm={confirmState.onConfirm} onCancel={hideConfirm} darkMode={darkMode} />
-
-      <FraisModal show={fraisModal.showFraisModal} editMode={!!fraisModal.editingFraisId} description={fraisModal.fraisDescription} setDescription={fraisModal.setFraisDescription} montant={fraisModal.fraisMontant} setMontant={fraisModal.setFraisMontant} date={fraisModal.fraisDate} setDate={fraisModal.setFraisDate} onSubmit={fraisModal.handleFraisSubmit} onCancel={() => { fraisModal.setShowFraisModal(false); fraisModal.resetFraisForm(); }} loading={loading} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={fraisModal.fraisPatronId} onPatronChange={fraisModal.setFraisPatronId} />
-
-      <AcompteModal show={acompteModal.showAcompteModal} montant={acompteModal.acompteMontant} setMontant={acompteModal.setAcompteMontant} date={acompteModal.acompteDate} setDate={acompteModal.setAcompteDate} onSubmit={acompteModal.handleAcompteSubmit} onCancel={() => { acompteModal.setShowAcompteModal(false); acompteModal.resetAcompteForm(); }} loading={loading || acompteModal.isSavingAcompte} darkMode={darkMode} isIOS={isIOS} patrons={patrons} selectedPatronId={acompteModal.acomptePatronId} onPatronChange={acompteModal.setAcomptePatronId} />
-
-      <PatronModal show={patronModal.showPatronModal} editMode={!!patronModal.editingPatronId} initialData={patronModal.editingPatronData} onSubmit={patronModal.handlePatronSubmit} onCancel={() => { patronModal.setShowPatronModal(false); patronModal.resetPatronForm(); }} loading={loading} darkMode={darkMode} />
-
-      <ClientModal show={clientModal.showClientModal} editMode={!!clientModal.editingClientId} initialData={clientModal.editingClientData} onSubmit={clientModal.handleClientSubmit} onCancel={() => { clientModal.setShowClientModal(false); clientModal.resetClientForm(); }} loading={loading} darkMode={darkMode} />
-
-      <PeriodModal
-        show={bilan.showPeriodModal} periodType={bilan.bilanPeriodType} setPeriodType={bilan.setBilanPeriodType}
-        periodValue={bilan.bilanPeriodValue} setPeriodValue={bilan.setBilanPeriodValue} availablePeriods={bilan.availablePeriods}
-        formatPeriodLabel={bilan.formatPeriodLabel} onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}
-        onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}
-        darkMode={darkMode} patrons={patrons} selectedPatronId={bilanPatronId} onPatronChange={(id) => !isViewer && setBilanPatronId(id)}
-        clients={clients} selectedClientId={bilanClientId} onClientChange={setBilanClientId}
+      <AppModals
+        confirmState={confirmState}
+        hideConfirm={hideConfirm}
+        fraisModal={fraisModal}
+        acompteModal={acompteModal}
+        patronModal={patronModal}
+        clientModal={clientModal}
+        lieuModal={lieuModal}
+        agendaModal={agendaModal}
+        bilan={bilan}
+        bilanPatronId={bilanPatronId}
+        bilanClientId={bilanClientId}
+        setBilanClientId={setBilanClientId}
+        showImportModal={showImportModal}
+        setShowImportModal={setShowImportModal}
         isViewer={isViewer}
-        canBilanMois={canBilanMois} canBilanAnnee={canBilanAnnee}
+        canBilanMois={canBilanMois}
+        canBilanAnnee={canBilanAnnee}
       />
 
-      <LieuModal show={lieuModal.showLieuModal} editMode={!!lieuModal.editingLieuId} initialData={lieuModal.editingLieuData} onSubmit={lieuModal.handleLieuSubmit} onCancel={() => { lieuModal.setShowLieuModal(false); lieuModal.resetLieuForm(); }} loading={loading} darkMode={darkMode} />
-
-      {agendaModal.showAgendaModal && (
-        <AgendaModal
-          show={agendaModal.showAgendaModal}
-          editMode={!!agendaModal.editingEventId}
-          initialData={agendaModal.editingEventData}
-          selectedDate={agendaModal.selectedDate}
-          onSubmit={agendaModal.handleEventSubmit}
-          onCancel={() => { agendaModal.setShowAgendaModal(false); agendaModal.resetEventForm(); }}
-          onDelete={() => agendaModal.handleEventDelete(agendaModal.editingEventId)}
-          loading={loading}
-          darkMode={darkMode}
-        />
-      )}
-
-      <ImportMissionsModal
-        show={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        onImport={bulkCreateMissions}
-        patrons={patrons}
-        clients={clients}
-        lieux={lieux}
-        darkMode={darkMode}
+      <AppNavBar
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        proNavItems={proNavItems}
       />
-
-      <nav className="fixed bottom-6 left-6 right-6 z-[100]">
-        {isProNavigationMode ? (
-          <div className={"backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " + (darkMode ? "bg-[#030d22]/95 border-yellow-500/30" : "bg-white/95 border-slate-200/80")}>
-            {proNavItems.map((item) => {
-              const isActive = activeTab === item.key;
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => {
-                    setActiveTab(item.key);
-                    if (typeof item.onClick === "function") item.onClick();
-                  }}
-                  className={
-                    "flex-1 rounded-[28px] font-black uppercase tracking-widest flex flex-col items-center justify-center py-2 text-[9px] gap-0.5 transition-all duration-200 " +
-                    (isActive ? `bg-gradient-to-br ${item.activeClass} text-white shadow-lg` : (darkMode ? "text-white/35" : "text-slate-400"))
-                  }
-                >
-                  <span className="text-[14px] leading-none">{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <div className={"backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " + (darkMode ? "bg-[#020818]/90 border-yellow-600/20" : "bg-white/95 border-slate-200/80")}>
-            {!isViewer && (
-              <button onClick={() => setActiveTab("saisie")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "saisie" ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white" : (darkMode ? "text-white/30" : "text-slate-400"))}>Saisie</button>
-            )}
-            {canDashboard && !isViewer && (
-              <button onClick={() => setActiveTab("dashboard")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "dashboard" ? "bg-gradient-to-br from-violet-600 to-indigo-700 text-white" : (darkMode ? "text-white/30" : "text-slate-400"))}>Dashboard</button>
-            )}
-            <button onClick={() => setActiveTab("suivi")} className={"flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " + (activeTab === "suivi" ? "bg-gradient-to-br from-cyan-600 to-indigo-700 text-white" : (darkMode ? "text-white/30" : "text-slate-400"))}>Suivi</button>
-            {!isViewer ? (
-              <button onClick={() => setActiveTab("parametres")} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (activeTab === "parametres" ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white" : (darkMode ? "text-white/30" : "text-slate-400"))}>
-                <span>Parametres</span>
-              </button>
-            ) : (
-              <button onClick={() => supabase.auth.signOut()} className={"flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " + (darkMode ? "text-white/30" : "text-slate-400")}>
-                <span>🚪</span>
-              </button>
-            )}
-          </div>
-        )}
-      </nav>
     </div>
     </LabelsContext.Provider>
+    </DataContext.Provider>
+    </AppContext.Provider>
   );
 }
