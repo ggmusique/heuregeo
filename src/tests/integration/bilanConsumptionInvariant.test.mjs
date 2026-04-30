@@ -111,3 +111,43 @@ test("invariant hebdo repository->hook: state acompte cohérent", () => {
   assert.equal(weekly.resteCettePeriode, 130);
   assert.equal(weekly.resteAPercevoir, 130);
 });
+
+test("invariant hebdo limites: sans acomptes, trop d'acomptes et impayé élevé", () => {
+  const sansAcomptes = computeWeeklyAcompteState({
+    allocCetteSemaine: 0,
+    totalAlloueJusqua: 0,
+    totalAlloueAvant: 0,
+    acomptesCumules: 0,
+    acomptesDansPeriode: 0,
+    impayePrecedent: 20,
+    caBrutPeriode: 180,
+  });
+  assert.equal(sansAcomptes.acompteConsomme, 0);
+  assert.equal(sansAcomptes.soldeAvantPeriode, 0);
+  assert.equal(sansAcomptes.soldeApresPeriode, 0);
+  assert.equal(sansAcomptes.resteAPercevoir, 200);
+
+  const tropAcomptes = computeWeeklyAcompteState({
+    allocCetteSemaine: 40,
+    totalAlloueJusqua: 40,
+    totalAlloueAvant: 0,
+    acomptesCumules: 400,
+    acomptesDansPeriode: 200,
+    impayePrecedent: 0,
+    caBrutPeriode: 50,
+  });
+  assert.equal(tropAcomptes.soldeAvantPeriode, 200);
+  assert.equal(tropAcomptes.soldeApresPeriode, 360);
+  assert.equal(tropAcomptes.resteAPercevoir, 10);
+
+  const impayeEleve = computeWeeklyAcompteState({
+    allocCetteSemaine: 50,
+    totalAlloueJusqua: 100,
+    totalAlloueAvant: 60,
+    acomptesCumules: 120,
+    acomptesDansPeriode: 10,
+    impayePrecedent: 500,
+    caBrutPeriode: 100,
+  });
+  assert.equal(impayeEleve.resteAPercevoir, 550);
+});
