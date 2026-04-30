@@ -808,18 +808,15 @@ export function useBilan({
           const caBrutPeriode = totalMissions + totalFrais;
           const impayePrecedent = await getImpayePrecedent(weekNum, patronId);
 
-          const { data: existingBilan, error: lookupError } = await supabase
-            .from(TABLE)
-            .select("id")
-            .eq("periode_type", PERIOD_TYPES.SEMAINE)
-            .eq("periode_value", String(weekNum))
-            .eq("patron_id", pId)
-            .maybeSingle();
-
-          if (lookupError) throw lookupError;
+          const existingBilan = await fetchBilanByPeriodAndPatron({
+            periodeType: PERIOD_TYPES.SEMAINE,
+            periodeValue: String(weekNum),
+            patronId: pId,
+            columns: "id",
+          });
 
           if (!existingBilan?.id) {
-            const { error: insertError } = await supabase.from(TABLE).insert({
+            await insertBilanRow({
               user_id: user.id,
               periode_type: PERIOD_TYPES.SEMAINE,
               periode_value: String(weekNum),
@@ -831,16 +828,11 @@ export function useBilan({
               acompte_consomme: 0,
               reste_a_percevoir: caBrutPeriode,
             });
-            if (insertError) throw insertError;
           } else {
-            const { error: updateError } = await supabase
-              .from(TABLE)
-              .update({
-                ca_brut_periode: caBrutPeriode,
-                periode_index: weekNum,
-              })
-              .eq("id", existingBilan.id);
-            if (updateError) throw updateError;
+            await updateBilanRowById(existingBilan.id, {
+              ca_brut_periode: caBrutPeriode,
+              periode_index: weekNum,
+            });
           }
 
           rebuilt++;
