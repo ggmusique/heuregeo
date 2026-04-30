@@ -11,7 +11,7 @@ export async function runAsyncAction({
     onSuccess?.(result);
     return { ok: true, result };
   } catch (err) {
-    const message = err?.message || fallbackErrorMessage;
+    const message = err?.message || fallbackErrorMessage || "erreur inconnue";
     onError?.(`${COMMON_MESSAGES.ERROR_PREFIX}${message}`);
     return { ok: false, error: err };
   }

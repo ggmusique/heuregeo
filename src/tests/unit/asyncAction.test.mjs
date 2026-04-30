@@ -48,3 +48,18 @@ test("runAsyncAction utilise fallbackErrorMessage si erreur sans message", async
   assert.equal(result.ok, false);
   assert.equal(errorMessage, "Erreur : erreur inconnue");
 });
+
+test("runAsyncAction applique un fallback par défaut si aucun message n'est fourni", async () => {
+  let errorMessage = null;
+  const result = await runAsyncAction({
+    run: async () => {
+      throw {};
+    },
+    onError: (message) => {
+      errorMessage = message;
+    },
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(errorMessage, "Erreur : erreur inconnue");
+});
