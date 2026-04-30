@@ -373,7 +373,6 @@ export function useBilan({
 
         } else {
           soldeAvantPeriode = getSoldeAvant(debutPeriode, runPatronId);
-          const acomptesDansPeriode = getAcomptesDansPeriode(debutPeriode, finPeriode, runPatronId);
           const standardState = computeStandardAcompteState({
             soldeAvantPeriode,
             acomptesDansPeriode,
