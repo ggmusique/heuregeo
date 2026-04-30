@@ -667,7 +667,7 @@ export function useBilan({
     async (patronId = null) => {
       try {
         const pId = effectivePatronId(patronId);
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUserOrNull();
         if (!user) throw new Error("Utilisateur non connecté");
 
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
@@ -803,7 +803,7 @@ export function useBilan({
     async (patronId, startWeek, endWeek) => {
       const pId = effectivePatronId(patronId);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUserOrNull();
         if (!user) return { success: false, message: "Utilisateur non connecté" };
 
         let rebuilt = 0;
@@ -866,7 +866,7 @@ export function useBilan({
   const repairBilansDB = useCallback(async (patronId) => {
     const pId = effectivePatronId(patronId);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUserOrNull();
       if (!user) return { success: false, message: "Non connecté", fixed: 0, skipped: 0 };
 
       const { data: bilans, error: bilansError } = await supabase
