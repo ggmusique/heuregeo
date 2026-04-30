@@ -878,15 +878,11 @@ export function useBilan({
           updatePayload.date_paiement = new Date().toISOString();
         }
 
-        const { error: updateError } = await supabase
-          .from("bilans_status_v2")
-          .update(updatePayload)
-          .eq("id", bilan.id);
-
-        if (updateError) {
-          console.error("repairBilansDB update error", { id: bilan.id, error: updateError });
-        } else {
+        try {
+          await updateBilanRowById(bilan.id, updatePayload);
           fixed++;
+        } catch (updateError) {
+          console.error("repairBilansDB update error", { id: bilan.id, error: updateError });
         }
       }
 
