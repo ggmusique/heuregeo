@@ -4,7 +4,7 @@ import { getCurrentUserOrNull } from "../services/authService";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
-import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite } from "../lib/bilanEngine";
+import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite, computeConsommeCettePeriode } from "../lib/bilanEngine";
 import { fetchHistoricalWeather } from "../services/weatherService";
 import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore, fetchAcompteAmountsBefore, fetchWeeklyBilansForRepair, fetchWeeklyAcompteMetrics, fetchBilanByPeriodAndPatron, insertBilanRow, updateBilanRowById } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
@@ -374,9 +374,14 @@ export function useBilan({
           soldeApresPeriode = acompteDisponible - acompteConsomme;
         }
 
-        const consommeCettePeriode = bilanPeriodType === PERIOD_TYPES.SEMAINE
-          ? (acomptesDansPeriodeCalc > 0 ? acomptesDansPeriodeCalc : 0)
-          : Math.max(0, (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode);
+        const consommeCettePeriode = computeConsommeCettePeriode({
+          bilanPeriodType,
+          periodTypes: PERIOD_TYPES,
+          acomptesDansPeriodeCalc,
+          soldeAvantPeriode,
+          acomptesDansPeriode,
+          soldeApresPeriode,
+        });
 
         const statutPaye = await getStatutPaiement(runPatronId);
 

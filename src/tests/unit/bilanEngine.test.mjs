@@ -4,7 +4,9 @@ import {
   computeStatutPaye,
   computeImpayePrecedent,
   normalizeBilanForWrite,
+  computeConsommeCettePeriode,
 } from "../../lib/bilanEngine.js";
+import { PERIOD_TYPES } from "../../constants/bilanPeriods.js";
 
 test("computeStatutPaye applique la règle OR sur paye/reste", () => {
   assert.equal(computeStatutPaye(true, 50), true);
@@ -39,4 +41,25 @@ test("normalizeBilanForWrite normalise paye/date/reste", () => {
   assert.equal(paid.paye, true);
   assert.equal(paid.reste_a_percevoir, 0);
   assert.equal(typeof paid.date_paiement, "string");
+});
+
+test("computeConsommeCettePeriode retourne la valeur hebdo si positive", () => {
+  const v = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.SEMAINE,
+    periodTypes: PERIOD_TYPES,
+    acomptesDansPeriodeCalc: 120,
+    soldeAvantPeriode: 50,
+    acomptesDansPeriode: 10,
+    soldeApresPeriode: 20,
+  });
+  assert.equal(v, 120);
+});
+
+test("computeConsommeCettePeriode fallback à 0 en hebdo si valeur négative", () => {
+  const v = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.SEMAINE,
+    periodTypes: PERIOD_TYPES,
+    acomptesDansPeriodeCalc: -2,
+  });
+  assert.equal(v, 0);
 });

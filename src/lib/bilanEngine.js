@@ -65,3 +65,23 @@ export function normalizeBilanForWrite({
     date_paiement: isPaye ? (date_paiement || new Date().toISOString()) : null,
   };
 }
+
+/**
+ * Calcule les acomptes consommés sur la période pour l'affichage.
+ *
+ * - En semaine: on prend la valeur réellement versée sur la période (si positive).
+ * - Sinon: on dérive la conso via delta de solde.
+ */
+export function computeConsommeCettePeriode({
+  bilanPeriodType,
+  periodTypes,
+  acomptesDansPeriodeCalc = 0,
+  soldeAvantPeriode = 0,
+  acomptesDansPeriode = 0,
+  soldeApresPeriode = 0,
+}) {
+  if (bilanPeriodType === periodTypes.SEMAINE) {
+    return acomptesDansPeriodeCalc > 0 ? acomptesDansPeriodeCalc : 0;
+  }
+  return Math.max(0, (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode);
+}
