@@ -13,6 +13,6 @@ export async function runAsyncAction({
   } catch (err) {
     const message = err?.message || fallbackErrorMessage || "erreur inconnue";
     onError?.(`${COMMON_MESSAGES.ERROR_PREFIX}${message}`);
-    return { ok: false, error: err };
+    return { ok: false, error: err, message };
   }
 }

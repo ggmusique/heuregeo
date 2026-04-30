@@ -31,6 +31,7 @@ test("runAsyncAction préfixe le message d'erreur et retourne ok=false", async (
   assert.equal(result.ok, false);
   assert.equal(errorMessage, "Erreur : boom");
   assert.ok(result.error instanceof Error);
+  assert.equal(result.message, "boom");
 });
 
 test("runAsyncAction utilise fallbackErrorMessage si erreur sans message", async () => {
@@ -47,6 +48,7 @@ test("runAsyncAction utilise fallbackErrorMessage si erreur sans message", async
 
   assert.equal(result.ok, false);
   assert.equal(errorMessage, "Erreur : erreur inconnue");
+  assert.equal(result.message, "erreur inconnue");
 });
 
 test("runAsyncAction applique un fallback par défaut si aucun message n'est fourni", async () => {
@@ -62,4 +64,5 @@ test("runAsyncAction applique un fallback par défaut si aucun message n'est fou
 
   assert.equal(result.ok, false);
   assert.equal(errorMessage, "Erreur : erreur inconnue");
+  assert.equal(result.message, "erreur inconnue");
 });
