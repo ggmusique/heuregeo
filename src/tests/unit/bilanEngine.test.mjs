@@ -85,3 +85,13 @@ test("computeConsommeCettePeriode borne à 0 hors hebdo si delta négatif", () =
   });
   assert.equal(v, 0);
 });
+
+test("computeConsommeCettePeriode reste sûre si periodTypes absent", () => {
+  const v = computeConsommeCettePeriode({
+    bilanPeriodType: "semaine",
+    soldeAvantPeriode: 40,
+    acomptesDansPeriode: 10,
+    soldeApresPeriode: 20,
+  });
+  assert.equal(v, 30);
+});

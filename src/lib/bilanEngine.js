@@ -80,7 +80,8 @@ export function computeConsommeCettePeriode({
   acomptesDansPeriode = 0,
   soldeApresPeriode = 0,
 }) {
-  if (bilanPeriodType === periodTypes.SEMAINE) {
+  const isSemaine = periodTypes && bilanPeriodType === periodTypes.SEMAINE;
+  if (isSemaine) {
     return acomptesDansPeriodeCalc > 0 ? acomptesDansPeriodeCalc : 0;
   }
   return Math.max(0, (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode);
