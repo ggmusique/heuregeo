@@ -5,6 +5,7 @@ import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
 import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite } from "../lib/bilanEngine";
 import { fetchHistoricalWeather } from "../services/weatherService";
+import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron } from "../services/bilanRepository";
 
 export { normalizeBilanForWrite as normalizeBilanRow };
 
@@ -133,20 +134,12 @@ export function useBilan({
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return false;
-        const { data, error } = await supabase
-          .from(TABLE)
-          .select("paye, reste_a_percevoir")
-          .eq("periode_type", bilanPeriodType)
-          .eq("periode_value", bilanPeriodValue)
-          .eq("patron_id", pId)
-          .order("created_at", { ascending: false })
-          .limit(1);
-        if (error) {
-          console.error("STATUT_QUERY_ERROR", { pId, bilanPeriodType, bilanPeriodValue, error });
-          throw error;
-        }
-        if (!data || data.length === 0) return false;
-        const row = data[0] || {};
+        const row = await fetchLatestBilanStatus({
+          periodeType: bilanPeriodType,
+          periodeValue: bilanPeriodValue,
+          patronId: pId,
+        });
+        if (!row) return false;
         const reste = parseFloat(row?.reste_a_percevoir ?? 0);
         return computeStatutPaye(row?.paye, reste);
       } catch (err) {
@@ -235,20 +228,10 @@ export function useBilan({
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { impayes: [], payes: [], all: [] };
 
-        const { data, error } = await supabase
-          .from(TABLE)
-          .select("id, periode_type, periode_value, periode_index, patron_id, paye, date_paiement, reste_a_percevoir, ca_brut_periode, acompte_consomme, created_at")
-          .eq("patron_id", pId)
-          .eq("periode_type", "semaine")
-          .order("periode_index", { ascending: false });
-
-        if (error) throw error;
+        const data = await fetchWeeklyBilansHistory({ patronId: pId });
 
         // ✅ Récupère toutes les allocations pour ce patron
-        const { data: allocs } = await supabase
-          .from("acompte_allocations")
-          .select("periode_index, amount")
-          .eq("patron_id", pId);
+        const allocs = await fetchAcompteAllocationsByPatron({ patronId: pId });
 
         // ✅ Somme des allocations par semaine
         const allocByWeek = {};
