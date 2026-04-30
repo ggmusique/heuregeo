@@ -70,3 +70,14 @@ test("invariant consommation: hors hebdo, un delta négatif est borné à zéro"
 
   assert.equal(consoMois, 0);
 });
+
+test("invariant consommation: reste stable si periodTypes est absent", () => {
+  const consoSansTypes = computeConsommeCettePeriode({
+    bilanPeriodType: "semaine",
+    soldeAvantPeriode: 40,
+    acomptesDansPeriode: 20,
+    soldeApresPeriode: 10,
+  });
+
+  assert.equal(consoSansTypes, 50);
+});
