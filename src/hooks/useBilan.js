@@ -7,6 +7,7 @@ import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite } fro
 import { fetchHistoricalWeather } from "../services/weatherService";
 import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
+import { PERIOD_TYPES } from "../constants/bilanPeriods";
 
 export { normalizeBilanForWrite as normalizeBilanRow };
 
@@ -64,12 +65,6 @@ export function useBilan({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bilanPeriodValue]);
-
-  const PERIOD_TYPES = {
-    SEMAINE: "semaine",
-    MOIS: "mois",
-    ANNEE: "annee",
-  };
 
   const effectivePatronId = (patronId) =>
     patronId ? patronId : GLOBAL_PATRON_ID;
@@ -180,11 +175,7 @@ export function useBilan({
 
         if (allocsError) throw allocsError;
 
-        const allocByWeek = {};
-        (allocs || []).forEach((a) => {
-          const idx = a.periode_index;
-          allocByWeek[idx] = (allocByWeek[idx] || 0) + (parseFloat(a.amount) || 0);
-        });
+        const allocByWeek = buildAllocByWeek(allocs);
 
         const impayePrecedent = bilans.reduce((sum, r) => {
           const ca = parseFloat(r.ca_brut_periode || 0);
