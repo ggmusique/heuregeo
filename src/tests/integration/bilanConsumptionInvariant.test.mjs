@@ -190,3 +190,20 @@ test("invariant non-hebdo: consommeCettePeriode cohérent avec standardState", (
 
   assert.equal(consomme, state.acompteConsomme);
 });
+
+test("invariant hebdo: soldes et reste bornés avec entrées négatives", () => {
+  const state = computeWeeklyAcompteState({
+    allocCetteSemaine: -30,
+    totalAlloueJusqua: -20,
+    totalAlloueAvant: -10,
+    acomptesCumules: -100,
+    acomptesDansPeriode: -50,
+    impayePrecedent: -200,
+    caBrutPeriode: -300,
+  });
+
+  assert.equal(state.soldeAvantPeriode, 0);
+  assert.equal(state.soldeApresPeriode, 0);
+  assert.equal(state.resteCettePeriode, 0);
+  assert.equal(state.resteAPercevoir, 0);
+});
