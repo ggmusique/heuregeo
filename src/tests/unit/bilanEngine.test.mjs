@@ -5,6 +5,7 @@ import {
   computeImpayePrecedent,
   normalizeBilanForWrite,
   computeConsommeCettePeriode,
+  computeWeeklyAcompteState,
 } from "../../lib/bilanEngine.js";
 import { PERIOD_TYPES } from "../../constants/bilanPeriods.js";
 
@@ -112,4 +113,40 @@ test("computeConsommeCettePeriode normalise les entrées string", () => {
     soldeApresPeriode: "50",
   });
   assert.equal(nonHebdo, 70);
+});
+
+test("computeWeeklyAcompteState calcule les sorties hebdo attendues", () => {
+  const state = computeWeeklyAcompteState({
+    allocCetteSemaine: 150,
+    totalAlloueJusqua: 250,
+    totalAlloueAvant: 100,
+    acomptesCumules: 400,
+    acomptesDansPeriode: 40,
+    impayePrecedent: 80,
+    caBrutPeriode: 200,
+  });
+
+  assert.equal(state.acompteConsomme, 150);
+  assert.equal(state.soldeAvantPeriode, 260);
+  assert.equal(state.soldeApresPeriode, 150);
+  assert.equal(state.resteCettePeriode, 130);
+  assert.equal(state.resteAPercevoir, 130);
+});
+
+test("computeWeeklyAcompteState normalise les entrées invalides", () => {
+  const state = computeWeeklyAcompteState({
+    allocCetteSemaine: "abc",
+    totalAlloueJusqua: null,
+    totalAlloueAvant: undefined,
+    acomptesCumules: "100",
+    acomptesDansPeriode: "20",
+    impayePrecedent: "10",
+    caBrutPeriode: "30",
+  });
+
+  assert.equal(state.acompteConsomme, 0);
+  assert.equal(state.soldeAvantPeriode, 80);
+  assert.equal(state.soldeApresPeriode, 100);
+  assert.equal(state.resteCettePeriode, 40);
+  assert.equal(state.resteAPercevoir, 40);
 });
