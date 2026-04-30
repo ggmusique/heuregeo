@@ -81,3 +81,15 @@ test("invariant consommation: reste stable si periodTypes est absent", () => {
 
   assert.equal(consoSansTypes, 50);
 });
+
+test("invariant consommation: entrées null/undefined ne cassent pas le calcul", () => {
+  const conso = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.MOIS,
+    periodTypes: PERIOD_TYPES,
+    soldeAvantPeriode: null,
+    acomptesDansPeriode: undefined,
+    soldeApresPeriode: undefined,
+  });
+
+  assert.equal(conso, 0);
+});
