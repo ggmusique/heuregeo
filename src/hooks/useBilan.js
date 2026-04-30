@@ -336,103 +336,27 @@ export function useBilan({
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           const weekNum = parseInt(bilanPeriodValue, 10);
 
-          const { data: allocsCetteSemaine, error: allocCetteSemaineError } = await supabase
-            .from("acompte_allocations")
-            .select("amount")
-            .eq("patron_id", pId)
-            .eq("periode_index", weekNum);
+          const metrics = await fetchWeeklyAcompteMetrics({
+            patronId: pId,
+            weekNum,
+            debutPeriode,
+            finPeriode,
+          });
 
-          if (allocCetteSemaineError) {
-            console.error("ALLOC_QUERY_ERROR", { scope: "cette_semaine", patronId: pId, currentIndex: weekNum, error: allocCetteSemaineError });
-          }
+          const {
+            allocCetteSemaine,
+            totalAlloueJusqua,
+            totalAlloueAvant,
+            acompteConsommePeriode: acompteConsommePeriodeReel,
+            acomptesCumules,
+            acomptesDansPeriode: acomptesDansPeriodeReel,
+          } = metrics;
 
-          const allocCetteSemaine = (allocsCetteSemaine || []).reduce(
-            (sum, a) => sum + (parseFloat(a.amount) || 0),
-            0
-          );
-
-          const { data: allocsJusqua, error: allocJusquaError } = await supabase
-            .from("acompte_allocations")
-            .select("amount")
-            .eq("patron_id", pId)
-            .lte("periode_index", weekNum);
-
-          if (allocJusquaError) {
-            console.error("ALLOC_QUERY_ERROR", { scope: "jusqua", patronId: pId, currentIndex: weekNum, error: allocJusquaError });
-          }
-
-          const totalAlloueJusqua = (allocsJusqua || []).reduce(
-            (sum, a) => sum + (parseFloat(a.amount) || 0),
-            0
-          );
-
-          const { data: allocsAvant, error: allocAvantError } = await supabase
-            .from("acompte_allocations")
-            .select("amount")
-            .eq("patron_id", pId)
-            .lt("periode_index", weekNum);
-
-          if (allocAvantError) {
-            console.error("ALLOC_QUERY_ERROR", { scope: "avant", patronId: pId, currentIndex: weekNum, error: allocAvantError });
-          }
-
-          const totalAlloueAvant = (allocsAvant || []).reduce(
-            (sum, a) => sum + (parseFloat(a.amount) || 0),
-            0
-          );
-
-          const periodStartIso = new Date(`${debutPeriode}T00:00:00`).toISOString();
-          const periodEndExclusive = new Date(`${finPeriode}T00:00:00`);
-          periodEndExclusive.setDate(periodEndExclusive.getDate() + 1);
-
-          const { data: allocsCreatedInPeriod, error: allocPeriodError } = await supabase
-            .from("acompte_allocations")
-            .select("amount, created_at")
-            .eq("patron_id", pId)
-            .gte("created_at", periodStartIso)
-            .lt("created_at", periodEndExclusive.toISOString());
-
-          if (allocPeriodError) {
-            console.error("ALLOC_QUERY_ERROR", { scope: "created_in_period", patronId: pId, currentIndex: weekNum, error: allocPeriodError });
-          }
-
-          acompteConsommePeriode = (allocsCreatedInPeriod || []).reduce(
-            (sum, a) => sum + (parseFloat(a.amount) || 0),
-            0
-          );
-
-          const { data: acomptesCumulesRows, error: acomptesCumulesError } = await supabase
-            .from("acomptes")
-            .select("montant")
-            .eq("patron_id", pId)
-            .lte("date_acompte", finPeriode);
-
-          if (acomptesCumulesError) {
-            console.error("ACOMPTES_QUERY_ERROR", { scope: "cumules", patronId: pId, dateFin: finPeriode, error: acomptesCumulesError });
-          }
-
-          const { data: acomptesPeriodeRows, error: acomptesPeriodeError } = await supabase
-            .from("acomptes")
-            .select("montant")
-            .eq("patron_id", pId)
-            .gte("date_acompte", debutPeriode)
-            .lte("date_acompte", finPeriode);
-
-          if (acomptesPeriodeError) {
-            console.error("ACOMPTES_QUERY_ERROR", { scope: "dans_periode", patronId: pId, debutPeriode, finPeriode, error: acomptesPeriodeError });
-          }
-
-          const acomptesCumules = (acomptesCumulesRows || []).reduce(
-            (sum, a) => sum + (parseFloat(a.montant) || 0),
-            0
-          );
-          const acomptesDansPeriode = (acomptesPeriodeRows || []).reduce(
-            (sum, a) => sum + (parseFloat(a.montant) || 0),
-            0
-          );
+          acompteConsommePeriode = acompteConsommePeriodeReel;
+          const acomptesDansPeriodeCalc = acomptesDansPeriodeReel;
 
           acompteConsomme = allocCetteSemaine;
-          soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDansPeriode);
+          soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDansPeriodeCalc);
           soldeApresPeriode = Math.max(0, acomptesCumules - totalAlloueJusqua);
 
           const detteTotale = impayePrecedent + caBrutPeriode;
@@ -450,7 +374,7 @@ export function useBilan({
         }
 
         const consommeCettePeriode = bilanPeriodType === PERIOD_TYPES.SEMAINE
-          ? (acomptesDansPeriode > 0 ? acomptesDansPeriode : 0)
+          ? (acomptesDansPeriodeCalc > 0 ? acomptesDansPeriodeCalc : 0)
           : Math.max(0, (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode);
 
         const statutPaye = await getStatutPaiement(runPatronId);
