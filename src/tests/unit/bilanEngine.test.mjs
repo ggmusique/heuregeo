@@ -4,7 +4,9 @@ import {
   computeStatutPaye,
   computeImpayePrecedent,
   normalizeBilanForWrite,
+  computeConsommeCettePeriode,
 } from "../../lib/bilanEngine.js";
+import { PERIOD_TYPES } from "../../constants/bilanPeriods.js";
 
 test("computeStatutPaye applique la règle OR sur paye/reste", () => {
   assert.equal(computeStatutPaye(true, 50), true);
@@ -39,4 +41,75 @@ test("normalizeBilanForWrite normalise paye/date/reste", () => {
   assert.equal(paid.paye, true);
   assert.equal(paid.reste_a_percevoir, 0);
   assert.equal(typeof paid.date_paiement, "string");
+});
+
+test("computeConsommeCettePeriode retourne la valeur hebdo si positive", () => {
+  const v = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.SEMAINE,
+    periodTypes: PERIOD_TYPES,
+    acomptesDansPeriodeCalc: 120,
+    soldeAvantPeriode: 50,
+    acomptesDansPeriode: 10,
+    soldeApresPeriode: 20,
+  });
+  assert.equal(v, 120);
+});
+
+test("computeConsommeCettePeriode fallback à 0 en hebdo si valeur négative", () => {
+  const v = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.SEMAINE,
+    periodTypes: PERIOD_TYPES,
+    acomptesDansPeriodeCalc: -2,
+  });
+  assert.equal(v, 0);
+});
+
+test("computeConsommeCettePeriode calcule via delta de solde hors hebdo", () => {
+  const v = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.MOIS,
+    periodTypes: PERIOD_TYPES,
+    soldeAvantPeriode: 130,
+    acomptesDansPeriode: 100,
+    soldeApresPeriode: 50,
+  });
+  assert.equal(v, 180);
+});
+
+test("computeConsommeCettePeriode borne à 0 hors hebdo si delta négatif", () => {
+  const v = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.ANNEE,
+    periodTypes: PERIOD_TYPES,
+    soldeAvantPeriode: 10,
+    acomptesDansPeriode: 5,
+    soldeApresPeriode: 30,
+  });
+  assert.equal(v, 0);
+});
+
+test("computeConsommeCettePeriode reste sûre si periodTypes absent", () => {
+  const v = computeConsommeCettePeriode({
+    bilanPeriodType: "semaine",
+    soldeAvantPeriode: 40,
+    acomptesDansPeriode: 10,
+    soldeApresPeriode: 20,
+  });
+  assert.equal(v, 30);
+});
+
+test("computeConsommeCettePeriode normalise les entrées string", () => {
+  const hebdo = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.SEMAINE,
+    periodTypes: PERIOD_TYPES,
+    acomptesDansPeriodeCalc: "42.5",
+  });
+  assert.equal(hebdo, 42.5);
+
+  const nonHebdo = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.MOIS,
+    periodTypes: PERIOD_TYPES,
+    soldeAvantPeriode: "100",
+    acomptesDansPeriode: "20",
+    soldeApresPeriode: "50",
+  });
+  assert.equal(nonHebdo, 70);
 });
