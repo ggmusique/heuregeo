@@ -172,3 +172,21 @@ test("invariant non-hebdo helper: équivalent de la formule historique", () => {
     assert.equal(state.soldeApresPeriode, legacySoldeApres);
   }
 });
+
+test("invariant non-hebdo: consommeCettePeriode cohérent avec standardState", () => {
+  const state = computeStandardAcompteState({
+    soldeAvantPeriode: 90,
+    acomptesDansPeriode: 60,
+    caBrutPeriode: 100,
+  });
+
+  const consomme = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.MOIS,
+    periodTypes: PERIOD_TYPES,
+    soldeAvantPeriode: 90,
+    acomptesDansPeriode: 60,
+    soldeApresPeriode: state.soldeApresPeriode,
+  });
+
+  assert.equal(consomme, state.acompteConsomme);
+});
