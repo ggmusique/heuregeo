@@ -74,3 +74,15 @@ export async function fetchAcompteAmountsBefore({ patronId, beforePeriodeIndex }
   if (error) throw error;
   return data || [];
 }
+
+
+export async function fetchWeeklyBilansForRepair({ patronId }) {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("id, periode_index, ca_brut_periode, acompte_consomme, reste_a_percevoir, paye")
+    .eq("patron_id", patronId)
+    .eq("periode_type", "semaine");
+
+  if (error) throw error;
+  return data || [];
+}
