@@ -6,6 +6,7 @@ import { haversineKm, getLieuLabel } from "../utils/calculators";
 import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite } from "../lib/bilanEngine";
 import { fetchHistoricalWeather } from "../services/weatherService";
 import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron } from "../services/bilanRepository";
+import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
 
 export { normalizeBilanForWrite as normalizeBilanRow };
 
@@ -233,38 +234,10 @@ export function useBilan({
         // ✅ Récupère toutes les allocations pour ce patron
         const allocs = await fetchAcompteAllocationsByPatron({ patronId: pId });
 
-        // ✅ Somme des allocations par semaine
-        const allocByWeek = {};
-        (allocs || []).forEach((a) => {
-          const idx = a.periode_index;
-          allocByWeek[idx] = (allocByWeek[idx] || 0) + (parseFloat(a.amount) || 0);
-        });
+        const allocByWeek = buildAllocByWeek(allocs);
 
-      const rows = (data || []).map((r) => {
-  const patron_nom = resolvePatronNom(r.patron_id);
-  
-  // ✅ Si déjà marqué payé en DB, on lui fait confiance
-  if (r.paye === true) {
-    return { ...r, patron_nom, paye: true, reste_a_percevoir: 0 };
-  }
-
-  // ✅ Pour les non payés, calcul depuis les allocations réelles
-  const ca = parseFloat(r.ca_brut_periode || 0);
-  const alloue = allocByWeek[r.periode_index] || 0;
-  const resteReel = Math.max(0, ca - alloue);
-  const payeNormalise = resteReel <= 0.01;
-
-  return { ...r, patron_nom, paye: payeNormalise, reste_a_percevoir: resteReel };
-});
-
-        const impayes = rows
-          .filter((r) => r.paye === false)
-          .sort((a, b) => Number(b.periode_value) - Number(a.periode_value));
-        const payes = rows
-          .filter((r) => r.paye === true)
-          .sort((a, b) => Number(b.periode_value) - Number(a.periode_value));
-
-        return { impayes, payes, all: rows };
+        const rows = normalizeHistoriqueRows(data, allocByWeek, resolvePatronNom);
+        return splitHistoriqueRows(rows);
       } catch {
         triggerAlert?.("Erreur chargement historique");
         return { impayes: [], payes: [], all: [] };
