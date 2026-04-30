@@ -86,3 +86,27 @@ export async function fetchWeeklyBilansForRepair({ patronId }) {
   if (error) throw error;
   return data || [];
 }
+
+
+export async function fetchBilanByPeriodAndPatron({ periodeType, periodeValue, patronId, columns = "id" }) {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select(columns)
+    .eq("periode_type", periodeType)
+    .eq("periode_value", periodeValue)
+    .eq("patron_id", patronId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data || null;
+}
+
+export async function insertBilanRow(payload) {
+  const { error } = await supabase.from(TABLE).insert(payload);
+  if (error) throw error;
+}
+
+export async function updateBilanRowById(id, payload) {
+  const { error } = await supabase.from(TABLE).update(payload).eq("id", id);
+  if (error) throw error;
+}

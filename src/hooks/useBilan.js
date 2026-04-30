@@ -6,7 +6,7 @@ import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
 import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite } from "../lib/bilanEngine";
 import { fetchHistoricalWeather } from "../services/weatherService";
-import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore, fetchAcompteAmountsBefore, fetchWeeklyBilansForRepair } from "../services/bilanRepository";
+import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore, fetchAcompteAmountsBefore, fetchWeeklyBilansForRepair, fetchBilanByPeriodAndPatron, insertBilanRow, updateBilanRowById } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
 import { computePeriodeIndex, formatPeriodLabel } from "../lib/bilanPeriods";
@@ -671,19 +671,16 @@ export function useBilan({
         if (!user) throw new Error("Utilisateur non connecté");
 
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
-        const { data: existingBilan, error: lookupError } = await supabase
-          .from(TABLE)
-          .select("id, ca_brut_periode")
-          .eq("periode_type", bilanPeriodType)
-          .eq("periode_value", bilanPeriodValue)
-          .eq("patron_id", pId)
-          .maybeSingle();
-
-        if (lookupError) throw lookupError;
+        const existingBilan = await fetchBilanByPeriodAndPatron({
+          periodeType: bilanPeriodType,
+          periodeValue: bilanPeriodValue,
+          patronId: pId,
+          columns: "id, ca_brut_periode",
+        });
 
         if (!existingBilan?.id) {
           const caBrutPeriode = Number(bilanContent.totalE) || 0;
-          const { error: insertError } = await supabase.from(TABLE).insert({
+          await insertBilanRow({
             user_id: user.id,
             periode_type: bilanPeriodType,
             periode_value: bilanPeriodValue,
@@ -695,17 +692,12 @@ export function useBilan({
             reste_a_percevoir: 0,
             acompte_consomme: 0,
           });
-          if (insertError) throw insertError;
         } else {
-          const { error: updateError } = await supabase
-            .from(TABLE)
-            .update({
-              paye: true,
-              date_paiement: new Date().toISOString(),
-              reste_a_percevoir: 0,
-            })
-            .eq("id", existingBilan.id);
-          if (updateError) throw updateError;
+          await updateBilanRowById(existingBilan.id, {
+            paye: true,
+            date_paiement: new Date().toISOString(),
+            reste_a_percevoir: 0,
+          });
         }
 
         setBilanPaye(true);
