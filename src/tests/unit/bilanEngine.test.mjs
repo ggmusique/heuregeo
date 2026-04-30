@@ -63,3 +63,14 @@ test("computeConsommeCettePeriode fallback à 0 en hebdo si valeur négative", (
   });
   assert.equal(v, 0);
 });
+
+test("computeConsommeCettePeriode calcule via delta de solde hors hebdo", () => {
+  const v = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.MOIS,
+    periodTypes: PERIOD_TYPES,
+    soldeAvantPeriode: 130,
+    acomptesDansPeriode: 100,
+    soldeApresPeriode: 50,
+  });
+  assert.equal(v, 180);
+});
