@@ -58,3 +58,15 @@ test("invariant consommation: la conso hebdo est bornée à zéro", () => {
 
   assert.equal(consoHebdo, 0);
 });
+
+test("invariant consommation: hors hebdo, un delta négatif est borné à zéro", () => {
+  const consoMois = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.MOIS,
+    periodTypes: PERIOD_TYPES,
+    soldeAvantPeriode: "15",
+    acomptesDansPeriode: "5",
+    soldeApresPeriode: "40",
+  });
+
+  assert.equal(consoMois, 0);
+});
