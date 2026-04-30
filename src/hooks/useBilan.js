@@ -880,18 +880,8 @@ export function useBilan({
         return { success: true, message: "Aucune ligne à réparer", fixed: 0, skipped: 0 };
       }
 
-      const { data: allocs, error: allocsError } = await supabase
-        .from("acompte_allocations")
-        .select("periode_index, amount")
-        .eq("patron_id", pId);
-
-      if (allocsError) throw allocsError;
-
-      const allocByWeek = {};
-      (allocs || []).forEach((a) => {
-        const idx = a.periode_index;
-        allocByWeek[idx] = (allocByWeek[idx] || 0) + (parseFloat(a.amount) || 0);
-      });
+      const allocs = await fetchAcompteAllocationsByPatron({ patronId: pId });
+      const allocByWeek = buildAllocByWeek(allocs);
 
       let fixed = 0;
       let skipped = 0;
