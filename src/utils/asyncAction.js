@@ -1,4 +1,4 @@
-import { COMMON_MESSAGES } from "../constants/messages";
+import { COMMON_MESSAGES } from "../constants/messages.js";
 
 export async function runAsyncAction({
   run,
