@@ -10,6 +10,7 @@ import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocatio
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
 import { computePeriodeIndex, formatPeriodLabel } from "../lib/bilanPeriods";
+import { computeRepairDecision } from "../lib/bilanRepair";
 
 export { normalizeBilanForWrite as normalizeBilanRow };
 
@@ -865,29 +866,15 @@ export function useBilan({
       let skipped = 0;
 
       for (const bilan of bilans) {
-        const ca = parseFloat(bilan.ca_brut_periode || 0);
-        const alloueReel = allocByWeek[bilan.periode_index] || 0;
-        const resteReel = Math.max(0, ca - alloueReel);
-        const payeReel = bilan.paye === true || resteReel <= 0.01;
+        const decision = computeRepairDecision(bilan, allocByWeek);
 
-        const acompteConsommeInDB = parseFloat(bilan.acompte_consomme || 0);
-        const resteInDB = parseFloat(bilan.reste_a_percevoir || 0);
-
-        const needsFix =
-          Math.abs(acompteConsommeInDB - alloueReel) > 0.01 ||
-          Math.abs(resteInDB - (payeReel ? 0 : resteReel)) > 0.01;
-
-        if (!needsFix) {
+        if (!decision.needsFix) {
           skipped++;
           continue;
         }
 
-        const updatePayload = {
-          acompte_consomme: alloueReel,
-          reste_a_percevoir: payeReel ? 0 : resteReel,
-          paye: payeReel,
-        };
-        if (payeReel && !bilan.paye) {
+        const updatePayload = { ...decision.payload };
+        if (decision.payeReel && !bilan.paye) {
           updatePayload.date_paiement = new Date().toISOString();
         }
 
