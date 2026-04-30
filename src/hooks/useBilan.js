@@ -6,7 +6,7 @@ import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
 import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite } from "../lib/bilanEngine";
 import { fetchHistoricalWeather } from "../services/weatherService";
-import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore, fetchAcompteAmountsBefore, fetchWeeklyBilansForRepair, fetchBilanByPeriodAndPatron, insertBilanRow, updateBilanRowById } from "../services/bilanRepository";
+import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore, fetchAcompteAmountsBefore, fetchWeeklyBilansForRepair, fetchWeeklyAcompteMetrics, fetchBilanByPeriodAndPatron, insertBilanRow, updateBilanRowById } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
 import { computePeriodeIndex, formatPeriodLabel } from "../lib/bilanPeriods";
