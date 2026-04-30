@@ -4,7 +4,7 @@ import { getCurrentUserOrNull } from "../services/authService";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
-import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite, computeConsommeCettePeriode, computeWeeklyAcompteState } from "../lib/bilanEngine";
+import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite, computeConsommeCettePeriode, computeWeeklyAcompteState, computeStandardAcompteState } from "../lib/bilanEngine";
 import { fetchHistoricalWeather } from "../services/weatherService";
 import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore, fetchAcompteAmountsBefore, fetchWeeklyBilansForRepair, fetchWeeklyAcompteMetrics, fetchBilanByPeriodAndPatron, insertBilanRow, updateBilanRowById } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
@@ -374,11 +374,15 @@ export function useBilan({
         } else {
           soldeAvantPeriode = getSoldeAvant(debutPeriode, runPatronId);
           const acomptesDansPeriode = getAcomptesDansPeriode(debutPeriode, finPeriode, runPatronId);
-          const acompteDisponible = soldeAvantPeriode + acomptesDansPeriode;
-          acompteConsomme = Math.min(acompteDisponible, caBrutPeriode);
-          resteCettePeriode = caBrutPeriode - acompteConsomme;
-          resteAPercevoir = resteCettePeriode;
-          soldeApresPeriode = acompteDisponible - acompteConsomme;
+          const standardState = computeStandardAcompteState({
+            soldeAvantPeriode,
+            acomptesDansPeriode,
+            caBrutPeriode,
+          });
+          acompteConsomme = standardState.acompteConsomme;
+          resteCettePeriode = standardState.resteCettePeriode;
+          resteAPercevoir = standardState.resteAPercevoir;
+          soldeApresPeriode = standardState.soldeApresPeriode;
         }
 
         const consommeCettePeriode = computeConsommeCettePeriode({

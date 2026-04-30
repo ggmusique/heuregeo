@@ -125,3 +125,28 @@ export function computeWeeklyAcompteState({
     resteAPercevoir: resteCettePeriode,
   };
 }
+
+/**
+ * Calcule l'état acompte des bilans non hebdomadaires (mois/année).
+ */
+export function computeStandardAcompteState({
+  soldeAvantPeriode = 0,
+  acomptesDansPeriode = 0,
+  caBrutPeriode = 0,
+} = {}) {
+  const soldeAvantPeriodeNum = parseFloat(soldeAvantPeriode) || 0;
+  const acomptesDansPeriodeNum = parseFloat(acomptesDansPeriode) || 0;
+  const caBrutPeriodeNum = parseFloat(caBrutPeriode) || 0;
+
+  const acompteDisponible = soldeAvantPeriodeNum + acomptesDansPeriodeNum;
+  const acompteConsomme = Math.min(acompteDisponible, caBrutPeriodeNum);
+  const resteCettePeriode = caBrutPeriodeNum - acompteConsomme;
+  const soldeApresPeriode = acompteDisponible - acompteConsomme;
+
+  return {
+    acompteConsomme,
+    resteCettePeriode,
+    resteAPercevoir: resteCettePeriode,
+    soldeApresPeriode,
+  };
+}

@@ -6,6 +6,7 @@ import {
   normalizeBilanForWrite,
   computeConsommeCettePeriode,
   computeWeeklyAcompteState,
+  computeStandardAcompteState,
 } from "../../lib/bilanEngine.js";
 import { PERIOD_TYPES } from "../../constants/bilanPeriods.js";
 
@@ -149,4 +150,30 @@ test("computeWeeklyAcompteState normalise les entrées invalides", () => {
   assert.equal(state.soldeApresPeriode, 100);
   assert.equal(state.resteCettePeriode, 40);
   assert.equal(state.resteAPercevoir, 40);
+});
+
+test("computeStandardAcompteState calcule l'état non hebdo", () => {
+  const state = computeStandardAcompteState({
+    soldeAvantPeriode: 130,
+    acomptesDansPeriode: 100,
+    caBrutPeriode: 180,
+  });
+
+  assert.equal(state.acompteConsomme, 180);
+  assert.equal(state.resteCettePeriode, 0);
+  assert.equal(state.resteAPercevoir, 0);
+  assert.equal(state.soldeApresPeriode, 50);
+});
+
+test("computeStandardAcompteState normalise les entrées invalides", () => {
+  const state = computeStandardAcompteState({
+    soldeAvantPeriode: "abc",
+    acomptesDansPeriode: null,
+    caBrutPeriode: "20",
+  });
+
+  assert.equal(state.acompteConsomme, 0);
+  assert.equal(state.resteCettePeriode, 20);
+  assert.equal(state.resteAPercevoir, 20);
+  assert.equal(state.soldeApresPeriode, 0);
 });
