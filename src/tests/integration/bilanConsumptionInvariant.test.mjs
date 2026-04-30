@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { calculerAcomptesBilan } from "../../utils/calculators.js";
-import { computeConsommeCettePeriode } from "../../lib/bilanEngine.js";
+import { computeConsommeCettePeriode, computeWeeklyAcompteState } from "../../lib/bilanEngine.js";
 import { PERIOD_TYPES } from "../../constants/bilanPeriods.js";
 
 test("invariant consommation: hebdo et mensuel restent cohérents", () => {
@@ -92,4 +92,22 @@ test("invariant consommation: entrées null/undefined ne cassent pas le calcul",
   });
 
   assert.equal(conso, 0);
+});
+
+test("invariant hebdo repository->hook: state acompte cohérent", () => {
+  const weekly = computeWeeklyAcompteState({
+    allocCetteSemaine: 150,
+    totalAlloueJusqua: 250,
+    totalAlloueAvant: 100,
+    acomptesCumules: 400,
+    acomptesDansPeriode: 40,
+    impayePrecedent: 80,
+    caBrutPeriode: 200,
+  });
+
+  assert.equal(weekly.acompteConsomme, 150);
+  assert.equal(weekly.soldeAvantPeriode, 260);
+  assert.equal(weekly.soldeApresPeriode, 150);
+  assert.equal(weekly.resteCettePeriode, 130);
+  assert.equal(weekly.resteAPercevoir, 130);
 });
