@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { supabase } from "../services/supabase";
+import { getCurrentUserOrNull } from "../services/authService";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
@@ -128,7 +129,7 @@ export function useBilan({
     async (patronId = null) => {
       const pId = effectivePatronId(patronId);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUserOrNull();
         if (!user) return false;
         const row = await fetchLatestBilanStatus({
           periodeType: bilanPeriodType,
@@ -153,7 +154,7 @@ export function useBilan({
       if (currentIndex < 2) return 0;
 
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUserOrNull();
         if (!user) return 0;
 
         const bilans = await fetchUnpaidWeeklyBilansBefore({
@@ -207,7 +208,7 @@ export function useBilan({
     async (patronId = null) => {
       const pId = effectivePatronId(patronId);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUserOrNull();
         if (!user) return { impayes: [], payes: [], all: [] };
 
         const data = await fetchWeeklyBilansHistory({ patronId: pId });
@@ -241,7 +242,7 @@ export function useBilan({
       try {
         const runPatronId = patronId ?? bilanContent.selectedPatronId ?? null;
         const pId = effectivePatronId(runPatronId);
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUserOrNull();
         if (!user) {
           triggerAlert?.("Utilisateur non connecté.");
           return false;
@@ -762,7 +763,7 @@ export function useBilan({
 
       try {
         setIsRecalculatingKm(true);
-        const { data: { user } } = await supabase.auth.getUser();
+        const user = await getCurrentUserOrNull();
         if (!user) { triggerAlert?.("Utilisateur non connecté."); return; }
 
         const kmRateEffectif = kmSettings.km_rate_mode === "CUSTOM"
