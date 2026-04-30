@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { isSuspectLieu } from "../utils/suspectCoords";
 import { getKmEnabled } from "../utils/kmSettings";
 import { supabase } from "../services/supabase";
+import { DIAGNOSTICS_MESSAGES } from "../constants/messages";
+import { runAsyncAction } from "../utils/asyncAction";
 
 /**
  * DiagnosticsPage — Vue admin pour diagnostiquer l'ensemble du système :
@@ -117,16 +119,18 @@ export const DiagnosticsPage = ({
     const start = parseInt(rebuildStart, 10);
     const end = parseInt(rebuildEnd, 10);
     if (!start || !end || start > end) {
-      showMsg("Plage de semaines invalide (ex: 3 → 15)", true);
+      showMsg(DIAGNOSTICS_MESSAGES.INVALID_WEEK_RANGE, true);
       return;
     }
-    setRebuildLoading(true);
+setRebuildLoading(true);
     setActionMsg(null);
     try {
-      const result = await onRebuildBilans(rebuildPatronId || null, start, end);
-      showMsg(result?.message || "Rebuild terminé", !result?.success);
-    } catch (err) {
-      showMsg("Erreur : " + (err?.message || "Rebuild échoué"), true);
+      await runAsyncAction({
+        run: () => onRebuildBilans(rebuildPatronId || null, start, end),
+        onSuccess: (result) => showMsg(result?.message || DIAGNOSTICS_MESSAGES.REBUILD_DONE, !result?.success),
+        onError: (msg) => showMsg(msg, true),
+        fallbackErrorMessage: DIAGNOSTICS_MESSAGES.REBUILD_FAILED,
+      });
     } finally {
       setRebuildLoading(false);
     }
@@ -137,11 +141,15 @@ export const DiagnosticsPage = ({
     setRepairLoading(true);
     setRepairResult(null);
     try {
-      const result = await onRepairBilans(repairPatronId || null);
-      setRepairResult(result);
-      showMsg(result.message, !result.success);
-    } catch (err) {
-      showMsg("Erreur : " + (err?.message || "Réparation échouée"), true);
+      await runAsyncAction({
+        run: () => onRepairBilans(repairPatronId || null),
+        onSuccess: (result) => {
+          setRepairResult(result);
+          showMsg(result.message, !result.success);
+        },
+        onError: (msg) => showMsg(msg, true),
+        fallbackErrorMessage: DIAGNOSTICS_MESSAGES.REPAIR_FAILED,
+      });
     } finally {
       setRepairLoading(false);
     }
@@ -152,10 +160,12 @@ export const DiagnosticsPage = ({
     setRegeoLoading(true);
     setActionMsg(null);
     try {
-      const result = await onRegeocoderBatch(lieuxSansCoords);
-      showMsg(result?.message || "Géocodage batch terminé");
-    } catch (err) {
-      showMsg("Erreur : " + (err?.message || "Géocodage échoué"), true);
+      await runAsyncAction({
+        run: () => onRegeocoderBatch(lieuxSansCoords),
+        onSuccess: (result) => showMsg(result?.message || DIAGNOSTICS_MESSAGES.GEOCODE_DONE),
+        onError: (msg) => showMsg(msg, true),
+        fallbackErrorMessage: DIAGNOSTICS_MESSAGES.GEOCODE_FAILED,
+      });
     } finally {
       setRegeoLoading(false);
     }
@@ -166,10 +176,12 @@ export const DiagnosticsPage = ({
     setRecalcLoading(true);
     setActionMsg(null);
     try {
-      const result = await onRecalculerKmSemaine();
-      showMsg(result?.message || "KM recalculés pour la semaine courante");
-    } catch (err) {
-      showMsg("Erreur : " + (err?.message || "Recalcul échoué"), true);
+      await runAsyncAction({
+        run: () => onRecalculerKmSemaine(),
+        onSuccess: (result) => showMsg(result?.message || DIAGNOSTICS_MESSAGES.RECALC_KM_DONE),
+        onError: (msg) => showMsg(msg, true),
+        fallbackErrorMessage: DIAGNOSTICS_MESSAGES.RECALC_KM_FAILED,
+      });
     } finally {
       setRecalcLoading(false);
     }
@@ -181,9 +193,9 @@ export const DiagnosticsPage = ({
     const text = buildDiagnosticClipboardText(diagData, diagWeek, patronNom);
     try {
       await navigator.clipboard.writeText(text);
-      setClipboardFeedback({ ok: true, msg: "Diagnostic copié" });
+      setClipboardFeedback({ ok: true, msg: DIAGNOSTICS_MESSAGES.COPY_DIAG_OK });
     } catch {
-      setClipboardFeedback({ ok: false, msg: "Impossible d'accéder au presse-papiers" });
+      setClipboardFeedback({ ok: false, msg: DIAGNOSTICS_MESSAGES.COPY_DIAG_FAILED });
     }
     setTimeout(() => setClipboardFeedback(null), 2500);
   };
