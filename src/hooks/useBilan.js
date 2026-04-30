@@ -284,24 +284,33 @@ export function useBilan({
 
         let fraisFiltres = [];
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-          fraisFiltres = getFraisByWeek(parseInt(bilanPeriodValue, 10), runPatronId);
-        }
-        const totalFrais = getTotalFrais(fraisFiltres);
-
-        let debutPeriode = "";
-        let finPeriode = "";
-        if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           const weekNum = parseInt(bilanPeriodValue, 10);
-          const year = new Date().getFullYear();
-          debutPeriode = getWeekStartDate(weekNum, year);
-          const finDate = new Date(debutPeriode);
-          finDate.setDate(finDate.getDate() + 6);
-          finPeriode = finDate.toISOString().split("T")[0];
-        } else if (bilanPeriodType === PERIOD_TYPES.MOIS) {
-          debutPeriode = `${bilanPeriodValue}-01`;
-          const [year, month] = bilanPeriodValue.split("-").map(Number);
-          const last = new Date(year, month, 0);
-          finPeriode = last.toISOString().split("T")[0];
+
+          const metrics = await fetchWeeklyAcompteMetrics({
+            patronId: pId,
+            weekNum,
+            debutPeriode,
+            finPeriode,
+          });
+
+          const {
+            allocCetteSemaine,
+            totalAlloueJusqua,
+            totalAlloueAvant,
+            acompteConsommePeriode: acompteConsommePeriodeReel,
+            acomptesCumules,
+            acomptesDansPeriode: acomptesDansPeriodeReel,
+          } = metrics;
+
+          acompteConsommePeriode = acompteConsommePeriodeReel;
+          acompteConsomme = allocCetteSemaine;
+          soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDansPeriodeReel);
+          soldeApresPeriode = Math.max(0, acomptesCumules - totalAlloueJusqua);
+
+          const detteTotale = impayePrecedent + caBrutPeriode;
+          resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
+          resteAPercevoir = resteCettePeriode;
+
         } else {
           debutPeriode = `${bilanPeriodValue}-01-01`;
           finPeriode = `${bilanPeriodValue}-12-31`;

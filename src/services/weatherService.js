@@ -1,6 +1,6 @@
 const weatherCache = new Map();
 
-function mapWeatherCode(code) {
+export function mapWeatherCode(code) {
   if (code >= 61 && code <= 67) return { icon: "09d", desc: "Pluie" };
   if (code >= 71 && code <= 77) return { icon: "13d", desc: "Neige" };
   if (code >= 80 && code <= 86) return { icon: "09d", desc: "Averses" };
