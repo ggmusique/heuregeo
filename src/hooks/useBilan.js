@@ -4,36 +4,9 @@ import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
 import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite } from "../lib/bilanEngine";
+import { fetchHistoricalWeather } from "../services/weatherService";
 
 export { normalizeBilanForWrite as normalizeBilanRow };
-
-const fetchHistoricalWeather = async (dateIso, lat = 50.63, lon = 5.58) => {
-  try {
-    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${dateIso}&end_date=${dateIso}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=Europe/Paris`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("Erreur API météo");
-    const data = await res.json();
-    if (data.daily && data.daily.time.length > 0) {
-      const code = data.daily.weathercode[0];
-      let icon = "01d";
-      let desc = "Ensoleillé";
-      if (code >= 61 && code <= 67) { icon = "09d"; desc = "Pluie"; }
-      else if (code >= 71 && code <= 77) { icon = "13d"; desc = "Neige"; }
-      else if (code >= 80 && code <= 86) { icon = "09d"; desc = "Averses"; }
-      else if (code >= 95) { icon = "11d"; desc = "Orage"; }
-      else if (code >= 2 && code <= 3) { icon = "02d"; desc = "Nuageux"; }
-      return {
-        tempMax: Math.round(data.daily.temperature_2m_max[0]),
-        tempMin: Math.round(data.daily.temperature_2m_min[0]),
-        icon,
-        desc,
-      };
-    }
-    return null;
-  } catch {
-    return null;
-  }
-};
 
 const GLOBAL_PATRON_ID = "00000000-0000-0000-0000-000000000000";
 const TABLE = "bilans_status_v2";
