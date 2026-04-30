@@ -110,3 +110,33 @@ export async function updateBilanRowById(id, payload) {
   const { error } = await supabase.from(TABLE).update(payload).eq("id", id);
   if (error) throw error;
 }
+
+export async function fetchWeeklyAcompteMetrics({ patronId, weekNum, debutPeriode, finPeriode }) {
+  const periodStartIso = new Date(`${debutPeriode}T00:00:00`).toISOString();
+  const periodEndExclusive = new Date(`${finPeriode}T00:00:00`);
+  periodEndExclusive.setDate(periodEndExclusive.getDate() + 1);
+
+  const [allocsCetteSemaineRes, allocsJusquaRes, allocsAvantRes, allocsCreatedInPeriodRes, acomptesCumulesRes, acomptesPeriodeRes] = await Promise.all([
+    supabase.from("acompte_allocations").select("amount").eq("patron_id", patronId).eq("periode_index", weekNum),
+    supabase.from("acompte_allocations").select("amount").eq("patron_id", patronId).lte("periode_index", weekNum),
+    supabase.from("acompte_allocations").select("amount").eq("patron_id", patronId).lt("periode_index", weekNum),
+    supabase.from("acompte_allocations").select("amount, created_at").eq("patron_id", patronId).gte("created_at", periodStartIso).lt("created_at", periodEndExclusive.toISOString()),
+    supabase.from("acomptes").select("montant").eq("patron_id", patronId).lte("date_acompte", finPeriode),
+    supabase.from("acomptes").select("montant").eq("patron_id", patronId).gte("date_acompte", debutPeriode).lte("date_acompte", finPeriode),
+  ]);
+
+  const pairs = [allocsCetteSemaineRes, allocsJusquaRes, allocsAvantRes, allocsCreatedInPeriodRes, acomptesCumulesRes, acomptesPeriodeRes];
+  for (const r of pairs) if (r.error) throw r.error;
+
+  const sumAmount = (rows = []) => rows.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+  const sumMontant = (rows = []) => rows.reduce((sum, a) => sum + (parseFloat(a.montant) || 0), 0);
+
+  return {
+    allocCetteSemaine: sumAmount(allocsCetteSemaineRes.data || []),
+    totalAlloueJusqua: sumAmount(allocsJusquaRes.data || []),
+    totalAlloueAvant: sumAmount(allocsAvantRes.data || []),
+    acompteConsommePeriode: sumAmount(allocsCreatedInPeriodRes.data || []),
+    acomptesCumules: sumMontant(acomptesCumulesRes.data || []),
+    acomptesDansPeriode: sumMontant(acomptesPeriodeRes.data || []),
+  };
+}
