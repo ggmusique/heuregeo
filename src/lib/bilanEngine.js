@@ -81,8 +81,12 @@ export function computeConsommeCettePeriode({
   soldeApresPeriode = 0,
 }) {
   const isSemaine = periodTypes && bilanPeriodType === periodTypes.SEMAINE;
+  const acomptesDansPeriodeNum = parseFloat(acomptesDansPeriode) || 0;
+  const soldeAvantPeriodeNum = parseFloat(soldeAvantPeriode) || 0;
+  const soldeApresPeriodeNum = parseFloat(soldeApresPeriode) || 0;
+  const acomptesDansPeriodeCalcNum = parseFloat(acomptesDansPeriodeCalc) || 0;
   if (isSemaine) {
-    return acomptesDansPeriodeCalc > 0 ? acomptesDansPeriodeCalc : 0;
+    return acomptesDansPeriodeCalcNum > 0 ? acomptesDansPeriodeCalcNum : 0;
   }
-  return Math.max(0, (soldeAvantPeriode + acomptesDansPeriode) - soldeApresPeriode);
+  return Math.max(0, (soldeAvantPeriodeNum + acomptesDansPeriodeNum) - soldeApresPeriodeNum);
 }

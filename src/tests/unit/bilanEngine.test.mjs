@@ -95,3 +95,21 @@ test("computeConsommeCettePeriode reste sûre si periodTypes absent", () => {
   });
   assert.equal(v, 30);
 });
+
+test("computeConsommeCettePeriode normalise les entrées string", () => {
+  const hebdo = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.SEMAINE,
+    periodTypes: PERIOD_TYPES,
+    acomptesDansPeriodeCalc: "42.5",
+  });
+  assert.equal(hebdo, 42.5);
+
+  const nonHebdo = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.MOIS,
+    periodTypes: PERIOD_TYPES,
+    soldeAvantPeriode: "100",
+    acomptesDansPeriode: "20",
+    soldeApresPeriode: "50",
+  });
+  assert.equal(nonHebdo, 70);
+});
