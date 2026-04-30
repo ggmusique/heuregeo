@@ -332,6 +332,7 @@ export function useBilan({
           bilanPeriodType === PERIOD_TYPES.SEMAINE
             ? getAcomptesDansPeriode(debutPeriode, finPeriode, runPatronId)
             : 0;
+        let acomptesDansPeriodeCalc = acomptesDansPeriode;
 
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           const weekNum = parseInt(bilanPeriodValue, 10);
@@ -353,7 +354,7 @@ export function useBilan({
           } = metrics;
 
           acompteConsommePeriode = acompteConsommePeriodeReel;
-          const acomptesDansPeriodeCalc = acomptesDansPeriodeReel;
+          acomptesDansPeriodeCalc = acomptesDansPeriodeReel;
 
           acompteConsomme = allocCetteSemaine;
           soldeAvantPeriode = Math.max(0, acomptesCumules - totalAlloueAvant - acomptesDansPeriodeCalc);
