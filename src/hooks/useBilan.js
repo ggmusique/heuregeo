@@ -9,6 +9,7 @@ import { fetchHistoricalWeather } from "../services/weatherService";
 import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore, fetchAcompteAmountsBefore } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
+import { computePeriodeIndex, formatPeriodLabel } from "../lib/bilanPeriods";
 
 export { normalizeBilanForWrite as normalizeBilanRow };
 
@@ -79,30 +80,7 @@ export function useBilan({
     return p?.nom || "Inconnu";
   };
 
-  const computePeriodeIndex = (type, value) => {
-    const v = value?.toString?.() ?? "";
-    if (!v) return 0;
-    if (type === PERIOD_TYPES.SEMAINE) return parseInt(v, 10) || 0;
-    if (type === PERIOD_TYPES.ANNEE) return parseInt(v, 10) || 0;
-    if (type === PERIOD_TYPES.MOIS) return parseInt(v.replace("-", ""), 10) || 0;
-    return 0;
-  };
-
-  const formatPeriodLabel = useCallback(
-    (val) => {
-      if (!val) return "";
-      const sVal = val.toString();
-      if (bilanPeriodType === PERIOD_TYPES.SEMAINE) return `Semaine ${sVal}`;
-      if (bilanPeriodType === PERIOD_TYPES.MOIS && sVal.includes("-")) {
-        const [y, m] = sVal.split("-");
-        return new Date(y, m - 1)
-          .toLocaleString("fr-FR", { month: "long", year: "numeric" })
-          .toUpperCase();
-      }
-      return sVal;
-    },
-    [bilanPeriodType]
-  );
+  const formatCurrentPeriodLabel = useCallback((val) => formatPeriodLabel(bilanPeriodType, val), [bilanPeriodType]);
 
   const calculerPeriodesDisponibles = useCallback(() => {
     const periods = new Set();
@@ -331,7 +309,7 @@ export function useBilan({
         const caBrutPeriode = totalMissions + totalFrais;
 
         if (caBrutPeriode === 0 && filtered.length === 0) {
-          triggerAlert?.(`⚠️ Aucune mission pour ${resolvePatronNom(runPatronId) || "ce patron"} en ${formatPeriodLabel(bilanPeriodValue)}`);
+          triggerAlert?.(`⚠️ Aucune mission pour ${resolvePatronNom(runPatronId) || "ce patron"} en ${formatCurrentPeriodLabel(bilanPeriodValue)}`);
           setShowPeriodModal(false);
           setShowBilan(false);
           return false;
@@ -561,7 +539,7 @@ export function useBilan({
         }
 
         const content = {
-          titre: formatPeriodLabel(bilanPeriodValue),
+          titre: formatCurrentPeriodLabel(bilanPeriodValue),
           totalE: caBrutPeriode,
           totalH,
           filteredData: filteredWithWeather,
@@ -667,7 +645,7 @@ export function useBilan({
       getAcomptesUtilisesAvantPeriode,
       getTotalAcomptesJusqua,
       getStatutPaiement,
-      formatPeriodLabel,
+      formatCurrentPeriodLabel,
       triggerAlert,
       patrons,
       kmSettings,
@@ -1009,7 +987,7 @@ export function useBilan({
     availablePeriods,
     bilanPaye,
     bilanContent,
-    formatPeriodLabel,
+    formatPeriodLabel: formatCurrentPeriodLabel,
     calculerPeriodesDisponibles,
     genererBilan,
     marquerCommePaye,
