@@ -48,3 +48,13 @@ test("invariant consommation: hebdo et mensuel restent cohérents", () => {
 
   assert.equal(consoMensuelle, mensuel.acomptes_consommes);
 });
+
+test("invariant consommation: la conso hebdo est bornée à zéro", () => {
+  const consoHebdo = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.SEMAINE,
+    periodTypes: PERIOD_TYPES,
+    acomptesDansPeriodeCalc: -15,
+  });
+
+  assert.equal(consoHebdo, 0);
+});
