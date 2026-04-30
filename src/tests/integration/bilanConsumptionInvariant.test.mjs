@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { calculerAcomptesBilan } from "../../utils/calculators.js";
-import { computeConsommeCettePeriode, computeWeeklyAcompteState } from "../../lib/bilanEngine.js";
+import { computeConsommeCettePeriode, computeWeeklyAcompteState, computeStandardAcompteState } from "../../lib/bilanEngine.js";
 import { PERIOD_TYPES } from "../../constants/bilanPeriods.js";
 
 test("invariant consommation: hebdo et mensuel restent cohérents", () => {
@@ -150,4 +150,25 @@ test("invariant hebdo limites: sans acomptes, trop d'acomptes et impayé élevé
     caBrutPeriode: 100,
   });
   assert.equal(impayeEleve.resteAPercevoir, 550);
+});
+
+test("invariant non-hebdo helper: équivalent de la formule historique", () => {
+  const cases = [
+    { soldeAvantPeriode: 130, acomptesDansPeriode: 100, caBrutPeriode: 180 },
+    { soldeAvantPeriode: 0, acomptesDansPeriode: 0, caBrutPeriode: 200 },
+    { soldeAvantPeriode: "50", acomptesDansPeriode: "25", caBrutPeriode: "30" },
+  ];
+
+  for (const c of cases) {
+    const legacyAcompteDisponible = (parseFloat(c.soldeAvantPeriode) || 0) + (parseFloat(c.acomptesDansPeriode) || 0);
+    const legacyAcompteConsomme = Math.min(legacyAcompteDisponible, parseFloat(c.caBrutPeriode) || 0);
+    const legacyReste = (parseFloat(c.caBrutPeriode) || 0) - legacyAcompteConsomme;
+    const legacySoldeApres = legacyAcompteDisponible - legacyAcompteConsomme;
+
+    const state = computeStandardAcompteState(c);
+    assert.equal(state.acompteConsomme, legacyAcompteConsomme);
+    assert.equal(state.resteCettePeriode, legacyReste);
+    assert.equal(state.resteAPercevoir, legacyReste);
+    assert.equal(state.soldeApresPeriode, legacySoldeApres);
+  }
 });
