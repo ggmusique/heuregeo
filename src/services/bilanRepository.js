@@ -37,3 +37,28 @@ export async function fetchAcompteAllocationsByPatron({ patronId }) {
   if (error) throw error;
   return data || [];
 }
+
+
+export async function fetchUnpaidWeeklyBilansBefore({ patronId, beforePeriodeIndex }) {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select("periode_index, ca_brut_periode")
+    .eq("periode_type", "semaine")
+    .eq("patron_id", patronId)
+    .lt("periode_index", beforePeriodeIndex)
+    .eq("paye", false);
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchAcompteAllocationsBefore({ patronId, beforePeriodeIndex }) {
+  const { data, error } = await supabase
+    .from("acompte_allocations")
+    .select("periode_index, amount")
+    .eq("patron_id", patronId)
+    .lt("periode_index", beforePeriodeIndex);
+
+  if (error) throw error;
+  return data || [];
+}

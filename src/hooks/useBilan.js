@@ -5,7 +5,7 @@ import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
 import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite } from "../lib/bilanEngine";
 import { fetchHistoricalWeather } from "../services/weatherService";
-import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron } from "../services/bilanRepository";
+import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
 
@@ -156,24 +156,16 @@ export function useBilan({
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return 0;
 
-        const { data: bilans, error: bilansError } = await supabase
-          .from(TABLE)
-          .select("periode_index, ca_brut_periode")
-          .eq("periode_type", PERIOD_TYPES.SEMAINE)
-          .eq("patron_id", pId)
-          .lt("periode_index", currentIndex)
-          .eq("paye", false);
-
-        if (bilansError) throw bilansError;
+        const bilans = await fetchUnpaidWeeklyBilansBefore({
+          patronId: pId,
+          beforePeriodeIndex: currentIndex,
+        });
         if (!bilans || bilans.length === 0) return 0;
 
-        const { data: allocs, error: allocsError } = await supabase
-          .from("acompte_allocations")
-          .select("periode_index, amount")
-          .eq("patron_id", pId)
-          .lt("periode_index", currentIndex);
-
-        if (allocsError) throw allocsError;
+        const allocs = await fetchAcompteAllocationsBefore({
+          patronId: pId,
+          beforePeriodeIndex: currentIndex,
+        });
 
         const allocByWeek = buildAllocByWeek(allocs);
 
