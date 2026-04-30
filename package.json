@@ -12,6 +12,7 @@
     "test:unit": "node --test src/tests/unit/**/*.test.mjs",
     "test:integration": "node --test src/tests/integration/**/*.test.mjs",
     "test:e2e": "node --test src/tests/e2e/**/*.test.mjs",
+    "test:b3": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "test:coverage": "echo \"Coverage requires c8/nyc (not installed in this environment)\" && exit 1"
   },
   "dependencies": {
