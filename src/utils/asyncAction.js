@@ -1,4 +1,4 @@
-import { COMMON_MESSAGES } from "../constants/messages";
+import { COMMON_MESSAGES } from "../constants/messages.js";
 
 export async function runAsyncAction({
   run,
@@ -11,7 +11,7 @@ export async function runAsyncAction({
     onSuccess?.(result);
     return { ok: true, result };
   } catch (err) {
-    const message = err?.message || fallbackErrorMessage;
+    const message = err?.message || fallbackErrorMessage || "erreur inconnue";
     onError?.(`${COMMON_MESSAGES.ERROR_PREFIX}${message}`);
     return { ok: false, error: err };
   }
