@@ -74,3 +74,14 @@ test("computeConsommeCettePeriode calcule via delta de solde hors hebdo", () => 
   });
   assert.equal(v, 180);
 });
+
+test("computeConsommeCettePeriode borne à 0 hors hebdo si delta négatif", () => {
+  const v = computeConsommeCettePeriode({
+    bilanPeriodType: PERIOD_TYPES.ANNEE,
+    periodTypes: PERIOD_TYPES,
+    soldeAvantPeriode: 10,
+    acomptesDansPeriode: 5,
+    soldeApresPeriode: 30,
+  });
+  assert.equal(v, 0);
+});
