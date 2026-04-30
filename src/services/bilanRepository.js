@@ -62,3 +62,15 @@ export async function fetchAcompteAllocationsBefore({ patronId, beforePeriodeInd
   if (error) throw error;
   return data || [];
 }
+
+
+export async function fetchAcompteAmountsBefore({ patronId, beforePeriodeIndex }) {
+  const { data, error } = await supabase
+    .from("acompte_allocations")
+    .select("amount")
+    .eq("patron_id", patronId)
+    .lt("periode_index", beforePeriodeIndex);
+
+  if (error) throw error;
+  return data || [];
+}

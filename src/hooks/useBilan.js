@@ -5,7 +5,7 @@ import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
 import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite } from "../lib/bilanEngine";
 import { fetchHistoricalWeather } from "../services/weatherService";
-import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore } from "../services/bilanRepository";
+import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore, fetchAcompteAmountsBefore } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
 
@@ -190,12 +190,10 @@ export function useBilan({
       if (!weekNum) return 0;
       const pId = effectivePatronId(patronId);
       try {
-        const { data, error } = await supabase
-          .from("acompte_allocations")
-          .select("amount")
-          .eq("patron_id", pId)
-          .lt("periode_index", parseInt(weekNum, 10));
-        if (error) throw error;
+        const data = await fetchAcompteAmountsBefore({
+          patronId: pId,
+          beforePeriodeIndex: parseInt(weekNum, 10),
+        });
         return (data || []).reduce((sum, row) => sum + (parseFloat(row?.amount) || 0), 0);
       } catch (err) {
         console.error("Erreur getAcomptesUtilisesAvantPeriode:", err);
