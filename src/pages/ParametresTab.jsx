@@ -1,13 +1,17 @@
 import React, { Component, Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
-import { AdminPage } from "./AdminPage";
 import { EUROPE_COUNTRIES, KM_RATES, detectCountryFromLatLng } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
 import { supabase } from "../services/supabase";
 import { useLabels } from "../contexts/LabelsContext";
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { usePermissions } from "../contexts/PermissionsContext";
 
+const AdminPage = lazy(() =>
+  import("./AdminPage").then((m) => ({ default: m.AdminPage }))
+);
 const DiagnosticsPage = lazy(() =>
   import("./DiagnosticsPage").then((m) => ({ default: m.DiagnosticsPage }))
 );
@@ -171,9 +175,6 @@ export function ParametresTab({
   profileSaving,
   saveProfile,
   userEmail,
-  darkMode,
-  isAdmin,
-  isPro = false,
   patrons,
   clients,
   lieux,
@@ -204,8 +205,9 @@ export function ParametresTab({
   fetchAcomptes = null,
   showConfirm = null,
   triggerAlert = null,
-  isViewer = false,
 }) {
+  const { darkMode } = useDarkMode();
+  const { isAdmin, isPro, isViewer } = usePermissions();
   const [activePanel, setActivePanel] = useState(null);
 
   const sections = useMemo(
@@ -568,7 +570,15 @@ export function ParametresTab({
                 )}
 
                 {activePanel === "admin" && isAdmin && (
-                  <AdminPage darkMode={darkMode} />
+                  <Suspense
+                    fallback={
+                      <div className={"py-8 text-center text-sm " + (darkMode ? "text-white/40" : "text-slate-400")}>
+                        Chargement…
+                      </div>
+                    }
+                  >
+                    <AdminPage darkMode={darkMode} />
+                  </Suspense>
                 )}
 
                 {activePanel === "diagnostics" && isAdmin && (

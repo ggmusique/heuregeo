@@ -7,6 +7,7 @@ import { KPICard } from "./KPICard";
 import { KM_RATES } from "../../utils/kmRatesByCountry";
 import { haversineKm } from "../../utils/calculators";
 import { supabase } from "../../services/supabase";
+import { useDarkMode } from "../../contexts/DarkModeContext";
 
 function getISOWeekYear(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -32,10 +33,10 @@ export function DashboardPanel({
   clients = [],
   lieux = [],
   profile,
-  darkMode = true,
   kmSettings = null,
   domicileLatLng = null,
 }) {
+  const { darkMode } = useDarkMode();
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
 

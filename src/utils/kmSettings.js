@@ -7,6 +7,19 @@
  */
 
 /**
+ * Migration : si kmRate sans countryCode => FR + CUSTOM
+ * @param {object|null} profile - le profil utilisateur
+ * @returns {object} patch à appliquer au profil (vide si aucune migration nécessaire)
+ */
+export function migrateKmSettings(profile) {
+  if (!profile) return {};
+  if (profile.km_rate && !profile.km_country_code) {
+    return { km_country_code: "FR", km_rate_mode: "CUSTOM", km_rate: profile.km_rate };
+  }
+  return {};
+}
+
+/**
  * Returns whether km fees are enabled for the given features object.
  * Priority: km_settings.enabled → km_enabled → false
  *
@@ -46,3 +59,4 @@ export function setKmEnabled(features, enabled) {
     },
   };
 }
+

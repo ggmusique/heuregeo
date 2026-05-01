@@ -2,6 +2,8 @@ import React, { useMemo, useState } from "react";
 import { formatEuro, formatDateFR } from "../utils/formatters";
 import { getWeekNumber } from "../utils/dateUtils";
 import { useLabels } from "../contexts/LabelsContext";
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { usePermissions } from "../contexts/PermissionsContext";
 import { StatsCharts } from "../components/stats/StatsCharts";
 
 /**
@@ -14,22 +16,25 @@ export const HistoriqueTab = ({
   historiquePatronId,
   historiqueTab,
   loadingHistorique,
-  darkMode,
-  
+
   // Données
   patrons,
   missions,
   listeAcomptes,
-  
+
   // Handlers
   onPatronFilterChange,
   onTabChange,
   onLoadHistorique,
 
-  // Viewer
-  isViewer,
-  viewerPatronId,
+  // Viewer (can also come from PermissionsContext)
+  isViewer: isViewerProp,
+  viewerPatronId: viewerPatronIdProp,
 }) => {
+  const { darkMode } = useDarkMode();
+  const { isViewer: isViewerCtx, viewerPatronId: viewerPatronIdCtx } = usePermissions();
+  const isViewer = isViewerProp !== undefined ? isViewerProp : isViewerCtx;
+  const viewerPatronId = viewerPatronIdProp !== undefined ? viewerPatronIdProp : viewerPatronIdCtx;
   const L = useLabels();
 
   // When viewer, use their fixed patron_id for all filtering
