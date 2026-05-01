@@ -11,6 +11,7 @@ import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
 import { computePeriodeIndex, formatPeriodLabel } from "../lib/bilanPeriods";
 import { computeRepairDecision } from "../lib/bilanRepair";
+import { logBilanError } from "../utils/bilanLogger";
 
 export { normalizeBilanForWrite as normalizeBilanRow };
 
@@ -548,7 +549,11 @@ export function useBilan({
         }
 
       } catch (err) {
-        console.error("❌ ERREUR GENERATION BILAN:", err);
+        logBilanError("generation_bilan", err, {
+          patronId: runPatronId || null,
+          periodType: bilanPeriodType,
+          periodValue: bilanPeriodValue,
+        });
         triggerAlert?.("Erreur lors de la génération du bilan.");
         return false;
       }

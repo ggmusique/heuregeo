@@ -1,4 +1,5 @@
-import { supabase } from "./supabase";
+import { supabase } from "./supabase.js";
+import { mapWeeklyAcompteMetricsFromRows } from "../lib/bilanMetrics.js";
 
 const TABLE = "bilans_status_v2";
 
@@ -128,15 +129,12 @@ export async function fetchWeeklyAcompteMetrics({ patronId, weekNum, debutPeriod
   const pairs = [allocsCetteSemaineRes, allocsJusquaRes, allocsAvantRes, allocsCreatedInPeriodRes, acomptesCumulesRes, acomptesPeriodeRes];
   for (const r of pairs) if (r.error) throw r.error;
 
-  const sumAmount = (rows = []) => rows.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
-  const sumMontant = (rows = []) => rows.reduce((sum, a) => sum + (parseFloat(a.montant) || 0), 0);
-
-  return {
-    allocCetteSemaine: sumAmount(allocsCetteSemaineRes.data || []),
-    totalAlloueJusqua: sumAmount(allocsJusquaRes.data || []),
-    totalAlloueAvant: sumAmount(allocsAvantRes.data || []),
-    acompteConsommePeriode: sumAmount(allocsCreatedInPeriodRes.data || []),
-    acomptesCumules: sumMontant(acomptesCumulesRes.data || []),
-    acomptesDansPeriode: sumMontant(acomptesPeriodeRes.data || []),
-  };
+  return mapWeeklyAcompteMetricsFromRows({
+    allocsCetteSemaine: allocsCetteSemaineRes.data || [],
+    allocsJusqua: allocsJusquaRes.data || [],
+    allocsAvant: allocsAvantRes.data || [],
+    allocsCreatedInPeriod: allocsCreatedInPeriodRes.data || [],
+    acomptesCumules: acomptesCumulesRes.data || [],
+    acomptesPeriode: acomptesPeriodeRes.data || [],
+  });
 }

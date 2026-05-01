@@ -29,3 +29,8 @@ Finaliser la stabilisation post-refactor de `useBilan` en verrouillant les invar
 
 - `npm run test:b3`: OK
 - `npm test`: OK
+
+## Clôture
+
+- Lot B.3 clôturé le 2026-05-01.
+- Passage au lot B.4 engagé (observabilité + contrats repository + smoke UI ciblé).
