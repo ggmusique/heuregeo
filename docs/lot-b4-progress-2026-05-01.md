@@ -19,7 +19,8 @@ Fiabiliser la phase post-refactor en renforçant:
   - Couverture unitaire sur cas nominal, entrées invalides, et valeurs par défaut.
 
 - 🔄 B.4-3 Smoke UI
-  - Runbook prêt, exécution smoke à finaliser sur les scénarios ciblés.
+  - Checklist scénarisée créée (`docs/lot-b4-smoke-ui-2026-05-01.md`).
+  - Exécution smoke à finaliser sur les scénarios ciblés.
 
 ## Prochaines actions immédiates
 
