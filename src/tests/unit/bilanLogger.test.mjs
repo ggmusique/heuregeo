@@ -21,4 +21,6 @@ test("logBilanError logue un payload structuré", () => {
   assert.equal(calls[0][1].scope, "generation_bilan");
   assert.equal(calls[0][1].message, "boom");
   assert.deepEqual(calls[0][1].context, { patronId: "p1", periodType: "semaine" });
+  assert.equal(typeof calls[0][1].timestamp, "string");
+  assert.ok(Number.isFinite(Date.parse(calls[0][1].timestamp)));
 });
