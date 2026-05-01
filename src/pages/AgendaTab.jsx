@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { getWeekNumber } from "../utils/dateUtils";
 import { AgendaWeekView } from "../components/agenda/AgendaWeekView";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 // ─── Constantes ────────────────────────────────────────────────────────────
 
@@ -113,8 +114,8 @@ export function AgendaTab({
   onGoToNextWeek,
   onOpenForDate,
   onEventEdit,
-  darkMode         = true,
 }) {
+  const { darkMode } = useDarkMode();
   const today    = new Date();
   const todayIso = toIso(today.getFullYear(), today.getMonth() + 1, today.getDate());
 

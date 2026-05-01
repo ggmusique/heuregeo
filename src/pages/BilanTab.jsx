@@ -3,6 +3,8 @@ import { formatEuro, formatDateFR } from "../utils/formatters";
 import { MissionCard } from "../components/mission/MissionCard";
 import { WeekPicker } from "../components/common/bilan/WeekPicker";
 import { useLabels } from "../contexts/LabelsContext";
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { usePermissions } from "../contexts/PermissionsContext";
 import { BilanPanel } from "../components/stats/BilanPanel";
 
 export const BilanTab = ({
@@ -10,7 +12,6 @@ export const BilanTab = ({
   bilanPatronId,
   currentWeek,
   missionsThisWeek,
-  darkMode,
   patrons,
   getPatronNom,
   getPatronColor,
@@ -20,19 +21,29 @@ export const BilanTab = ({
   onMissionEdit,
   onMissionDelete,
   profile,
-  isViewer,
-  canBilanMois = true,
-  canBilanAnnee = true,
-  canExportPDF = true,
-  canExportExcel = true,
-  canExportCSV = true,
-  canFacture = false,
+  // permissions can come from props (passed by SuiviTab) or fallback to context
+  isViewer: isViewerProp,
+  canBilanMois: canBilanMoisProp,
+  canBilanAnnee: canBilanAnneeProp,
+  canExportPDF: canExportPDFProp,
+  canExportExcel: canExportExcelProp,
+  canExportCSV: canExportCSVProp,
+  canFacture: canFactureProp,
   saveProfile = null,
   kmSettings = null,
   kmFraisThisWeek = null,
   domicileLatLng = null,
   onRecalculerFraisKm = null,
 }) => {
+  const { darkMode } = useDarkMode();
+  const perms = usePermissions();
+  const isViewer    = isViewerProp    !== undefined ? isViewerProp    : perms.isViewer;
+  const canBilanMois  = canBilanMoisProp  !== undefined ? canBilanMoisProp  : perms.canBilanMois;
+  const canBilanAnnee = canBilanAnneeProp !== undefined ? canBilanAnneeProp : perms.canBilanAnnee;
+  const canExportPDF  = canExportPDFProp  !== undefined ? canExportPDFProp  : perms.canExportPDF;
+  const canExportExcel= canExportExcelProp!== undefined ? canExportExcelProp: perms.canExportExcel;
+  const canExportCSV  = canExportCSVProp  !== undefined ? canExportCSVProp  : perms.canExportCSV;
+  const canFacture    = canFactureProp    !== undefined ? canFactureProp    : perms.canFacture;
   const L = useLabels();
   const exportBilanContent = useMemo(() => {
     if (kmSettings?.km_enable === true) return bilan.bilanContent;

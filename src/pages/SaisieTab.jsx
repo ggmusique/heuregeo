@@ -1,5 +1,6 @@
 import React from "react";
 import { MissionForm } from "../components/mission/MissionForm";
+import { useDarkMode } from "../contexts/DarkModeContext";
 
 /**
  * ✅ SaisieTab
@@ -13,7 +14,6 @@ export const SaisieTab = ({
   selectedLieuId,
   selectedPatronId,
   loading,
-  darkMode,
   isIOS,
 
   // Données
@@ -37,6 +37,7 @@ export const SaisieTab = ({
   onShowImportModal,
   showMissionRateEditor = true,
 }) => {
+  const { darkMode } = useDarkMode();
   return (
     <div className="animate-in fade-in duration-500">
       <MissionForm
