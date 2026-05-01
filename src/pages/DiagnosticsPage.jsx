@@ -2,6 +2,17 @@ import React, { useState } from "react";
 import { isSuspectLieu } from "../utils/suspectCoords";
 import { getKmEnabled } from "../utils/kmSettings";
 import { supabase } from "../services/supabase";
+import { DIAGNOSTICS_MESSAGES } from "../constants/messages";
+import { runAsyncAction } from "../utils/asyncAction";
+import {
+  getDiagnosticStatus,
+  getDiagnosticSummary,
+  getStaticAnomalies,
+  getDiagDataAnomalies,
+  pluralFr,
+  isoWeekStart,
+  isoWeekEnd,
+} from "../lib/diagnosticsRules";
 
 /**
  * DiagnosticsPage — Vue admin pour diagnostiquer l'ensemble du système :
@@ -117,16 +128,18 @@ export const DiagnosticsPage = ({
     const start = parseInt(rebuildStart, 10);
     const end = parseInt(rebuildEnd, 10);
     if (!start || !end || start > end) {
-      showMsg("Plage de semaines invalide (ex: 3 → 15)", true);
+      showMsg(DIAGNOSTICS_MESSAGES.INVALID_WEEK_RANGE, true);
       return;
     }
-    setRebuildLoading(true);
+setRebuildLoading(true);
     setActionMsg(null);
     try {
-      const result = await onRebuildBilans(rebuildPatronId || null, start, end);
-      showMsg(result?.message || "Rebuild terminé", !result?.success);
-    } catch (err) {
-      showMsg("Erreur : " + (err?.message || "Rebuild échoué"), true);
+      await runAsyncAction({
+        run: () => onRebuildBilans(rebuildPatronId || null, start, end),
+        onSuccess: (result) => showMsg(result?.message || DIAGNOSTICS_MESSAGES.REBUILD_DONE, !result?.success),
+        onError: (msg) => showMsg(msg, true),
+        fallbackErrorMessage: DIAGNOSTICS_MESSAGES.REBUILD_FAILED,
+      });
     } finally {
       setRebuildLoading(false);
     }
@@ -137,11 +150,15 @@ export const DiagnosticsPage = ({
     setRepairLoading(true);
     setRepairResult(null);
     try {
-      const result = await onRepairBilans(repairPatronId || null);
-      setRepairResult(result);
-      showMsg(result.message, !result.success);
-    } catch (err) {
-      showMsg("Erreur : " + (err?.message || "Réparation échouée"), true);
+      await runAsyncAction({
+        run: () => onRepairBilans(repairPatronId || null),
+        onSuccess: (result) => {
+          setRepairResult(result);
+          showMsg(result.message, !result.success);
+        },
+        onError: (msg) => showMsg(msg, true),
+        fallbackErrorMessage: DIAGNOSTICS_MESSAGES.REPAIR_FAILED,
+      });
     } finally {
       setRepairLoading(false);
     }
@@ -152,10 +169,12 @@ export const DiagnosticsPage = ({
     setRegeoLoading(true);
     setActionMsg(null);
     try {
-      const result = await onRegeocoderBatch(lieuxSansCoords);
-      showMsg(result?.message || "Géocodage batch terminé");
-    } catch (err) {
-      showMsg("Erreur : " + (err?.message || "Géocodage échoué"), true);
+      await runAsyncAction({
+        run: () => onRegeocoderBatch(lieuxSansCoords),
+        onSuccess: (result) => showMsg(result?.message || DIAGNOSTICS_MESSAGES.GEOCODE_DONE),
+        onError: (msg) => showMsg(msg, true),
+        fallbackErrorMessage: DIAGNOSTICS_MESSAGES.GEOCODE_FAILED,
+      });
     } finally {
       setRegeoLoading(false);
     }
@@ -166,10 +185,12 @@ export const DiagnosticsPage = ({
     setRecalcLoading(true);
     setActionMsg(null);
     try {
-      const result = await onRecalculerKmSemaine();
-      showMsg(result?.message || "KM recalculés pour la semaine courante");
-    } catch (err) {
-      showMsg("Erreur : " + (err?.message || "Recalcul échoué"), true);
+      await runAsyncAction({
+        run: () => onRecalculerKmSemaine(),
+        onSuccess: (result) => showMsg(result?.message || DIAGNOSTICS_MESSAGES.RECALC_KM_DONE),
+        onError: (msg) => showMsg(msg, true),
+        fallbackErrorMessage: DIAGNOSTICS_MESSAGES.RECALC_KM_FAILED,
+      });
     } finally {
       setRecalcLoading(false);
     }
@@ -181,9 +202,9 @@ export const DiagnosticsPage = ({
     const text = buildDiagnosticClipboardText(diagData, diagWeek, patronNom);
     try {
       await navigator.clipboard.writeText(text);
-      setClipboardFeedback({ ok: true, msg: "Diagnostic copié" });
+      setClipboardFeedback({ ok: true, msg: DIAGNOSTICS_MESSAGES.COPY_DIAG_OK });
     } catch {
-      setClipboardFeedback({ ok: false, msg: "Impossible d'accéder au presse-papiers" });
+      setClipboardFeedback({ ok: false, msg: DIAGNOSTICS_MESSAGES.COPY_DIAG_FAILED });
     }
     setTimeout(() => setClipboardFeedback(null), 2500);
   };
@@ -865,107 +886,6 @@ function Hint({ children }) {
 
 // ── Utilitaires de diagnostic ─────────────────────────────────────────────
 
-function getDiagnosticStatus({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }) {
-  if (kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng))) return "critical";
-  if (lieuxSansCoords.length >= 3) return "critical";
-  if (lieuxSansCoords.length > 0 || lieuxSuspects.length > 0) return "warning";
-  if (kmEnabled && nbSansFraisKm > 0) return "warning";
-  return "ok";
-}
-
-function getDiagnosticSummary({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }) {
-  if (kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng))) {
-    return "Incohérence critique : coordonnées domicile manquantes — calcul KM impossible.";
-  }
-  const issues = [];
-  if (lieuxSansCoords.length > 0)
-    issues.push(`${lieuxSansCoords.length} lieu${lieuxSansCoords.length > 1 ? "x" : ""} sans coordonnées GPS`);
-  if (lieuxSuspects.length > 0)
-    issues.push(`${lieuxSuspects.length} lieu${lieuxSuspects.length > 1 ? "x suspects" : " suspect"}`);
-  if (kmEnabled && nbSansFraisKm > 0)
-    issues.push(`${nbSansFraisKm} mission${nbSansFraisKm > 1 ? "s" : ""} sans frais km`);
-  if (issues.length === 0) return "Aucune incohérence détectée.";
-  if (issues.length === 1) return `Point de vigilance : ${issues[0]}.`;
-  return `${issues.length} points de vigilance : ${issues.join(", ")}.`;
-}
-
-function getStaticAnomalies({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }) {
-  const anomalies = [];
-  if (kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng))) {
-    anomalies.push({
-      severity: "critical",
-      message: "Coordonnées domicile manquantes — les frais KM ne peuvent pas être calculés.",
-    });
-  }
-  if (lieuxSansCoords.length > 0) {
-    anomalies.push({
-      severity: lieuxSansCoords.length >= 3 ? "critical" : "warning",
-      message: `${lieuxSansCoords.length} lieu${pluralFr(lieuxSansCoords.length, "", "x")} sans coordonnées GPS exploitables.`,
-    });
-  }
-  if (lieuxSuspects.length > 0) {
-    anomalies.push({
-      severity: "warning",
-      message: `${lieuxSuspects.length} lieu${pluralFr(lieuxSuspects.length, "", "x")} ${lieuxSuspects.length > 1 ? "ont des" : "a des"} coordonnées suspectes (trop proches du domicile).`,
-    });
-  }
-  if (kmEnabled && nbSansFraisKm > 0) {
-    anomalies.push({
-      severity: "warning",
-      message: `${nbSansFraisKm} mission${pluralFr(nbSansFraisKm, "", "s")} de la semaine en cours n'${nbSansFraisKm > 1 ? "ont" : "a"} pas de frais km associé${pluralFr(nbSansFraisKm, "", "s")}.`,
-    });
-  }
-  return anomalies;
-}
-
-function getDiagDataAnomalies(diagData, diagWeek) {
-  const anomalies = [];
-  const bilan = diagData.bilan;
-
-  // Semaine payée avec reste > 0
-  if (bilan?.paye && parseFloat(bilan.reste_a_percevoir || 0) > 0.01) {
-    anomalies.push({
-      severity: "critical",
-      message: `S${diagWeek} marquée payée mais reste à percevoir de ${parseFloat(bilan.reste_a_percevoir).toFixed(2)} € en base.`,
-    });
-  }
-
-  // Acomptes sans allocation
-  const acomptesSansAlloc = diagData.acomptes.filter(
-    (ac) => !diagData.allocations.some((al) => al.acompte_id === ac.id)
-  );
-  if (acomptesSansAlloc.length > 0) {
-    anomalies.push({
-      severity: "warning",
-      message: `${acomptesSansAlloc.length} acompte${pluralFr(acomptesSansAlloc.length, "", "s")} sans aucune allocation associée.`,
-    });
-  }
-
-  // Acomptes sur-alloués
-  const acomptesOverAlloues = diagData.acomptes.filter((ac) => {
-    const totalAlloue = diagData.allocations
-      .filter((al) => al.acompte_id === ac.id)
-      .reduce((s, al) => s + parseFloat(al.amount || 0), 0);
-    return totalAlloue > parseFloat(ac.montant || 0) + 0.01;
-  });
-  if (acomptesOverAlloues.length > 0) {
-    anomalies.push({
-      severity: "critical",
-      message: `${acomptesOverAlloues.length} acompte${pluralFr(acomptesOverAlloues.length, "", "s")} sur-alloué${pluralFr(acomptesOverAlloues.length, "", "s")} (total allocations > montant).`,
-    });
-  }
-
-  // Impayé reporté
-  if (diagData.impayePrecedent > 0.01) {
-    anomalies.push({
-      severity: "warning",
-      message: `Impayé antérieur de ${diagData.impayePrecedent.toFixed(2)} € reporté sur cette période.`,
-    });
-  }
-
-  return anomalies;
-}
-
 function getBilanCardStatus(diagData) {
   if (diagData.queryErrors?.some((e) => e.startsWith("Bilan:"))) return "critical";
   if (!diagData.bilan) return "warning";
@@ -1150,25 +1070,3 @@ function formatBilanSummary(bilan, diagWeek, impayePrecedent) {
   return `S${diagWeek} à jour, pas de reste à percevoir.`;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-/** Returns singular suffix when count === 1, plural suffix otherwise. */
-function pluralFr(count, singular, plural) {
-  return count !== 1 ? plural : singular;
-}
-
-/** ISO week number → Monday date string (YYYY-MM-DD). */
-function isoWeekStart(wk, year = new Date().getFullYear()) {
-  const jan4 = new Date(year, 0, 4);
-  const dow = jan4.getDay() || 7;
-  const d = new Date(jan4);
-  d.setDate(jan4.getDate() - (dow - 1) + (wk - 1) * 7);
-  return d.toISOString().slice(0, 10);
-}
-
-/** ISO week number → Sunday date string (YYYY-MM-DD). */
-function isoWeekEnd(wk, year) {
-  const d = new Date(isoWeekStart(wk, year));
-  d.setDate(d.getDate() + 6);
-  return d.toISOString().slice(0, 10);
-}
