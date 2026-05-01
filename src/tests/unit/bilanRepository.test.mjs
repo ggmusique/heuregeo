@@ -33,3 +33,16 @@ test("mapWeeklyAcompteMetricsFromRows tolère les entrées vides/invalides", () 
   assert.equal(metrics.acomptesCumules, 0);
   assert.equal(metrics.acomptesDansPeriode, 0);
 });
+
+test("mapWeeklyAcompteMetricsFromRows retourne des zéros par défaut", () => {
+  const metrics = mapWeeklyAcompteMetricsFromRows();
+
+  assert.deepEqual(metrics, {
+    allocCetteSemaine: 0,
+    totalAlloueJusqua: 0,
+    totalAlloueAvant: 0,
+    acompteConsommePeriode: 0,
+    acomptesCumules: 0,
+    acomptesDansPeriode: 0,
+  });
+});
