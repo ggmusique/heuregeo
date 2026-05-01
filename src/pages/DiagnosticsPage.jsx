@@ -9,6 +9,9 @@ import {
   getDiagnosticSummary,
   getStaticAnomalies,
   getDiagDataAnomalies,
+  getBilanCardStatus,
+  getAcompteCardStatus,
+  getKmCardStatus,
   pluralFr,
   isoWeekStart,
   isoWeekEnd,
@@ -891,34 +894,4 @@ function Hint({ children }) {
 }
 
 // ── Utilitaires de diagnostic ─────────────────────────────────────────────
-
-function getBilanCardStatus(diagData) {
-  if (diagData.queryErrors?.some((e) => e.startsWith("Bilan:"))) return "critical";
-  if (!diagData.bilan) return "warning";
-  if (diagData.bilan.paye && parseFloat(diagData.bilan.reste_a_percevoir || 0) > 0.01) return "critical";
-  if (diagData.impayePrecedent > 0.01) return "warning";
-  return "ok";
-}
-
-function getAcompteCardStatus(diagData) {
-  if (diagData.queryErrors?.some((e) => e.startsWith("Acomptes:") || e.startsWith("Allocations:"))) return "critical";
-  const overAlloue = diagData.acomptes.some((ac) => {
-    const total = diagData.allocations
-      .filter((al) => al.acompte_id === ac.id)
-      .reduce((s, al) => s + parseFloat(al.amount || 0), 0);
-    return total > parseFloat(ac.montant || 0) + 0.01;
-  });
-  if (overAlloue) return "critical";
-  const sansAlloc = diagData.acomptes.some(
-    (ac) => !diagData.allocations.some((al) => al.acompte_id === ac.id)
-  );
-  if (sansAlloc) return "warning";
-  return "ok";
-}
-
-function getKmCardStatus(diagData) {
-  if (diagData.queryErrors?.some((e) => e.startsWith("Frais KM:"))) return "critical";
-  if (diagData.fraisKm.length === 0) return "warning";
-  return "ok";
-}
 

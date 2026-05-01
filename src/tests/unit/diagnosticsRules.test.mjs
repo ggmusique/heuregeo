@@ -4,6 +4,9 @@ import {
   getDiagnosticStatus,
   getStaticAnomalies,
   getDiagDataAnomalies,
+  getBilanCardStatus,
+  getAcompteCardStatus,
+  getKmCardStatus,
   isoWeekStart,
   isoWeekEnd,
 } from "../../lib/diagnosticsRules.js";
@@ -61,4 +64,30 @@ test("isoWeekStart/isoWeekEnd renvoient une semaine de 7 jours", () => {
   const end = new Date(isoWeekEnd(10, 2026));
   const diffDays = Math.round((end - start) / (1000 * 60 * 60 * 24));
   assert.equal(diffDays, 6);
+});
+
+test("getBilanCardStatus retourne critical en cas d'erreur bilan", () => {
+  const status = getBilanCardStatus({
+    queryErrors: ["Bilan: timeout"],
+    bilan: null,
+    impayePrecedent: 0,
+  });
+  assert.equal(status, "critical");
+});
+
+test("getAcompteCardStatus retourne warning pour acompte sans allocation", () => {
+  const status = getAcompteCardStatus({
+    queryErrors: [],
+    acomptes: [{ id: "ac1", montant: 100 }],
+    allocations: [],
+  });
+  assert.equal(status, "warning");
+});
+
+test("getKmCardStatus retourne warning sans frais KM", () => {
+  const status = getKmCardStatus({
+    queryErrors: [],
+    fraisKm: [],
+  });
+  assert.equal(status, "warning");
 });
