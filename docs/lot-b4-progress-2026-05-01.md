@@ -18,12 +18,12 @@ Fiabiliser la phase post-refactor en renforçant:
   - Extraction d'un mapper pur `mapWeeklyAcompteMetricsFromRows`.
   - Couverture unitaire sur cas nominal, entrées invalides, et valeurs par défaut.
 
-- 🔄 B.4-3 Smoke UI
+- ✅ B.4-3 Smoke UI
   - Checklist scénarisée créée (`docs/lot-b4-smoke-ui-2026-05-01.md`).
-  - Exécution smoke à finaliser sur les scénarios ciblés.
+  - Exécution smoke validée sur les scénarios ciblés.
 
-## Prochaines actions immédiates
+## Clôture B.4 (2026-05-01)
 
-1. Exécuter le smoke UI B.4-3 (hebdo + mensuel).
-2. Capturer résultats attendus/réels dans le runbook.
-3. Lancer `npm run test:b4` et figer l'état de sortie B.4.
+- ✅ `npm run test:b4` exécuté avec succès (unit + integration + e2e).
+- ✅ État de sortie B.4 figé: aucune régression détectée sur les suites automatisées.
+- ✅ Note de clôture rédigée dans `docs/lot-b4-closure-note-2026-05-01.md`.

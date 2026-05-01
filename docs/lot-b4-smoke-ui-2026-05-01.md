@@ -49,10 +49,10 @@ après extraction des helpers/repository.
 
 ## Résultats (à compléter)
 
-- H1: ☐
-- H2: ☐
-- M1: ☐
-- M2: ☐
+- H1: ✅
+- H2: ✅
+- M1: ✅
+- M2: ✅
 
 ## Critère de validation
 
