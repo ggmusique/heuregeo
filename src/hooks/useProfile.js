@@ -86,12 +86,3 @@ export const useProfile = (user) => {
     canMultiPatron, canViewerMode, canHistoriqueComplet, canKilometrage, canAgenda, canFacture, canDashboard,
   }
 }
-
-// Migration: si kmRate sans countryCode => FR + CUSTOM
-export const migrateKmSettings = (profile) => {
-  if (!profile) return {};
-  if (profile.km_rate && !profile.km_country_code) {
-    return { km_country_code: "FR", km_rate_mode: "CUSTOM", km_rate: profile.km_rate };
-  }
-  return {};
-}

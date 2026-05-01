@@ -1,15 +1,29 @@
-import React, { useMemo, useState } from "react";
-import { HistoriqueTab } from "./HistoriqueTab";
-import { BilanTab } from "./BilanTab";
+import React, { useMemo, useState, lazy, Suspense } from "react";
 import { DashboardPanel } from "../components/dashboard/DashboardPanel";
+import { useDarkMode } from "../contexts/DarkModeContext";
+import { usePermissions } from "../contexts/PermissionsContext";
+
+const HistoriqueTab = lazy(() =>
+  import("./HistoriqueTab").then((m) => ({ default: m.HistoriqueTab }))
+);
+const BilanTab = lazy(() =>
+  import("./BilanTab").then((m) => ({ default: m.BilanTab }))
+);
+
+const LazyFallback = () => (
+  <div className="flex justify-center py-20">
+    <div className="animate-spin rounded-full h-10 w-10 border-4 border-yellow-500 border-t-transparent" />
+  </div>
+);
 
 export function SuiviTab({
   defaultView = "dashboard",
-  darkMode = true,
   dashboardProps,
   historiqueProps,
   bilanProps,
 }) {
+  const { darkMode } = useDarkMode();
+  const { isViewer, viewerPatronId, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canFacture } = usePermissions();
   const [view, setView] = useState(
     defaultView === "bilan" ? "bilan" :
     defaultView === "historique" ? "historique" :
@@ -54,13 +68,33 @@ export function SuiviTab({
           clients={dashboardProps.clients}
           lieux={dashboardProps.lieux}
           profile={dashboardProps.profile}
-          darkMode={dashboardProps.darkMode}
           kmSettings={dashboardProps.kmSettings}
           domicileLatLng={dashboardProps.domicileLatLng}
         />
       )}
-      {view === "historique" && <HistoriqueTab {...historiqueProps} />}
-      {view === "bilan" && <BilanTab {...bilanProps} />}
+      {view === "historique" && (
+        <Suspense fallback={<LazyFallback />}>
+          <HistoriqueTab
+            {...historiqueProps}
+            isViewer={isViewer}
+            viewerPatronId={viewerPatronId}
+          />
+        </Suspense>
+      )}
+      {view === "bilan" && (
+        <Suspense fallback={<LazyFallback />}>
+          <BilanTab
+            {...bilanProps}
+            isViewer={isViewer}
+            canBilanMois={canBilanMois}
+            canBilanAnnee={canBilanAnnee}
+            canExportPDF={canExportPDF}
+            canExportExcel={canExportExcel}
+            canExportCSV={canExportCSV}
+            canFacture={canFacture}
+          />
+        </Suspense>
+      )}
     </section>
   );
 }
