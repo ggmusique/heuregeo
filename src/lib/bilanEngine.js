@@ -65,3 +65,88 @@ export function normalizeBilanForWrite({
     date_paiement: isPaye ? (date_paiement || new Date().toISOString()) : null,
   };
 }
+
+/**
+ * Calcule les acomptes consommés sur la période pour l'affichage.
+ *
+ * - En semaine: on prend la valeur réellement versée sur la période (si positive).
+ * - Sinon: on dérive la conso via delta de solde.
+ */
+export function computeConsommeCettePeriode({
+  bilanPeriodType,
+  periodTypes,
+  acomptesDansPeriodeCalc = 0,
+  soldeAvantPeriode = 0,
+  acomptesDansPeriode = 0,
+  soldeApresPeriode = 0,
+}) {
+  const isSemaine = periodTypes && bilanPeriodType === periodTypes.SEMAINE;
+  const acomptesDansPeriodeNum = parseFloat(acomptesDansPeriode) || 0;
+  const soldeAvantPeriodeNum = parseFloat(soldeAvantPeriode) || 0;
+  const soldeApresPeriodeNum = parseFloat(soldeApresPeriode) || 0;
+  const acomptesDansPeriodeCalcNum = parseFloat(acomptesDansPeriodeCalc) || 0;
+  if (isSemaine) {
+    return acomptesDansPeriodeCalcNum > 0 ? acomptesDansPeriodeCalcNum : 0;
+  }
+  return Math.max(0, (soldeAvantPeriodeNum + acomptesDansPeriodeNum) - soldeApresPeriodeNum);
+}
+
+/**
+ * Calcule l'état acompte d'un bilan hebdomadaire à partir des métriques repository.
+ */
+export function computeWeeklyAcompteState({
+  allocCetteSemaine = 0,
+  totalAlloueJusqua = 0,
+  totalAlloueAvant = 0,
+  acomptesCumules = 0,
+  acomptesDansPeriode = 0,
+  impayePrecedent = 0,
+  caBrutPeriode = 0,
+} = {}) {
+  const allocCetteSemaineNum = parseFloat(allocCetteSemaine) || 0;
+  const totalAlloueJusquaNum = parseFloat(totalAlloueJusqua) || 0;
+  const totalAlloueAvantNum = parseFloat(totalAlloueAvant) || 0;
+  const acomptesCumulesNum = parseFloat(acomptesCumules) || 0;
+  const acomptesDansPeriodeNum = parseFloat(acomptesDansPeriode) || 0;
+  const impayePrecedentNum = parseFloat(impayePrecedent) || 0;
+  const caBrutPeriodeNum = parseFloat(caBrutPeriode) || 0;
+
+  const acompteConsomme = allocCetteSemaineNum;
+  const soldeAvantPeriode = Math.max(0, acomptesCumulesNum - totalAlloueAvantNum - acomptesDansPeriodeNum);
+  const soldeApresPeriode = Math.max(0, acomptesCumulesNum - totalAlloueJusquaNum);
+  const detteTotale = impayePrecedentNum + caBrutPeriodeNum;
+  const resteCettePeriode = Math.max(0, detteTotale - acompteConsomme);
+
+  return {
+    acompteConsomme,
+    soldeAvantPeriode,
+    soldeApresPeriode,
+    resteCettePeriode,
+    resteAPercevoir: resteCettePeriode,
+  };
+}
+
+/**
+ * Calcule l'état acompte des bilans non hebdomadaires (mois/année).
+ */
+export function computeStandardAcompteState({
+  soldeAvantPeriode = 0,
+  acomptesDansPeriode = 0,
+  caBrutPeriode = 0,
+} = {}) {
+  const soldeAvantPeriodeNum = parseFloat(soldeAvantPeriode) || 0;
+  const acomptesDansPeriodeNum = parseFloat(acomptesDansPeriode) || 0;
+  const caBrutPeriodeNum = parseFloat(caBrutPeriode) || 0;
+
+  const acompteDisponible = soldeAvantPeriodeNum + acomptesDansPeriodeNum;
+  const acompteConsomme = Math.min(acompteDisponible, caBrutPeriodeNum);
+  const resteCettePeriode = caBrutPeriodeNum - acompteConsomme;
+  const soldeApresPeriode = acompteDisponible - acompteConsomme;
+
+  return {
+    acompteConsomme,
+    resteCettePeriode,
+    resteAPercevoir: resteCettePeriode,
+    soldeApresPeriode,
+  };
+}
