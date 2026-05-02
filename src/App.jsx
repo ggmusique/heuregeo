@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
-import { SuiviTab } from "./pages/SuiviTab";
 import { ParametresTab } from "./pages/ParametresTab";
 import { DashboardPanel } from "./components/dashboard/DashboardPanel";
 
@@ -36,6 +35,7 @@ import { AppHeader } from "./components/layout/AppHeader";
 import { AppNavBar } from "./components/layout/AppNavBar";
 import { AppModals } from "./components/AppModals";
 import { VueAgenda } from "./components/views/VueAgenda";
+import { VueSuivi } from "./components/views/VueSuivi";
 
 import { DarkModeProvider } from "./contexts/DarkModeContext";
 import { useAppUI } from "./hooks/useAppUI";
@@ -166,6 +166,53 @@ function AppContent({ user }) {
     showImportModal, setShowImportModal, bulkCreateMissions,
   };
 
+  const suiviProps = {
+    defaultView: isViewer ? "bilan" : historiqueHook.suiviDefaultView,
+    dashboardProps: {
+      missions,
+      fraisDivers,
+      listeAcomptes,
+      patrons,
+      clients,
+      lieux,
+      profile,
+      kmSettings,
+      domicileLatLng,
+    },
+    historiqueProps: {
+      historique: historiqueHook.historique,
+      historiquePatronId: historiqueHook.historiquePatronId,
+      historiqueTab: historiqueHook.historiqueTab,
+      loadingHistorique: historiqueHook.loadingHistorique,
+      patrons,
+      missions,
+      listeAcomptes,
+      onPatronFilterChange: (patronId) => { historiqueHook.setHistoriquePatronId(patronId); historiqueHook.chargerHistorique(patronId); },
+      onTabChange: historiqueHook.setHistoriqueTab,
+      onLoadHistorique: historiqueHook.chargerHistorique,
+    },
+    bilanProps: {
+      bilan,
+      bilanPatronId,
+      currentWeek,
+      missionsThisWeek,
+      patrons,
+      getPatronNom,
+      getPatronColor,
+      onMarquerCommePaye: marquerCommePaye,
+      onFraisEdit: fraisModal.handleFraisEdit,
+      onFraisDelete: fraisModal.handleFraisDelete,
+      onMissionEdit: missionForm.handleMissionEdit,
+      onMissionDelete: missionForm.handleMissionDelete,
+      profile,
+      saveProfile,
+      kmSettings,
+      kmFraisThisWeek,
+      domicileLatLng,
+      onRecalculerFraisKm: () => bilan.recalculerFraisKm(bilanPatronId),
+    },
+  };
+
   const agendaProps = {
     events: agendaHook.events,
     loading: agendaHook.loading,
@@ -261,54 +308,7 @@ function AppContent({ user }) {
           />
         )}
 
-        {activeTab === "suivi" && (
-          <SuiviTab
-            defaultView={isViewer ? "bilan" : historiqueHook.suiviDefaultView}
-            dashboardProps={{
-              missions,
-              fraisDivers,
-              listeAcomptes,
-              patrons,
-              clients,
-              lieux,
-              profile,
-              kmSettings,
-              domicileLatLng,
-            }}
-            historiqueProps={{
-              historique: historiqueHook.historique,
-              historiquePatronId: historiqueHook.historiquePatronId,
-              historiqueTab: historiqueHook.historiqueTab,
-              loadingHistorique: historiqueHook.loadingHistorique,
-              patrons,
-              missions,
-              listeAcomptes,
-              onPatronFilterChange: (patronId) => { historiqueHook.setHistoriquePatronId(patronId); historiqueHook.chargerHistorique(patronId); },
-              onTabChange: historiqueHook.setHistoriqueTab,
-              onLoadHistorique: historiqueHook.chargerHistorique,
-            }}
-            bilanProps={{
-              bilan,
-              bilanPatronId,
-              currentWeek,
-              missionsThisWeek,
-              patrons,
-              getPatronNom,
-              getPatronColor,
-              onMarquerCommePaye: marquerCommePaye,
-              onFraisEdit: fraisModal.handleFraisEdit,
-              onFraisDelete: fraisModal.handleFraisDelete,
-              onMissionEdit: missionForm.handleMissionEdit,
-              onMissionDelete: missionForm.handleMissionDelete,
-              profile,
-              saveProfile,
-              kmSettings,
-              kmFraisThisWeek,
-              domicileLatLng,
-              onRecalculerFraisKm: () => bilan.recalculerFraisKm(bilanPatronId),
-            }}
-          />
-        )}
+        {activeTab === "suivi" && <VueSuivi {...suiviProps} />}
 
         {activeTab === "agenda" && <VueAgenda {...agendaProps} />}
 
