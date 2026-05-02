@@ -1,4 +1,4 @@
-import { haversineKm } from "./calculators";
+import { haversineKm } from "./calculators.ts";
 
 /**
  * Seuil de distance (km) en-dessous duquel un lieu est considéré "suspect"
