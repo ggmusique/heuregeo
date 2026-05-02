@@ -58,6 +58,58 @@ function AppContent({ user }) {
 
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canFacture } = useProfile(user);
+  const { activeTab, setActiveTab, canAgenda, canDashboard, isViewer, proNavItems } = useNavigation(profile);
+
+  const labels = getLabels(profile);
+
+  const permissions = {
+    isViewer, viewerPatronId, isAdmin, isPro,
+    canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV,
+    canKilometrage, canAgenda, canFacture, canDashboard,
+  };
+
+  if (user && !profileLoading && !isViewer && !isProfileComplete) {
+    return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
+  }
+
+  return (
+    <LabelsContext.Provider value={labels}>
+      <PermissionsContext.Provider value={permissions}>
+        <AppInner
+          user={user}
+          profile={profile}
+          profileSaving={profileSaving}
+          saveProfile={saveProfile}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          canAgenda={canAgenda}
+          canDashboard={canDashboard}
+          isViewer={isViewer}
+          proNavItems={proNavItems}
+          viewerPatronId={viewerPatronId}
+          isPro={isPro}
+          darkMode={darkMode}
+          liveTime={liveTime}
+          isIOS={isIOS}
+          loading={loading}
+          setLoading={setLoading}
+          triggerAlert={triggerAlert}
+          customAlert={customAlert}
+          dismissAlert={dismissAlert}
+          APP_VERSION={APP_VERSION}
+        />
+      </PermissionsContext.Provider>
+    </LabelsContext.Provider>
+  );
+}
+
+function AppInner({
+  user, profile, profileSaving, saveProfile,
+  activeTab, setActiveTab, canAgenda, canDashboard, isViewer, proNavItems, viewerPatronId, isPro,
+  darkMode, liveTime, isIOS, loading, setLoading, triggerAlert, customAlert, dismissAlert,
+  APP_VERSION,
+}) {
   const [showMissionRateEditor, setShowMissionRateEditor] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.localStorage.getItem("showMissionRateEditor") !== "false";
@@ -74,11 +126,6 @@ function AppContent({ user }) {
     (address) => triggerAlert("Position chargee : " + address.substring(0, 45) + "..."),
     (error) => triggerAlert(error)
   );
-
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canFacture } = useProfile(user);
-  const { activeTab, setActiveTab, canAgenda, canDashboard, isViewer, proNavItems } = useNavigation(profile);
-
-  const labels = getLabels(profile);
 
   const { kmSettings, domicileLatLng, currentWeek, missionsThisWeek, kmFraisThisWeek, handleRecalculerKmSemaine } = useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek });
 
@@ -143,16 +190,6 @@ function AppContent({ user }) {
   }, [canAgenda]);
 
   const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || historiqueHook.loadingHistorique || agendaHook.loading;
-
-  if (user && !profileLoading && !isViewer && !isProfileComplete) {
-    return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
-  }
-
-  const permissions = {
-    isViewer, viewerPatronId, isAdmin, isPro,
-    canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV,
-    canKilometrage, canAgenda, canFacture, canDashboard,
-  };
 
   const modalsProps = {
     confirmState, hideConfirm,
@@ -274,8 +311,6 @@ function AppContent({ user }) {
   };
 
   return (
-    <LabelsContext.Provider value={labels}>
-    <PermissionsContext.Provider value={permissions}>
     <div className={"min-h-screen relative overflow-hidden transition-all duration-700 " + (darkMode ? "dark bg-[#020818] text-white" : "light bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900")}>
       <div className="fixed inset-0 pointer-events-none">
         {darkMode && <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-blue-800/10" />}
@@ -346,7 +381,5 @@ function AppContent({ user }) {
 
       <AppNavBar activeTab={activeTab} setActiveTab={setActiveTab} proNavItems={proNavItems} />
     </div>
-    </PermissionsContext.Provider>
-    </LabelsContext.Provider>
   );
 }
