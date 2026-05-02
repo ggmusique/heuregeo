@@ -7,8 +7,8 @@ import {
   computeConsommeCettePeriode,
   computeWeeklyAcompteState,
   computeStandardAcompteState,
-} from "../../lib/bilanEngine.js";
-import { PERIOD_TYPES } from "../../constants/bilanPeriods.js";
+} from "../../lib/bilanEngine.ts";
+import { PERIOD_TYPES } from "../../constants/bilanPeriods.ts";
 
 test("computeStatutPaye applique la règle OR sur paye/reste", () => {
   assert.equal(computeStatutPaye(true, 50), true);

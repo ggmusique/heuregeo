@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { PERIOD_TYPES } from "../../constants/bilanPeriods.js";
-import { computePeriodeIndex, formatPeriodLabel } from "../../lib/bilanPeriods.js";
+import { PERIOD_TYPES } from "../../constants/bilanPeriods.ts";
+import { computePeriodeIndex, formatPeriodLabel } from "../../lib/bilanPeriods.ts";
 
 test("computePeriodeIndex gère semaine/mois/année", () => {
   assert.equal(computePeriodeIndex(PERIOD_TYPES.SEMAINE, "12"), 12);

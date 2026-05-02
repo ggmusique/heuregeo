@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../../lib/bilanHistory.js";
+import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../../lib/bilanHistory.ts";
 
 test("buildAllocByWeek agrège les montants par semaine", () => {
   const out = buildAllocByWeek([

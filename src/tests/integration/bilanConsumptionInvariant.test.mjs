@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculerAcomptesBilan } from "../../utils/calculators.js";
-import { computeConsommeCettePeriode, computeWeeklyAcompteState, computeStandardAcompteState } from "../../lib/bilanEngine.js";
-import { PERIOD_TYPES } from "../../constants/bilanPeriods.js";
+import { calculerAcomptesBilan } from "../../utils/calculators.ts";
+import { computeConsommeCettePeriode, computeWeeklyAcompteState, computeStandardAcompteState } from "../../lib/bilanEngine.ts";
+import { PERIOD_TYPES } from "../../constants/bilanPeriods.ts";
 
 test("invariant consommation: hebdo et mensuel restent cohérents", () => {
   const acomptes = [

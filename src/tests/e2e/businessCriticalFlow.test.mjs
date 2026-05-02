@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calculerDuree } from "../../utils/calculators.js";
-import { getWeekNumber, getWeekStartDate } from "../../utils/dateUtils.js";
-import { normalizeBilanForWrite } from "../../lib/bilanEngine.js";
+import { calculerDuree } from "../../utils/calculators.ts";
+import { getWeekNumber, getWeekStartDate } from "../../utils/dateUtils.ts";
+import { normalizeBilanForWrite } from "../../lib/bilanEngine.ts";
 
 test("chaîne métier minimale: mission -> semaine -> bilan", () => {
   const duree = calculerDuree("08:00", "17:00", 30);
