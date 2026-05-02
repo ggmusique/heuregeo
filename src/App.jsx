@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
 import { SuiviTab } from "./pages/SuiviTab";
@@ -34,7 +34,8 @@ import { AppHeader } from "./components/layout/AppHeader";
 import { AppNavBar } from "./components/layout/AppNavBar";
 import { GlobalModals } from "./components/layout/GlobalModals";
 
-import { DarkModeProvider, useDarkMode } from "./contexts/DarkModeContext";
+import { DarkModeProvider } from "./contexts/DarkModeContext";
+import { useAppUI } from "./hooks/useAppUI";
 import { PermissionsContext } from "./contexts/PermissionsContext";
 import { LabelsContext } from "./contexts/LabelsContext";
 import { getLabels } from "./utils/labels";
@@ -54,15 +55,11 @@ export default function App({ user }) {
 }
 
 function AppContent({ user }) {
-  const { darkMode } = useDarkMode();
+  const { darkMode, liveTime, isIOS, loading, setLoading, triggerAlert, customAlert, dismissAlert } = useAppUI();
 
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
   const [activeTab, setActiveTab] = useState("saisie");
-  const [loading, setLoading] = useState(false);
-  const [customAlert, setCustomAlert] = useState({ show: false, message: "" });
-  const [isIOS, setIsIOS] = useState(false);
-  const [liveTime, setLiveTime] = useState("");
   const [showMissionRateEditor, setShowMissionRateEditor] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.localStorage.getItem("showMissionRateEditor") !== "false";
@@ -70,10 +67,6 @@ function AppContent({ user }) {
   const [bilanPatronId, setBilanPatronId] = useState(null);
   const [bilanClientId, setBilanClientId] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
-
-  const triggerAlert = useCallback((msg) => {
-    setCustomAlert({ show: true, message: msg });
-  }, []);
 
   const { confirmState, showConfirm, hideConfirm } = useConfirm();
 
@@ -120,20 +113,11 @@ function AppContent({ user }) {
 
   useEffect(() => {
     document.title = "Heures de Geo";
-    setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
     fetchMissions();
     fetchFrais();
     fetchAcomptes();
     fetchLieux();
   }, [fetchMissions, fetchFrais, fetchAcomptes, fetchLieux]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = new Date();
-      setLiveTime(now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     if (bilan.showPeriodModal) bilan.calculerPeriodesDisponibles();
@@ -201,7 +185,7 @@ function AppContent({ user }) {
         <div className="absolute inset-0 backdrop-blur-3xl" />
       </div>
 
-      <CustomAlert show={customAlert.show} message={customAlert.message || ""} onDismiss={() => setCustomAlert((prev) => ({ ...prev, show: false }))} />
+      <CustomAlert show={customAlert.show} message={customAlert.message || ""} onDismiss={dismissAlert} />
       <UpdatePrompt />
 
       {isLoading && (
