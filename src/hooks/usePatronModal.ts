@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLabels } from "../contexts/LabelsContext";
 import type { Patron } from "../types/entities";
-import type { ConfirmFn } from "./useBilanFilters";
+import type { ConfirmFn } from "./useConfirm";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

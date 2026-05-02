@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { FraisDivers } from "../types/entities";
-import type { ConfirmFn } from "./useBilanFilters";
+import type { ConfirmFn } from "./useConfirm";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

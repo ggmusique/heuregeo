@@ -12,6 +12,8 @@ export interface ConfirmOptions {
   type?: ConfirmType;
 }
 
+export type ConfirmFn = (options?: ConfirmOptions) => Promise<boolean>;
+
 export interface ConfirmState {
   show: boolean;
   title: string;

@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { geocodeAddress } from "../utils/geocode";
 import { useLabels } from "../contexts/LabelsContext";
 import type { Lieu } from "../types/entities";
-import type { ConfirmFn } from "./useBilanFilters";
+import type { ConfirmFn } from "./useConfirm";
 
 // Nominatim usage policy requires ≤ 1 request/second; 1100ms gives a safe margin.
 const NOMINATIM_DELAY_MS = 1100;
