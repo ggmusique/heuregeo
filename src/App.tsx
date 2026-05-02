@@ -1,4 +1,7 @@
+declare const __APP_VERSION__: string;
+
 import React, { useState, useEffect, useMemo } from "react";
+import { User } from "@supabase/supabase-js";
 
 import { ParametresTab } from "./pages/ParametresTab";
 
@@ -45,7 +48,11 @@ import { getLabels } from "./utils/labels";
 
 import "./inputs.css";
 
-export default function App({ user }) {
+interface AppProps {
+  user: User;
+}
+
+export default function App({ user }: AppProps) {
   return (
     <DarkModeProvider>
       <AppContent user={user} />
@@ -53,7 +60,7 @@ export default function App({ user }) {
   );
 }
 
-function AppContent({ user }) {
+function AppContent({ user }: AppProps) {
   const { darkMode, liveTime, isIOS, loading, setLoading, triggerAlert, customAlert, dismissAlert } = useAppUI();
 
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
@@ -104,12 +111,36 @@ function AppContent({ user }) {
   );
 }
 
+interface AppInnerProps {
+  user: User;
+  profile: any;
+  profileSaving: any;
+  saveProfile: any;
+  activeTab: any;
+  setActiveTab: any;
+  canAgenda: any;
+  canDashboard: any;
+  isViewer: any;
+  proNavItems: any;
+  viewerPatronId: any;
+  isPro: any;
+  darkMode: any;
+  liveTime: any;
+  isIOS: any;
+  loading: any;
+  setLoading: any;
+  triggerAlert: any;
+  customAlert: any;
+  dismissAlert: any;
+  APP_VERSION: string;
+}
+
 function AppInner({
   user, profile, profileSaving, saveProfile,
   activeTab, setActiveTab, canAgenda, canDashboard, isViewer, proNavItems, viewerPatronId, isPro,
   darkMode, liveTime, isIOS, loading, setLoading, triggerAlert, customAlert, dismissAlert,
   APP_VERSION,
-}) {
+}: AppInnerProps) {
   const [showMissionRateEditor, setShowMissionRateEditor] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.localStorage.getItem("showMissionRateEditor") !== "false";
@@ -218,22 +249,22 @@ function AppInner({
     missions,
     isIOS,
     loading,
-    onLieuChange: (lieuId) => {
+    onLieuChange: (lieuId: any) => {
       missionForm.setSelectedLieuId(lieuId);
       if (missionForm.editingMissionId) {
-        const selected = lieux.find((l) => String(l.id) === String(lieuId));
-        missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), lieu_id: lieuId, lieu: selected?.nom || prev?.lieu || "" }));
+        const selected = lieux.find((l: any) => String(l.id) === String(lieuId));
+        missionForm.setEditingMissionData((prev: any) => ({ ...(prev || {}), lieu_id: lieuId, lieu: selected?.nom || prev?.lieu || "" }));
       }
     },
-    onPatronChange: (patronId) => {
+    onPatronChange: (patronId: any) => {
       missionForm.setSelectedPatronId(patronId);
-      if (missionForm.editingMissionId) missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), patron_id: patronId }));
+      if (missionForm.editingMissionId) missionForm.setEditingMissionData((prev: any) => ({ ...(prev || {}), patron_id: patronId }));
     },
-    onClientChange: (clientId) => {
+    onClientChange: (clientId: any) => {
       missionForm.setSelectedClientId(clientId);
       if (missionForm.editingMissionId) {
-        const selected = clients.find((c) => c.id === clientId);
-        missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), client_id: clientId, client: selected?.nom || prev?.client || "" }));
+        const selected = clients.find((c: any) => c.id === clientId);
+        missionForm.setEditingMissionData((prev: any) => ({ ...(prev || {}), client_id: clientId, client: selected?.nom || prev?.client || "" }));
       }
     },
     onShowLieuModal: () => { lieuModal.resetLieuForm(); lieuModal.setShowLieuModal(true); },
@@ -267,7 +298,7 @@ function AppInner({
       patrons,
       missions,
       listeAcomptes,
-      onPatronFilterChange: (patronId) => { historiqueHook.setHistoriquePatronId(patronId); historiqueHook.chargerHistorique(patronId); },
+      onPatronFilterChange: (patronId: any) => { historiqueHook.setHistoriquePatronId(patronId); historiqueHook.chargerHistorique(patronId); },
       onTabChange: historiqueHook.setHistoriqueTab,
       onLoadHistorique: historiqueHook.chargerHistorique,
     },
