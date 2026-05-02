@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
 import { ParametresTab } from "./pages/ParametresTab";
-import { DashboardPanel } from "./components/dashboard/DashboardPanel";
 
 import { useClients } from "./hooks/useClients";
 import { useMissions } from "./hooks/useMissions";
@@ -36,6 +35,7 @@ import { AppNavBar } from "./components/layout/AppNavBar";
 import { AppModals } from "./components/AppModals";
 import { VueAgenda } from "./components/views/VueAgenda";
 import { VueSuivi } from "./components/views/VueSuivi";
+import { VueDashboard } from "./components/views/VueDashboard";
 
 import { DarkModeProvider } from "./contexts/DarkModeContext";
 import { useAppUI } from "./hooks/useAppUI";
@@ -166,6 +166,18 @@ function AppContent({ user }) {
     showImportModal, setShowImportModal, bulkCreateMissions,
   };
 
+  const dashboardProps = {
+    missions,
+    fraisDivers,
+    listeAcomptes,
+    patrons,
+    clients,
+    lieux,
+    profile,
+    kmSettings,
+    domicileLatLng,
+  };
+
   const suiviProps = {
     defaultView: isViewer ? "bilan" : historiqueHook.suiviDefaultView,
     historiqueProps: {
@@ -284,19 +296,7 @@ function AppContent({ user }) {
           />
         )}
 
-        {activeTab === "dashboard" && canDashboard && (
-          <DashboardPanel
-            missions={missions}
-            fraisDivers={fraisDivers}
-            listeAcomptes={listeAcomptes}
-            patrons={patrons}
-            clients={clients}
-            lieux={lieux}
-            profile={profile}
-            kmSettings={kmSettings}
-            domicileLatLng={domicileLatLng}
-          />
-        )}
+        {activeTab === "dashboard" && canDashboard && <VueDashboard {...dashboardProps} />}
 
         {activeTab === "suivi" && <VueSuivi {...suiviProps} />}
 
