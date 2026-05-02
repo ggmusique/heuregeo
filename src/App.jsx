@@ -34,7 +34,7 @@ import { UpdatePrompt } from "./components/common/UpdatePrompt";
 import { OnboardingForm } from "./components/auth/OnboardingForm";
 import { AppHeader } from "./components/layout/AppHeader";
 import { AppNavBar } from "./components/layout/AppNavBar";
-import { GlobalModals } from "./components/layout/GlobalModals";
+import { AppModals } from "./components/AppModals";
 
 import { DarkModeProvider } from "./contexts/DarkModeContext";
 import { useAppUI } from "./hooks/useAppUI";
@@ -155,6 +155,18 @@ function AppContent({ user }) {
     isViewer, viewerPatronId, isAdmin, isPro,
     canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV,
     canKilometrage, canAgenda, canFacture, canDashboard,
+  };
+
+  const modalsProps = {
+    confirmState, hideConfirm,
+    fraisModal, loading, isIOS, patrons, clients, lieux,
+    acompteModal,
+    patronModal,
+    clientModal,
+    bilan, bilanPatronId, setBilanPatronId, bilanClientId, setBilanClientId,
+    lieuModal,
+    agendaModal,
+    showImportModal, setShowImportModal, bulkCreateMissions,
   };
 
   return (
@@ -345,29 +357,7 @@ function AppContent({ user }) {
         )}
       </main>
 
-      <GlobalModals
-        confirmState={confirmState}
-        hideConfirm={hideConfirm}
-        fraisModal={fraisModal}
-        loading={loading}
-        isIOS={isIOS}
-        patrons={patrons}
-        clients={clients}
-        lieux={lieux}
-        acompteModal={acompteModal}
-        patronModal={patronModal}
-        clientModal={clientModal}
-        bilan={bilan}
-        bilanPatronId={bilanPatronId}
-        setBilanPatronId={setBilanPatronId}
-        bilanClientId={bilanClientId}
-        setBilanClientId={setBilanClientId}
-        lieuModal={lieuModal}
-        agendaModal={agendaModal}
-        showImportModal={showImportModal}
-        setShowImportModal={setShowImportModal}
-        bulkCreateMissions={bulkCreateMissions}
-      />
+      <AppModals {...modalsProps} />
 
       <AppNavBar activeTab={activeTab} setActiveTab={setActiveTab} proNavItems={proNavItems} />
     </div>
