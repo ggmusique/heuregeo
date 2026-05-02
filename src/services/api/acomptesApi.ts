@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import type { Acompte } from "../../types/entities";
 
 export const fetchAcomptes = async () => {
   const { data, error } = await supabase
@@ -10,7 +11,7 @@ export const fetchAcomptes = async () => {
   return data || [];
 };
 
-export const createAcompte = async (acompteData: any) => {
+export const createAcompte = async (acompteData: Partial<Acompte>) => {
   const { data, error } = await supabase
     .from("acomptes")
     .insert([acompteData])
@@ -26,7 +27,7 @@ export const createAcompte = async (acompteData: any) => {
   };
 };
 
-export const deleteAcompte = async (id: any) => {
+export const deleteAcompte = async (id: string) => {
   const { error } = await supabase.from("acomptes").delete().eq("id", id);
   if (error) throw error;
 };

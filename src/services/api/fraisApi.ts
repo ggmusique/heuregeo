@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import type { FraisDivers } from "../../types/entities";
 
 export const fetchFrais = async () => {
   const { data, error } = await supabase
@@ -10,7 +11,7 @@ export const fetchFrais = async () => {
   return data || [];
 };
 
-export const createFrais = async (fraisData: any) => {
+export const createFrais = async (fraisData: Partial<FraisDivers>) => {
   const { data, error } = await supabase
     .from("frais_divers")
     .insert([fraisData])
@@ -20,7 +21,7 @@ export const createFrais = async (fraisData: any) => {
   return data[0];
 };
 
-export const updateFrais = async (id: any, fraisData: any) => {
+export const updateFrais = async (id: string, fraisData: Partial<FraisDivers>) => {
   const { data, error } = await supabase
     .from("frais_divers")
     .update(fraisData)
@@ -31,7 +32,7 @@ export const updateFrais = async (id: any, fraisData: any) => {
   return data[0];
 };
 
-export const deleteFrais = async (id: any) => {
+export const deleteFrais = async (id: string) => {
   const { error } = await supabase.from("frais_divers").delete().eq("id", id);
   if (error) throw error;
 };
