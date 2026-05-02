@@ -1,5 +1,5 @@
-import { supabase } from "../supabase";
-import type { FraisDivers } from "../../types/entities";
+import { supabase } from "../supabase.ts";
+import type { FraisDivers } from "../../types/entities.ts";
 
 export const fetchFrais = async () => {
   const { data, error } = await supabase

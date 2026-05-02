@@ -1,5 +1,5 @@
-import { supabase } from "./supabase";
-import { mapWeeklyAcompteMetricsFromRows } from "../lib/bilanMetrics";
+import { supabase } from "./supabase.ts";
+import { mapWeeklyAcompteMetricsFromRows } from "../lib/bilanMetrics.ts";
 
 const TABLE = "bilans_status_v2";
 
