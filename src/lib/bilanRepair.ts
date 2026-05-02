@@ -1,4 +1,4 @@
-export function computeRepairDecision(bilan, allocByWeek = {}) {
+export function computeRepairDecision(bilan: any, allocByWeek: Record<number, number> = {}) {
   const ca = parseFloat(bilan?.ca_brut_periode || 0);
   const alloueReel = allocByWeek[bilan?.periode_index] || 0;
   const resteReel = Math.max(0, ca - alloueReel);

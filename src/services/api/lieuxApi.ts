@@ -1,16 +1,10 @@
 import { supabase } from "../supabase";
 
-/**
- * API pour les lieux
- */
-
-// Colonnes autorisées sur la table lieux (whitelist anti colonne inconnue)
 const LIEUX_COLUMNS = ["nom", "adresse_complete", "latitude", "longitude", "notes", "user_id", "type"];
 
-const sanitizeLieu = (data) =>
+const sanitizeLieu = (data: Record<string, any>) =>
   Object.fromEntries(Object.entries(data).filter(([k]) => LIEUX_COLUMNS.includes(k)));
 
-// ========= FETCH (READ) =========
 export const fetchLieux = async () => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
@@ -30,8 +24,7 @@ export const fetchLieux = async () => {
   }));
 };
 
-// ========= CREATE =========
-export const createLieu = async (lieuData) => {
+export const createLieu = async (lieuData: any) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Utilisateur non connecté");
 
@@ -47,12 +40,10 @@ export const createLieu = async (lieuData) => {
     throw error;
   }
 
-  // ✅ Retourner le lieu créé (avec son ID)
   return data[0];
 };
 
-// ========= UPDATE =========
-export const updateLieu = async (id, lieuData) => {
+export const updateLieu = async (id: any, lieuData: any) => {
   const { data, error } = await supabase
     .from("lieux")
     .update(sanitizeLieu(lieuData))
@@ -60,13 +51,10 @@ export const updateLieu = async (id, lieuData) => {
     .select();
 
   if (error) throw error;
-
   return data[0];
 };
 
-// ========= DELETE =========
-export const deleteLieu = async (id) => {
+export const deleteLieu = async (id: any) => {
   const { error } = await supabase.from("lieux").delete().eq("id", id);
-
   if (error) throw error;
 };

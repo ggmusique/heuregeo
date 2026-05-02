@@ -5,9 +5,16 @@ export function mapWeeklyAcompteMetricsFromRows({
   allocsCreatedInPeriod = [],
   acomptesCumules = [],
   acomptesPeriode = [],
+}: {
+  allocsCetteSemaine?: any[];
+  allocsJusqua?: any[];
+  allocsAvant?: any[];
+  allocsCreatedInPeriod?: any[];
+  acomptesCumules?: any[];
+  acomptesPeriode?: any[];
 } = {}) {
-  const sumAmount = (rows = []) => rows.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
-  const sumMontant = (rows = []) => rows.reduce((sum, a) => sum + (parseFloat(a.montant) || 0), 0);
+  const sumAmount = (rows: any[] = []) => rows.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
+  const sumMontant = (rows: any[] = []) => rows.reduce((sum, a) => sum + (parseFloat(a.montant) || 0), 0);
 
   return {
     allocCetteSemaine: sumAmount(allocsCetteSemaine),

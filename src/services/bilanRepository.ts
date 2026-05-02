@@ -1,9 +1,9 @@
-import { supabase } from "./supabase.js";
-import { mapWeeklyAcompteMetricsFromRows } from "../lib/bilanMetrics.js";
+import { supabase } from "./supabase";
+import { mapWeeklyAcompteMetricsFromRows } from "../lib/bilanMetrics";
 
 const TABLE = "bilans_status_v2";
 
-export async function fetchLatestBilanStatus({ periodeType, periodeValue, patronId }) {
+export async function fetchLatestBilanStatus({ periodeType, periodeValue, patronId }: { periodeType: string; periodeValue: any; patronId: any }) {
   const { data, error } = await supabase
     .from(TABLE)
     .select("paye, reste_a_percevoir")
@@ -17,7 +17,7 @@ export async function fetchLatestBilanStatus({ periodeType, periodeValue, patron
   return (data && data[0]) || null;
 }
 
-export async function fetchWeeklyBilansHistory({ patronId }) {
+export async function fetchWeeklyBilansHistory({ patronId }: { patronId: any }) {
   const { data, error } = await supabase
     .from(TABLE)
     .select("id, periode_type, periode_value, periode_index, patron_id, paye, date_paiement, reste_a_percevoir, ca_brut_periode, acompte_consomme, created_at")
@@ -29,7 +29,7 @@ export async function fetchWeeklyBilansHistory({ patronId }) {
   return data || [];
 }
 
-export async function fetchAcompteAllocationsByPatron({ patronId }) {
+export async function fetchAcompteAllocationsByPatron({ patronId }: { patronId: any }) {
   const { data, error } = await supabase
     .from("acompte_allocations")
     .select("periode_index, amount")
@@ -39,8 +39,7 @@ export async function fetchAcompteAllocationsByPatron({ patronId }) {
   return data || [];
 }
 
-
-export async function fetchUnpaidWeeklyBilansBefore({ patronId, beforePeriodeIndex }) {
+export async function fetchUnpaidWeeklyBilansBefore({ patronId, beforePeriodeIndex }: { patronId: any; beforePeriodeIndex: any }) {
   const { data, error } = await supabase
     .from(TABLE)
     .select("periode_index, ca_brut_periode")
@@ -53,7 +52,7 @@ export async function fetchUnpaidWeeklyBilansBefore({ patronId, beforePeriodeInd
   return data || [];
 }
 
-export async function fetchAcompteAllocationsBefore({ patronId, beforePeriodeIndex }) {
+export async function fetchAcompteAllocationsBefore({ patronId, beforePeriodeIndex }: { patronId: any; beforePeriodeIndex: any }) {
   const { data, error } = await supabase
     .from("acompte_allocations")
     .select("periode_index, amount")
@@ -64,8 +63,7 @@ export async function fetchAcompteAllocationsBefore({ patronId, beforePeriodeInd
   return data || [];
 }
 
-
-export async function fetchAcompteAmountsBefore({ patronId, beforePeriodeIndex }) {
+export async function fetchAcompteAmountsBefore({ patronId, beforePeriodeIndex }: { patronId: any; beforePeriodeIndex: any }) {
   const { data, error } = await supabase
     .from("acompte_allocations")
     .select("amount")
@@ -76,8 +74,7 @@ export async function fetchAcompteAmountsBefore({ patronId, beforePeriodeIndex }
   return data || [];
 }
 
-
-export async function fetchWeeklyBilansForRepair({ patronId }) {
+export async function fetchWeeklyBilansForRepair({ patronId }: { patronId: any }) {
   const { data, error } = await supabase
     .from(TABLE)
     .select("id, periode_index, ca_brut_periode, acompte_consomme, reste_a_percevoir, paye")
@@ -88,8 +85,7 @@ export async function fetchWeeklyBilansForRepair({ patronId }) {
   return data || [];
 }
 
-
-export async function fetchBilanByPeriodAndPatron({ periodeType, periodeValue, patronId, columns = "id" }) {
+export async function fetchBilanByPeriodAndPatron({ periodeType, periodeValue, patronId, columns = "id" }: { periodeType: string; periodeValue: any; patronId: any; columns?: string }) {
   const { data, error } = await supabase
     .from(TABLE)
     .select(columns)
@@ -102,17 +98,17 @@ export async function fetchBilanByPeriodAndPatron({ periodeType, periodeValue, p
   return data || null;
 }
 
-export async function insertBilanRow(payload) {
+export async function insertBilanRow(payload: any) {
   const { error } = await supabase.from(TABLE).insert(payload);
   if (error) throw error;
 }
 
-export async function updateBilanRowById(id, payload) {
+export async function updateBilanRowById(id: any, payload: any) {
   const { error } = await supabase.from(TABLE).update(payload).eq("id", id);
   if (error) throw error;
 }
 
-export async function fetchWeeklyAcompteMetrics({ patronId, weekNum, debutPeriode, finPeriode }) {
+export async function fetchWeeklyAcompteMetrics({ patronId, weekNum, debutPeriode, finPeriode }: { patronId: any; weekNum: any; debutPeriode: string; finPeriode: string }) {
   const periodStartIso = new Date(`${debutPeriode}T00:00:00`).toISOString();
   const periodEndExclusive = new Date(`${finPeriode}T00:00:00`);
   periodEndExclusive.setDate(periodEndExclusive.getDate() + 1);

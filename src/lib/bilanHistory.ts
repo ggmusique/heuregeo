@@ -1,12 +1,16 @@
-export function buildAllocByWeek(allocs = []) {
-  return (allocs || []).reduce((acc, a) => {
+export function buildAllocByWeek(allocs: any[] = {}): Record<number, number> {
+  return (allocs || []).reduce((acc: Record<number, number>, a: any) => {
     const idx = a?.periode_index;
     acc[idx] = (acc[idx] || 0) + (parseFloat(a?.amount) || 0);
     return acc;
   }, {});
 }
 
-export function normalizeHistoriqueRows(rows = [], allocByWeek = {}, resolvePatronNom = () => "Inconnu") {
+export function normalizeHistoriqueRows(
+  rows: any[] = [],
+  allocByWeek: Record<number, number> = {},
+  resolvePatronNom: (id: any) => string = () => "Inconnu"
+): any[] {
   return (rows || []).map((r) => {
     const patron_nom = resolvePatronNom(r.patron_id);
     if (r.paye === true) {
@@ -21,7 +25,7 @@ export function normalizeHistoriqueRows(rows = [], allocByWeek = {}, resolvePatr
   });
 }
 
-export function splitHistoriqueRows(rows = []) {
+export function splitHistoriqueRows(rows: any[] = {}): { impayes: any[]; payes: any[]; all: any[] } {
   const impayes = (rows || [])
     .filter((r) => r.paye === false)
     .sort((a, b) => Number(b.periode_value) - Number(a.periode_value));
