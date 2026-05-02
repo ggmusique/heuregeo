@@ -4,23 +4,23 @@ import { EU_TVA_RATES } from "./tvaRates";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-const fmtEuro = (n) =>
+const fmtEuro = (n: any): string =>
   Number(n || 0).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
 
-const fmtDate = (iso) => {
+const fmtDate = (iso: string): string => {
   if (!iso) return "";
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 };
 
-const fmtH = (h) => {
+const fmtH = (h: any): string => {
   if (h == null) return "";
   const hours = Math.floor(h);
   const mins  = Math.round((h - hours) * 60);
   return mins > 0 ? `${hours}h${String(mins).padStart(2, "0")}` : `${hours}h00`;
 };
 
-const addDays = (iso, n) => {
+const addDays = (iso: string, n: number): string => {
   const d = new Date(iso + "T12:00:00");
   d.setDate(d.getDate() + n);
   return fmtDate(d.toISOString().slice(0, 10));
@@ -28,7 +28,7 @@ const addDays = (iso, n) => {
 
 // ── Couleurs ────────────────────────────────────────────────────────────────
 
-const C = {
+const C: Record<string, number[]> = {
   navy:    [15,  40,  80],
   blue:    [44,  82, 148],
   blueB:   [26,  58, 110],
@@ -43,7 +43,7 @@ const C = {
 
 // ── Calcul numéro facture ──────────────────────────────────────────────────
 
-function computeNumFacture(features) {
+function computeNumFacture(features: any): { numFacture: string; newCounter: number; year: number } {
   const now = new Date();
   const year = now.getFullYear();
   const prevYear    = features?.facture_year    || year;
@@ -59,14 +59,14 @@ function computeNumFacture(features) {
 // ── Main ───────────────────────────────────────────────────────────────────
 
 export async function generateFacture(
-  bilanContent,
-  periodType,
-  periodValue,
-  profile,
-  patron,
-  saveProfile,
-  labels = {}
-) {
+  bilanContent: any,
+  periodType: string,
+  periodValue: string,
+  profile: any,
+  patron: any,
+  saveProfile: (data: any) => Promise<void>,
+  labels: Record<string, string> = {}
+): Promise<void> {
   const features = profile?.features || {};
   const { numFacture, newCounter, year } = computeNumFacture(features);
 
@@ -82,7 +82,7 @@ export async function generateFacture(
 
   // --- Missions ---
   const missions = bilanContent?.filteredData || [];
-  const sortedMissions = [...missions].sort((a, b) =>
+  const sortedMissions = [...missions].sort((a: any, b: any) =>
     (a.date_iso || "").localeCompare(b.date_iso || "")
   );
 
@@ -94,8 +94,8 @@ export async function generateFacture(
   const hasKm = km && km.totalAmount > 0;
 
   // --- Totaux HT ---
-  const totalMissions = sortedMissions.reduce((s, m) => s + (m.montant || 0), 0);
-  const totalFrais    = fraisDivers.reduce((s, f) => s + (f.montant || 0), 0);
+  const totalMissions = sortedMissions.reduce((s: number, m: any) => s + (m.montant || 0), 0);
+  const totalFrais    = fraisDivers.reduce((s: number, f: any) => s + (f.montant || 0), 0);
   const totalKmAmt    = hasKm ? (km.totalAmount || 0) : 0;
   const totalHT       = totalMissions + totalFrais + totalKmAmt;
   const tvaAmt        = Math.round(totalHT * tvaRate) / 100;
@@ -120,12 +120,12 @@ export async function generateFacture(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   let hY = 20;
-  const profLines = [
+  const profLines: string[] = [
     profile?.adresse,
     [profile?.code_postal, profile?.ville].filter(Boolean).join(" "),
     profile?.telephone,
     features?.numero_tva ? "N° TVA : " + features.numero_tva : null,
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
   profLines.forEach((l) => { doc.text(l, ML, hY); hY += 4.5; });
 
   // FACTURE title (droite)
@@ -145,14 +145,14 @@ export async function generateFacture(
 
   // ── BLOC CLIENT ────────────────────────────────────────────────────────
   doc.setFillColor(...C.light);
-  const clientLines = [
+  const clientLines: string[] = [
     (patron?.nom || bilanContent?.selectedPatronNom || labels.patron || "Client"),
     patron?.adresse,
     [patron?.code_postal, patron?.ville].filter(Boolean).join(" "),
     patron?.telephone ? "Tél : " + patron.telephone : null,
     patron?.email,
     patron?.siret ? "SIRET : " + patron.siret : null,
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
   const clientBoxH = 8 + clientLines.length * 5;
   doc.roundedRect(ML, y, CT, clientBoxH, 3, 3, "F");
 
@@ -184,7 +184,7 @@ export async function generateFacture(
 
   // ── TABLEAU MISSIONS ───────────────────────────────────────────────────
   if (sortedMissions.length > 0) {
-    const missionRows = sortedMissions.map((m) => {
+    const missionRows = sortedMissions.map((m: any) => {
       const taux = m.duree > 0 ? fmtEuro(m.montant / m.duree).replace(" €", "") + " €/h" : "-";
       return [
         fmtDate(m.date_iso),
@@ -204,17 +204,17 @@ export async function generateFacture(
         font: "helvetica",
         fontSize: 9,
         cellPadding: 3,
-        textColor: C.black,
-        lineColor: C.grayL,
+        textColor: C.black as any,
+        lineColor: C.grayL as any,
         lineWidth: 0.1,
       },
       headStyles: {
-        fillColor: C.blueB,
-        textColor: C.white,
+        fillColor: C.blueB as any,
+        textColor: C.white as any,
         fontStyle: "bold",
         fontSize: 9,
       },
-      alternateRowStyles: { fillColor: C.light },
+      alternateRowStyles: { fillColor: C.light as any },
       columnStyles: {
         0: { cellWidth: 24 },
         1: { cellWidth: "auto" },
@@ -224,7 +224,7 @@ export async function generateFacture(
       },
     });
 
-    y = doc.lastAutoTable.finalY + 4;
+    y = (doc as any).lastAutoTable.finalY + 4;
   }
 
   // ── FRAIS DIVERS ───────────────────────────────────────────────────────
@@ -232,16 +232,16 @@ export async function generateFacture(
     autoTable(doc, {
       startY: y,
       head: [["Date", "Frais divers", "", "", "Montant"]],
-      body: fraisDivers.map((f) => [
+      body: fraisDivers.map((f: any) => [
         fmtDate(f.date_frais),
         f.description || "Frais",
         "", "",
         fmtEuro(f.montant),
       ]),
       margin: { left: ML, right: MR },
-      styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: C.black, lineColor: C.grayL, lineWidth: 0.1 },
-      headStyles: { fillColor: C.blue, textColor: C.white, fontStyle: "bold", fontSize: 9 },
-      alternateRowStyles: { fillColor: [245, 248, 255] },
+      styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: C.black as any, lineColor: C.grayL as any, lineWidth: 0.1 },
+      headStyles: { fillColor: C.blue as any, textColor: C.white as any, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [245, 248, 255] as any },
       columnStyles: {
         0: { cellWidth: 24 },
         1: { cellWidth: "auto" },
@@ -250,7 +250,7 @@ export async function generateFacture(
         4: { cellWidth: 26, halign: "right" },
       },
     });
-    y = doc.lastAutoTable.finalY + 4;
+    y = (doc as any).lastAutoTable.finalY + 4;
   }
 
   // ── FRAIS KM ────────────────────────────────────────────────────────────
@@ -260,8 +260,8 @@ export async function generateFacture(
       head: [["", "Frais kilométriques", "", "km", "Montant"]],
       body: [["", `${Math.round(km.totalKm)} km parcourus`, "", String(Math.round(km.totalKm)), fmtEuro(km.totalAmount)]],
       margin: { left: ML, right: MR },
-      styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: C.black, lineColor: C.grayL, lineWidth: 0.1 },
-      headStyles: { fillColor: C.blue, textColor: C.white, fontStyle: "bold", fontSize: 9 },
+      styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: C.black as any, lineColor: C.grayL as any, lineWidth: 0.1 },
+      headStyles: { fillColor: C.blue as any, textColor: C.white as any, fontStyle: "bold", fontSize: 9 },
       columnStyles: {
         0: { cellWidth: 24 },
         1: { cellWidth: "auto" },
@@ -270,7 +270,7 @@ export async function generateFacture(
         4: { cellWidth: 26, halign: "right" },
       },
     });
-    y = doc.lastAutoTable.finalY + 4;
+    y = (doc as any).lastAutoTable.finalY + 4;
   }
 
   // ── TOTAUX ─────────────────────────────────────────────────────────────
@@ -323,10 +323,10 @@ export async function generateFacture(
     doc.setFont("helvetica", "bold");
     doc.setFontSize(52);
     doc.setTextColor(...C.red.map((v) => Math.min(255, v + 40)));
-    const GState = doc.GState;
-    if (doc.setGState && GState) doc.setGState(new GState({ opacity: 0.18 }));
+    const GState = (doc as any).GState;
+    if ((doc as any).setGState && GState) (doc as any).setGState(new GState({ opacity: 0.18 }));
     doc.text("PAYÉ", W / 2, 160, { align: "center", angle: -35 });
-    if (doc.setGState && GState) doc.setGState(new GState({ opacity: 1 }));
+    if ((doc as any).setGState && GState) (doc as any).setGState(new GState({ opacity: 1 }));
   }
 
   // ── PIED DE PAGE ───────────────────────────────────────────────────────

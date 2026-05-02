@@ -1,7 +1,7 @@
 /**
  * Fonctions de calcul métier
- * => ici, on ne touche PAS à l’interface (boutons, écran),
- * => c’est juste des calculs réutilisables partout.
+ * => ici, on ne touche PAS à l'interface (boutons, écran),
+ * => c'est juste des calculs réutilisables partout.
  */
 
 /**
@@ -16,8 +16,8 @@
  * - Gère le passage à minuit (ex: 22:00 → 02:00)
  * - Empêche les résultats négatifs (retourne minimum 0)
  */
-export const calculerDuree = (debut, fin, pause = 0) => {
-  // Sécurité : si on n’a pas les 2 heures, on ne peut pas calculer
+export const calculerDuree = (debut: string, fin: string, pause: number = 0): number => {
+  // Sécurité : si on n'a pas les 2 heures, on ne peut pas calculer
   if (!debut || !fin) {
     console.warn("calculerDuree: debut ou fin manquant");
     return 0;
@@ -76,12 +76,12 @@ export const calculerDuree = (debut, fin, pause = 0) => {
  * Used by useBilan to replace the bilans_status_v2-based approach.
  */
 export const calculerAcomptesBilan = (
-  acomptes = [],
-  missions = [],
-  frais = [],
-  debutPeriode,
-  finPeriode,
-  patronId = null
+  acomptes: any[] = [],
+  missions: any[] = [],
+  frais: any[] = [],
+  debutPeriode: string,
+  finPeriode: string,
+  patronId: string | null = null
 ) => {
   if (!debutPeriode || !finPeriode) {
     return { acomptes_verses: 0, acomptes_consommes: 0, solde_avant: 0, solde_apres: 0 };
@@ -113,7 +113,7 @@ export const calculerAcomptesBilan = (
         a.date_acompte >= debutPeriode &&
         a.date_acompte <= finPeriode
     )
-    .reduce((sum, a) => sum + (parseFloat(a.montant) || 0), 0);
+    .reduce((sum: number, a: any) => sum + (parseFloat(a.montant) || 0), 0);
 
   // CA brut for the period
   const ca_brut = filteredMissions
@@ -123,7 +123,7 @@ export const calculerAcomptesBilan = (
         m.date_iso >= debutPeriode &&
         m.date_iso <= finPeriode
     )
-    .reduce((sum, m) => sum + (m.montant || 0), 0);
+    .reduce((sum: number, m: any) => sum + (m.montant || 0), 0);
 
   const disponible = solde_avant + acomptes_verses;
   const acomptes_consommes = Math.min(disponible, ca_brut);
@@ -138,7 +138,7 @@ export const calculerAcomptesBilan = (
  * ==========================================================
  * Calcule la distance à vol d'oiseau entre deux coordonnées GPS (en km).
  */
-export const haversineKm = (lat1, lon1, lat2, lon2) => {
+export const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -153,7 +153,7 @@ export const haversineKm = (lat1, lon1, lat2, lon2) => {
  * - lieu not found but mission has a lieu text: "KM indisponible (lieu non lié)"
  * - no lieu info at all: mission client name
  */
-export const getLieuLabel = (lieu, mission) => {
+export const getLieuLabel = (lieu: any, mission: any): string => {
   if (lieu) return lieu.nom || mission.client || "";
   if (mission.lieu) return "KM indisponible (lieu non lié)";
   return mission.client || "";
@@ -163,11 +163,11 @@ export const getLieuLabel = (lieu, mission) => {
  * ==========================================================
  * 2) calculerSoldeAcomptesAvant(dateReferenceIso, acomptes, missions, frais)
  * ==========================================================================================================
- * Rôle dans l’app :
- * - Sert au bilan pour savoir : "Combien d’acompte RESTE avant telle date ?"
+ * Rôle dans l'app :
+ * - Sert au bilan pour savoir : "Combien d'acompte RESTE avant telle date ?"
  * - Donc : on prend les acomptes reçus avant la date,
  *   puis on déduit les missions et frais qui sont avant la date,
- *   MAIS uniquement tant qu’il reste du solde (jamais négatif).
+ *   MAIS uniquement tant qu'il reste du solde (jamais négatif).
  *
  * Exemple simple :
  * - Acompte 300€ (avant la date)
@@ -178,17 +178,17 @@ export const getLieuLabel = (lieu, mission) => {
  * - On ignore tout ce qui est le jour même ou après (strictement < dateReferenceIso)
  */
 export const calculerSoldeAcomptesAvant = (
-  dateReferenceIso,
-  listeAcomptes = [],
-  missions = [],
-  fraisDivers = []
-) => {
+  dateReferenceIso: string,
+  listeAcomptes: any[] = [],
+  missions: any[] = [],
+  fraisDivers: any[] = []
+): number => {
   if (!dateReferenceIso) return 0;
 
   // On construit une liste d' "événements" triés par date :
   // - acompte = + (crédit)
   // - mission/frais = - (débit)
-  const events = [];
+  const events: Array<{ type: string; date: string; montant: number }> = [];
 
   // 1) Acomptes (argent qui entre)
   listeAcomptes.forEach((ac) => {
@@ -201,7 +201,7 @@ export const calculerSoldeAcomptesAvant = (
     }
   });
 
-  // 2) Missions (argent "consommé" par l’acompte)
+  // 2) Missions (argent "consommé" par l'acompte)
   missions.forEach((m) => {
     if (m?.date_iso && m.date_iso < dateReferenceIso) {
       events.push({
@@ -212,7 +212,7 @@ export const calculerSoldeAcomptesAvant = (
     }
   });
 
-  // 3) Frais (consomment aussi l’acompte)
+  // 3) Frais (consomment aussi l'acompte)
   fraisDivers.forEach((f) => {
     const dateFrais = f?.date_frais;
     if (dateFrais && dateFrais < dateReferenceIso) {

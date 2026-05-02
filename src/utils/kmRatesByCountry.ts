@@ -73,7 +73,7 @@ const COUNTRY_BOUNDS = [
 ];
 
 /** Retourne le code pays (ex: "BE", "FR") depuis des coordonnées GPS, ou null si inconnu. */
-export function detectCountryFromLatLng(lat, lng) {
+export function detectCountryFromLatLng(lat: number, lng: number): string | null {
   for (const b of COUNTRY_BOUNDS) {
     if (lat >= b.latMin && lat <= b.latMax && lng >= b.lngMin && lng <= b.lngMax) {
       return b.code;
@@ -83,7 +83,7 @@ export function detectCountryFromLatLng(lat, lng) {
 }
 
 // Taux kilométriques recommandés par pays (€/km, véhicule léger)
-export const KM_RATES = {
+export const KM_RATES: Record<string, number> = {
   AT: 0.42,
   BE: 0.42,
   BG: 0.20,

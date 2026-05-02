@@ -33,7 +33,7 @@ export const chartOptions = {
       bodyColor: "rgba(255,255,255,0.7)",
       padding: 12,
       callbacks: {
-        label: (ctx) => ` ${ctx.parsed.y.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`,
+        label: (ctx: any) => ` ${ctx.parsed.y.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`,
       },
     },
   },
@@ -51,7 +51,7 @@ export const chartOptions = {
       ticks: {
         color: "rgba(255,255,255,0.3)",
         font: { size: 11 },
-        callback: (v) => v.toLocaleString("fr-FR") + " €",
+        callback: (v: any) => v.toLocaleString("fr-FR") + " €",
       },
       border: { display: false },
     },

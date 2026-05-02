@@ -22,7 +22,7 @@ export const DEFAULT_LABELS = {
  * @param {object|null} profile
  * @returns {typeof DEFAULT_LABELS}
  */
-export function getLabels(profile) {
+export function getLabels(profile: any): typeof DEFAULT_LABELS {
   const custom = profile?.features?.labels ?? {};
   return {
     patron:   custom.patron   ?? DEFAULT_LABELS.patron,

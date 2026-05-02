@@ -22,14 +22,14 @@ const SUSPECT_DISTANCE_KM = 0.5;
  * @param {string|null} homeLabel
  * @returns {boolean}
  */
-export function isSuspectLieu(lieu, domicileLat, domicileLng, homeLabel) {
+export function isSuspectLieu(lieu: any, domicileLat: number | null, domicileLng: number | null, homeLabel: string | null): boolean {
   if (!Number.isFinite(domicileLat) || !Number.isFinite(domicileLng)) return false;
   if (!Number.isFinite(lieu?.latitude) || !Number.isFinite(lieu?.longitude)) return false;
 
   const nomLower = (lieu.nom || "").toLowerCase().trim();
   if (nomLower === "domicile") return false;
 
-  const dist = haversineKm(domicileLat, domicileLng, lieu.latitude, lieu.longitude);
+  const dist = haversineKm(domicileLat as number, domicileLng as number, lieu.latitude, lieu.longitude);
   if (dist < SUSPECT_DISTANCE_KM) return true;
 
   if (homeLabel) {

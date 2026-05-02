@@ -11,7 +11,7 @@
  * @param {object|null} profile - le profil utilisateur
  * @returns {object} patch à appliquer au profil (vide si aucune migration nécessaire)
  */
-export function migrateKmSettings(profile) {
+export function migrateKmSettings(profile: any): Record<string, any> {
   if (!profile) return {};
   if (profile.km_rate && !profile.km_country_code) {
     return { km_country_code: "FR", km_rate_mode: "CUSTOM", km_rate: profile.km_rate };
@@ -26,7 +26,7 @@ export function migrateKmSettings(profile) {
  * @param {object} features - profile.features (may be null/undefined)
  * @returns {boolean}
  */
-export function getKmEnabled(features) {
+export function getKmEnabled(features: any): boolean {
   const f = features ?? {};
   const ks = f.km_settings ?? {};
   if (typeof ks.enabled === "boolean") return ks.enabled;
@@ -47,7 +47,7 @@ export function getKmEnabled(features) {
  * @param {boolean} enabled
  * @returns {object} newFeatures (deep-merged)
  */
-export function setKmEnabled(features, enabled) {
+export function setKmEnabled(features: any, enabled: boolean): Record<string, any> {
   const f = features ?? {};
   const { km_enable: _drop, ...rest } = f; // eslint-disable-line no-unused-vars
   return {
@@ -59,4 +59,3 @@ export function setKmEnabled(features, enabled) {
     },
   };
 }
-

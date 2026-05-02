@@ -1,12 +1,12 @@
 // Cache par adresse normalisée
-const geocodeCache = {};
+const geocodeCache: Record<string, { lat: number; lng: number; normalizedAddress?: string }> = {};
 
 /**
  * Géocode une adresse en utilisant Nominatim (OpenStreetMap)
  * @param {string} address - Adresse à géocoder
  * @returns {Promise<{lat: number, lng: number, normalizedAddress?: string} | null>}
  */
-export const geocodeAddress = async (address) => {
+export const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number; normalizedAddress?: string } | null> => {
   if (!address?.trim()) return null;
 
   const key = address.trim().toLowerCase();

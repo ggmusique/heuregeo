@@ -244,8 +244,8 @@ export const tokens = {
  * Helper : fusionne un style de base avec des overrides.
  * Usage interne dans les composants design system.
  */
-export function mergeStyles(base, ...overrides) {
-  return overrides.reduce((acc, override) => {
+export function mergeStyles(base: Record<string, any>, ...overrides: Array<Record<string, any> | null | undefined>): Record<string, any> {
+  return overrides.reduce((acc: Record<string, any>, override) => {
     if (!override) return acc;
     return { ...acc, ...override };
   }, { ...base });
