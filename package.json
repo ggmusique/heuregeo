@@ -1,7 +1,7 @@
 {
   "name": "heures-de-geo",
   "private": true,
-  "version": "1.0.119",
+  "version": "1.0.120",
   "type": "module",
   "scripts": {
     "dev": "node scripts/gen-build-info.mjs && vite",
@@ -16,9 +16,10 @@
     "test:b4": "npm run test:b3",
     "test:coverage": "echo \"Coverage requires c8/nyc (not installed in this environment)\" && exit 1",
     "test:hooks": "vitest run",
-  "test:hooks:watch": "vitest",
-  "test:hooks:coverage": "vitest run --coverage",
-  "test:all": "npm run test:unit && npm run test:hooks"},
+    "test:hooks:watch": "vitest",
+    "test:hooks:coverage": "vitest run --coverage",
+    "test:all": "npm run test:unit && npm run test:hooks"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
     "jspdf": "^2.5.2",
