@@ -27,6 +27,7 @@ import { useAcompteModal } from "./hooks/useAcompteModal";
 import { useAgenda } from "./hooks/useAgenda";
 import { useAgendaModal } from "./hooks/useAgendaModal";
 import { useNavigation } from "./hooks/useNavigation";
+import { useBilanFilters } from "./hooks/useBilanFilters";
 
 import { CustomAlert } from "./components/common/CustomAlert";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
@@ -64,10 +65,6 @@ function AppContent({ user }) {
     if (typeof window === "undefined") return true;
     return window.localStorage.getItem("showMissionRateEditor") !== "false";
   });
-  const [bilanPatronId, setBilanPatronId] = useState(null);
-  const [bilanClientId, setBilanClientId] = useState(null);
-  const [showImportModal, setShowImportModal] = useState(false);
-
   const { confirmState, showConfirm, hideConfirm } = useConfirm();
 
   const { missions, loading: missionsLoading, fetchMissions, createMission, updateMission, deleteMission, bulkCreateMissions, getMissionsByWeek, getMissionsByPeriod } = useMissions(triggerAlert);
@@ -96,6 +93,8 @@ function AppContent({ user }) {
   const lieuModal = useLieuModal({ createLieu, updateLieu, deleteLieu, fetchLieux, setLoading, triggerAlert, showConfirm, onLieuCreated: missionForm.onLieuCreated });
 
   const historiqueHook = useHistorique({ fetchHistoriqueBilans: bilan.fetchHistoriqueBilans, triggerAlert });
+
+  const { bilanPatronId, setBilanPatronId, bilanClientId, setBilanClientId, showImportModal, setShowImportModal, marquerCommePaye } = useBilanFilters({ showConfirm, bilan });
 
   const acompteModal = useAcompteModal({ createAcompte, fetchAcomptes, setLoading, triggerAlert, bilanPatronId, chargerHistorique: historiqueHook.chargerHistorique, bilan });
 
@@ -145,12 +144,6 @@ function AppContent({ user }) {
       Notification.requestPermission();
     }
   }, [canAgenda]);
-
-  const handleMarquerCommePaye = async () => {
-    const confirmed = await showConfirm({ title: "Marquer comme paye", message: "Voulez-vous marquer ce bilan comme paye ?", confirmText: "Confirmer", cancelText: "Annuler", type: "info" });
-    if (!confirmed) return;
-    await bilan.marquerCommePaye(bilanPatronId);
-  };
 
   const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || historiqueHook.loadingHistorique || agendaHook.loading;
 
@@ -277,7 +270,7 @@ function AppContent({ user }) {
               patrons,
               getPatronNom,
               getPatronColor,
-              onMarquerCommePaye: handleMarquerCommePaye,
+              onMarquerCommePaye: marquerCommePaye,
               onFraisEdit: fraisModal.handleFraisEdit,
               onFraisDelete: fraisModal.handleFraisDelete,
               onMissionEdit: missionForm.handleMissionEdit,
