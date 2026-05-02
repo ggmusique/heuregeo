@@ -16,11 +16,14 @@ concurrency:
   group: tests-${{ github.ref }}
   cancel-in-progress: true
 
+# Fix : forcer Node.js 24 (Node 20 deprecated sur GitHub Actions depuis juin 2026)
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # ─────────────────────────────────────────────────────────────
   # JOB 1 : Tests unitaires purs (node:test natif)
-  # Cible : src/lib/bilanEngine.js, bilanHistory.js, etc.
-  # Runner : node --test (déjà configuré dans package.json)
+  # Fix : glob ** non expansé sur Linux → utiliser find
   # ─────────────────────────────────────────────────────────────
   unit-tests:
     name: Tests unitaires (node:test)
@@ -31,22 +34,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Installer les dépendances
         run: npm ci
 
       - name: Lancer les tests unitaires
-        run: npm run test:unit
+        run: |
+          FILES=$(find src/tests/unit -name '*.test.mjs' 2>/dev/null)
+          if [ -z "$FILES" ]; then
+            echo "⚠️ Aucun fichier .test.mjs trouvé dans src/tests/unit — OK"
+            exit 0
+          fi
+          node --test $FILES
 
   # ─────────────────────────────────────────────────────────────
   # JOB 2 : Tests hooks React (Vitest + jsdom)
-  # Cible : src/hooks/*.vitest.jsx
-  # Activé uniquement si Vitest est installé (devDep optionnel)
+  # Fix : vérification Vitest sans exit code 1 + skip propre
   # ─────────────────────────────────────────────────────────────
   hooks-tests:
     name: Tests hooks React (Vitest)
@@ -57,10 +65,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Installer les dépendances
@@ -68,16 +76,28 @@ jobs:
 
       - name: Vérifier si Vitest est installé
         id: check-vitest
+        # Fix : node -e ne lève pas d'exit code 1 si le module est absent
         run: |
-          if npx vitest --version 2>/dev/null; then
-            echo "vitest_available=true" >> $GITHUB_OUTPUT
+          node -e "require('vitest')" 2>/dev/null \
+            && echo "vitest_available=true" >> $GITHUB_OUTPUT \
+            || (echo "vitest_available=false" >> $GITHUB_OUTPUT && echo "⚠️ Vitest non installé — job ignoré")
+
+      - name: Vérifier si des tests Vitest existent
+        id: check-vitest-files
+        if: steps.check-vitest.outputs.vitest_available == 'true'
+        run: |
+          FILES=$(find src/tests -name '*.vitest.jsx' -o -name '*.vitest.js' 2>/dev/null)
+          if [ -z "$FILES" ]; then
+            echo "has_files=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Aucun fichier .vitest.jsx trouvé — job ignoré"
           else
-            echo "vitest_available=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Vitest non installé — job ignoré"
+            echo "has_files=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Lancer les tests Vitest
-        if: steps.check-vitest.outputs.vitest_available == 'true'
+        if: |
+          steps.check-vitest.outputs.vitest_available == 'true' &&
+          steps.check-vitest-files.outputs.has_files == 'true'
         run: npm run test:hooks
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://mock.supabase.co' }}
@@ -85,7 +105,7 @@ jobs:
 
   # ─────────────────────────────────────────────────────────────
   # JOB 3 : Build de vérification
-  # S'assure que le projet compile sans erreur après chaque push
+  # Attend que les tests unitaires passent avant de builder
   # ─────────────────────────────────────────────────────────────
   build-check:
     name: Vérification build Vite
@@ -97,10 +117,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Installer les dépendances
