@@ -1,19 +1,33 @@
 import { useState, useCallback, useRef } from "react";
 import * as lieuxApi from "../services/api/lieuxApi";
+import type { Lieu } from "../types/entities";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface UseLieuxReturn {
+  lieux: Lieu[];
+  loading: boolean;
+  fetchLieux: () => Promise<Lieu[]>;
+  createLieu: (lieuData: Partial<Lieu>) => Promise<Lieu>;
+  updateLieu: (id: string, lieuData: Partial<Lieu>) => Promise<Lieu>;
+  deleteLieu: (id: string) => Promise<void>;
+}
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
 
 /**
  * ✅ Hook pour gérer les lieux
- * 
+ *
  * Ajout : createLieu retourne maintenant le lieu créé pour auto-sélection
  */
-export const useLieux = (onError) => {
-  const [lieux, setLieux] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const isFetching = useRef(false);
+export const useLieux = (onError?: (msg: string) => void): UseLieuxReturn => {
+  const [lieux, setLieux] = useState<Lieu[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const isFetching = useRef<boolean>(false);
 
   // ========= FETCH (READ) =========
-  const fetchLieux = useCallback(async () => {
-    if (isFetching.current) return;
+  const fetchLieux = useCallback(async (): Promise<Lieu[]> => {
+    if (isFetching.current) return [];
 
     try {
       isFetching.current = true;
@@ -35,7 +49,7 @@ export const useLieux = (onError) => {
 
   // ========= CREATE =========
   const createLieu = useCallback(
-    async (lieuData) => {
+    async (lieuData: Partial<Lieu>): Promise<Lieu> => {
       if (!lieuData) {
         throw new Error("Données du lieu manquantes");
       }
@@ -64,7 +78,7 @@ export const useLieux = (onError) => {
 
   // ========= UPDATE =========
   const updateLieu = useCallback(
-    async (id, lieuData) => {
+    async (id: string, lieuData: Partial<Lieu>): Promise<Lieu> => {
       if (!id) throw new Error("ID du lieu manquant");
       if (!lieuData) throw new Error("Données du lieu manquantes");
 
@@ -91,7 +105,7 @@ export const useLieux = (onError) => {
 
   // ========= DELETE =========
   const deleteLieu = useCallback(
-    async (id) => {
+    async (id: string): Promise<void> => {
       if (!id) throw new Error("ID du lieu manquant");
 
       try {
@@ -114,7 +128,7 @@ export const useLieux = (onError) => {
     lieux,
     loading,
     fetchLieux,
-    createLieu,    // ✅ Retourne le lieu créé
+    createLieu,
     updateLieu,
     deleteLieu,
   };
