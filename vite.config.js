@@ -9,6 +9,18 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
+    test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/tests/setup.js"],
+    include: ["src/tests/**/*.vitest.{js,jsx}"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: ["src/hooks/**", "src/lib/**"],
+      exclude: ["src/tests/**"],
+    },
+  },
   server: {
     host: true,
     allowedHosts: process.env.REPL_ID ? true : undefined,
