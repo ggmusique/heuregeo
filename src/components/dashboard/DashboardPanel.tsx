@@ -25,6 +25,18 @@ function fmtMonthShort(ym) {
   return new Date(y, parseInt(m, 10) - 1).toLocaleString("fr-FR", { month: "short" });
 }
 
+interface DashboardPanelProps {
+  missions?: any[];
+  fraisDivers?: any[];
+  listeAcomptes?: any[];
+  patrons?: any[];
+  clients?: any[];
+  lieux?: any[];
+  profile?: any;
+  kmSettings?: any;
+  domicileLatLng?: { lat: number; lng: number } | null;
+}
+
 export function DashboardPanel({
   missions = [],
   fraisDivers = [],
@@ -35,7 +47,7 @@ export function DashboardPanel({
   profile,
   kmSettings = null,
   domicileLatLng = null,
-}) {
+}: DashboardPanelProps) {
   const { darkMode } = useDarkMode();
   const chartRef = useRef(null);
   const chartInstance = useRef(null);

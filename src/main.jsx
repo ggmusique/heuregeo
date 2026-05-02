@@ -3,7 +3,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import App from "./App.jsx";
-import AuthGate from "./components/auth/AuthGate.jsx";
+import AuthGate from "./components/auth/AuthGate";
 
 // ✅ Tailwind + styles globaux
 import "./styles.css";

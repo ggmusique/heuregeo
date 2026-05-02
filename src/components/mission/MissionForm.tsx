@@ -22,6 +22,33 @@ const adjustTime = (time, deltaMinutes) => {
   return `${Math.floor(total / 60).toString().padStart(2, "0")}:${(total % 60).toString().padStart(2, "0")}`;
 };
 
+interface MissionFormProps {
+  editMode?: boolean;
+  initialData?: any;
+  clientsUniques?: any[];
+  lieuxUniques?: any[];
+  onCopyLast?: () => void;
+  onSubmit?: (data: any) => void;
+  onCancel?: () => void;
+  darkMode?: boolean;
+  isIOS?: boolean;
+  loading?: boolean;
+  patrons?: any[];
+  selectedPatronId?: string | null;
+  onPatronChange?: (id: string | null) => void;
+  onAddNewPatron?: () => void;
+  showRateEditorControl?: boolean;
+  clients?: any[];
+  selectedClientId?: string | null;
+  onClientChange?: (id: string | null) => void;
+  onAddNewClient?: () => void;
+  lieux?: any[];
+  selectedLieuId?: string | null;
+  onLieuChange?: (id: string | null) => void;
+  onAddNewLieu?: () => void;
+  missions?: any[];
+}
+
 export const MissionForm = ({
   editMode = false,
   initialData = null,
@@ -47,7 +74,7 @@ export const MissionForm = ({
   onLieuChange = () => {},
   onAddNewLieu = () => {},
   missions = [],
-}) => {
+}: MissionFormProps) => {
   const L = useLabels();
   const [pause, setPause] = useState(initialData?.pause ?? 30);
   const [dateMission, setDateMission] = useState(() => {

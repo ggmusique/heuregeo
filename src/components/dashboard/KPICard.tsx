@@ -1,8 +1,18 @@
 import React, { memo } from "react";
 import { tokens } from "../../utils/designTokens";
 
-export const KPICard = memo(function KPICard({ icon, label, value, delta, accentColor, delay = 0, ariaLabel }) {
-  const color = tokens.colors[accentColor] || tokens.colors.gold;
+interface Props {
+  icon?: any;
+  label: string;
+  value: any;
+  delta?: number | null;
+  accentColor?: string;
+  delay?: number;
+  ariaLabel?: string;
+}
+
+export const KPICard = memo(function KPICard({ icon, label, value, delta, accentColor, delay = 0, ariaLabel }: Props) {
+  const color = (tokens.colors as any)[accentColor as any] || tokens.colors.gold;
 
   return (
     <article

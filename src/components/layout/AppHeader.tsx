@@ -2,10 +2,15 @@ import React from "react";
 import { useDarkMode } from "../../contexts/DarkModeContext";
 import { ViewerBadge } from "../common/ViewerBadge";
 
-/**
- * En-tête de l'application — titre, horloge, bouton darkMode, badge Pro/Viewer.
- */
-export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION }) {
+interface Props {
+  profile: any;
+  isViewer: boolean;
+  isPro: boolean;
+  liveTime: string;
+  APP_VERSION: string;
+}
+
+export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION }: Props) {
   const { darkMode, setDarkMode } = useDarkMode();
 
   return (

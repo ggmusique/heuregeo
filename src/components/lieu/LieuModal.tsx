@@ -2,6 +2,16 @@ import React, { useState, useEffect } from "react";
 import { geocodeAddress } from "../../utils/geocode";
 import { useLabels } from "../../contexts/LabelsContext";
 
+interface Props {
+  show?: boolean;
+  editMode?: boolean;
+  initialData?: any;
+  onSubmit?: (data: any) => void;
+  onCancel?: () => void;
+  loading?: boolean;
+  darkMode?: boolean;
+}
+
 export const LieuModal = ({
   show = false,
   editMode = false,
@@ -10,7 +20,7 @@ export const LieuModal = ({
   onCancel = () => {},
   loading = false,
   darkMode = true,
-}) => {
+}: Props) => {
   const L = useLabels();
   const [formData, setFormData] = useState({
     nom: "",
@@ -20,7 +30,7 @@ export const LieuModal = ({
     notes: "",
     type: "client",
   });
-  const [geocodeStatus, setGeocodeStatus] = useState("idle"); // idle | searching | ok | error
+  const [geocodeStatus, setGeocodeStatus] = useState<"idle" | "searching" | "ok" | "error">("idle");
   const [geocodeError, setGeocodeError] = useState("");
   const [pendingSubmit, setPendingSubmit] = useState(false);
 
@@ -85,7 +95,7 @@ export const LieuModal = ({
     }
   };
 
-  const submitData = (lat, lng, forceMissing = false) => {
+  const submitData = (lat: any, lng: any) => {
     const dataToSubmit = {
       nom: formData.nom.trim(),
       adresse_complete: formData.adresse_complete.trim() || null,
@@ -97,36 +107,34 @@ export const LieuModal = ({
     onSubmit(dataToSubmit);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nom.trim()) {
       alert("Le nom de la ville est obligatoire");
       return;
     }
     if (hasCoords()) {
-      submitData(formData.latitude, formData.longitude, false);
+      submitData(formData.latitude, formData.longitude);
       return;
     }
-    // Try geocoding
     setPendingSubmit(true);
     const result = await doGeocode();
     if (result) {
-      submitData(result.lat, result.lng, false);
+      submitData(result.lat, result.lng);
       setPendingSubmit(false);
     } else {
       setPendingSubmit(false);
-      // Don't submit yet - show error options
     }
   };
 
   const handleSaveAnyway = () => {
-    submitData(null, null, true);
+    submitData(null, null);
   };
 
   const handleRetryGeocode = async () => {
     const result = await doGeocode();
     if (result) {
-      submitData(result.lat, result.lng, false);
+      submitData(result.lat, result.lng);
     }
   };
 
@@ -167,7 +175,6 @@ export const LieuModal = ({
             />
           </div>
 
-          {/* Type de lieu */}
           <div>
             <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider">
               Type de lieu
@@ -198,7 +205,6 @@ export const LieuModal = ({
             />
           </div>
 
-          {/* COORDONNÉES STATUS */}
           <div className={`p-4 rounded-2xl border ${
             geocodeStatus === "ok" ? "border-green-500/40 bg-green-500/10" :
             geocodeStatus === "error" ? "border-red-500/40 bg-red-500/10" :
@@ -211,11 +217,7 @@ export const LieuModal = ({
             {geocodeStatus === "ok" && (
               <div className="flex items-center justify-between">
                 <span className="text-green-400 text-sm font-bold">✅ Coordonnées OK</span>
-                <button
-                  type="button"
-                  onClick={doGeocode}
-                  className="text-[10px] font-black uppercase text-white/50 hover:text-white transition-all"
-                >
+                <button type="button" onClick={doGeocode} className="text-[10px] font-black uppercase text-white/50 hover:text-white transition-all">
                   {editMode ? "Mettre à jour GPS" : "Recalculer"}
                 </button>
               </div>
@@ -223,11 +225,7 @@ export const LieuModal = ({
             {geocodeStatus === "idle" && (
               <div className="flex items-center justify-between">
                 <span className="text-white/50 text-sm">Non renseignées</span>
-                <button
-                  type="button"
-                  onClick={doGeocode}
-                  className="text-[10px] font-black uppercase text-purple-300 hover:text-purple-100 transition-all"
-                >
+                <button type="button" onClick={doGeocode} className="text-[10px] font-black uppercase text-purple-300 hover:text-purple-100 transition-all">
                   {editMode ? "Mettre à jour GPS" : "Chercher les coordonnées"}
                 </button>
               </div>
@@ -242,31 +240,16 @@ export const LieuModal = ({
               <div className="space-y-2">
                 <p className="text-red-400 text-sm">{geocodeError}</p>
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={handleRetryGeocode}
-                    className="flex-1 py-2 text-[10px] font-black uppercase rounded-xl bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 transition-all"
-                  >
-                    Réessayer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveAnyway}
-                    className="flex-1 py-2 text-[10px] font-black uppercase rounded-xl bg-white/10 text-white/60 hover:bg-white/20 transition-all"
-                  >
-                    Enregistrer quand même
-                  </button>
+                  <button type="button" onClick={handleRetryGeocode} className="flex-1 py-2 text-[10px] font-black uppercase rounded-xl bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 transition-all">Réessayer</button>
+                  <button type="button" onClick={handleSaveAnyway} className="flex-1 py-2 text-[10px] font-black uppercase rounded-xl bg-white/10 text-white/60 hover:bg-white/20 transition-all">Enregistrer quand même</button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* GPS manual */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-40">
-                Latitude
-              </label>
+              <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-40">Latitude</label>
               <input
                 type="number"
                 step="any"
@@ -277,15 +260,11 @@ export const LieuModal = ({
                   else if (!e.target.value) setGeocodeStatus("idle");
                 }}
                 placeholder="Ex: 50.1234"
-                className={`w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm ${
-                  darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"
-                } backdrop-blur-md placeholder:text-white/30`}
+                className={`w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm ${darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"} backdrop-blur-md placeholder:text-white/30`}
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-40">
-                Longitude
-              </label>
+              <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-40">Longitude</label>
               <input
                 type="number"
                 step="any"
@@ -296,36 +275,24 @@ export const LieuModal = ({
                   else if (!e.target.value) setGeocodeStatus("idle");
                 }}
                 placeholder="Ex: 4.5678"
-                className={`w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm ${
-                  darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"
-                } backdrop-blur-md placeholder:text-white/30`}
+                className={`w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm ${darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"} backdrop-blur-md placeholder:text-white/30`}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-60">
-              Notes (optionnel)
-            </label>
+            <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-60">Notes (optionnel)</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Infos complémentaires..."
               rows={3}
-              className={`w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all resize-none ${
-                darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"
-              } backdrop-blur-md placeholder:text-white/40`}
+              className={`w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all resize-none ${darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"} backdrop-blur-md placeholder:text-white/40`}
             />
           </div>
 
           <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-2xl font-black uppercase text-[11px] text-white/60 hover:text-white transition-all border border-white/10"
-            >
-              Annuler
-            </button>
+            <button type="button" onClick={onCancel} className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-2xl font-black uppercase text-[11px] text-white/60 hover:text-white transition-all border border-white/10">Annuler</button>
             <button
               type="submit"
               disabled={loading || pendingSubmit || geocodeStatus === "searching"}

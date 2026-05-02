@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 
-// ─── Constantes ────────────────────────────────────────────────────────────
-
 const HOUR_START   = 7;
 const HOUR_END     = 22;
 const PX_PER_HOUR  = 64;
@@ -10,37 +8,35 @@ const TOTAL_HEIGHT = (HOUR_END - HOUR_START) * PX_PER_HOUR;
 
 const DAYS_ABBR  = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
-const EVENT_COLORS = {
+const EVENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   rdv:   { bg: "bg-blue-500/80",    text: "text-white",       border: "border-blue-400/50"   },
   conge: { bg: "bg-orange-500/80",  text: "text-white",       border: "border-orange-400/50" },
   note:  { bg: "bg-emerald-500/80", text: "text-white",       border: "border-emerald-400/50"},
 };
 
-const ALLDAY_COLORS = {
+const ALLDAY_COLORS: Record<string, { bg: string; text: string }> = {
   conge: { bg: "rgba(249,115,22,0.75)",  text: "#fff" },
   note:  { bg: "rgba(16,185,129,0.75)",  text: "#fff" },
   rdv:   { bg: "rgba(59,130,246,0.75)",  text: "#fff" },
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function addDaysToIso(iso, n) {
+function addDaysToIso(iso: string, n: number): string {
   const d = new Date(iso + "T12:00:00");
   d.setDate(d.getDate() + n);
   return d.toISOString().slice(0, 10);
 }
 
-function timeToMinutes(time) {
+function timeToMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
 }
 
-function eventTopPx(heure_debut) {
+function eventTopPx(heure_debut: string): number {
   const mins = timeToMinutes(heure_debut);
   return ((mins - HOUR_START * 60) / 60) * PX_PER_HOUR;
 }
 
-function eventHeightPx(heure_debut, heure_fin) {
+function eventHeightPx(heure_debut: string, heure_fin: string | null): number {
   if (!heure_fin) return 32;
   const start = timeToMinutes(heure_debut);
   const end   = timeToMinutes(heure_fin);
@@ -48,16 +44,15 @@ function eventHeightPx(heure_debut, heure_fin) {
   return Math.max(28, durationH * PX_PER_HOUR);
 }
 
-/** Calcule les barres all-day (congés + notes) pour la semaine */
-function computeAllDayBars(allDayEvents, weekDays) {
-  const bars = [];
+function computeAllDayBars(allDayEvents: any[], weekDays: any[]): any[] {
+  const bars: any[] = [];
 
   allDayEvents.forEach((e) => {
     const startIso = e.date_iso;
     const endIso   = e.date_fin || e.date_iso;
 
     let startCol = -1, endCol = -1;
-    weekDays.forEach((d, col) => {
+    weekDays.forEach((d: any, col: number) => {
       if (d.iso >= startIso && d.iso <= endIso) {
         if (startCol === -1) startCol = col;
         endCol = col;
@@ -67,9 +62,8 @@ function computeAllDayBars(allDayEvents, weekDays) {
     bars.push({ id: e.id, titre: e.titre, type: e.type, startCol, spanCols: endCol - startCol + 1, lane: 0 });
   });
 
-  // Greedy lane assignment
   bars.sort((a, b) => a.startCol - b.startCol || b.spanCols - a.spanCols);
-  const occ = [];
+  const occ: boolean[][] = [];
   bars.forEach((bar) => {
     let l = 0;
     while (true) {
@@ -90,7 +84,14 @@ function computeAllDayBars(allDayEvents, weekDays) {
   return bars;
 }
 
-// ─── Composant ──────────────────────────────────────────────────────────────
+interface Props {
+  events?: any[];
+  weekStart: string;
+  workedDays?: Set<string>;
+  onOpenForDate?: (iso: string) => void;
+  onEventEdit?: (event: any) => void;
+  darkMode?: boolean;
+}
 
 export function AgendaWeekView({
   events        = [],
@@ -99,16 +100,14 @@ export function AgendaWeekView({
   onOpenForDate,
   onEventEdit,
   darkMode      = true,
-}) {
+}: Props) {
   const [now, setNow] = useState(new Date());
 
-  // Mise à jour de l'heure courante toutes les minutes
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
 
-  // ── 7 jours de la semaine ─────────────────────────────────────────────
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(weekStart + "T12:00:00");
@@ -121,17 +120,15 @@ export function AgendaWeekView({
   const todayColIdx  = weekDays.findIndex((d) => d.iso === todayIso);
   const todayInWeek  = todayColIdx !== -1;
 
-  // Position px de l'heure courante dans la grille
   const currentTimePx = todayInWeek
     ? ((now.getHours() - HOUR_START) + now.getMinutes() / 60) * PX_PER_HOUR
     : -1;
 
-  // ── Séparer events all-day vs events horaires RDV ────────────────────
   const weekIsoSet = useMemo(() => new Set(weekDays.map((d) => d.iso)), [weekDays]);
 
   const { allDayEvents, timedEvents } = useMemo(() => {
-    const allDay = [];
-    const timed  = [];
+    const allDay: any[] = [];
+    const timed: any[]  = [];
 
     events.forEach((e) => {
       const startIso = e.date_iso;
@@ -140,7 +137,6 @@ export function AgendaWeekView({
       if (e.type === "rdv" && e.heure_debut && weekIsoSet.has(startIso)) {
         timed.push(e);
       } else {
-        // Congé, Note, ou RDV sans heure — visible si chevauche la semaine
         const overlaps = weekDays.some((d) => d.iso >= startIso && d.iso <= endIso);
         if (overlaps) allDay.push(e);
       }
@@ -156,23 +152,17 @@ export function AgendaWeekView({
   const nbAllDayLanes = allDayBars.length > 0 ? Math.max(...allDayBars.map((b) => b.lane)) + 1 : 0;
   const allDayHeight  = nbAllDayLanes * 22 + (nbAllDayLanes > 0 ? 8 : 0);
 
-  // ── Styles ────────────────────────────────────────────────────────────
   const card   = darkMode ? "bg-[#0f111a] border-white/10" : "bg-white border-slate-200";
   const sep    = darkMode ? "border-white/5"               : "border-slate-100";
-  const text   = darkMode ? "text-white"                   : "text-slate-900";
   const muted  = darkMode ? "text-white/35"                : "text-slate-400";
   const colSep = darkMode ? "border-white/5"               : "border-slate-100";
   const hourLn = darkMode ? "border-white/5"               : "border-slate-100";
 
-  // ── Render ────────────────────────────────────────────────────────────
   return (
     <div className={`rounded-[28px] border-2 overflow-hidden ${card}`}>
 
-      {/* ── En-têtes jours ─────────────────────────────────────────────── */}
       <div className={`flex border-b ${sep}`}>
-        {/* Espace pour l'axe des heures */}
         <div className="w-10 flex-shrink-0" />
-        {/* Colonnes jours */}
         {weekDays.map((d, i) => {
           const isToday   = d.iso === todayIso;
           const isWorked  = workedDays.has(d.iso);
@@ -189,9 +179,7 @@ export function AgendaWeekView({
             >
               <span className="text-[8px] font-black uppercase">{DAYS_ABBR[i].charAt(0)}</span>
               <span className={`text-[13px] font-black w-7 h-7 flex items-center justify-center rounded-full ${
-                isToday
-                  ? "bg-emerald-500 text-white"
-                  : ""
+                isToday ? "bg-emerald-500 text-white" : ""
               }`}>
                 {d.date.getDate()}
               </span>
@@ -201,10 +189,8 @@ export function AgendaWeekView({
         })}
       </div>
 
-      {/* ── Section all-day (Congé + Note + RDV sans heure) ─────────────── */}
       {nbAllDayLanes > 0 && (
         <div className={`relative border-b ${sep} mx-0.5`} style={{ height: allDayHeight + "px" }}>
-          {/* Décalage pour l'axe des heures */}
           <div style={{ marginLeft: "40px", position: "relative", height: "100%" }}>
             {allDayBars.map((bar) => (
               <button
@@ -231,11 +217,9 @@ export function AgendaWeekView({
         </div>
       )}
 
-      {/* ── Grille horaire ───────────────────────────────────────────────── */}
       <div className="overflow-y-auto" style={{ maxHeight: "480px" }}>
         <div className="flex" style={{ height: `${TOTAL_HEIGHT}px` }}>
 
-          {/* Axe des heures */}
           <div className="w-10 flex-shrink-0 relative">
             {HOURS.map((h, i) => (
               <div
@@ -248,9 +232,7 @@ export function AgendaWeekView({
             ))}
           </div>
 
-          {/* Colonnes jours */}
           <div className="flex-1 relative">
-            {/* Lignes horaires */}
             {HOURS.map((_, i) => (
               <div
                 key={i}
@@ -259,7 +241,6 @@ export function AgendaWeekView({
               />
             ))}
 
-            {/* Colonnes séparatrices + events */}
             <div className="absolute inset-0 grid grid-cols-7 h-full">
               {weekDays.map((d, colIdx) => {
                 const isToday  = d.iso === todayIso;
@@ -304,7 +285,6 @@ export function AgendaWeekView({
               })}
             </div>
 
-            {/* Indicateur heure courante */}
             {currentTimePx >= 0 && (
               <div
                 className="absolute left-0 right-0 z-10 pointer-events-none"
@@ -320,7 +300,6 @@ export function AgendaWeekView({
         </div>
       </div>
 
-      {/* ── Bouton créer ─────────────────────────────────────────────────── */}
       <div className={`p-3 border-t ${sep}`}>
         <button
           onClick={() => {

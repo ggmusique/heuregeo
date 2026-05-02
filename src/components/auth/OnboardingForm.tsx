@@ -1,6 +1,11 @@
 import React, { useState } from 'react'
 
-export const OnboardingForm = ({ onSave, saving }) => {
+interface Props {
+  onSave: (form: any) => void;
+  saving: boolean;
+}
+
+export const OnboardingForm = ({ onSave, saving }: Props) => {
   const [form, setForm] = useState({
     prenom: '', nom: '', adresse: '', code_postal: '', ville: '', telephone: ''
   })

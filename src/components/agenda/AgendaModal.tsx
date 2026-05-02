@@ -16,6 +16,18 @@ const RAPPEL_OPTIONS = [
   { value: 120,  label: "2h avant" },
 ];
 
+interface Props {
+  show: boolean;
+  editMode?: boolean;
+  initialData?: any;
+  selectedDate?: string | null;
+  onSubmit?: (data: any) => void;
+  onCancel?: () => void;
+  onDelete?: () => void;
+  loading?: boolean;
+  darkMode?: boolean;
+}
+
 export function AgendaModal({
   show,
   editMode      = false,
@@ -26,14 +38,14 @@ export function AgendaModal({
   onDelete,
   loading       = false,
   darkMode      = true,
-}) {
+}: Props) {
   const [type,        setType]       = useState("rdv");
   const [titre,       setTitre]      = useState("");
   const [dateIso,     setDateIso]    = useState("");
   const [dateFin,     setDateFin]    = useState("");
   const [heureDebut,  setHeureDebut] = useState("");
   const [heureFin,    setHeureFin]   = useState("");
-  const [rappel,      setRappel]     = useState(null);
+  const [rappel,      setRappel]     = useState<number | null>(null);
   const [description, setDescription]= useState("");
 
   useEffect(() => {
@@ -152,7 +164,7 @@ export function AgendaModal({
             />
           </div>
 
-          {/* Dates : plage pour congé, date unique pour rdv/note */}
+          {/* Dates */}
           {type === "conge" ? (
             <div>
               <p className={labelCls}>Période <span className="text-red-400">*</span></p>

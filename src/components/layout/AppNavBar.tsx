@@ -3,10 +3,13 @@ import { useDarkMode } from "../../contexts/DarkModeContext";
 import { usePermissions } from "../../contexts/PermissionsContext";
 import { supabase } from "../../services/supabase";
 
-/**
- * Barre de navigation fixée en bas de l'écran.
- */
-export function AppNavBar({ activeTab, setActiveTab, proNavItems }) {
+interface Props {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  proNavItems: any[];
+}
+
+export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
   const { darkMode } = useDarkMode();
   const { isViewer, isPro, canDashboard, canAgenda } = usePermissions();
 
@@ -21,7 +24,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }) {
             (darkMode ? "bg-[#030d22]/95 border-yellow-500/30" : "bg-white/95 border-slate-200/80")
           }
         >
-          {proNavItems.map((item) => {
+          {proNavItems.map((item: any) => {
             const isActive = activeTab === item.key;
             return (
               <button

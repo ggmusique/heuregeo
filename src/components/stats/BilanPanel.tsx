@@ -73,25 +73,30 @@ function ExportBtn({ label, onClick, disabled, color }) {
 
 // ─── Composant principal ───────────────────────────────────────────────────────
 
-/**
- * BilanPanel — affichage complet d'un bilan (semaine / mois / année)
- * avec le design system HeureGeo.
- *
- * Props :
- *  bilanContent        Objet résultat du bilan (titre, totaux, missions, frais…)
- *  bilanPeriodType     "semaine" | "mois" | "annee"
- *  bilanPaye           boolean
- *  sortedMissions      Missions triées par date (mode semaine)
- *  onMarquerCommePaye  Callback bouton "marquer payé"
- *  isViewer            boolean — masque les actions de modification
- *  canExportExcel / canExportPDF / canExportCSV / canFacture   Feature flags
- *  onExportExcel / onExportPDF / onExportCSV / onExportCSVWithFrais / onExportFacture
- *  onFraisEdit / onFraisDelete   Callbacks modification frais
- *  kmSettings          Objet paramètres kilométriques
- *  onRecalculerFraisKm Callback recalcul KM
- *  isRecalculatingKm   boolean
- *  domicileLatLng      { lat, lng } | null — pour le message de fallback KM
- */
+interface BilanPanelProps {
+  bilanContent: any;
+  bilanPeriodType?: "semaine" | "mois" | "annee";
+  bilanPaye?: boolean;
+  sortedMissions?: any[];
+  onMarquerCommePaye?: () => void;
+  isViewer?: boolean;
+  canExportExcel?: boolean;
+  canExportPDF?: boolean;
+  canExportCSV?: boolean;
+  canFacture?: boolean;
+  onExportExcel?: () => void;
+  onExportPDF?: () => void;
+  onExportCSV?: () => void;
+  onExportCSVWithFrais?: () => void;
+  onExportFacture?: () => void;
+  onFraisEdit?: (frais: any) => void;
+  onFraisDelete?: (frais: any) => void;
+  kmSettings?: any;
+  onRecalculerFraisKm?: () => void;
+  isRecalculatingKm?: boolean;
+  domicileLatLng?: { lat: number; lng: number } | null;
+}
+
 export function BilanPanel({
   bilanContent,
   bilanPeriodType,
@@ -114,7 +119,7 @@ export function BilanPanel({
   onRecalculerFraisKm,
   isRecalculatingKm = false,
   domicileLatLng = null,
-}) {
+}: BilanPanelProps) {
   const L = useLabels();
 
   if (!bilanContent || !bilanContent.titre) return null;
