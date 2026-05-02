@@ -1,17 +1,23 @@
 import React, { useRef, useMemo, useCallback } from "react";
 import { getDateParts } from "../../utils/dateUtils";
 
+interface DateSelectorProps {
+  dateMission: string;
+  setDateMission: (v: string) => void;
+  isIOS?: boolean;
+}
+
 /**
  * DateSelector
- * ✅ Composant UI qui affiche une date en “carte” stylée
+ * ✅ Composant UI qui affiche une date en "carte" stylée
  * ✅ Au clic, ouvre le picker natif (<input type="date">) mais sans le montrer
  */
 export const DateSelector = React.memo(
-  ({ dateMission, setDateMission, isIOS }) => {
+  ({ dateMission, setDateMission, isIOS }: DateSelectorProps) => {
     // ✅ Référence vers l'input date caché (pour pouvoir le focus/click programmatiquement)
-    const dateInputRef = useRef(null);
+    const dateInputRef = useRef<HTMLInputElement>(null);
 
-    // ✅ On transforme "YYYY-MM-DD" en { day, month, year } pour l’affichage
+    // ✅ On transforme "YYYY-MM-DD" en { day, month, year } pour l'affichage
     // useMemo = recalcul seulement quand dateMission change (optimisation)
     const { day, month, year } = useMemo(
       () => getDateParts(dateMission),
@@ -29,9 +35,9 @@ export const DateSelector = React.memo(
         dateInputRef.current.focus();
 
         // ✅ showPicker: plus "propre" sur certains navigateurs
-        if (typeof dateInputRef.current.showPicker === "function") {
+        if (typeof (dateInputRef.current as any).showPicker === "function") {
           try {
-            dateInputRef.current.showPicker();
+            (dateInputRef.current as any).showPicker();
           } catch (e) {
             // ✅ si showPicker échoue (certaines plateformes), fallback click
             dateInputRef.current.click();

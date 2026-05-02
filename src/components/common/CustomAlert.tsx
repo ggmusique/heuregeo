@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 
+interface CustomAlertProps {
+  show: boolean;
+  message: string;
+  onDismiss: () => void;
+}
+
 /**
  * CustomAlert (amélioré)
  * - Auto-fermeture après 3 secondes quand `show` passe à true
@@ -7,13 +13,13 @@ import React, { useEffect, useRef, useState } from "react";
  * - Barre de progression (3s)
  * - Même API: { show, message, onDismiss }
  */
-export const CustomAlert = React.memo(({ show, message, onDismiss }) => {
+export const CustomAlert = React.memo(({ show, message, onDismiss }: CustomAlertProps) => {
   const DURATION_MS = 3000;
 
   const [progress, setProgress] = useState(100); // 100 -> 0
-  const rafRef = useRef(null);
-  const startRef = useRef(0);
-  const timeoutRef = useRef(null);
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef<number>(0);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!show) {
@@ -26,12 +32,12 @@ export const CustomAlert = React.memo(({ show, message, onDismiss }) => {
       return;
     }
 
-    // ✅ reset au moment où l’alerte s’affiche
+    // ✅ reset au moment où l'alerte s'affiche
     setProgress(100);
     startRef.current = performance.now();
 
     // ✅ animation fluide de la barre
-    const tick = (now) => {
+    const tick = (now: number) => {
       const elapsed = now - startRef.current;
       const pct = Math.max(0, 100 - (elapsed / DURATION_MS) * 100);
       setProgress(pct);
@@ -85,7 +91,7 @@ export const CustomAlert = React.memo(({ show, message, onDismiss }) => {
               onDismiss?.();
             }}
             className="ml-2 w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white font-black flex items-center justify-center active:scale-95 transition-all"
-            aria-label="Fermer l’alerte"
+            aria-label="Fermer l'alerte"
             title="Fermer"
           >
             ✕

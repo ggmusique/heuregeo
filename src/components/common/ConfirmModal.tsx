@@ -1,5 +1,10 @@
 import React from "react";
 import { MODAL_STYLES } from "../../constants/options";
+import { ConfirmState } from "../../hooks/useConfirm";
+
+interface ConfirmModalProps extends ConfirmState {
+  darkMode?: boolean;
+}
 
 /**
  * ✅ ConfirmModal = la fenêtre popup (UI) "Confirmer / Annuler"
@@ -21,9 +26,9 @@ export const ConfirmModal = ({
   onCancel,    // 👈 action quand on annule (bouton ou clic dehors)
   type = "danger", // 👈 style: danger / warning / info...
   darkMode = true, // 👈 style sombre/clair
-}) => {
+}: ConfirmModalProps) => {
   // ✅ Si la modal ne doit pas être visible, on ne rend rien du tout
-  // -> ça évite qu’elle prenne de la place ou capte des clics
+  // -> ça évite qu'elle prenne de la place ou capte des clics
   if (!show) return null;
 
   // ✅ On récupère le "pack de style" selon le type (couleurs, icône, etc.)
@@ -36,7 +41,7 @@ export const ConfirmModal = ({
     <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 animate-in fade-in duration-200">
       
       {/* ✅ Overlay noir derrière la modal
-          - couvre tout l’écran
+          - couvre tout l'écran
           - si tu cliques dessus => onCancel (comme "Annuler") */}
       <div
         className={`absolute inset-0 ${darkMode ? "bg-black/70" : "bg-black/30"} backdrop-blur-md`}
