@@ -6,23 +6,11 @@ import { supabase } from "../../services/supabase";
 /**
  * Barre de navigation fixée en bas de l'écran.
  */
-export function AppNavBar({ activeTab, setActiveTab }) {
+export function AppNavBar({ activeTab, setActiveTab, proNavItems }) {
   const { darkMode } = useDarkMode();
   const { isViewer, isPro, canDashboard, canAgenda } = usePermissions();
 
   const isProNavigationMode = isPro && !isViewer;
-
-  const proNavItems = [
-    { key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
-    ...(canDashboard && !isViewer
-      ? [{ key: "dashboard", label: "Dashboard", icon: "📊", activeClass: "from-violet-600 to-indigo-700" }]
-      : []),
-    { key: "suivi", label: "Suivi", icon: "📈", activeClass: "from-cyan-600 to-indigo-700" },
-    ...(canAgenda
-      ? [{ key: "agenda", label: "Agenda", icon: "📅", activeClass: "from-emerald-600 to-teal-700" }]
-      : []),
-    { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
-  ];
 
   return (
     <nav className="fixed bottom-6 left-6 right-6 z-[100]">

@@ -26,6 +26,7 @@ import { useClientModal } from "./hooks/useClientModal";
 import { useAcompteModal } from "./hooks/useAcompteModal";
 import { useAgenda } from "./hooks/useAgenda";
 import { useAgendaModal } from "./hooks/useAgendaModal";
+import { useNavigation } from "./hooks/useNavigation";
 
 import { CustomAlert } from "./components/common/CustomAlert";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
@@ -59,7 +60,6 @@ function AppContent({ user }) {
 
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
-  const [activeTab, setActiveTab] = useState("saisie");
   const [showMissionRateEditor, setShowMissionRateEditor] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.localStorage.getItem("showMissionRateEditor") !== "false";
@@ -81,7 +81,8 @@ function AppContent({ user }) {
     (error) => triggerAlert(error)
   );
 
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, isViewer, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canAgenda, canFacture, canDashboard } = useProfile(user);
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canFacture } = useProfile(user);
+  const { activeTab, setActiveTab, canAgenda, canDashboard, isViewer, proNavItems } = useNavigation(profile);
 
   const labels = getLabels(profile);
 
@@ -130,11 +131,8 @@ function AppContent({ user }) {
   }, [showMissionRateEditor]);
 
   useEffect(() => {
-    if (isViewer && !profileLoading) {
-      setActiveTab("suivi");
-      historiqueHook.setSuiviDefaultView("bilan");
-    }
-  }, [isViewer, profileLoading]);
+    if (isViewer) historiqueHook.setSuiviDefaultView("bilan");
+  }, [isViewer]);
 
   useEffect(() => {
     if (isViewer && viewerPatronId) {
@@ -147,16 +145,6 @@ function AppContent({ user }) {
       Notification.requestPermission();
     }
   }, [canAgenda]);
-
-  useEffect(() => {
-    if (!canAgenda && activeTab === "agenda") setActiveTab("saisie");
-  }, [canAgenda, activeTab]);
-
-  useEffect(() => {
-    if (!canDashboard && activeTab === "dashboard") {
-      setActiveTab("suivi");
-    }
-  }, [canDashboard, activeTab]);
 
   const handleMarquerCommePaye = async () => {
     const confirmed = await showConfirm({ title: "Marquer comme paye", message: "Voulez-vous marquer ce bilan comme paye ?", confirmText: "Confirmer", cancelText: "Annuler", type: "info" });
@@ -388,7 +376,7 @@ function AppContent({ user }) {
         bulkCreateMissions={bulkCreateMissions}
       />
 
-      <AppNavBar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <AppNavBar activeTab={activeTab} setActiveTab={setActiveTab} proNavItems={proNavItems} />
     </div>
     </PermissionsContext.Provider>
     </LabelsContext.Provider>
