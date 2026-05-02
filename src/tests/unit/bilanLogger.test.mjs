@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { logBilanError } from "../../utils/bilanLogger.js";
+import { logBilanError } from "../../utils/bilanLogger.ts";
 
 test("logBilanError logue un payload structuré", () => {
   const calls = [];

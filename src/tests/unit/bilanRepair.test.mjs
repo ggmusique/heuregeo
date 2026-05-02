@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { computeRepairDecision } from "../../lib/bilanRepair.js";
+import { computeRepairDecision } from "../../lib/bilanRepair.ts";
 
 test("computeRepairDecision détecte une ligne déjà correcte", () => {
   const bilan = {

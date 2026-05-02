@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mapWeeklyAcompteMetricsFromRows } from "../../lib/bilanMetrics.js";
+import { mapWeeklyAcompteMetricsFromRows } from "../../lib/bilanMetrics.ts";
 
 test("mapWeeklyAcompteMetricsFromRows agrège correctement les montants", () => {
   const metrics = mapWeeklyAcompteMetricsFromRows({

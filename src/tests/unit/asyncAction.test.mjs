@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { runAsyncAction } from "../../utils/asyncAction.js";
+import { runAsyncAction } from "../../utils/asyncAction.ts";
 
 test("runAsyncAction retourne ok=true et appelle onSuccess", async () => {
   let successPayload = null;

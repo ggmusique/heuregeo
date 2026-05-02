@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   calculerAcomptesBilan,
   calculerSoldeAcomptesAvant,
-} from "../../utils/calculators.js";
+} from "../../utils/calculators.ts";
 
 test("cohérence wallet avant période et consommation période", () => {
   const acomptes = [
