@@ -117,3 +117,25 @@ export interface FraisDivers {
   date_frais: string | null;
   created_at?: string | null;
 }
+
+// ─── AgendaEvent ─────────────────────────────────────────────────────────────
+
+/** Enregistrement de la table `agenda_events`. */
+export interface AgendaEvent {
+  id: string;
+  user_id?: string;
+  titre: string;
+  /** Format "YYYY-MM-DD". */
+  date_iso: string;
+  /** Format "YYYY-MM-DD" — date de fin pour les événements multi-jours. */
+  date_fin?: string | null;
+  /** Format "HH:MM". */
+  heure_debut?: string | null;
+  /** Format "HH:MM". */
+  heure_fin?: string | null;
+  /** Ex : "rdv" | "tache" | "note". */
+  type?: string | null;
+  /** Délai de rappel en minutes avant l'événement. */
+  rappel_minutes?: number | null;
+  [key: string]: unknown;
+}
