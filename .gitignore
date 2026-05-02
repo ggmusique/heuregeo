@@ -1,1 +1,14 @@
-bm9kZV9tb2R1bGVzCmRpc3QKZGV2LWRpc3QKCiMgVmFyaWFibGVzIGQnZW52aXJvbm5lbWVudCAobmUgamFtYWlzIGNvbW1pdGVyKQouZW52Ci5lbnYubG9jYWwKLmVudi53b3JrCi5lbnYubWFpbgoKIyBGaWNoaWVycyBiYWNrdXAKKi5iYWNrdXAKKi5iYWNrdXAtKgoqLk9MRC0qCg==
+﻿node_modules
+dist
+dev-dist
+
+# Variables d'environnement (ne jamais commiter)
+.env
+.env.local
+.env.work
+.env.main
+
+# Fichiers backup
+*.backup
+*.backup-*
+*.OLD-*
