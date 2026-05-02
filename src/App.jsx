@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
 import { SaisieTab } from "./pages/SaisieTab";
 import { SuiviTab } from "./pages/SuiviTab";
@@ -35,6 +35,7 @@ import { OnboardingForm } from "./components/auth/OnboardingForm";
 import { AppHeader } from "./components/layout/AppHeader";
 import { AppNavBar } from "./components/layout/AppNavBar";
 import { AppModals } from "./components/AppModals";
+import { VueAgenda } from "./components/views/VueAgenda";
 
 import { DarkModeProvider } from "./contexts/DarkModeContext";
 import { useAppUI } from "./hooks/useAppUI";
@@ -43,10 +44,6 @@ import { LabelsContext } from "./contexts/LabelsContext";
 import { getLabels } from "./utils/labels";
 
 import "./inputs.css";
-
-const AgendaTab = lazy(() =>
-  import("./pages/AgendaTab").then((m) => ({ default: m.AgendaTab }))
-);
 
 export default function App({ user }) {
   return (
@@ -167,6 +164,22 @@ function AppContent({ user }) {
     lieuModal,
     agendaModal,
     showImportModal, setShowImportModal, bulkCreateMissions,
+  };
+
+  const agendaProps = {
+    events: agendaHook.events,
+    loading: agendaHook.loading,
+    currentYear: agendaHook.currentYear,
+    currentMonth: agendaHook.currentMonth,
+    currentWeekStart: agendaHook.currentWeekStart,
+    workedDays: agendaWorkedDays,
+    onGoToPrev: agendaHook.goToPrevMonth,
+    onGoToNext: agendaHook.goToNextMonth,
+    onGoToToday: agendaHook.goToToday,
+    onGoToPrevWeek: agendaHook.goToPrevWeek,
+    onGoToNextWeek: agendaHook.goToNextWeek,
+    onOpenForDate: agendaModal.openForDate,
+    onEventEdit: agendaModal.handleEventEdit,
   };
 
   return (
@@ -297,25 +310,7 @@ function AppContent({ user }) {
           />
         )}
 
-        {activeTab === "agenda" && (
-          <Suspense fallback={<div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-4 border-yellow-500 border-t-transparent" /></div>}>
-            <AgendaTab
-              events={agendaHook.events}
-              loading={agendaHook.loading}
-              currentYear={agendaHook.currentYear}
-              currentMonth={agendaHook.currentMonth}
-              currentWeekStart={agendaHook.currentWeekStart}
-              workedDays={agendaWorkedDays}
-              onGoToPrev={agendaHook.goToPrevMonth}
-              onGoToNext={agendaHook.goToNextMonth}
-              onGoToToday={agendaHook.goToToday}
-              onGoToPrevWeek={agendaHook.goToPrevWeek}
-              onGoToNextWeek={agendaHook.goToNextWeek}
-              onOpenForDate={agendaModal.openForDate}
-              onEventEdit={agendaModal.handleEventEdit}
-            />
-          </Suspense>
-        )}
+        {activeTab === "agenda" && <VueAgenda {...agendaProps} />}
 
         {activeTab === "parametres" && !isViewer && (
           <ParametresTab
