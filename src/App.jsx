@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 
-import { SaisieTab } from "./pages/SaisieTab";
 import { ParametresTab } from "./pages/ParametresTab";
 
 import { useClients } from "./hooks/useClients";
@@ -36,6 +35,7 @@ import { AppModals } from "./components/AppModals";
 import { VueAgenda } from "./components/views/VueAgenda";
 import { VueSuivi } from "./components/views/VueSuivi";
 import { VueDashboard } from "./components/views/VueDashboard";
+import { VueSaisie } from "./components/views/VueSaisie";
 
 import { DarkModeProvider } from "./contexts/DarkModeContext";
 import { useAppUI } from "./hooks/useAppUI";
@@ -166,6 +166,48 @@ function AppContent({ user }) {
     showImportModal, setShowImportModal, bulkCreateMissions,
   };
 
+  const saisieProps = {
+    editingMissionId: missionForm.editingMissionId,
+    editingMissionData: missionForm.editingMissionData,
+    selectedClientId: missionForm.selectedClientId,
+    selectedLieuId: missionForm.selectedLieuId,
+    selectedPatronId: missionForm.selectedPatronId,
+    onMissionSubmit: missionForm.handleMissionSubmit,
+    onMissionCancel: missionForm.resetMissionForm,
+    onCopyLast: missionForm.copierDerniereMission,
+    lieux,
+    patrons,
+    clients,
+    missions,
+    isIOS,
+    loading,
+    onLieuChange: (lieuId) => {
+      missionForm.setSelectedLieuId(lieuId);
+      if (missionForm.editingMissionId) {
+        const selected = lieux.find((l) => String(l.id) === String(lieuId));
+        missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), lieu_id: lieuId, lieu: selected?.nom || prev?.lieu || "" }));
+      }
+    },
+    onPatronChange: (patronId) => {
+      missionForm.setSelectedPatronId(patronId);
+      if (missionForm.editingMissionId) missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), patron_id: patronId }));
+    },
+    onClientChange: (clientId) => {
+      missionForm.setSelectedClientId(clientId);
+      if (missionForm.editingMissionId) {
+        const selected = clients.find((c) => c.id === clientId);
+        missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), client_id: clientId, client: selected?.nom || prev?.client || "" }));
+      }
+    },
+    onShowLieuModal: () => { lieuModal.resetLieuForm(); lieuModal.setShowLieuModal(true); },
+    onShowClientModal: () => { clientModal.resetClientForm(); clientModal.setShowClientModal(true); },
+    onShowPatronModal: () => { patronModal.resetPatronForm(); patronModal.setShowPatronModal(true); },
+    onShowFraisModal: () => fraisModal.setShowFraisModal(true),
+    onShowAcompteModal: () => acompteModal.setShowAcompteModal(true),
+    onShowImportModal: () => setShowImportModal(true),
+    showMissionRateEditor,
+  };
+
   const dashboardProps = {
     missions,
     fraisDivers,
@@ -252,49 +294,7 @@ function AppContent({ user }) {
       <AppHeader profile={profile} isViewer={isViewer} isPro={isPro} liveTime={liveTime} APP_VERSION={APP_VERSION} />
 
       <main className="relative px-5 -mt-10 pb-32 z-10">
-        {activeTab === "saisie" && (
-          <SaisieTab
-            editingMissionId={missionForm.editingMissionId}
-            editingMissionData={missionForm.editingMissionData}
-            selectedClientId={missionForm.selectedClientId}
-            selectedLieuId={missionForm.selectedLieuId}
-            selectedPatronId={missionForm.selectedPatronId}
-            onMissionSubmit={missionForm.handleMissionSubmit}
-            onMissionCancel={missionForm.resetMissionForm}
-            onCopyLast={missionForm.copierDerniereMission}
-            lieux={lieux}
-            patrons={patrons}
-            clients={clients}
-            missions={missions}
-            isIOS={isIOS}
-            loading={loading}
-            onLieuChange={(lieuId) => {
-              missionForm.setSelectedLieuId(lieuId);
-              if (missionForm.editingMissionId) {
-                const selected = lieux.find((l) => String(l.id) === String(lieuId));
-                missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), lieu_id: lieuId, lieu: selected?.nom || prev?.lieu || "" }));
-              }
-            }}
-            onPatronChange={(patronId) => {
-              missionForm.setSelectedPatronId(patronId);
-              if (missionForm.editingMissionId) missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), patron_id: patronId }));
-            }}
-            onClientChange={(clientId) => {
-              missionForm.setSelectedClientId(clientId);
-              if (missionForm.editingMissionId) {
-                const selected = clients.find((c) => c.id === clientId);
-                missionForm.setEditingMissionData((prev) => ({ ...(prev || {}), client_id: clientId, client: selected?.nom || prev?.client || "" }));
-              }
-            }}
-            onShowLieuModal={() => { lieuModal.resetLieuForm(); lieuModal.setShowLieuModal(true); }}
-            onShowClientModal={() => { clientModal.resetClientForm(); clientModal.setShowClientModal(true); }}
-            onShowPatronModal={() => { patronModal.resetPatronForm(); patronModal.setShowPatronModal(true); }}
-            onShowFraisModal={() => fraisModal.setShowFraisModal(true)}
-            onShowAcompteModal={() => acompteModal.setShowAcompteModal(true)}
-            onShowImportModal={() => setShowImportModal(true)}
-            showMissionRateEditor={showMissionRateEditor}
-          />
-        )}
+        {activeTab === "saisie" && <VueSaisie {...saisieProps} />}
 
         {activeTab === "dashboard" && canDashboard && <VueDashboard {...dashboardProps} />}
 
