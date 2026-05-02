@@ -1,5 +1,28 @@
 import React from "react";
 import { useLabels } from "../../../contexts/LabelsContext";
+import { Patron, Client } from "../../../types/entities";
+
+interface PeriodModalProps {
+  show: boolean;
+  periodType: "semaine" | "mois" | "annee";
+  setPeriodType: (v: string) => void;
+  periodValue: string;
+  setPeriodValue: (v: string) => void;
+  availablePeriods: (number | string)[];
+  formatPeriodLabel: (v: string | number) => string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  darkMode?: boolean;
+  patrons?: Patron[];
+  selectedPatronId?: string | null;
+  onPatronChange?: (id: string | null) => void;
+  clients?: Client[];
+  selectedClientId?: string | null;
+  onClientChange?: (id: string | null) => void;
+  isViewer?: boolean;
+  canBilanMois?: boolean;
+  canBilanAnnee?: boolean;
+}
 
 /**
  * ============================
@@ -11,50 +34,35 @@ import { useLabels } from "../../../contexts/LabelsContext";
  *   3) (optionnel) un patron : Global ou un patron précis
  *
  * ✅ Elle ne calcule rien.
- * ✅ Elle ne fait qu’afficher des choix et appeler des callbacks.
+ * ✅ Elle ne fait qu'afficher des choix et appeler des callbacks.
  */
 export const PeriodModal = ({
-  show,                 // true/false : affiche ou cache la modale
-  periodType,           // "semaine" | "mois" | "annee"
-  setPeriodType,        // fonction pour changer le type (boutons)
-  periodValue,          // valeur choisie (ex "12" / "2025-02" / "2025")
-  setPeriodValue,       // fonction pour changer la valeur (select)
-  availablePeriods,     // liste des périodes disponibles (remplie depuis missions)
-  formatPeriodLabel,    // transforme "2025-02" en "FÉVRIER 2025", etc.
-  onConfirm,            // callback quand on clique "Confirmer"
-  onCancel,             // callback quand on clique "Annuler"
-  darkMode = true,      // style sombre/clair
-
-  // ✅ Ajout “multi-patrons”
-  patrons = [],         // liste des patrons pour le select
-  selectedPatronId = null, // patron choisi (null = global)
-  onPatronChange = () => {}, // callback quand on change de patron
-
-  // ✅ Ajout filtre client
-  clients = [],              // liste des clients
-  selectedClientId = null,   // client choisi (null = tous)
-  onClientChange = () => {}, // callback quand on change de client
-
-  isViewer = false,          // masque le sélecteur de patron pour les viewers
-
-  // Features plan Free/Pro
-  canBilanMois = true,       // accès au bilan par mois (plan Pro)
-  canBilanAnnee = true,      // accès au bilan par année (plan Pro)
-}) => {
+  show,
+  periodType,
+  setPeriodType,
+  periodValue,
+  setPeriodValue,
+  availablePeriods,
+  formatPeriodLabel,
+  onConfirm,
+  onCancel,
+  darkMode = true,
+  patrons = [],
+  selectedPatronId = null,
+  onPatronChange = () => {},
+  clients = [],
+  selectedClientId = null,
+  onClientChange = () => {},
+  isViewer = false,
+  canBilanMois = true,
+  canBilanAnnee = true,
+}: PeriodModalProps) => {
   const L = useLabels();
 
-  /**
-   * Garde-fou : si show est false, on ne rend rien.
-   * (la modale n’existe pas dans le DOM)
-   */
   if (!show) return null;
 
   return (
-    /**
-     * Overlay : couche qui recouvre tout l’écran (fond sombre flou)
-     */
     <div className={`fixed inset-0 z-[400] flex items-center justify-center p-6 ${darkMode ? "bg-[#050510]/95" : "bg-black/40"} backdrop-blur-xl`}>
-      {/* Boîte de la modale */}
       <div
         className={`w-full max-w-sm p-8 rounded-[45px] border-2 ${
           darkMode
@@ -62,15 +70,12 @@ export const PeriodModal = ({
             : "bg-white border-slate-200"
         } backdrop-blur-xl`}
       >
-        {/* Titre de la modale */}
         <h3 className="text-xl font-black uppercase mb-4 text-center tracking-tighter italic">
           Choisir la période
         </h3>
 
         {/* ======================================================
             1) Choix du TYPE de période
-            - 3 boutons : semaine / mois / année
-            - met à jour periodType via setPeriodType(...)
            ====================================================== */}
         <div className={`flex ${darkMode ? "bg-black/20" : "bg-slate-100"} rounded-2xl p-1 mb-6 backdrop-blur-md`}>
           <button
@@ -117,8 +122,6 @@ export const PeriodModal = ({
 
         {/* ======================================================
             2) Choix de la PÉRIODE
-            - un <select> rempli par availablePeriods
-            - quand on change : setPeriodValue(...)
            ====================================================== */}
         <div className="mb-6">
           <label className="block text-[11px] font-black uppercase mb-3 text-indigo-300 tracking-[0.25em] opacity-80">
@@ -135,21 +138,17 @@ export const PeriodModal = ({
               onChange={(e) => setPeriodValue(e.target.value)}
               className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-indigo-500/40 appearance-none cursor-pointer focus:outline-none focus:border-indigo-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[#1a1f2e] text-white" : "bg-white text-slate-900 border-slate-200"}`}
             >
-              {/* option placeholder */}
               <option value="" disabled>
                 Sélectionner une période...
               </option>
 
-              {/* options venant de availablePeriods */}
               {availablePeriods.map((p) => (
                 <option key={p} value={p}>
-                  {/* formatPeriodLabel rend ça plus joli */}
                   {formatPeriodLabel(p)}
                 </option>
               ))}
             </select>
 
-            {/* petite flèche à droite (juste déco) */}
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-indigo-400">
               <svg
                 className="w-5 h-5"
@@ -169,9 +168,7 @@ export const PeriodModal = ({
         </div>
 
         {/* ======================================================
-            3) (NOUVEAU) Filtre PATRON (optionnel)
-            - null / "" = Global = tous les patrons
-            - sinon patron.id
+            3) Filtre PATRON (optionnel)
            ====================================================== */}
         {!isViewer && (
         <div className="mb-8">
@@ -184,15 +181,12 @@ export const PeriodModal = ({
               value={selectedPatronId || ""}
               onChange={(e) => {
                 const value = e.target.value;
-                // ✅ correction importante : "" => null pour être cohérent partout
                 onPatronChange(value === "" ? null : value);
               }}
               className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-green-500/40 appearance-none cursor-pointer focus:outline-none focus:border-green-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[#1a1f2e] text-white" : "bg-white text-slate-900 border-slate-200"}`}
             >
-              {/* Global */}
               <option value="">📊 Tous les {L.patrons} (Global)</option>
 
-              {/* Liste patrons */}
               {patrons.map((patron) => (
                 <option key={patron.id} value={patron.id}>
                   {patron.nom}
@@ -200,7 +194,6 @@ export const PeriodModal = ({
               ))}
             </select>
 
-            {/* flèche déco */}
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-green-400">
               <svg
                 className="w-5 h-5"
@@ -218,7 +211,6 @@ export const PeriodModal = ({
             </div>
           </div>
 
-          {/* Aide texte */}
           <p className="text-[9px] opacity-50 mt-2 px-1">
             Laisser sur "Tous les {L.patrons}" pour un bilan consolidé
           </p>
@@ -226,9 +218,7 @@ export const PeriodModal = ({
         )}
 
         {/* ======================================================
-            4) (NOUVEAU) Filtre CLIENT (optionnel)
-            - null / "" = tous les clients
-            - sinon client.id
+            4) Filtre CLIENT (optionnel)
            ====================================================== */}
         {!isViewer && (
         <div className="mb-8">
@@ -254,7 +244,6 @@ export const PeriodModal = ({
               ))}
             </select>
 
-            {/* flèche déco */}
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-amber-400">
               <svg
                 className="w-5 h-5"
@@ -272,7 +261,6 @@ export const PeriodModal = ({
             </div>
           </div>
 
-          {/* Aide texte */}
           <p className="text-[9px] opacity-50 mt-2 px-1">
             Laisser sur "Tous les {L.clients}" pour un bilan consolidé
           </p>
@@ -281,8 +269,6 @@ export const PeriodModal = ({
 
         {/* ======================================================
             5) Boutons bas
-            - Annuler : onCancel()
-            - Confirmer : onConfirm() (désactivé si pas de periodValue)
            ====================================================== */}
         <div className="flex gap-3">
           <button

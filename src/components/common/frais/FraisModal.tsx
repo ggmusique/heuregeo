@@ -1,6 +1,26 @@
 import React, { useMemo } from "react";
 import { DateSelector } from "../DateSelector";
 import { PatronSelectorCompact } from "../../patron/PatronSelector";
+import { Patron } from "../../../types/entities";
+
+interface FraisModalProps {
+  show: boolean;
+  editMode?: boolean;
+  description: string;
+  setDescription: (v: string) => void;
+  montant: string | number;
+  setMontant: (v: string) => void;
+  date: string;
+  setDate: (v: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  loading?: boolean;
+  darkMode?: boolean;
+  isIOS?: boolean;
+  patrons?: Patron[];
+  selectedPatronId?: string | null;
+  onPatronChange?: (id: string | null) => void;
+}
 
 /**
  * Modale de gestion des frais divers - Multi-Patrons
@@ -22,13 +42,11 @@ export const FraisModal = ({
   patrons = [],
   selectedPatronId = null,
   onPatronChange = () => {},
-}) => {
+}: FraisModalProps) => {
   if (!show) return null;
 
-  // ✅ Normalisation / validation UI
   const descOk = (description || "").trim().length > 0;
 
-  // Autorise "12,5" en plus de "12.5"
   const montantNum = useMemo(() => {
     const m = (montant ?? "").toString().replace(",", ".");
     const n = parseFloat(m);
@@ -40,7 +58,6 @@ export const FraisModal = ({
 
   const canSubmit = descOk && montantOk && patronOk && !loading;
 
-  // ✅ Message d'aide (optionnel mais super utile)
   const helper = !patronOk
     ? "Choisis un patron"
     : !descOk
