@@ -1,18 +1,33 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../services/supabase";
+import type { Patron } from "../types/entities";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+export interface UsePatronsReturn {
+  patrons: Patron[];
+  loading: boolean;
+  fetchPatrons: () => Promise<Patron[]>;
+  createPatron: (patronData: Partial<Patron>) => Promise<Patron>;
+  updatePatron: (patronId: string, patronData: Partial<Patron>) => Promise<Patron>;
+  deletePatron: (patronId: string) => Promise<void>;
+  getPatronById: (patronId: string | null | undefined) => Patron | null;
+  getPatronColor: (patronId: string | null | undefined) => string;
+  getPatronNom: (patronId: string | null | undefined) => string;
+  patronExists: (patronId: string) => boolean;
+}
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
 
 /**
  * Hook personnalisé pour gérer les patrons
  * CRUD + helpers (nom/couleur/existence)
  */
-export function usePatrons(triggerAlert) {
-  const [patrons, setPatrons] = useState([]);
-  const [loading, setLoading] = useState(false);
+export function usePatrons(triggerAlert?: (msg: string) => void): UsePatronsReturn {
+  const [patrons, setPatrons] = useState<Patron[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
-  /**
-   * Récupérer tous les patrons actifs
-   */
-  const fetchPatrons = useCallback(async () => {
+  const fetchPatrons = useCallback(async (): Promise<Patron[]> => {
     try {
       setLoading(true);
 
@@ -33,7 +48,7 @@ export function usePatrons(triggerAlert) {
     } catch (err) {
       console.error("Erreur récupération patrons:", err);
       triggerAlert?.(
-        "Erreur chargement patrons : " + (err?.message || "Erreur inconnue")
+        "Erreur chargement patrons : " + ((err as Error)?.message || "Erreur inconnue")
       );
       throw err;
     } finally {
@@ -41,25 +56,18 @@ export function usePatrons(triggerAlert) {
     }
   }, [triggerAlert]);
 
-  /**
-   * Créer un nouveau patron
-   * @param {Object} patronData - { nom, tauxHoraire, couleur }
-   */
-  const createPatron = useCallback(async (patronData) => {
+  const createPatron = useCallback(async (patronData: Partial<Patron>): Promise<Patron> => {
     try {
       setLoading(true);
 
-      // ✅ Validation: nom obligatoire
       if (!patronData?.nom || !patronData.nom.trim()) {
         throw new Error("Le nom du patron est obligatoire");
       }
 
-      // ✅ Normalisation des champs
       const nom = patronData.nom.trim();
-      const tauxNum = parseFloat(patronData.taux_horaire);
+      const tauxNum = parseFloat(String(patronData.taux_horaire));
       const taux_horaire =
         patronData.taux_horaire != null && !isNaN(tauxNum) ? tauxNum : null;
-
       const couleur = patronData.couleur || "#8b5cf6";
 
       const { data: { user } } = await supabase.auth.getUser();
@@ -86,14 +94,12 @@ export function usePatrons(triggerAlert) {
         .single();
 
       if (error) {
-        // ✅ Gestion doublon (unique constraint)
         if (error.code === "23505") {
           throw new Error("Un patron avec ce nom existe déjà");
         }
         throw error;
       }
 
-      // ✅ Ajout + tri (ordre alpha)
       setPatrons((prev) =>
         [...prev, data].sort((a, b) => a.nom.localeCompare(b.nom))
       );
@@ -101,33 +107,26 @@ export function usePatrons(triggerAlert) {
       return data;
     } catch (err) {
       console.error("Erreur création patron:", err);
-      throw new Error(err?.message || "Impossible de créer le patron");
+      throw new Error((err as Error)?.message || "Impossible de créer le patron");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /**
-   * Modifier un patron existant
-   * @param {string} patronId
-   * @param {Object} patronData - { nom, tauxHoraire, couleur }
-   */
-  const updatePatron = useCallback(async (patronId, patronData) => {
+  const updatePatron = useCallback(async (patronId: string, patronData: Partial<Patron>): Promise<Patron> => {
     try {
       setLoading(true);
 
       if (!patronId) throw new Error("ID du patron manquant");
 
-      // ✅ Validation: nom obligatoire
       if (!patronData?.nom || !patronData.nom.trim()) {
         throw new Error("Le nom du patron est obligatoire");
       }
 
       const nom = patronData.nom.trim();
-      const tauxNum = parseFloat(patronData.taux_horaire);
+      const tauxNum = parseFloat(String(patronData.taux_horaire));
       const taux_horaire =
         patronData.taux_horaire != null && !isNaN(tauxNum) ? tauxNum : null;
-
       const couleur = patronData.couleur || "#8b5cf6";
 
       const { data, error } = await supabase
@@ -154,7 +153,6 @@ export function usePatrons(triggerAlert) {
         throw error;
       }
 
-      // ✅ Update + tri
       setPatrons((prev) =>
         prev
           .map((p) => (p.id === patronId ? data : p))
@@ -164,17 +162,13 @@ export function usePatrons(triggerAlert) {
       return data;
     } catch (err) {
       console.error("Erreur modification patron:", err);
-      throw new Error(err?.message || "Impossible de modifier le patron");
+      throw new Error((err as Error)?.message || "Impossible de modifier le patron");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /**
-   * Désactiver un patron (soft delete)
-   * @param {string} patronId
-   */
-  const deletePatron = useCallback(async (patronId) => {
+  const deletePatron = useCallback(async (patronId: string): Promise<void> => {
     try {
       setLoading(true);
 
@@ -187,51 +181,38 @@ export function usePatrons(triggerAlert) {
 
       if (error) throw error;
 
-      // ✅ Retirer de la liste locale
       setPatrons((prev) => prev.filter((p) => p.id !== patronId));
     } catch (err) {
       console.error("Erreur suppression patron:", err);
-      throw new Error(err?.message || "Impossible de supprimer le patron");
+      throw new Error((err as Error)?.message || "Impossible de supprimer le patron");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /**
-   * Récupérer un patron par son ID
-   */
   const getPatronById = useCallback(
-    (patronId) => patrons.find((p) => p.id === patronId) || null,
+    (patronId: string | null | undefined): Patron | null =>
+      patrons.find((p) => p.id === patronId) || null,
     [patrons]
   );
 
-  /**
-   * Obtenir la couleur d'un patron (fallback violet)
-   */
   const getPatronColor = useCallback(
-    (patronId) => getPatronById(patronId)?.couleur || "#8b5cf6",
+    (patronId: string | null | undefined): string =>
+      getPatronById(patronId)?.couleur || "#8b5cf6",
     [getPatronById]
   );
 
-  /**
-   * Obtenir le nom d'un patron (fallback)
-   */
   const getPatronNom = useCallback(
-    (patronId) => getPatronById(patronId)?.nom || "Non assigné",
+    (patronId: string | null | undefined): string =>
+      getPatronById(patronId)?.nom || "Non assigné",
     [getPatronById]
   );
 
-  /**
-   * Vérifier si un patron existe
-   */
   const patronExists = useCallback(
-    (patronId) => patrons.some((p) => p.id === patronId),
+    (patronId: string): boolean => patrons.some((p) => p.id === patronId),
     [patrons]
   );
 
-  /**
-   * Charger les patrons au montage
-   */
   useEffect(() => {
     fetchPatrons();
   }, [fetchPatrons]);
