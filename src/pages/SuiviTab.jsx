@@ -1,5 +1,4 @@
 import React, { useMemo, useState, lazy, Suspense } from "react";
-import { DashboardPanel } from "../components/dashboard/DashboardPanel";
 import { useDarkMode } from "../contexts/DarkModeContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 
@@ -17,22 +16,19 @@ const LazyFallback = () => (
 );
 
 export function SuiviTab({
-  defaultView = "dashboard",
-  dashboardProps,
+  defaultView = "historique",
   historiqueProps,
   bilanProps,
+  onNavigateDashboard,
 }) {
   const { darkMode } = useDarkMode();
   const { isViewer, viewerPatronId, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canFacture } = usePermissions();
   const [view, setView] = useState(
-    defaultView === "bilan" ? "bilan" :
-    defaultView === "historique" ? "historique" :
-    "dashboard"
+    defaultView === "bilan" ? "bilan" : "historique"
   );
 
   const tabs = useMemo(
     () => [
-      { key: "dashboard", label: "📊 Dashboard" },
       { key: "historique", label: "Historique" },
       { key: "bilan", label: "Bilan" },
     ],
@@ -42,6 +38,14 @@ export function SuiviTab({
   return (
     <section className="space-y-4">
       <div className={"rounded-2xl border p-2 backdrop-blur-xl flex gap-2 " + (darkMode ? "border-white/10 bg-white/5" : "border-slate-200 bg-white shadow-sm")}>
+        {onNavigateDashboard && (
+          <button
+            onClick={onNavigateDashboard}
+            className={"flex-1 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all " + (darkMode ? "text-white/60 hover:text-white" : "text-slate-500 hover:text-slate-800")}
+          >
+            📊 Dashboard
+          </button>
+        )}
         {tabs.map((tab) => {
           const isActive = view === tab.key;
           return (
@@ -59,19 +63,6 @@ export function SuiviTab({
         })}
       </div>
 
-      {view === "dashboard" && (
-        <DashboardPanel
-          missions={dashboardProps.missions}
-          fraisDivers={dashboardProps.fraisDivers}
-          listeAcomptes={dashboardProps.listeAcomptes}
-          patrons={dashboardProps.patrons}
-          clients={dashboardProps.clients}
-          lieux={dashboardProps.lieux}
-          profile={dashboardProps.profile}
-          kmSettings={dashboardProps.kmSettings}
-          domicileLatLng={dashboardProps.domicileLatLng}
-        />
-      )}
       {view === "historique" && (
         <Suspense fallback={<LazyFallback />}>
           <HistoriqueTab

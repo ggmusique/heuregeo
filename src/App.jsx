@@ -168,17 +168,6 @@ function AppContent({ user }) {
 
   const suiviProps = {
     defaultView: isViewer ? "bilan" : historiqueHook.suiviDefaultView,
-    dashboardProps: {
-      missions,
-      fraisDivers,
-      listeAcomptes,
-      patrons,
-      clients,
-      lieux,
-      profile,
-      kmSettings,
-      domicileLatLng,
-    },
     historiqueProps: {
       historique: historiqueHook.historique,
       historiquePatronId: historiqueHook.historiquePatronId,
@@ -211,6 +200,7 @@ function AppContent({ user }) {
       domicileLatLng,
       onRecalculerFraisKm: () => bilan.recalculerFraisKm(bilanPatronId),
     },
+    onNavigateDashboard: () => setActiveTab("dashboard"),
   };
 
   const agendaProps = {
