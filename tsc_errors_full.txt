@@ -1,172 +1,17 @@
-src/App.tsx(49,8): error TS2882: Cannot find module or type declarations for side-effect import of './inputs.css'.
-src/App.tsx(66,54): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
-src/App.tsx(166,40): error TS2322: Type '(missionData: Partial<Mission>) => Promise<Mission>' is not assignable to type '(data: Partial<Mission>) => Promise<void>'.
-  Type 'Promise<Mission>' is not assignable to type 'Promise<void>'.
-    Type 'Mission' is not assignable to type 'void'.
-src/App.tsx(166,55): error TS2322: Type '(id: string, missionData: Partial<Mission>) => Promise<Mission>' is not assignable to type '(id: string, data: Partial<Mission>) => Promise<void>'.
-  Type 'Promise<Mission>' is not assignable to type 'Promise<void>'.
-    Type 'Mission' is not assignable to type 'void'.
-src/App.tsx(168,48): error TS2322: Type '(id: string, lieuData: Partial<Lieu>) => Promise<Lieu>' is not assignable to type '(id: string, data: Partial<Lieu>) => Promise<void>'.
-  Type 'Promise<Lieu>' is not assignable to type 'Promise<void>'.
-    Type 'Lieu' is not assignable to type 'void'.
-src/App.tsx(168,72): error TS2322: Type '() => Promise<Lieu[]>' is not assignable to type '() => Promise<void>'.
-  Type 'Promise<Lieu[]>' is not assignable to type 'Promise<void>'.
-    Type 'Lieu[]' is not assignable to type 'void'.
-src/App.tsx(174,42): error TS2322: Type '(acompteData: Partial<Acompte>) => Promise<CreateAcompteResult>' is not assignable to type '(data: { montant: number; date_acompte: string; patron_id: string; }) => Promise<void>'.
-  Type 'Promise<CreateAcompteResult>' is not assignable to type 'Promise<void>'.
-    Type 'CreateAcompteResult' is not assignable to type 'void'.
-src/App.tsx(174,57): error TS2322: Type '() => Promise<Acompte[]>' is not assignable to type '() => Promise<void>'.
-  Type 'Promise<Acompte[]>' is not assignable to type 'Promise<void>'.
-    Type 'Acompte[]' is not assignable to type 'void'.
-src/App.tsx(174,166): error TS2322: Type 'UseBilanReturn' is not assignable to type 'BilanRef'.
-  The types returned by 'genererBilan(...)' are incompatible between these types.
-    Type 'Promise<boolean | void>' is not assignable to type 'Promise<void>'.
-      Type 'boolean | void' is not assignable to type 'void'.
-        Type 'boolean' is not assignable to type 'void'.
-src/App.tsx(176,38): error TS2322: Type '(fraisData: Partial<FraisDivers>) => Promise<FraisDivers>' is not assignable to type '(data: Partial<FraisDivers>) => Promise<void>'.
-  Type 'Promise<FraisDivers>' is not assignable to type 'Promise<void>'.
-    Type 'FraisDivers' is not assignable to type 'void'.
-src/App.tsx(176,51): error TS2322: Type '(id: string, fraisData: Partial<FraisDivers>) => Promise<FraisDivers>' is not assignable to type '(id: string, data: Partial<FraisDivers>) => Promise<void>'.
-  Type 'Promise<FraisDivers>' is not assignable to type 'Promise<void>'.
-    Type 'FraisDivers' is not assignable to type 'void'.
-src/App.tsx(177,40): error TS2322: Type '(patronData: Partial<Patron>) => Promise<Patron>' is not assignable to type '(data: Partial<Patron>) => Promise<void>'.
-  Type 'Promise<Patron>' is not assignable to type 'Promise<void>'.
-    Type 'Patron' is not assignable to type 'void'.
-src/App.tsx(177,54): error TS2322: Type '(patronId: string, patronData: Partial<Patron>) => Promise<Patron>' is not assignable to type '(id: string, data: Partial<Patron>) => Promise<void>'.
-  Type 'Promise<Patron>' is not assignable to type 'Promise<void>'.
-    Type 'Patron' is not assignable to type 'void'.
-src/App.tsx(178,40): error TS2322: Type '(clientData: Partial<Client>) => Promise<Client>' is not assignable to type '(data: Partial<Client>) => Promise<void>'.
-  Type 'Promise<Client>' is not assignable to type 'Promise<void>'.
-    Type 'Client' is not assignable to type 'void'.
-src/App.tsx(178,54): error TS2322: Type '(clientId: string, clientData: Partial<Client>) => Promise<Client>' is not assignable to type '(id: string, data: Partial<Client>) => Promise<void>'.
-  Type 'Promise<Client>' is not assignable to type 'Promise<void>'.
-    Type 'Client' is not assignable to type 'void'.
+src/App.tsx(87,11): error TS2322: Type 'User | undefined' is not assignable to type 'User'.
 src/App.tsx(383,13): error TS2322: Type '(id: string) => Promise<void>' is not assignable to type 'null | undefined'.
 src/App.tsx(384,13): error TS2322: Type '() => Promise<Acompte[]>' is not assignable to type 'null | undefined'.
 src/App.tsx(385,13): error TS2322: Type '(options?: ConfirmOptions | undefined) => Promise<boolean>' is not assignable to type 'null | undefined'.
 src/App.tsx(397,13): error TS2322: Type 'Dispatch<SetStateAction<boolean>>' is not assignable to type '() => void'.
-  Target signature provides too few arguments. Expected 1 or more, but got 0.
 src/App.tsx(398,13): error TS2322: Type 'KmSettings | null' is not assignable to type 'null | undefined'.
-  Type 'KmSettings' is not assignable to type 'null | undefined'.
 src/App.tsx(399,13): error TS2322: Type '(id: string, coords: Partial<Lieu>) => Promise<void>' is not assignable to type 'null | undefined'.
 src/App.tsx(400,13): error TS2322: Type '{ lat: number; lng: number; } | null' is not assignable to type 'null | undefined'.
-  Type '{ lat: number; lng: number; }' is not assignable to type 'null | undefined'.
 src/App.tsx(401,13): error TS2322: Type 'Mission[]' is not assignable to type 'never[]'.
-  Type 'Mission' is not assignable to type 'never'.
 src/App.tsx(402,13): error TS2322: Type 'KmFraisResult' is not assignable to type 'null | undefined'.
 src/App.tsx(403,13): error TS2322: Type '(lieuxManquants: Lieu[]) => Promise<RegeocoderResult>' is not assignable to type 'null | undefined'.
 src/App.tsx(404,13): error TS2322: Type '() => Promise<{ message: string; }>' is not assignable to type 'null | undefined'.
 src/App.tsx(405,13): error TS2322: Type '(patronId: string | null, startWeek: number, endWeek: number) => Promise<RebuildResult>' is not assignable to type 'null | undefined'.
 src/App.tsx(406,13): error TS2322: Type '(patronId: string | null) => Promise<RepairResult>' is not assignable to type 'null | undefined'.
-src/components/common/UpdatePrompt.tsx(2,28): error TS2307: Cannot find module 'virtual:pwa-register' or its corresponding type declarations.
-src/components/dashboard/DashboardPanel.tsx(12,25): error TS7006: Parameter 'date' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(18,22): error TS7006: Parameter 'dateIso' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(22,24): error TS7006: Parameter 'ym' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(88,6): error TS7006: Parameter 'missionsList' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(116,29): error TS7006: Parameter 'm' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(128,40): error TS18047: 'effectiveDomicile' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(128,63): error TS18047: 'effectiveDomicile' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(143,19): error TS7006: Parameter 'list' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(144,24): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(144,27): error TS7006: Parameter 'm' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(145,27): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(145,30): error TS7006: Parameter 'm' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(168,25): error TS7006: Parameter 'items' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(168,32): error TS7006: Parameter 'dateField' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(169,21): error TS7006: Parameter 'item' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(179,69): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(179,72): error TS7006: Parameter 'f' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(180,76): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(180,79): error TS7006: Parameter 'a' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(238,34): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{}'.
-  No index signature with a parameter of type 'number' was found on type '{}'.
-src/components/dashboard/DashboardPanel.tsx(249,12): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/components/dashboard/DashboardPanel.tsx(249,22): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/components/dashboard/DashboardPanel.tsx(250,7): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/components/dashboard/DashboardPanel.tsx(253,23): error TS18046: 'b' is of type 'unknown'.
-src/components/dashboard/DashboardPanel.tsx(253,30): error TS18046: 'a' is of type 'unknown'.
-src/components/dashboard/DashboardPanel.tsx(266,27): error TS7006: Parameter 'ym' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(271,30): error TS7006: Parameter 'ym' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(298,11): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/components/dashboard/DashboardPanel.tsx(298,23): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/components/dashboard/DashboardPanel.tsx(319,28): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/components/dashboard/DashboardPanel.tsx(336,19): error TS2339: Property 'Chart' does not exist on type 'Window & typeof globalThis'.
-src/components/dashboard/DashboardPanel.tsx(347,31): error TS2339: Property 'data' does not exist on type 'never'.
-src/components/dashboard/DashboardPanel.tsx(348,31): error TS2339: Property 'data' does not exist on type 'never'.
-src/components/dashboard/DashboardPanel.tsx(349,31): error TS2339: Property 'data' does not exist on type 'never'.
-src/components/dashboard/DashboardPanel.tsx(350,31): error TS2339: Property 'update' does not exist on type 'never'.
-src/components/dashboard/DashboardPanel.tsx(354,19): error TS18047: 'chartRef.current' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(363,42): error TS2339: Property 'Chart' does not exist on type 'Window & typeof globalThis'.
-src/components/dashboard/DashboardPanel.tsx(390,21): error TS7006: Parameter 'e' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(390,24): error TS7006: Parameter 'activeElements' implicitly has an 'any' type.
-src/components/dashboard/DashboardPanel.tsx(403,31): error TS2339: Property 'destroy' does not exist on type 'never'.
-src/components/dashboard/DashboardPanel.tsx(417,7): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/components/dashboard/DashboardPanel.tsx(424,38): error TS2339: Property 'ca' does not exist on type '{}'.
-src/components/dashboard/DashboardPanel.tsx(425,58): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(498,50): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'SetStateAction<null>'.
-  Type 'string' is not assignable to type 'SetStateAction<null>'.
-src/components/dashboard/DashboardPanel.tsx(855,41): error TS18046: 'c' is of type 'unknown'.
-src/components/dashboard/DashboardPanel.tsx(877,26): error TS18046: 'c' is of type 'unknown'.
-src/components/dashboard/DashboardPanel.tsx(880,37): error TS18046: 'c' is of type 'unknown'.
-src/components/dashboard/DashboardPanel.tsx(897,40): error TS18046: 'c' is of type 'unknown'.
-src/components/dashboard/DashboardPanel.tsx(936,44): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(937,33): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(937,45): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(938,36): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(938,65): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(938,78): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(942,26): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(983,28): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1012,41): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1015,109): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1016,28): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1019,100): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1026,26): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1039,41): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1041,29): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1068,26): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1070,42): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1074,39): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1076,44): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1077,30): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1077,60): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1081,26): error TS18047: 'w' is possibly 'null'.
-src/components/dashboard/DashboardPanel.tsx(1083,42): error TS18047: 'w' is possibly 'null'.
-src/components/mission/MissionForm.tsx(19,21): error TS7006: Parameter 'time' implicitly has an 'any' type.
-src/components/mission/MissionForm.tsx(19,27): error TS7006: Parameter 'deltaMinutes' implicitly has an 'any' type.
-src/components/mission/MissionForm.tsx(95,35): error TS7006: Parameter 'field' implicitly has an 'any' type.
-src/components/mission/MissionForm.tsx(97,12): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/components/mission/MissionForm.tsx(99,14): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/components/mission/MissionForm.tsx(161,28): error TS2353: Object literal may only specify known properties, and 'temp' does not exist in type '(prevState: null) => null'.
-src/components/mission/MissionForm.tsx(213,14): error TS2339: Property 'horaires' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(220,16): error TS2339: Property 'fin' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(224,18): error TS2339: Property 'pause' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(229,35): error TS2339: Property 'patron' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(230,35): error TS2339: Property 'client' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(231,33): error TS2339: Property 'lieu' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(287,23): error TS2339: Property 'temp' does not exist on type 'never'.
-src/components/mission/MissionForm.tsx(289,25): error TS2339: Property 'temp' does not exist on type 'never'.
-src/components/mission/MissionForm.tsx(300,46): error TS2339: Property 'icon' does not exist on type 'never'.
-src/components/mission/MissionForm.tsx(304,30): error TS2339: Property 'temp' does not exist on type 'never'.
-src/components/mission/MissionForm.tsx(307,30): error TS2339: Property 'desc' does not exist on type 'never'.
-src/components/mission/MissionForm.tsx(396,21): error TS2339: Property 'patron' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(397,75): error TS2339: Property 'patron' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(459,21): error TS2339: Property 'client' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(460,75): error TS2339: Property 'client' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(475,26): error TS2554: Expected 0 arguments, but got 1.
-src/components/mission/MissionForm.tsx(480,21): error TS2339: Property 'lieu' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(481,75): error TS2339: Property 'lieu' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(518,26): error TS2339: Property 'fin' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(541,26): error TS2339: Property 'pause' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(555,62): error TS7006: Parameter 'p' implicitly has an 'any' type.
-src/components/mission/MissionForm.tsx(556,62): error TS7006: Parameter 'p' implicitly has an 'any' type.
-src/components/mission/MissionForm.tsx(564,26): error TS2339: Property 'fin' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(585,22): error TS2339: Property 'fin' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(585,40): error TS2339: Property 'pause' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(585,60): error TS2339: Property 'horaires' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(587,25): error TS2339: Property 'fin' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(587,43): error TS2339: Property 'pause' does not exist on type '{}'.
-src/components/mission/MissionForm.tsx(587,63): error TS2339: Property 'horaires' does not exist on type '{}'.
 src/components/stats/BilanPanel.tsx(11,16): error TS7031: Binding element 'label' implicitly has an 'any' type.
 src/components/stats/BilanPanel.tsx(11,23): error TS7031: Binding element 'value' implicitly has an 'any' type.
 src/components/stats/BilanPanel.tsx(11,30): error TS7031: Binding element 'valueColor' implicitly has an 'any' type.
@@ -175,8 +20,6 @@ src/components/stats/BilanPanel.tsx(36,29): error TS7031: Binding element 'onCli
 src/components/stats/BilanPanel.tsx(36,38): error TS7031: Binding element 'disabled' implicitly has an 'any' type.
 src/components/stats/BilanPanel.tsx(36,48): error TS7031: Binding element 'color' implicitly has an 'any' type.
 src/components/stats/BilanPanel.tsx(66,7): error TS2322: Type '{ background: string; color: any; border: string; flex: number; minWidth: string; padding: string; fontSize: string; textTransform: string; letterSpacing: string; textAlign: string; transition: string; ... 4 more ...; outline: string; }' is not assignable to type 'Properties<string | number, string & {}>'.
-  Types of property 'textAlign' are incompatible.
-    Type 'string' is not assignable to type 'TextAlign | undefined'.
 src/components/stats/BilanPanel.tsx(256,31): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
 src/components/stats/BilanPanel.tsx(256,56): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
 src/components/stats/BilanPanel.tsx(340,26): error TS7006: Parameter 'item' implicitly has an 'any' type.
@@ -187,40 +30,12 @@ src/components/stats/BilanPanel.tsx(387,23): error TS7006: Parameter 'item' impl
 src/components/stats/BilanPanel.tsx(387,29): error TS7006: Parameter 'i' implicitly has an 'any' type.
 src/components/stats/BilanPanel.tsx(826,46): error TS7006: Parameter 'group' implicitly has an 'any' type.
 src/components/stats/BilanPanel.tsx(826,53): error TS7006: Parameter 'index' implicitly has an 'any' type.
-src/components/views/VueAgenda.tsx(47,9): error TS2322: Type 'any[] | undefined' is not assignable to type 'never[] | undefined'.
-  Type 'any[]' is not assignable to type 'never[]'.
-    Type 'any' is not assignable to type 'never'.
-src/hooks/useBilan.ts(239,34): error TS2345: Argument of type 'string | number' is not assignable to parameter of type 'string'.
-  Type 'number' is not assignable to type 'string'.
-src/hooks/useBilan.ts(320,9): error TS2322: Type 'NormalizedHistorique' is not assignable to type 'HistoriqueData'.
-  Types of property 'impayes' are incompatible.
-    Type 'import("/home/runner/work/heuregeo/heuregeo/src/types/bilan").HistoriqueRow[]' is not assignable to type 'import("/home/runner/work/heuregeo/heuregeo/src/hooks/useHistorique").HistoriqueRow[]'.
-      Type 'import("/home/runner/work/heuregeo/heuregeo/src/types/bilan").HistoriqueRow' is not assignable to type 'import("/home/runner/work/heuregeo/heuregeo/src/hooks/useHistorique").HistoriqueRow'.
-        Index signature for type 'string' is missing in type 'HistoriqueRow'.
-src/hooks/useBilan.ts(918,25): error TS2339: Property 'date_paiement' does not exist on type '{ acompte_consomme: number; reste_a_percevoir: number; paye: boolean; }'.
-src/hooks/useMissionForm.ts(98,51): error TS18047: 'b.date_iso' is possibly 'null'.
-src/hooks/useMissionForm.ts(98,76): error TS2769: No overload matches this call.
-  Overload 1 of 3, '(that: string, locales?: LocalesArgument, options?: CollatorOptions | undefined): number', gave the following error.
-    Argument of type 'string | null' is not assignable to parameter of type 'string'.
-      Type 'null' is not assignable to type 'string'.
-  Overload 2 of 3, '(that: string, locales?: string | string[] | undefined, options?: CollatorOptions | undefined): number', gave the following error.
-    Argument of type 'string | null' is not assignable to parameter of type 'string'.
-      Type 'null' is not assignable to type 'string'.
-  Overload 3 of 3, '(that: string): number', gave the following error.
-    Argument of type 'string | null' is not assignable to parameter of type 'string'.
-      Type 'null' is not assignable to type 'string'.
-src/lib/bilanPeriods.ts(1,30): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/main.tsx(9,8): error TS2882: Cannot find module or type declarations for side-effect import of './styles.css'.
-src/main.tsx(17,8): error TS2741: Property 'user' is missing in type '{}' but required in type 'AppProps'.
+src/components/views/VueAgenda.tsx(49,9): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+src/components/views/VueAgenda.tsx(50,9): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
 src/pages/AdminPage.tsx(54,16): error TS2345: Argument of type '{ id: any; prenom: any; nom: any; created_at: any; features: any; is_admin: any; }[]' is not assignable to parameter of type 'SetStateAction<never[]>'.
-  Type '{ id: any; prenom: any; nom: any; created_at: any; features: any; is_admin: any; }[]' is not assignable to type 'never[]'.
-    Type '{ id: any; prenom: any; nom: any; created_at: any; features: any; is_admin: any; }' is not assignable to type 'never'.
 src/pages/AdminPage.tsx(56,16): error TS18046: 'err' is of type 'unknown'.
 src/pages/AdminPage.tsx(66,29): error TS7006: Parameter 'user' implicitly has an 'any' type.
 src/pages/AdminPage.tsx(106,16): error TS2345: Argument of type '(prev: never[]) => any[]' is not assignable to parameter of type 'SetStateAction<never[]>'.
-  Type '(prev: never[]) => any[]' is not assignable to type '(prevState: never[]) => never[]'.
-    Type 'any[]' is not assignable to type 'never[]'.
-      Type 'any' is not assignable to type 'never'.
 src/pages/AdminPage.tsx(108,13): error TS2339: Property 'id' does not exist on type 'never'.
 src/pages/AdminPage.tsx(108,32): error TS2698: Spread types may only be created from object types.
 src/pages/AdminPage.tsx(112,22): error TS18046: 'err' is of type 'unknown'.
@@ -233,73 +48,8 @@ src/pages/AdminPage.tsx(176,45): error TS2339: Property 'nom' does not exist on 
 src/pages/AdminPage.tsx(178,29): error TS2339: Property 'is_admin' does not exist on type 'never'.
 src/pages/AdminPage.tsx(194,29): error TS2339: Property 'id' does not exist on type 'never'.
 src/pages/AdminPage.tsx(197,54): error TS2339: Property 'created_at' does not exist on type 'never'.
-src/pages/AgendaTab.tsx(32,16): error TS7006: Parameter 'year' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(32,22): error TS7006: Parameter 'month' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(32,29): error TS7006: Parameter 'day' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(36,28): error TS7006: Parameter 'year' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(36,34): error TS7006: Parameter 'month' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(51,26): error TS7006: Parameter 'weekDays' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(51,36): error TS7006: Parameter 'year' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(51,42): error TS7006: Parameter 'month' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(51,49): error TS7006: Parameter 'rawEvents' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(54,22): error TS7006: Parameter 'e' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(56,23): error TS7006: Parameter 'day' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(63,9): error TS7034: Variable 'bars' implicitly has type 'any[]' in some locations where its type cannot be determined.
-src/pages/AgendaTab.tsx(66,23): error TS7006: Parameter 'day' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(66,28): error TS7006: Parameter 'col' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(79,3): error TS7005: Variable 'bars' implicitly has an 'any[]' type.
-src/pages/AgendaTab.tsx(80,9): error TS7034: Variable 'occ' implicitly has type 'any[]' in some locations where its type cannot be determined.
-src/pages/AgendaTab.tsx(81,3): error TS7005: Variable 'bars' implicitly has an 'any[]' type.
-src/pages/AgendaTab.tsx(84,12): error TS7005: Variable 'occ' implicitly has an 'any[]' type.
-src/pages/AgendaTab.tsx(87,13): error TS7005: Variable 'occ' implicitly has an 'any[]' type.
-src/pages/AgendaTab.tsx(91,74): error TS7005: Variable 'occ' implicitly has an 'any[]' type.
-src/pages/AgendaTab.tsx(98,10): error TS7005: Variable 'bars' implicitly has an 'any[]' type.
-src/pages/AgendaTab.tsx(106,3): error TS7031: Binding element 'currentYear' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(107,3): error TS7031: Binding element 'currentMonth' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(108,3): error TS7031: Binding element 'currentWeekStart' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(110,3): error TS7031: Binding element 'onGoToPrev' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(111,3): error TS7031: Binding element 'onGoToNext' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(112,3): error TS7031: Binding element 'onGoToToday' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(113,3): error TS7031: Binding element 'onGoToPrevWeek' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(114,3): error TS7031: Binding element 'onGoToNextWeek' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(115,3): error TS7031: Binding element 'onOpenForDate' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(116,3): error TS7031: Binding element 'onEventEdit' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(136,13): error TS2339: Property 'type' does not exist on type 'never'.
-src/pages/AgendaTab.tsx(136,35): error TS2339: Property 'date_fin' does not exist on type 'never'.
-src/pages/AgendaTab.tsx(137,30): error TS2339: Property 'date_iso' does not exist on type 'never'.
-src/pages/AgendaTab.tsx(138,32): error TS2339: Property 'date_fin' does not exist on type 'never'.
-src/pages/AgendaTab.tsx(141,16): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
-  No index signature with a parameter of type 'string' was found on type '{}'.
-src/pages/AgendaTab.tsx(141,26): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
-  No index signature with a parameter of type 'string' was found on type '{}'.
-src/pages/AgendaTab.tsx(142,16): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
-  No index signature with a parameter of type 'string' was found on type '{}'.
-src/pages/AgendaTab.tsx(142,31): error TS7006: Parameter 'x' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(142,48): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/AgendaTab.tsx(142,53): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
-  No index signature with a parameter of type 'string' was found on type '{}'.
-src/pages/AgendaTab.tsx(146,14): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/pages/AgendaTab.tsx(146,20): error TS2339: Property 'date_iso' does not exist on type 'never'.
-src/pages/AgendaTab.tsx(146,31): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/pages/AgendaTab.tsx(146,37): error TS2339: Property 'date_iso' does not exist on type 'never'.
-src/pages/AgendaTab.tsx(147,9): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{}'.
-src/pages/AgendaTab.tsx(147,15): error TS2339: Property 'date_iso' does not exist on type 'never'.
-src/pages/AgendaTab.tsx(154,41): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
-  No index signature with a parameter of type 'string' was found on type '{}'.
-src/pages/AgendaTab.tsx(291,61): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/AgendaTab.tsx(320,42): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
-  No index signature with a parameter of type 'string' was found on type '{}'.
-src/pages/AgendaTab.tsx(322,58): error TS7006: Parameter 'e' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(327,57): error TS2345: Argument of type 'number | null' is not assignable to parameter of type 'SetStateAction<null>'.
-  Type 'number' is not assignable to type 'SetStateAction<null>'.
-src/pages/AgendaTab.tsx(356,56): error TS7006: Parameter 'e' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(356,59): error TS7006: Parameter 'ei' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(359,126): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ rdv: string; conge: string; note: string; }'.
-src/pages/AgendaTab.tsx(405,13): error TS2322: Type 'Set<unknown>' is not assignable to type 'Set<string>'.
-  Type 'unknown' is not assignable to type 'string'.
-src/pages/AgendaTab.tsx(439,34): error TS7006: Parameter 'evt' implicitly has an 'any' type.
-src/pages/AgendaTab.tsx(445,29): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ rdv: { bg: string; text: string; border: string; emoji: string; }; conge: { bg: string; text: string; border: string; emoji: string; }; note: { bg: string; text: string; border: string; emoji: string; }; }'.
-src/pages/AgendaTab.tsx(446,30): error TS7006: Parameter 'iso' implicitly has an 'any' type.
+src/pages/AgendaTab.tsx(500,23): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/pages/AgendaTab.tsx(501,88): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
 src/pages/BilanTab.tsx(11,3): error TS7031: Binding element 'bilan' implicitly has an 'any' type.
 src/pages/BilanTab.tsx(12,3): error TS7031: Binding element 'bilanPatronId' implicitly has an 'any' type.
 src/pages/BilanTab.tsx(13,3): error TS7031: Binding element 'currentWeek' implicitly has an 'any' type.
@@ -340,13 +90,9 @@ src/pages/BilanTab.tsx(134,18): error TS18047: 'kmFraisThisWeek' is possibly 'nu
 src/pages/BilanTab.tsx(136,112): error TS18047: 'kmFraisThisWeek' is possibly 'null'.
 src/pages/BilanTab.tsx(137,76): error TS18047: 'kmFraisThisWeek' is possibly 'null'.
 src/pages/BilanTab.tsx(193,80): error TS2345: Argument of type 'LabelsContextType' is not assignable to parameter of type 'Record<string, string>'.
-  Index signature for type 'string' is missing in type 'LabelsContextType'.
 src/pages/BilanTab.tsx(199,46): error TS2345: Argument of type 'LabelsContextType' is not assignable to parameter of type 'Record<string, string>'.
-  Index signature for type 'string' is missing in type 'LabelsContextType'.
 src/pages/BilanTab.tsx(204,97): error TS2345: Argument of type 'LabelsContextType' is not assignable to parameter of type 'Record<string, string>'.
-  Index signature for type 'string' is missing in type 'LabelsContextType'.
 src/pages/BilanTab.tsx(209,96): error TS2345: Argument of type 'LabelsContextType' is not assignable to parameter of type 'Record<string, string>'.
-  Index signature for type 'string' is missing in type 'LabelsContextType'.
 src/pages/BilanTab.tsx(213,40): error TS7006: Parameter 'p' implicitly has an 'any' type.
 src/pages/BilanTab.tsx(215,54): error TS2345: Argument of type 'null' is not assignable to parameter of type '(data: any) => Promise<void>'.
 src/pages/BilanTab.tsx(220,9): error TS2322: Type 'null' is not assignable to type '(() => void) | undefined'.
@@ -359,189 +105,6 @@ src/pages/CompteTab.tsx(39,29): error TS7031: Binding element 'profile' implicit
 src/pages/CompteTab.tsx(39,38): error TS7031: Binding element 'saving' implicitly has an 'any' type.
 src/pages/CompteTab.tsx(39,46): error TS7031: Binding element 'onSave' implicitly has an 'any' type.
 src/pages/CompteTab.tsx(39,54): error TS7031: Binding element 'userEmail' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(16,3): error TS7031: Binding element 'profile' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(17,3): error TS7031: Binding element 'kmSettings' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(18,3): error TS7031: Binding element 'domicileLatLng' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(67,38): error TS2339: Property 'latitude' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(67,78): error TS2339: Property 'longitude' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(78,50): error TS2339: Property 'kmTotal' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(79,58): error TS2339: Property 'kmTotal' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(112,20): error TS7006: Parameter 'msg' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(129,20): error TS2349: This expression is not callable.
-  Type 'never' has no call signatures.
-src/pages/DiagnosticsPage.tsx(145,20): error TS2349: This expression is not callable.
-  Type 'never' has no call signatures.
-src/pages/DiagnosticsPage.tsx(164,20): error TS2349: This expression is not callable.
-  Type 'never' has no call signatures.
-src/pages/DiagnosticsPage.tsx(180,20): error TS2349: This expression is not callable.
-  Type 'never' has no call signatures.
-src/pages/DiagnosticsPage.tsx(192,45): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(192,67): error TS2339: Property 'nom' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(196,30): error TS2353: Object literal may only specify known properties, and 'ok' does not exist in type '(prevState: null) => null'.
-src/pages/DiagnosticsPage.tsx(198,30): error TS2353: Object literal may only specify known properties, and 'ok' does not exist in type '(prevState: null) => null'.
-src/pages/DiagnosticsPage.tsx(236,32): error TS2554: Expected 2 arguments, but got 1.
-src/pages/DiagnosticsPage.tsx(254,9): error TS2353: Object literal may only specify known properties, and 'bilan' does not exist in type '(prevState: null) => null'.
-src/pages/DiagnosticsPage.tsx(262,20): error TS18046: 'err' is of type 'unknown'.
-src/pages/DiagnosticsPage.tsx(309,8): error TS2739: Type '{ children: Element[]; title: string; }' is missing the following properties from type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }': badge, statusBadge
-src/pages/DiagnosticsPage.tsx(324,8): error TS2739: Type '{ children: Element[]; title: string; }' is missing the following properties from type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }': badge, statusBadge
-src/pages/DiagnosticsPage.tsx(346,8): error TS2741: Property 'statusBadge' is missing in type '{ children: (false | Element)[]; title: string; badge: number; badgeClass: string; }' but required in type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }'.
-src/pages/DiagnosticsPage.tsx(359,26): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(360,47): error TS2339: Property 'nom' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(361,78): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(369,8): error TS2741: Property 'statusBadge' is missing in type '{ children: (false | Element)[]; title: string; badge: number; badgeClass: string; }' but required in type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }'.
-src/pages/DiagnosticsPage.tsx(382,26): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(383,47): error TS2339: Property 'nom' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(384,78): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(392,8): error TS2739: Type '{ children: (false | Element)[]; title: string; }' is missing the following properties from type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }': badge, statusBadge
-src/pages/DiagnosticsPage.tsx(416,26): error TS2339: Property 'missionId' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(417,47): error TS2339: Property 'labelLieuOuClient' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(418,61): error TS2339: Property 'date' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(430,10): error TS2739: Type '{ children: Element[]; title: string; }' is missing the following properties from type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }': badge, statusBadge
-src/pages/DiagnosticsPage.tsx(445,34): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(445,47): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(445,54): error TS2339: Property 'nom' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(479,8): error TS2739: Type '{ children: (Element | null)[]; title: string; }' is missing the following properties from type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }': badge, statusBadge
-src/pages/DiagnosticsPage.tsx(493,30): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(493,43): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(493,50): error TS2339: Property 'nom' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(499,26): error TS2339: Property 'success' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(503,27): error TS2339: Property 'message' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(504,27): error TS2339: Property 'success' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(506,32): error TS2339: Property 'fixed' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(506,67): error TS2339: Property 'skipped' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(522,8): error TS2739: Type '{ children: Element[]; title: string; }' is missing the following properties from type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }': badge, statusBadge
-src/pages/DiagnosticsPage.tsx(556,8): error TS2739: Type '{ children: (Element | null)[]; title: string; }' is missing the following properties from type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }': badge, statusBadge
-src/pages/DiagnosticsPage.tsx(567,32): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(567,45): error TS2339: Property 'id' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(567,52): error TS2339: Property 'nom' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(615,85): error TS2339: Property 'ok' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(616,36): error TS2339: Property 'msg' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(622,21): error TS2339: Property 'queryErrors' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(625,25): error TS2339: Property 'queryErrors' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(625,42): error TS7006: Parameter 'e' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(625,45): error TS7006: Parameter 'i' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(632,12): error TS2741: Property 'badge' is missing in type '{ children: Element; title: string; statusBadge: string; }' but required in type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }'.
-src/pages/DiagnosticsPage.tsx(633,23): error TS2339: Property 'bilan' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(635,68): error TS2339: Property 'bilan' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(638,38): error TS2339: Property 'impayePrecedent' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(639,40): error TS2339: Property 'impayePrecedent' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(641,82): error TS2339: Property 'bilan' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(644,49): error TS2339: Property 'bilan' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(645,51): error TS2339: Property 'bilan' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(649,35): error TS2339: Property 'bilan' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(650,40): error TS2339: Property 'bilan' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(654,35): error TS2339: Property 'bilan' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(655,41): error TS2339: Property 'bilan' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(660,48): error TS2339: Property 'bilan' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(660,74): error TS2339: Property 'impayePrecedent' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(669,12): error TS2741: Property 'badge' is missing in type '{ children: Element; title: string; statusBadge: string; }' but required in type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }'.
-src/pages/DiagnosticsPage.tsx(670,23): error TS2339: Property 'acomptes' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(674,27): error TS2339: Property 'acomptes' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(674,41): error TS7006: Parameter 'ac' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(675,43): error TS2339: Property 'allocations' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(675,63): error TS7006: Parameter 'a' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(676,54): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(676,57): error TS7006: Parameter 'a' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(691,37): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(691,41): error TS7006: Parameter 'i' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(704,74): error TS2339: Property 'allocations' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(713,12): error TS2741: Property 'badge' is missing in type '{ children: Element; title: string; statusBadge: string; }' but required in type '{ title: any; badge: any; badgeClass?: string | undefined; statusBadge: any; children: any; }'.
-src/pages/DiagnosticsPage.tsx(714,89): error TS2554: Expected 2 arguments, but got 1.
-src/pages/DiagnosticsPage.tsx(717,23): error TS2339: Property 'fraisKm' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(721,27): error TS2339: Property 'fraisKm' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(721,40): error TS7006: Parameter 'f' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(721,43): error TS7006: Parameter 'i' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(737,31): error TS2339: Property 'fraisKm' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(737,47): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(737,50): error TS7006: Parameter 'f' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(739,31): error TS2339: Property 'fraisKm' does not exist on type 'never'.
-src/pages/DiagnosticsPage.tsx(739,47): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(739,50): error TS7006: Parameter 'f' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(759,29): error TS7031: Binding element 'status' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(759,37): error TS7031: Binding element 'summary' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(760,15): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ ok: { dot: string; border: string; bg: string; label: string; labelClass: string; }; warning: { dot: string; border: string; bg: string; label: string; labelClass: string; }; critical: { dot: string; border: string; bg: string; label: string; labelClass: string; }; }'.
-src/pages/DiagnosticsPage.tsx(782,26): error TS7031: Binding element 'anomalies' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(795,27): error TS7006: Parameter 'a' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(795,30): error TS7006: Parameter 'i' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(813,29): error TS7031: Binding element 'diagData' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(813,39): error TS7031: Binding element 'diagWeek' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(829,25): error TS7031: Binding element 'children' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(839,17): error TS7031: Binding element 'title' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(839,24): error TS7031: Binding element 'badge' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(839,58): error TS7031: Binding element 'statusBadge' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(839,71): error TS7031: Binding element 'children' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(840,31): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ ok: { label: string; cls: string; }; warning: { label: string; cls: string; }; critical: { label: string; cls: string; }; }'.
-src/pages/DiagnosticsPage.tsx(861,16): error TS7031: Binding element 'label' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(861,23): error TS7031: Binding element 'value' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(870,17): error TS7031: Binding element 'children' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(880,32): error TS7031: Binding element 'kmEnabled' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(880,43): error TS7031: Binding element 'domLat' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(880,51): error TS7031: Binding element 'domLng' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(880,59): error TS7031: Binding element 'lieuxSansCoords' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(880,76): error TS7031: Binding element 'lieuxSuspects' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(880,91): error TS7031: Binding element 'nbSansFraisKm' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(888,33): error TS7031: Binding element 'kmEnabled' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(888,44): error TS7031: Binding element 'domLat' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(888,52): error TS7031: Binding element 'domLng' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(888,60): error TS7031: Binding element 'lieuxSansCoords' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(888,77): error TS7031: Binding element 'lieuxSuspects' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(888,92): error TS7031: Binding element 'nbSansFraisKm' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(904,31): error TS7031: Binding element 'kmEnabled' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(904,42): error TS7031: Binding element 'domLat' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(904,50): error TS7031: Binding element 'domLng' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(904,58): error TS7031: Binding element 'lieuxSansCoords' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(904,75): error TS7031: Binding element 'lieuxSuspects' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(904,90): error TS7031: Binding element 'nbSansFraisKm' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(933,31): error TS7006: Parameter 'diagData' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(933,41): error TS7006: Parameter 'diagWeek' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(947,6): error TS7006: Parameter 'ac' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(947,41): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(957,57): error TS7006: Parameter 'ac' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(959,16): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(960,16): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(960,19): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(981,29): error TS7006: Parameter 'diagData' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(982,35): error TS7006: Parameter 'e' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(989,31): error TS7006: Parameter 'diagData' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(990,35): error TS7006: Parameter 'e' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(991,46): error TS7006: Parameter 'ac' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(993,16): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(994,16): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(994,19): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(999,6): error TS7006: Parameter 'ac' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(999,41): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1005,26): error TS7006: Parameter 'diagData' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1006,35): error TS7006: Parameter 'e' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1011,36): error TS7006: Parameter 'diagData' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1011,46): error TS7006: Parameter 'diagWeek' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1040,55): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1042,56): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1044,42): error TS7006: Parameter 'a' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1046,61): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1047,46): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1053,51): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1053,54): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1074,39): error TS7006: Parameter 'diagData' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1074,49): error TS7006: Parameter 'diagWeek' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1074,59): error TS7006: Parameter 'patronNom' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1094,32): error TS7006: Parameter 'ac' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1106,35): error TS7006: Parameter 'al' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1116,31): error TS7006: Parameter 'f' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1135,41): error TS7006: Parameter 'acompte' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1135,50): error TS7006: Parameter 'allocations' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1136,38): error TS7006: Parameter 'a' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1138,32): error TS7006: Parameter 'a' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1139,38): error TS7006: Parameter 's' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1139,41): error TS7006: Parameter 'a' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1147,29): error TS7006: Parameter 'bilan' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1147,36): error TS7006: Parameter 'diagWeek' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1147,46): error TS7006: Parameter 'impayePrecedent' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1168,19): error TS7006: Parameter 'count' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1168,26): error TS7006: Parameter 'singular' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1168,36): error TS7006: Parameter 'plural' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1173,23): error TS7006: Parameter 'wk' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1182,21): error TS7006: Parameter 'wk' implicitly has an 'any' type.
-src/pages/DiagnosticsPage.tsx(1182,25): error TS7006: Parameter 'year' implicitly has an 'any' type.
 src/pages/DonneesTab.tsx(8,3): error TS7031: Binding element 'patrons' implicitly has an 'any' type.
 src/pages/DonneesTab.tsx(9,3): error TS7031: Binding element 'clients' implicitly has an 'any' type.
 src/pages/DonneesTab.tsx(10,3): error TS7031: Binding element 'lieux' implicitly has an 'any' type.
@@ -565,11 +128,8 @@ src/pages/DonneesTab.tsx(40,5): error TS2339: Property 'defaultOpen' does not ex
 src/pages/DonneesTab.tsx(41,5): error TS2339: Property 'disabled' does not exist on type '{}'.
 src/pages/DonneesTab.tsx(42,5): error TS2339: Property 'id' does not exist on type '{}'.
 src/pages/DonneesTab.tsx(92,8): error TS2322: Type '{ children: Element; id: string; title: string; count: any; defaultOpen: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.
-  Property 'children' does not exist on type 'IntrinsicAttributes & object'.
 src/pages/DonneesTab.tsx(115,8): error TS2322: Type '{ children: Element; id: string; title: string; count: any; defaultOpen: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.
-  Property 'children' does not exist on type 'IntrinsicAttributes & object'.
 src/pages/DonneesTab.tsx(132,8): error TS2322: Type '{ children: Element; id: string; title: string; count: any; defaultOpen: boolean; }' is not assignable to type 'IntrinsicAttributes & object'.
-  Property 'children' does not exist on type 'IntrinsicAttributes & object'.
 src/pages/HistoriqueTab.tsx(15,3): error TS7031: Binding element 'historique' implicitly has an 'any' type.
 src/pages/HistoriqueTab.tsx(16,3): error TS7031: Binding element 'historiquePatronId' implicitly has an 'any' type.
 src/pages/HistoriqueTab.tsx(17,3): error TS7031: Binding element 'historiqueTab' implicitly has an 'any' type.
@@ -645,14 +205,10 @@ src/pages/ParametresTab.tsx(190,3): error TS7031: Binding element 'onLieuEdit' i
 src/pages/ParametresTab.tsx(191,3): error TS7031: Binding element 'onLieuDelete' implicitly has an 'any' type.
 src/pages/ParametresTab.tsx(192,3): error TS7031: Binding element 'onLieuAdd' implicitly has an 'any' type.
 src/pages/ParametresTab.tsx(284,28): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ indigo: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; violet: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; yellow: { ...; }; teal: { ...; }; red: { ...; }; cyan: { ...; }; }'.
-  No index signature with a parameter of type 'string' was found on type '{ indigo: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; violet: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; yellow: { ...; }; teal: { ...; }; red: { ...; }; cyan: { ...; }; }'.
 src/pages/ParametresTab.tsx(288,47): error TS2345: Argument of type 'string | null' is not assignable to parameter of type 'SetStateAction<null>'.
-  Type 'string' is not assignable to type 'SetStateAction<null>'.
 src/pages/ParametresTab.tsx(358,34): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ indigo: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; violet: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; yellow: { ...; }; teal: { ...; }; red: { ...; }; cyan: { ...; }; }'.
-  No index signature with a parameter of type 'string' was found on type '{ indigo: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; violet: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; yellow: { ...; }; teal: { ...; }; red: { ...; }; cyan: { ...; }; }'.
 src/pages/ParametresTab.tsx(362,53): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<null>'.
 src/pages/ParametresTab.tsx(376,32): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ indigo: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; violet: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; yellow: { ...; }; teal: { ...; }; red: { ...; }; cyan: { ...; }; }'.
-  No index signature with a parameter of type 'string' was found on type '{ indigo: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; violet: { active: string; icon: string; dot: string; header: string; headerText: string; badge: string; }; yellow: { ...; }; teal: { ...; }; red: { ...; }; cyan: { ...; }; }'.
 src/pages/ParametresTab.tsx(429,68): error TS2554: Expected 0 arguments, but got 1.
 src/pages/ParametresTab.tsx(429,69): error TS7006: Parameter 'prev' implicitly has an 'any' type.
 src/pages/ParametresTab.tsx(620,24): error TS7031: Binding element 'profile' implicitly has an 'any' type.
@@ -660,7 +216,6 @@ src/pages/ParametresTab.tsx(620,33): error TS7031: Binding element 'saveProfile'
 src/pages/ParametresTab.tsx(620,46): error TS7031: Binding element 'darkMode' implicitly has an 'any' type.
 src/pages/ParametresTab.tsx(620,56): error TS7031: Binding element 'profileSaving' implicitly has an 'any' type.
 src/pages/ParametresTab.tsx(652,62): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
-  No index signature with a parameter of type 'string' was found on type '{}'.
 src/pages/ParametresTab.tsx(671,16): error TS7006: Parameter 'key' implicitly has an 'any' type.
 src/pages/ParametresTab.tsx(674,14): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ patron: any; patrons: any; client: any; clients: any; lieu: any; lieux: any; mission: any; missions: any; }'.
 src/pages/ParametresTab.tsx(676,20): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type '{ patron: string; patrons: string; client: string; clients: string; lieu: string; lieux: string; mission: string; missions: string; }'.
@@ -697,44 +252,8 @@ src/pages/SaisieTab.tsx(37,3): error TS7031: Binding element 'onShowImportModal'
 src/pages/SuiviTab.tsx(20,3): error TS7031: Binding element 'historiqueProps' implicitly has an 'any' type.
 src/pages/SuiviTab.tsx(21,3): error TS7031: Binding element 'bilanProps' implicitly has an 'any' type.
 src/pages/SuiviTab.tsx(22,3): error TS7031: Binding element 'onNavigateDashboard' implicitly has an 'any' type.
-src/services/api/acomptesApi.ts(1,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/services/api/agendaApi.ts(1,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/services/api/clientsApi.ts(1,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/services/api/fraisApi.ts(1,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/services/api/lieuxApi.ts(1,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/services/api/missionsApi.ts(1,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/services/api/patronsApi.ts(1,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/services/authService.ts(1,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/services/bilanRepository.ts(1,26): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/services/bilanRepository.ts(2,49): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/services/supabase.ts(3,33): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
-src/services/supabase.ts(4,37): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
-src/services/supabase.ts(8,19): error TS2339: Property 'env' does not exist on type 'ImportMeta'.
-src/tests/setup.ts(1,8): error TS2882: Cannot find module or type declarations for side-effect import of '@testing-library/jest-dom'.
-src/tests/setup.ts(4,1): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(7,16): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(11,11): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(12,15): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(13,11): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(14,14): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(15,14): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(16,15): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(17,15): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(18,15): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(19,15): error TS2304: Cannot find name 'vi'.
-src/tests/setup.ts(25,1): error TS2304: Cannot find name 'vi'.
-src/tests/unit/VueSaisie.vitest.tsx(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
-src/tests/unit/VueSaisie.vitest.tsx(2,43): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
-src/tests/unit/useAppUI.vitest.ts(1,65): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
-src/tests/unit/useAppUI.vitest.ts(2,33): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
 src/tests/unit/useAppUI.vitest.ts(13,21): error TS7006: Parameter 'value' implicitly has an 'any' type.
-src/tests/unit/useBilanFilters.vitest.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
-src/tests/unit/useBilanFilters.vitest.ts(2,33): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
-src/tests/unit/useMissions.vitest.ts(1,54): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
-src/tests/unit/useMissions.vitest.ts(2,33): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
 src/tests/unit/useMissions.vitest.ts(59,29): error TS2339: Property 'mockResolvedValueOnce' does not exist on type '() => Promise<Mission[]>'.
-src/tests/unit/useMissions.vitest.ts(103,21): error TS7006: Parameter 'm' implicitly has an 'any' type.
-src/tests/unit/useMissions.vitest.ts(126,21): error TS7006: Parameter 'm' implicitly has an 'any' type.
 src/tests/unit/useMissions.vitest.ts(163,31): error TS2339: Property 'mockResolvedValueOnce' does not exist on type '() => Promise<Mission[]>'.
 src/tests/unit/useMissions.vitest.ts(176,9): error TS7034: Variable 'resolveApi' implicitly has type 'any' in some locations where its type cannot be determined.
 src/tests/unit/useMissions.vitest.ts(178,31): error TS2339: Property 'mockReturnValueOnce' does not exist on type '() => Promise<Mission[]>'.
@@ -745,53 +264,25 @@ src/tests/unit/useMissions.vitest.ts(203,31): error TS2339: Property 'mockResolv
 src/tests/unit/useMissions.vitest.ts(215,31): error TS2339: Property 'mockResolvedValueOnce' does not exist on type '(missionData: Partial<Mission>) => Promise<Mission>'.
 src/tests/unit/useMissions.vitest.ts(231,31): error TS2339: Property 'mockResolvedValueOnce' does not exist on type '(id: string, missionData: Partial<Mission>) => Promise<Mission>'.
 src/tests/unit/useMissions.vitest.ts(243,31): error TS2339: Property 'mockResolvedValueOnce' does not exist on type '(id: string, missionData: Partial<Mission>) => Promise<Mission>'.
-src/tests/unit/useMissions.vitest.ts(249,53): error TS7006: Parameter 'm' implicitly has an 'any' type.
 src/tests/unit/useMissions.vitest.ts(259,31): error TS2339: Property 'mockResolvedValueOnce' does not exist on type '(id: string) => Promise<void>'.
 src/tests/unit/useMissions.vitest.ts(270,31): error TS2339: Property 'mockResolvedValueOnce' does not exist on type '(id: string) => Promise<void>'.
-src/tests/unit/useMissions.vitest.ts(277,42): error TS7006: Parameter 'm' implicitly has an 'any' type.
 src/tests/unit/useMissions.vitest.ts(286,36): error TS2339: Property 'mockResolvedValueOnce' does not exist on type '(missionsArray: Partial<Mission>[]) => Promise<Mission[]>'.
 src/tests/unit/useMissions.vitest.ts(287,31): error TS2339: Property 'mockResolvedValueOnce' does not exist on type '() => Promise<Mission[]>'.
 src/tests/unit/useMissions.vitest.ts(334,31): error TS2339: Property 'mockResolvedValueOnce' does not exist on type '() => Promise<Mission[]>'.
-src/tests/unit/useNavigation.vitest.ts(1,38): error TS2307: Cannot find module 'vitest' or its corresponding type declarations.
-src/tests/unit/useNavigation.vitest.ts(2,33): error TS2307: Cannot find module '@testing-library/react' or its corresponding type declarations.
 src/tests/unit/useNavigation.vitest.ts(14,20): error TS2339: Property 'features' does not exist on type '{}'.
 src/tests/unit/useNavigation.vitest.ts(25,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
 src/tests/unit/useNavigation.vitest.ts(32,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
 src/tests/unit/useNavigation.vitest.ts(43,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
 src/tests/unit/useNavigation.vitest.ts(53,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
 src/tests/unit/useNavigation.vitest.ts(67,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
 src/tests/unit/useNavigation.vitest.ts(77,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
 src/tests/unit/useNavigation.vitest.ts(91,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
-src/tests/unit/useNavigation.vitest.ts(92,50): error TS7006: Parameter 'i' implicitly has an 'any' type.
 src/tests/unit/useNavigation.vitest.ts(100,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
-src/tests/unit/useNavigation.vitest.ts(101,50): error TS7006: Parameter 'i' implicitly has an 'any' type.
 src/tests/unit/useNavigation.vitest.ts(107,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
-src/tests/unit/useNavigation.vitest.ts(108,50): error TS7006: Parameter 'i' implicitly has an 'any' type.
 src/tests/unit/useNavigation.vitest.ts(114,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
-src/tests/unit/useNavigation.vitest.ts(115,50): error TS7006: Parameter 'i' implicitly has an 'any' type.
 src/tests/unit/useNavigation.vitest.ts(121,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
-src/tests/unit/useNavigation.vitest.ts(122,50): error TS7006: Parameter 'i' implicitly has an 'any' type.
 src/tests/unit/useNavigation.vitest.ts(128,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
-src/tests/unit/useNavigation.vitest.ts(129,50): error TS7006: Parameter 'i' implicitly has an 'any' type.
 src/tests/unit/useNavigation.vitest.ts(135,55): error TS2345: Argument of type '{ role: string; features: any; }' is not assignable to parameter of type 'UserProfile'.
-  Type '{ role: string; features: any; }' is missing the following properties from type 'UserProfile': id, is_admin, patron_id, prenom, and 5 more.
-src/tests/unit/useNavigation.vitest.ts(136,50): error TS7006: Parameter 'i' implicitly has an 'any' type.
-src/utils/asyncAction.ts(1,33): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/utils/exportPDF_Pro.ts(3,56): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/utils/exportUtils.ts(2,56): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
-src/utils/generateFacture.ts(3,30): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
 src/utils/generateFacture.ts(111,20): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
 src/utils/generateFacture.ts(115,20): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
 src/utils/generateFacture.ts(134,20): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
@@ -812,4 +303,3 @@ src/utils/generateFacture.ts(316,20): error TS2556: A spread argument must eithe
 src/utils/generateFacture.ts(325,22): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
 src/utils/generateFacture.ts(336,20): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
 src/utils/generateFacture.ts(345,20): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
-src/utils/suspectCoords.ts(1,29): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.
