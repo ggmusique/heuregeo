@@ -1,14 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../services/supabase";
+import { getCurrentUserOrNull } from "../services/authService";
+import * as clientsApi from "../services/api/clientsApi";
 import type { Client } from "../types/entities";
+import type { ClientStats } from "../services/api/clientsApi";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface ClientStats {
-  nombreMissions: number;
-  totalHeures: number;
-  totalCA: number;
-}
 
 export interface UseClientsReturn {
   clients: Client[];
@@ -43,22 +40,14 @@ export function useClients(triggerAlert?: (msg: string) => void): UseClientsRetu
     try {
       setLoading(true);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUserOrNull();
       if (!user) {
         setClients([]);
         return;
       }
 
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("actif", true)
-        .eq("user_id", user.id)
-        .order("nom", { ascending: true });
-
-      if (error) throw error;
-
-      setClients(data || []);
+      const data = await clientsApi.fetchClients(user.id);
+      setClients(data);
     } catch (err) {
       console.error("Erreur chargement clients:", err);
       triggerAlert?.("Erreur lors du chargement des clients");
@@ -75,30 +64,17 @@ export function useClients(triggerAlert?: (msg: string) => void): UseClientsRetu
         throw new Error("Le nom du client est obligatoire");
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUserOrNull();
       if (!user) throw new Error("Utilisateur non connecté");
 
-      const { data, error } = await supabase
-        .from("clients")
-        .insert([
-          {
-            nom: clientData.nom.trim(),
-            contact: clientData.contact?.trim() || null,
-            lieu_travail: clientData.lieu_travail?.trim() || null,
-            notes: clientData.notes?.trim() || null,
-            actif: true,
-            user_id: user.id,
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === "23505") {
-          throw new Error("Un client avec ce nom existe déjà");
-        }
-        throw error;
-      }
+      const data = await clientsApi.createClient({
+        nom: clientData.nom.trim(),
+        contact: clientData.contact?.trim() || null,
+        lieu_travail: clientData.lieu_travail?.trim() || null,
+        notes: clientData.notes?.trim() || null,
+        actif: true,
+        user_id: user.id,
+      });
 
       setClients((prev) =>
         [...prev, data].sort((a, b) => a.nom.localeCompare(b.nom))
@@ -107,6 +83,9 @@ export function useClients(triggerAlert?: (msg: string) => void): UseClientsRetu
       return data;
     } catch (err) {
       console.error("Erreur création client:", err);
+      if ((err as { code?: string })?.code === "23505") {
+        throw new Error("Un client avec ce nom existe déjà");
+      }
       throw err;
     } finally {
       setLoading(false);
@@ -117,24 +96,12 @@ export function useClients(triggerAlert?: (msg: string) => void): UseClientsRetu
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from("clients")
-        .update({
-          nom: clientData.nom!.trim(),
-          contact: clientData.contact?.trim() || null,
-          lieu_travail: clientData.lieu_travail?.trim() || null,
-          notes: clientData.notes?.trim() || null,
-        })
-        .eq("id", clientId)
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === "23505") {
-          throw new Error("Un client avec ce nom existe déjà");
-        }
-        throw error;
-      }
+      const data = await clientsApi.updateClient(clientId, {
+        nom: clientData.nom!.trim(),
+        contact: clientData.contact?.trim() || null,
+        lieu_travail: clientData.lieu_travail?.trim() || null,
+        notes: clientData.notes?.trim() || null,
+      });
 
       setClients((prev) =>
         prev
@@ -145,6 +112,9 @@ export function useClients(triggerAlert?: (msg: string) => void): UseClientsRetu
       return data;
     } catch (err) {
       console.error("Erreur mise à jour client:", err);
+      if ((err as { code?: string })?.code === "23505") {
+        throw new Error("Un client avec ce nom existe déjà");
+      }
       throw err;
     } finally {
       setLoading(false);
@@ -155,12 +125,7 @@ export function useClients(triggerAlert?: (msg: string) => void): UseClientsRetu
     try {
       setLoading(true);
 
-      const { error } = await supabase
-        .from("clients")
-        .update({ actif: false })
-        .eq("id", clientId);
-
-      if (error) throw error;
+      await clientsApi.deleteClient(clientId);
 
       setClients((prev) => prev.filter((c) => c.id !== clientId));
     } catch (err) {
@@ -182,20 +147,7 @@ export function useClients(triggerAlert?: (msg: string) => void): UseClientsRetu
 
   const getClientStats = useCallback(async (clientId: string): Promise<ClientStats> => {
     try {
-      const { data: missions, error } = await supabase
-        .from("missions")
-        .select("duree, montant")
-        .eq("client_id", clientId);
-
-      if (error) throw error;
-
-      const stats: ClientStats = {
-        nombreMissions: missions.length,
-        totalHeures: missions.reduce((sum, m) => sum + (m.duree || 0), 0),
-        totalCA: missions.reduce((sum, m) => sum + (m.montant || 0), 0),
-      };
-
-      return stats;
+      return await clientsApi.getClientStats(clientId);
     } catch (err) {
       console.error("Erreur stats client:", err);
       return { nombreMissions: 0, totalHeures: 0, totalCA: 0 };
