@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from "react";
 import * as acomptesApi from "../services/api/acomptesApi";
-import { supabase } from "../services/supabase";
 import { calculerSoldeAcomptesAvant } from "../utils/calculators";
 import type { Acompte, Mission, FraisDivers } from "../types/entities";
 
@@ -132,11 +131,9 @@ export const useAcomptes = (
           } else {
             appliedAcompteIds.current.add(acompteId);
 
-            const { error: applyError } = await supabase.rpc("apply_acompte", {
-              p_acompte_id: acompteId,
-            });
-
-            if (applyError) {
+            try {
+              await acomptesApi.applyAcompte(acompteId);
+            } catch (applyError) {
               appliedAcompteIds.current.delete(acompteId);
               console.error("Erreur apply_acompte:", applyError);
               throw applyError;
@@ -175,22 +172,17 @@ export const useAcomptes = (
     try {
       setLoading(true);
 
-      const { error: unapplyError } = await supabase.rpc("unapply_acompte", {
-        p_acompte_id: id,
-      });
-
-      if (unapplyError) {
+      try {
+        await acomptesApi.unapplyAcompte(id);
+      } catch (unapplyError) {
         console.error("Erreur unapply_acompte:", unapplyError);
         onError?.("Erreur annulation des allocations");
         throw unapplyError;
       }
 
-      const { error: deleteError } = await supabase
-        .from("acomptes")
-        .delete()
-        .eq("id", id);
-
-      if (deleteError) {
+      try {
+        await acomptesApi.deleteAcompte(id);
+      } catch (deleteError) {
         console.error("Erreur suppression acompte:", deleteError);
         onError?.("Erreur suppression acompte");
         throw deleteError;

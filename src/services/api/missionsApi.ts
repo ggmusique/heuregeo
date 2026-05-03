@@ -1,6 +1,7 @@
 import { supabase } from "../supabase.ts";
+import type { Mission } from "../../types/entities.ts";
 
-export const fetchMissions = async () => {
+export const fetchMissions = async (): Promise<Mission[]> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
@@ -25,14 +26,14 @@ export const fetchMissions = async () => {
   const { data, error } = await query;
   if (error) throw error;
 
-  return data || [];
+  return (data || []) as Mission[];
 };
 
-export const createMission = async (missionData: any) => {
+export const createMission = async (missionData: Partial<Mission>): Promise<Mission> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Utilisateur non connecté");
 
-  const payload = { ...missionData, user_id: user.id };
+  const payload: Record<string, unknown> = { ...missionData, user_id: user.id };
   if (payload.date_iso && !payload.date_mission) {
     payload.date_mission = payload.date_iso;
   }
@@ -52,11 +53,11 @@ export const createMission = async (missionData: any) => {
     throw error;
   }
 
-  return data[0];
+  return data[0] as Mission;
 };
 
-export const updateMission = async (id: any, missionData: any) => {
-  const payload = { ...missionData };
+export const updateMission = async (id: string, missionData: Partial<Mission>): Promise<Mission> => {
+  const payload: Record<string, unknown> = { ...missionData };
   if (payload.date_iso) {
     payload.date_mission = payload.date_iso;
   }
@@ -77,15 +78,15 @@ export const updateMission = async (id: any, missionData: any) => {
     throw error;
   }
 
-  return data[0];
+  return data[0] as Mission;
 };
 
-export const deleteMission = async (id: any) => {
+export const deleteMission = async (id: string): Promise<void> => {
   const { error } = await supabase.from("missions").delete().eq("id", id);
   if (error) throw error;
 };
 
-export const bulkInsertMissions = async (missionsArray: any[]) => {
+export const bulkInsertMissions = async (missionsArray: Partial<Mission>[]): Promise<Mission[]> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Utilisateur non connecté");
 
@@ -101,5 +102,5 @@ export const bulkInsertMissions = async (missionsArray: any[]) => {
     .select();
 
   if (error) throw error;
-  return data;
+  return (data || []) as Mission[];
 };

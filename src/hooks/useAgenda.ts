@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from "../services/supabase";
+import * as agendaApi from "../services/api/agendaApi";
 import type { AgendaEvent } from "../types/entities";
 
 // ─── Helpers date ─────────────────────────────────────────────────────────────
@@ -68,21 +68,8 @@ export function useAgenda({ userId, triggerAlert }: UseAgendaParams): UseAgendaR
     if (!userId) return;
     setLoading(true);
     try {
-      const firstDay = `${currentYear}-${String(currentMonth).padStart(2, "0")}-01`;
-      const lastDayDate = new Date(currentYear, currentMonth, 0);
-      const lastDay = `${currentYear}-${String(currentMonth).padStart(2, "0")}-${String(lastDayDate.getDate()).padStart(2, "0")}`;
-
-      const { data, error } = await supabase
-        .from("agenda_events")
-        .select("*")
-        .eq("user_id", userId)
-        .lte("date_iso", lastDay)
-        .or(`date_iso.gte.${firstDay},date_fin.gte.${firstDay}`)
-        .order("date_iso", { ascending: true })
-        .order("heure_debut", { ascending: true, nullsFirst: false });
-
-      if (error) throw error;
-      setEvents((data as AgendaEvent[]) || []);
+      const data = await agendaApi.fetchAgendaEvents(userId, currentYear, currentMonth);
+      setEvents(data);
     } catch {
       triggerAlert("Erreur chargement agenda");
     } finally {
@@ -99,28 +86,17 @@ export function useAgenda({ userId, triggerAlert }: UseAgendaParams): UseAgendaR
   // ────────────────────────────────────────────────────────────────────────
   const createEvent = useCallback(async (data: Partial<AgendaEvent>): Promise<void> => {
     if (!userId) return;
-    const { error } = await supabase
-      .from("agenda_events")
-      .insert({ ...data, user_id: userId });
-    if (error) throw error;
+    await agendaApi.createAgendaEvent(userId, data);
     await fetchEvents();
   }, [userId, fetchEvents]);
 
   const updateEvent = useCallback(async (id: string, data: Partial<AgendaEvent>): Promise<void> => {
-    const { error } = await supabase
-      .from("agenda_events")
-      .update({ ...data, updated_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) throw error;
+    await agendaApi.updateAgendaEvent(id, data);
     await fetchEvents();
   }, [fetchEvents]);
 
   const deleteEvent = useCallback(async (id: string): Promise<void> => {
-    const { error } = await supabase
-      .from("agenda_events")
-      .delete()
-      .eq("id", id);
-    if (error) throw error;
+    await agendaApi.deleteAgendaEvent(id);
     await fetchEvents();
   }, [fetchEvents]);
 
@@ -182,16 +158,7 @@ export function useAgenda({ userId, triggerAlert }: UseAgendaParams): UseAgendaR
         const now = new Date();
         const todayIso = now.toISOString().slice(0, 10);
 
-        const { data } = await supabase
-          .from("agenda_events")
-          .select("id, titre, heure_debut, rappel_minutes, date_iso")
-          .eq("user_id", userId)
-          .eq("type", "rdv")
-          .not("rappel_minutes", "is", null)
-          .not("heure_debut", "is", null)
-          .gte("date_iso", todayIso);
-
-        if (!data) return;
+        const data = await agendaApi.fetchAgendaReminders(userId, todayIso);
 
         data.forEach((evt: AgendaEvent) => {
           if (firedRef.current.has(evt.id)) return;

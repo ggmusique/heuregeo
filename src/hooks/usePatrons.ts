@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../services/supabase";
+import { getCurrentUserOrNull } from "../services/authService";
+import * as patronsApi from "../services/api/patronsApi";
 import type { Patron } from "../types/entities";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -31,20 +32,13 @@ export function usePatrons(triggerAlert?: (msg: string) => void): UsePatronsRetu
     try {
       setLoading(true);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUserOrNull();
       if (!user) throw new Error("Utilisateur non connecté");
 
-      const { data, error } = await supabase
-        .from("patrons")
-        .select("*")
-        .eq("actif", true)
-        .eq("user_id", user.id)
-        .order("nom", { ascending: true });
+      const data = await patronsApi.fetchPatrons(user.id);
 
-      if (error) throw error;
-
-      setPatrons(data || []);
-      return data || [];
+      setPatrons(data);
+      return data;
     } catch (err) {
       console.error("Erreur récupération patrons:", err);
       triggerAlert?.(
@@ -70,35 +64,22 @@ export function usePatrons(triggerAlert?: (msg: string) => void): UsePatronsRetu
         patronData.taux_horaire != null && !isNaN(tauxNum) ? tauxNum : null;
       const couleur = patronData.couleur || "#8b5cf6";
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = await getCurrentUserOrNull();
       if (!user) throw new Error("Utilisateur non connecté");
 
-      const { data, error } = await supabase
-        .from("patrons")
-        .insert([
-          {
-            nom,
-            taux_horaire,
-            couleur,
-            actif: true,
-            user_id: user.id,
-            adresse: patronData.adresse ?? null,
-            code_postal: patronData.code_postal ?? null,
-            ville: patronData.ville ?? null,
-            telephone: patronData.telephone ?? null,
-            email: patronData.email ?? null,
-            siret: patronData.siret ?? null,
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === "23505") {
-          throw new Error("Un patron avec ce nom existe déjà");
-        }
-        throw error;
-      }
+      const data = await patronsApi.createPatron({
+        nom,
+        taux_horaire,
+        couleur,
+        actif: true,
+        user_id: user.id,
+        adresse: patronData.adresse ?? null,
+        code_postal: patronData.code_postal ?? null,
+        ville: patronData.ville ?? null,
+        telephone: patronData.telephone ?? null,
+        email: patronData.email ?? null,
+        siret: patronData.siret ?? null,
+      });
 
       setPatrons((prev) =>
         [...prev, data].sort((a, b) => a.nom.localeCompare(b.nom))
@@ -107,6 +88,9 @@ export function usePatrons(triggerAlert?: (msg: string) => void): UsePatronsRetu
       return data;
     } catch (err) {
       console.error("Erreur création patron:", err);
+      if ((err as { code?: string })?.code === "23505") {
+        throw new Error("Un patron avec ce nom existe déjà");
+      }
       throw new Error((err as Error)?.message || "Impossible de créer le patron");
     } finally {
       setLoading(false);
@@ -129,29 +113,17 @@ export function usePatrons(triggerAlert?: (msg: string) => void): UsePatronsRetu
         patronData.taux_horaire != null && !isNaN(tauxNum) ? tauxNum : null;
       const couleur = patronData.couleur || "#8b5cf6";
 
-      const { data, error } = await supabase
-        .from("patrons")
-        .update({
-          nom,
-          taux_horaire,
-          couleur,
-          adresse: patronData.adresse ?? null,
-          code_postal: patronData.code_postal ?? null,
-          ville: patronData.ville ?? null,
-          telephone: patronData.telephone ?? null,
-          email: patronData.email ?? null,
-          siret: patronData.siret ?? null,
-        })
-        .eq("id", patronId)
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === "23505") {
-          throw new Error("Un patron avec ce nom existe déjà");
-        }
-        throw error;
-      }
+      const data = await patronsApi.updatePatron(patronId, {
+        nom,
+        taux_horaire,
+        couleur,
+        adresse: patronData.adresse ?? null,
+        code_postal: patronData.code_postal ?? null,
+        ville: patronData.ville ?? null,
+        telephone: patronData.telephone ?? null,
+        email: patronData.email ?? null,
+        siret: patronData.siret ?? null,
+      });
 
       setPatrons((prev) =>
         prev
@@ -162,6 +134,9 @@ export function usePatrons(triggerAlert?: (msg: string) => void): UsePatronsRetu
       return data;
     } catch (err) {
       console.error("Erreur modification patron:", err);
+      if ((err as { code?: string })?.code === "23505") {
+        throw new Error("Un patron avec ce nom existe déjà");
+      }
       throw new Error((err as Error)?.message || "Impossible de modifier le patron");
     } finally {
       setLoading(false);
@@ -174,12 +149,7 @@ export function usePatrons(triggerAlert?: (msg: string) => void): UsePatronsRetu
 
       if (!patronId) throw new Error("ID du patron manquant");
 
-      const { error } = await supabase
-        .from("patrons")
-        .update({ actif: false })
-        .eq("id", patronId);
-
-      if (error) throw error;
+      await patronsApi.deletePatron(patronId);
 
       setPatrons((prev) => prev.filter((p) => p.id !== patronId));
     } catch (err) {

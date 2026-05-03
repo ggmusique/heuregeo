@@ -4,9 +4,11 @@ import { getKmEnabled } from "../utils/kmSettings";
 import { getWeekNumber } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
-import { supabase } from "../services/supabase";
+import { getCurrentUserOrNull } from "../services/authService";
+import { upsertFraisKm } from "../services/api/fraisApi";
 import type { UserProfile } from "../types/profile";
 import type { Lieu, Mission } from "../types/entities";
+import type { FraisKmRow } from "../types/bilan";
 
 // ─── Types locaux ─────────────────────────────────────────────────────────────
 
@@ -232,14 +234,14 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
       throw new Error("Domicile non configuré. Vérifiez Paramètres → Km.");
     }
     if (missionsThisWeek.length === 0) throw new Error("Aucune mission cette semaine");
-    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const authUser = await getCurrentUserOrNull();
     if (!authUser) throw new Error("Utilisateur non connecté");
     const kmRateEffectif: number = kmSettings!.km_rate_mode === "CUSTOM"
       ? (parseFloat(String(kmSettings!.km_rate)) || 0)
       : ((KM_RATES as Record<string, number>)[kmSettings!.km_country_code || "FR"] || 0.42);
     const multiplicateur = kmSettings!.km_include_retour ? 2 : 1;
     const countryCode = kmSettings!.km_country_code || "FR";
-    const rows: Record<string, unknown>[] = [];
+    const rows: FraisKmRow[] = [];
     missionsThisWeek.forEach((m) => {
       const lieuById = lieux.find((l) => l.id === m.lieu_id);
       const lieuByName = !lieuById && m.lieu
@@ -267,8 +269,7 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
       }
     });
     if (rows.length === 0) throw new Error("Aucun lieu géocodé — coordonnées GPS manquantes");
-    const { error } = await supabase.from("frais_km").upsert(rows, { onConflict: "mission_id" });
-    if (error) throw error;
+    await upsertFraisKm(rows);
     return { message: `✅ ${rows.length} ligne(s) km recalculée(s) pour la semaine` };
   }, [kmSettings, domicileLatLng, missionsThisWeek, lieux]);
 
