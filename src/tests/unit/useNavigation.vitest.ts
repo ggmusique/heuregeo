@@ -1,19 +1,34 @@
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useNavigation } from "../../hooks/useNavigation";
+import type { UserProfile, UserFeatures } from "../../types/profile";
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
-function makeProfile(overrides = {}) {
+interface ProfileOverrides {
+  role?: UserProfile["role"];
+  features?: Partial<UserFeatures>;
+  [key: string]: unknown;
+}
+
+function makeProfile(overrides: ProfileOverrides = {}): UserProfile {
   return {
-    role: "user",
+    id: "test-id",
+    role: overrides.role ?? "pro",
+    is_admin: false,
+    patron_id: null,
+    prenom: null,
+    nom: null,
+    adresse: null,
+    code_postal: null,
+    ville: null,
+    updated_at: null,
     features: {
       plan: "free",
       agenda: false,
       dashboard: false,
       ...overrides.features,
     },
-    ...overrides,
   };
 }
 
@@ -28,7 +43,7 @@ describe("useNavigation – isViewer", () => {
   });
 
   it("ne force pas 'suivi' quand role != viewer", () => {
-    const profile = makeProfile({ role: "user" });
+    const profile = makeProfile({ role: "pro" });
     const { result } = renderHook(() => useNavigation(profile));
     expect(result.current.activeTab).toBe("saisie");
     expect(result.current.isViewer).toBe(false);

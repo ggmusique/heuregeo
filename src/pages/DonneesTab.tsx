@@ -3,6 +3,46 @@ import { PatronsManager } from "../components/patron/PatronsManager";
 import { ClientsManager } from "../components/client/ClientsManager";
 import { LieuxManager } from "../components/lieu/LieuxManager";
 import { useLabels } from "../contexts/LabelsContext";
+import type { Patron, Client, Lieu } from "../types/entities";
+import type { KmSettings } from "../hooks/useKmDomicile";
+
+interface AccordionSectionProps {
+  title: string;
+  count?: number;
+  children?: React.ReactNode;
+  defaultOpen?: boolean;
+  disabled?: boolean;
+  id?: string;
+}
+
+interface DonneesTabProps {
+  patrons: Patron[];
+  clients: Client[];
+  lieux: Lieu[];
+  missions?: any[];
+  fraisDivers?: any[];
+  acomptes?: any[];
+  darkMode?: boolean;
+  onPatronEdit?: (patron: Patron) => void | Promise<void>;
+  onPatronDelete?: (patron: Patron) => void | Promise<void>;
+  onPatronAdd?: () => void;
+  onClientEdit?: (client: Client) => void | Promise<void>;
+  onClientDelete?: (client: Client) => void | Promise<void>;
+  onClientAdd?: () => void;
+  onLieuEdit?: (lieu: Lieu) => void | Promise<void>;
+  onLieuDelete?: (lieu: Lieu) => void | Promise<void>;
+  onLieuAdd?: () => void;
+  defaultOpenPatrons?: boolean;
+  allowClientActions?: boolean;
+  allowLieuActions?: boolean;
+  kmSettings?: KmSettings | null;
+  onRegeocoderLieu?: ((id: string, coords: Partial<Lieu>) => Promise<void>) | null;
+  deleteAcompte?: ((id: string) => Promise<void>) | null;
+  fetchAcomptes?: (() => Promise<any>) | null;
+  showConfirm?: ((options?: any) => Promise<boolean>) | null;
+  triggerAlert?: ((message: string) => void) | null;
+  isViewer?: boolean;
+}
 
 export const DonneesTab = ({
   patrons,
@@ -31,7 +71,7 @@ export const DonneesTab = ({
   showConfirm = null,
   triggerAlert = null,
   isViewer = false,
-}) => {
+}: DonneesTabProps) => {
   const L = useLabels();
   const AccordionSection = React.memo(({
     title,
@@ -40,7 +80,7 @@ export const DonneesTab = ({
     defaultOpen = false,
     disabled = false,
     id = "",
-  }) => {
+  }: AccordionSectionProps) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
@@ -64,7 +104,7 @@ export const DonneesTab = ({
                 {title.split(" ").slice(1).join(" ")}
               </h3>
               <p className="text-xs opacity-60">
-                {count} élément{count > 1 ? "s" : ""}
+                {count ?? 0} élément{(count ?? 0) > 1 ? "s" : ""}
               </p>
             </div>
           </div>

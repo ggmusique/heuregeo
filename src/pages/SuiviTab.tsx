@@ -15,12 +15,19 @@ const LazyFallback = () => (
   </div>
 );
 
+interface Props {
+  defaultView?: string;
+  historiqueProps: any;
+  bilanProps: any;
+  onNavigateDashboard?: () => void;
+}
+
 export function SuiviTab({
   defaultView = "historique",
   historiqueProps,
   bilanProps,
   onNavigateDashboard,
-}) {
+}: Props) {
   const { darkMode } = useDarkMode();
   const { isViewer, viewerPatronId, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canFacture } = usePermissions();
   const [view, setView] = useState(

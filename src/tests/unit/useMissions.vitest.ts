@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useMissions } from "../../hooks/useMissions";
 import * as missionsApi from "../../services/api/missionsApi";
+import type { Mission } from "../../types/entities";
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────
 
@@ -22,29 +23,38 @@ vi.mock("../../contexts/LabelsContext", () => ({
 //   "2026-01-12" (lun.) = semaine ISO 3,  2026
 //   "2026-02-10" (mar.) = semaine ISO 7,  2026
 
-const MISSIONS = [
+const MISSIONS: import("../../types/entities").Mission[] = [
   {
     id: "m1",
+    user_id: "u1",
     date_mission: "2026-01-05", date_iso: "2026-01-05",
     debut: "08:00", fin: "12:00",
-    patron_id: "p1", client: "ClientA", lieu: "LieuX",
+    patron_id: "p1", client_id: null, lieu_id: null,
+    client: "ClientA", lieu: "LieuX",
+    duree: 4, pause: 0, montant: 80,
   },
   {
     id: "m2",
+    user_id: "u1",
     date_mission: "2026-01-12", date_iso: "2026-01-12",
     debut: "14:00", fin: "18:00",
-    patron_id: "p2", client: "ClientB", lieu: "LieuY",
+    patron_id: "p2", client_id: null, lieu_id: null,
+    client: "ClientB", lieu: "LieuY",
+    duree: 4, pause: 0, montant: 80,
   },
   {
     id: "m3",
+    user_id: "u1",
     date_mission: "2026-02-10", date_iso: "2026-02-10",
     debut: "09:00", fin: "17:00",
-    patron_id: "p1", client: "ClientA", lieu: "LieuZ",
+    patron_id: "p1", client_id: null, lieu_id: null,
+    client: "ClientA", lieu: "LieuZ",
+    duree: 8, pause: 0, montant: 160,
   },
 ];
 
 // Données valides : date inédite → aucun chevauchement possible avec MISSIONS
-const VALID_MISSION_DATA = {
+const VALID_MISSION_DATA: Partial<import("../../types/entities").Mission> = {
   date_iso:  "2026-03-01",
   debut:     "10:00",
   fin:       "15:00",
@@ -56,7 +66,7 @@ const VALID_MISSION_DATA = {
 // ─── Helper ────────────────────────────────────────────────────────────────
 
 async function renderWithMissions(missions = MISSIONS) {
-  missionsApi.fetchMissions.mockResolvedValueOnce(missions);
+  vi.mocked(missionsApi.fetchMissions).mockResolvedValueOnce(missions);
   const hook = renderHook(() => useMissions(vi.fn()));
   await act(async () => {
     await hook.result.current.fetchMissions();
@@ -160,7 +170,7 @@ describe("useMissions – fetchMissions", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("charge les missions dans le state et repasse loading à false", async () => {
-    missionsApi.fetchMissions.mockResolvedValueOnce(MISSIONS);
+    vi.mocked(missionsApi.fetchMissions).mockResolvedValueOnce(MISSIONS);
     const { result } = renderHook(() => useMissions(vi.fn()));
 
     await act(async () => {
@@ -173,21 +183,21 @@ describe("useMissions – fetchMissions", () => {
   });
 
   it("passe loading false → true → false pendant le fetch", async () => {
-    let resolveApi;
+    let resolveApi: ((value: unknown) => void) | undefined;
     const deferred = new Promise((r) => { resolveApi = r; });
-    missionsApi.fetchMissions.mockReturnValueOnce(deferred);
+    vi.mocked(missionsApi.fetchMissions).mockReturnValueOnce(deferred as Promise<any>);
 
     const { result } = renderHook(() => useMissions(vi.fn()));
     expect(result.current.loading).toBe(false);
 
     // Démarre le fetch sans l'attendre — act() synchrone flush setLoading(true)
-    let fetchPromise;
+    let fetchPromise: Promise<unknown> | undefined;
     act(() => { fetchPromise = result.current.fetchMissions(); });
     expect(result.current.loading).toBe(true);
 
     // Résout la promesse et attend la fin
     await act(async () => {
-      resolveApi([]);
+      resolveApi?.([]);
       await fetchPromise;
     });
     expect(result.current.loading).toBe(false);
@@ -199,8 +209,8 @@ describe("useMissions – createMission", () => {
 
   it("appelle missionsApi.createMission avec les données fournies", async () => {
     const { result } = await renderWithMissions([]);
-    const newMission = { id: "m-new", ...VALID_MISSION_DATA };
-    missionsApi.createMission.mockResolvedValueOnce(newMission);
+    const newMission = { id: "m-new", ...VALID_MISSION_DATA } as Mission;
+    vi.mocked(missionsApi.createMission).mockResolvedValueOnce(newMission);
 
     await act(async () => {
       await result.current.createMission(VALID_MISSION_DATA);
@@ -211,8 +221,8 @@ describe("useMissions – createMission", () => {
 
   it("ajoute la mission retournée en tête de liste (optimistic update)", async () => {
     const { result } = await renderWithMissions([]);
-    const newMission = { id: "m-new", ...VALID_MISSION_DATA };
-    missionsApi.createMission.mockResolvedValueOnce(newMission);
+    const newMission = { id: "m-new", ...VALID_MISSION_DATA } as Mission;
+    vi.mocked(missionsApi.createMission).mockResolvedValueOnce(newMission);
 
     await act(async () => {
       await result.current.createMission(VALID_MISSION_DATA);
@@ -227,8 +237,8 @@ describe("useMissions – updateMission", () => {
 
   it("appelle missionsApi.updateMission avec l'id et les données", async () => {
     const { result } = await renderWithMissions();
-    const updatedMission = { id: "m1", ...VALID_MISSION_DATA };
-    missionsApi.updateMission.mockResolvedValueOnce(updatedMission);
+    const updatedMission = { id: "m1", ...VALID_MISSION_DATA } as Mission;
+    vi.mocked(missionsApi.updateMission).mockResolvedValueOnce(updatedMission);
 
     await act(async () => {
       await result.current.updateMission("m1", VALID_MISSION_DATA);
@@ -239,8 +249,8 @@ describe("useMissions – updateMission", () => {
 
   it("remplace la mission dans la liste (optimistic update)", async () => {
     const { result } = await renderWithMissions();
-    const updatedMission = { id: "m1", ...VALID_MISSION_DATA };
-    missionsApi.updateMission.mockResolvedValueOnce(updatedMission);
+    const updatedMission = { id: "m1", ...VALID_MISSION_DATA } as Mission;
+    vi.mocked(missionsApi.updateMission).mockResolvedValueOnce(updatedMission);
 
     await act(async () => {
       await result.current.updateMission("m1", VALID_MISSION_DATA);
@@ -256,7 +266,7 @@ describe("useMissions – deleteMission", () => {
 
   it("appelle missionsApi.deleteMission avec l'id", async () => {
     const { result } = await renderWithMissions();
-    missionsApi.deleteMission.mockResolvedValueOnce(undefined);
+    vi.mocked(missionsApi.deleteMission).mockResolvedValueOnce(undefined);
 
     await act(async () => {
       await result.current.deleteMission("m1");
@@ -267,7 +277,7 @@ describe("useMissions – deleteMission", () => {
 
   it("retire la mission de la liste", async () => {
     const { result } = await renderWithMissions();
-    missionsApi.deleteMission.mockResolvedValueOnce(undefined);
+    vi.mocked(missionsApi.deleteMission).mockResolvedValueOnce(undefined);
 
     await act(async () => {
       await result.current.deleteMission("m1");
@@ -283,8 +293,8 @@ describe("useMissions – bulkCreateMissions", () => {
 
   it("appelle bulkInsertMissions puis refetch les missions", async () => {
     const { result } = await renderWithMissions();
-    missionsApi.bulkInsertMissions.mockResolvedValueOnce([]);
-    missionsApi.fetchMissions.mockResolvedValueOnce(MISSIONS); // pour le refetch interne
+    vi.mocked(missionsApi.bulkInsertMissions).mockResolvedValueOnce([]);
+    vi.mocked(missionsApi.fetchMissions).mockResolvedValueOnce(MISSIONS); // pour le refetch interne
 
     await act(async () => {
       await result.current.bulkCreateMissions([VALID_MISSION_DATA]);
@@ -331,7 +341,7 @@ describe("useMissions – validation createMission", () => {
 
   it("appelle onError en cas de chevauchement horaire", async () => {
     const onError = vi.fn();
-    missionsApi.fetchMissions.mockResolvedValueOnce(MISSIONS);
+    vi.mocked(missionsApi.fetchMissions).mockResolvedValueOnce(MISSIONS);
     const { result } = renderHook(() => useMissions(onError));
 
     await act(async () => {

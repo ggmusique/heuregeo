@@ -10,7 +10,7 @@ vi.mock("../../contexts/DarkModeContext", () => ({
 // ─── 1. isIOS ──────────────────────────────────────────────────────────────
 
 describe("useAppUI – isIOS", () => {
-  const defineUA = (value) =>
+  const defineUA = (value: string) =>
     Object.defineProperty(navigator, "userAgent", {
       value,
       configurable: true,

@@ -8,7 +8,13 @@ import { WeatherIcon } from "../common/WeatherIcon";
 
 // ─── Ligne label / valeur ──────────────────────────────────────────────────────
 
-function Row({ label, value, valueColor }) {
+interface RowProps {
+  label: string;
+  value: React.ReactNode;
+  valueColor?: string;
+}
+
+function Row({ label, value, valueColor }: RowProps) {
   return (
     <div
       style={{
@@ -33,8 +39,15 @@ function Row({ label, value, valueColor }) {
 
 // ─── Bouton d'export ───────────────────────────────────────────────────────────
 
-function ExportBtn({ label, onClick, disabled, color }) {
-  const base = {
+interface ExportBtnProps {
+  label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  color: string;
+}
+
+function ExportBtn({ label, onClick, disabled, color }: ExportBtnProps) {
+  const base: React.CSSProperties = {
     ...tokens.button.base,
     flex: 1,
     minWidth: "100px",
@@ -253,7 +266,7 @@ export function BilanPanel({
           <SectionLabel>Frais</SectionLabel>
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {[...bilanContent.fraisDivers]
-              .sort((a, b) => new Date(a.date_frais) - new Date(b.date_frais))
+              .sort((a, b) => new Date(a.date_frais).getTime() - new Date(b.date_frais).getTime())
               .map((f) => (
                 <div
                   key={f.id}
@@ -337,8 +350,8 @@ export function BilanPanel({
               }}
             >
               {bilanContent.fraisKilometriques.items
-                .filter((item) => item.amount !== null)
-                .map((item, i) => (
+                .filter((item: any) => item.amount !== null)
+                .map((item: any, i: number) => (
                   <div
                     key={i}
                     style={{
@@ -383,8 +396,8 @@ export function BilanPanel({
                   </div>
                 ))}
               {bilanContent.fraisKilometriques.items
-                .filter((item) => item.amount === null)
-                .map((item, i) => (
+                .filter((item: any) => item.amount === null)
+                .map((item: any, i: number) => (
                   <div
                     key={`missing-${i}`}
                     style={{ ...tokens.text.caption, fontStyle: "italic" }}
@@ -823,7 +836,7 @@ export function BilanPanel({
                 gap,
               }}
             >
-              {bilanContent.groupedData.map((group, index) => (
+              {bilanContent.groupedData.map((group: any, index: number) => (
                 <Card key={index} compact>
                   <div
                     style={{
