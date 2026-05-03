@@ -1,3 +1,5 @@
+import type { AcompteAllocation, AcompteRow, WeeklyAcompteMetrics } from "../types/bilan.ts";
+
 export function mapWeeklyAcompteMetricsFromRows({
   allocsCetteSemaine = [],
   allocsJusqua = [],
@@ -6,15 +8,15 @@ export function mapWeeklyAcompteMetricsFromRows({
   acomptesCumules = [],
   acomptesPeriode = [],
 }: {
-  allocsCetteSemaine?: any[];
-  allocsJusqua?: any[];
-  allocsAvant?: any[];
-  allocsCreatedInPeriod?: any[];
-  acomptesCumules?: any[];
-  acomptesPeriode?: any[];
-} = {}) {
-  const sumAmount = (rows: any[] = []) => rows.reduce((sum, a) => sum + (parseFloat(a.amount) || 0), 0);
-  const sumMontant = (rows: any[] = []) => rows.reduce((sum, a) => sum + (parseFloat(a.montant) || 0), 0);
+  allocsCetteSemaine?: AcompteAllocation[];
+  allocsJusqua?: AcompteAllocation[];
+  allocsAvant?: AcompteAllocation[];
+  allocsCreatedInPeriod?: AcompteAllocation[];
+  acomptesCumules?: AcompteRow[];
+  acomptesPeriode?: AcompteRow[];
+} = {}): WeeklyAcompteMetrics {
+  const sumAmount = (rows: AcompteAllocation[] = []) => rows.reduce((sum, a) => sum + (parseFloat(a.amount as string) || 0), 0);
+  const sumMontant = (rows: AcompteRow[] = []) => rows.reduce((sum, a) => sum + (parseFloat(a.montant as string) || 0), 0);
 
   return {
     allocCetteSemaine: sumAmount(allocsCetteSemaine),

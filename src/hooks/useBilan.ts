@@ -1,12 +1,11 @@
 import { useState, useCallback, useMemo, useEffect, Dispatch, SetStateAction } from "react";
-import { supabase } from "../services/supabase";
 import { getCurrentUserOrNull } from "../services/authService";
 import { getWeekNumber, getWeekStartDate } from "../utils/dateUtils";
 import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
 import { computeStatutPaye, computeImpayePrecedent, normalizeBilanForWrite, computeConsommeCettePeriode, computeWeeklyAcompteState, computeStandardAcompteState } from "../lib/bilanEngine";
 import { fetchHistoricalWeather } from "../services/weatherService";
-import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore, fetchAcompteAmountsBefore, fetchWeeklyBilansForRepair, fetchWeeklyAcompteMetrics, fetchBilanByPeriodAndPatron, insertBilanRow, updateBilanRowById } from "../services/bilanRepository";
+import { fetchLatestBilanStatus, fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchUnpaidWeeklyBilansBefore, fetchAcompteAllocationsBefore, fetchAcompteAmountsBefore, fetchWeeklyBilansForRepair, fetchWeeklyAcompteMetrics, fetchBilanByPeriodAndPatron, insertBilanRow, updateBilanRowById, upsertFraisKmRows } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
 import { computePeriodeIndex, formatPeriodLabel } from "../lib/bilanPeriods";
@@ -15,6 +14,7 @@ import { logBilanError } from "../utils/bilanLogger";
 import type { Mission, FraisDivers, Patron, Lieu } from "../types/entities";
 import type { KmSettings } from "./useKmDomicile";
 import type { HistoriqueData } from "./useHistorique";
+import type { FraisKmRow } from "../types/bilan";
 
 export { normalizeBilanForWrite as normalizeBilanRow };
 
@@ -129,7 +129,6 @@ export interface UseBilanReturn {
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const GLOBAL_PATRON_ID = "00000000-0000-0000-0000-000000000000";
-const TABLE = "bilans_status_v2";
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -571,16 +570,14 @@ export function useBilan({
             const latLieu = Number(lieu?.latitude);
             const lngLieu = Number(lieu?.longitude);
             if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const kmOneWay: number = (haversineKm as any)(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
+              const kmOneWay: number = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
               const kmTotal = kmOneWay * multiplicateur;
               const amount = kmTotal * kmRateEffectif;
               const typeLabel = lieu?.type && lieu.type !== 'client' ? ` (${lieu.type.toUpperCase()})` : '';
               fraisKm.items.push({
                 missionId: m.id,
                 date: m.date_iso,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                labelLieuOuClient: (getLieuLabel as any)(lieu, m) + typeLabel,
+                labelLieuOuClient: getLieuLabel(lieu, m) + typeLabel,
                 kmOneWay, kmTotal, amount,
               });
               fraisKm.totalKm += kmTotal;
@@ -590,8 +587,7 @@ export function useBilan({
               fraisKm.items.push({
                 missionId: m.id,
                 date: m.date_iso,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                labelLieuOuClient: (getLieuLabel as any)(lieu, m) + typeLabel,
+                labelLieuOuClient: getLieuLabel(lieu, m) + typeLabel,
                 kmOneWay: null,
                 kmTotal: null,
                 amount: null,
@@ -790,7 +786,7 @@ export function useBilan({
         const multiplicateur = kmSettings!.km_include_retour ? 2 : 1;
         const countryCode = kmSettings!.km_country_code || "FR";
 
-        const rows: Record<string, unknown>[] = [];
+        const rows: FraisKmRow[] = [];
         missionsList.forEach((m) => {
           const lieuById = lieux.find((l) => l.id === m.lieu_id);
           const lieuByName = !lieuById && m.lieu
@@ -800,8 +796,7 @@ export function useBilan({
           const latLieu = Number(lieu?.latitude);
           const lngLieu = Number(lieu?.longitude);
           if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const kmOneWay: number = (haversineKm as any)(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
+            const kmOneWay: number = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
             const distanceKm = kmOneWay * multiplicateur;
             const amount = distanceKm * kmRateEffectif;
             rows.push({
@@ -823,10 +818,7 @@ export function useBilan({
           return;
         }
 
-        const { error } = await supabase
-          .from("frais_km")
-          .upsert(rows, { onConflict: "mission_id" });
-        if (error) throw error;
+        await upsertFraisKmRows(rows);
 
         triggerAlert?.(`✅ ${rows.length} ligne(s) km recalculée(s)`);
         await genererBilan(patronId);

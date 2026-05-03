@@ -1,6 +1,6 @@
 import { PERIOD_TYPES } from "../constants/bilanPeriods.ts";
 
-export function computePeriodeIndex(type: string, value: any): number {
+export function computePeriodeIndex(type: string, value: string | number): number {
   const v = value?.toString?.() ?? "";
   if (!v) return 0;
   if (type === PERIOD_TYPES.SEMAINE) return parseInt(v, 10) || 0;
@@ -9,7 +9,7 @@ export function computePeriodeIndex(type: string, value: any): number {
   return 0;
 }
 
-export function formatPeriodLabel(periodType: string, val: any): string {
+export function formatPeriodLabel(periodType: string, val: string | number): string {
   if (!val) return "";
   const sVal = val.toString();
   if (periodType === PERIOD_TYPES.SEMAINE) return `Semaine ${sVal}`;
