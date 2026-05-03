@@ -50,7 +50,7 @@ jobs:
             echo "⚠️ Aucun fichier .test.mjs trouvé dans src/tests/unit — OK"
             exit 0
           fi
-          node --test $FILES
+          node --import tsx/esm --test $FILES
 
   # ─────────────────────────────────────────────────────────────
   # JOB 2 : Tests hooks React (Vitest + jsdom)
@@ -86,10 +86,10 @@ jobs:
         id: check-vitest-files
         if: steps.check-vitest.outputs.vitest_available == 'true'
         run: |
-          FILES=$(find src/tests -name '*.vitest.jsx' -o -name '*.vitest.js' 2>/dev/null)
+          FILES=$(find src/tests -name '*.vitest.jsx' -o -name '*.vitest.js' -o -name '*.vitest.ts' -o -name '*.vitest.tsx' 2>/dev/null)
           if [ -z "$FILES" ]; then
             echo "has_files=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Aucun fichier .vitest.jsx trouvé — job ignoré"
+            echo "⚠️ Aucun fichier .vitest.* trouvé — job ignoré"
           else
             echo "has_files=true" >> $GITHUB_OUTPUT
           fi

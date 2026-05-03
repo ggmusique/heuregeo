@@ -7,6 +7,8 @@
  * des lignes avant écriture.
  */
 
+import type { NormalizedBilanPayload, WeeklyAcompteState, StandardAcompteState } from "../types/bilan.ts";
+
 export function computeStatutPaye(paye: boolean, resteAPercevoir: number | string): boolean {
   const reste = Math.max(0, parseFloat(resteAPercevoir as string) || 0);
   return paye === true || reste <= 0.01;
@@ -26,17 +28,17 @@ export function normalizeBilanForWrite({
   paye = false,
   date_paiement = null,
 }: {
-  ca_brut_periode?: number;
-  acompte_consomme?: number;
+  ca_brut_periode?: number | string;
+  acompte_consomme?: number | string;
   reste_a_percevoir?: number | string;
   paye?: boolean;
   date_paiement?: string | null;
-} = {}): object {
+} = {}): NormalizedBilanPayload {
   const reste = Math.max(0, parseFloat(reste_a_percevoir as string) || 0);
   const isPaye = computeStatutPaye(paye, reste);
   return {
-    ca_brut_periode: parseFloat(ca_brut_periode as any) || 0,
-    acompte_consomme: parseFloat(acompte_consomme as any) || 0,
+    ca_brut_periode: parseFloat(ca_brut_periode as string) || 0,
+    acompte_consomme: parseFloat(acompte_consomme as string) || 0,
     reste_a_percevoir: isPaye ? 0 : reste,
     paye: isPaye,
     date_paiement: isPaye ? (date_paiement || new Date().toISOString()) : null,
@@ -51,8 +53,8 @@ export function computeConsommeCettePeriode({
   acomptesDansPeriode = 0,
   soldeApresPeriode = 0,
 }: {
-  bilanPeriodType: any;
-  periodTypes: any;
+  bilanPeriodType: string;
+  periodTypes?: { SEMAINE: string } | null;
   acomptesDansPeriodeCalc?: number | string;
   soldeAvantPeriode?: number | string;
   acomptesDansPeriode?: number | string;
@@ -85,7 +87,7 @@ export function computeWeeklyAcompteState({
   acomptesDansPeriode?: number | string;
   impayePrecedent?: number | string;
   caBrutPeriode?: number | string;
-} = {}) {
+} = {}): WeeklyAcompteState {
   const allocCetteSemaineNum = parseFloat(allocCetteSemaine as string) || 0;
   const totalAlloueJusquaNum = parseFloat(totalAlloueJusqua as string) || 0;
   const totalAlloueAvantNum = parseFloat(totalAlloueAvant as string) || 0;
@@ -117,7 +119,7 @@ export function computeStandardAcompteState({
   soldeAvantPeriode?: number | string;
   acomptesDansPeriode?: number | string;
   caBrutPeriode?: number | string;
-} = {}) {
+} = {}): StandardAcompteState {
   const soldeAvantPeriodeNum = parseFloat(soldeAvantPeriode as string) || 0;
   const acomptesDansPeriodeNum = parseFloat(acomptesDansPeriode as string) || 0;
   const caBrutPeriodeNum = parseFloat(caBrutPeriode as string) || 0;
