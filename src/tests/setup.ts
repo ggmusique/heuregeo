@@ -1,3 +1,4 @@
+/// <reference types="vitest/globals" />
 import "@testing-library/jest-dom";
 
 // Mock Supabase — aucun appel réseau réel pendant les tests

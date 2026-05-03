@@ -7,12 +7,12 @@ interface BilanRef {
   fetchHistoriqueBilans?: (patronId: string | null) => Promise<unknown>;
   showBilan?: boolean;
   bilanPeriodValue?: string;
-  genererBilan?: (patronId: string | null) => Promise<void>;
+  genererBilan?: (patronId?: string | null, clientId?: string | null) => Promise<boolean | void>;
 }
 
 interface UseAcompteModalArgs {
-  createAcompte: (data: { montant: number; date_acompte: string; patron_id: string }) => Promise<void>;
-  fetchAcomptes: () => Promise<void>;
+  createAcompte: (data: { montant: number; date_acompte: string; patron_id: string }) => Promise<unknown>;
+  fetchAcomptes: () => Promise<unknown>;
   setLoading: (v: boolean) => void;
   triggerAlert: (msg: string) => void;
   bilanPatronId: string | null;

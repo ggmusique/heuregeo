@@ -2,6 +2,36 @@ import React from "react";
 import { MissionForm } from "../components/mission/MissionForm";
 import { useDarkMode } from "../contexts/DarkModeContext";
 
+interface Props {
+  // État
+  editingMissionId?: string | null;
+  editingMissionData?: any;
+  selectedClientId?: string | null;
+  selectedLieuId?: string | null;
+  selectedPatronId?: string | null;
+  loading?: boolean;
+  isIOS?: boolean;
+  // Données
+  lieux?: any[];
+  patrons?: any[];
+  clients?: any[];
+  missions?: any[];
+  // Handlers
+  onMissionSubmit?: (data: any) => void;
+  onMissionCancel?: () => void;
+  onCopyLast?: () => void;
+  onLieuChange?: (id: string | null) => void;
+  onPatronChange?: (id: string | null) => void;
+  onClientChange?: (id: string | null) => void;
+  onShowPatronModal?: () => void;
+  onShowLieuModal?: () => void;
+  onShowClientModal?: () => void;
+  onShowFraisModal?: () => void;
+  onShowAcompteModal?: () => void;
+  onShowImportModal?: () => void;
+  showMissionRateEditor?: boolean;
+}
+
 /**
  * ✅ SaisieTab
  * Onglet pour saisir les missions et ajouter frais/acomptes
@@ -36,7 +66,7 @@ export const SaisieTab = ({
   onShowAcompteModal,
   onShowImportModal,
   showMissionRateEditor = true,
-}) => {
+}: Props) => {
   const { darkMode } = useDarkMode();
   return (
     <div className="animate-in fade-in duration-500">
@@ -46,7 +76,7 @@ export const SaisieTab = ({
         lieux={lieux}
         selectedLieuId={selectedLieuId}
         onLieuChange={onLieuChange}
-        onAddNewLieu={() => onShowLieuModal()}
+        onAddNewLieu={() => onShowLieuModal?.()}
         onSubmit={onMissionSubmit}
         onCancel={onMissionCancel}
         onCopyLast={onCopyLast}
@@ -57,24 +87,24 @@ export const SaisieTab = ({
         missions={missions}
         selectedPatronId={selectedPatronId}
         onPatronChange={onPatronChange}
-        onAddNewPatron={() => onShowPatronModal()}
+        onAddNewPatron={() => onShowPatronModal?.()}
         clients={clients}
         selectedClientId={selectedClientId}
         onClientChange={onClientChange}
-        onAddNewClient={() => onShowClientModal()}
+        onAddNewClient={() => onShowClientModal?.()}
         showRateEditorControl={showMissionRateEditor}
       />
 
       {/* Boutons rapides */}
       <div className="grid grid-cols-2 gap-4 mt-6">
         <button
-          onClick={() => onShowFraisModal()}
+          onClick={() => onShowFraisModal?.()}
           className="py-4 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all"
         >
           + Frais divers
         </button>
         <button
-          onClick={() => onShowAcompteModal()}
+          onClick={() => onShowAcompteModal?.()}
           className="py-4 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all"
         >
           + Acompte

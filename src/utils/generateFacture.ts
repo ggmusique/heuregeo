@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { EU_TVA_RATES } from "./tvaRates.ts";
+import { EU_TVA_RATES } from "./tvaRates";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@ const addDays = (iso: string, n: number): string => {
 
 // ── Couleurs ────────────────────────────────────────────────────────────────
 
-const C: Record<string, number[]> = {
+const C: Record<string, [number, number, number]> = {
   navy:    [15,  40,  80],
   blue:    [44,  82, 148],
   blueB:   [26,  58, 110],
@@ -322,7 +322,7 @@ export async function generateFacture(
   if (bilanContent?.bilanPaye) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(52);
-    doc.setTextColor(...C.red.map((v) => Math.min(255, v + 40)));
+    doc.setTextColor(...(C.red.map((v) => Math.min(255, v + 40)) as [number, number, number]));
     const GState = (doc as any).GState;
     if ((doc as any).setGState && GState) (doc as any).setGState(new GState({ opacity: 0.18 }));
     doc.text("PAYÉ", W / 2, 160, { align: "center", angle: -35 });

@@ -1,15 +1,12 @@
 import { useState } from "react";
+import type { NormalizedHistorique } from "../types/bilan";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 /** Shape opaque d'une ligne de bilan historique (normalisée par useBilan). */
-export type HistoriqueRow = Record<string, unknown>;
+export type { HistoriqueRow } from "../types/bilan";
 
-export interface HistoriqueData {
-  impayes: HistoriqueRow[];
-  payes: HistoriqueRow[];
-  all: HistoriqueRow[];
-}
+export type HistoriqueData = NormalizedHistorique;
 
 interface UseHistoriqueArgs {
   fetchHistoriqueBilans: (patronId: string | null) => Promise<HistoriqueData | null>;

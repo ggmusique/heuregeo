@@ -7,8 +7,8 @@ const AgendaTab = lazy(() =>
 interface Props {
   events?: any[];
   loading?: boolean;
-  currentYear?: number;
-  currentMonth?: number;
+  currentYear: number;
+  currentMonth: number;
   currentWeekStart?: any;
   workedDays?: any;
   onGoToPrev?: () => void;

@@ -236,7 +236,7 @@ export function useBilan({
           patronId: pId,
         });
         if (!row) return false;
-        const reste = parseFloat(row?.reste_a_percevoir ?? 0);
+        const reste = parseFloat(String(row?.reste_a_percevoir ?? 0));
         return computeStatutPaye(row?.paye, reste);
       } catch (err) {
         console.error("Erreur getStatutPaiement:", err);
@@ -913,7 +913,7 @@ export function useBilan({
           continue;
         }
 
-        const updatePayload = { ...decision.payload };
+        const updatePayload: { acompte_consomme: number; reste_a_percevoir: number; paye: boolean; date_paiement?: string } = { ...decision.payload };
         if (decision.payeReel && !bilan.paye) {
           updatePayload.date_paiement = new Date().toISOString();
         }

@@ -15,9 +15,9 @@ interface RegeocoderResult {
 
 interface UseLieuModalArgs {
   createLieu: (data: Partial<Lieu>) => Promise<Lieu | null | undefined>;
-  updateLieu: (id: string, data: Partial<Lieu>) => Promise<void>;
+  updateLieu: (id: string, data: Partial<Lieu>) => Promise<Lieu | void>;
   deleteLieu: (id: string) => Promise<void>;
-  fetchLieux: () => Promise<void>;
+  fetchLieux: () => Promise<Lieu[] | void>;
   setLoading: (v: boolean) => void;
   triggerAlert: (msg: string) => void;
   showConfirm: ConfirmFn;

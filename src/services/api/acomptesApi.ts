@@ -1,5 +1,5 @@
-import { supabase } from "../supabase.ts";
-import type { Acompte } from "../../types/entities.ts";
+import { supabase } from "../supabase";
+import type { Acompte } from "../../types/entities";
 
 export const fetchAcomptes = async (): Promise<Acompte[]> => {
   const { data, error } = await supabase

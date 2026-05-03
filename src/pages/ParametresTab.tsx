@@ -1,4 +1,4 @@
-import React, { Component, Suspense, lazy, useEffect, useMemo, useState } from "react";
+import React, { Component, Dispatch, SetStateAction, Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { EUROPE_COUNTRIES, KM_RATES, detectCountryFromLatLng } from "../utils/kmRatesByCountry";
@@ -8,6 +8,8 @@ import { supabase } from "../services/supabase";
 import { useLabels } from "../contexts/LabelsContext";
 import { useDarkMode } from "../contexts/DarkModeContext";
 import { usePermissions } from "../contexts/PermissionsContext";
+import type { Mission, Patron, Client, Lieu } from "../types/entities";
+import type { KmSettings, KmFraisResult } from "../hooks/useKmDomicile";
 
 const AdminPage = lazy(() =>
   import("./AdminPage").then((m) => ({ default: m.AdminPage }))
@@ -76,7 +78,16 @@ const IconSettings = () => (
 
 // ─── Couleurs par section ────────────────────────────────────────────────────
 
-const colorMap = {
+type ColorTokens = {
+  active: string;
+  icon: string;
+  dot: string;
+  header: string;
+  headerText: string;
+  badge: string;
+};
+
+const colorMap: Record<string, ColorTokens> = {
   indigo: {
     active: "bg-indigo-500/15 border-indigo-400/40",
     icon: "text-indigo-400 bg-indigo-500/15",
@@ -127,7 +138,7 @@ const colorMap = {
   },
 };
 
-const colorMapLight = {
+const colorMapLight: Record<string, ColorTokens> = {
   indigo: { ...colorMap.indigo, headerText: "text-indigo-600", badge: "bg-indigo-100 text-indigo-600 border-indigo-300/60" },
   violet: { ...colorMap.violet, headerText: "text-violet-600", badge: "bg-violet-100 text-violet-600 border-violet-300/60" },
   yellow: { ...colorMap.yellow, headerText: "text-amber-700", badge: "bg-amber-50 text-amber-700 border-amber-300/60" },
@@ -138,13 +149,15 @@ const colorMapLight = {
 
 // ─── Error boundary Diagnostics ──────────────────────────────────────────────
 
-class DiagnosticsErrorBoundary extends Component {
-  constructor(props) {
+interface DiagBoundaryState { hasError: boolean; error: Error | null; }
+
+class DiagnosticsErrorBoundary extends Component<React.PropsWithChildren, DiagBoundaryState> {
+  constructor(props: React.PropsWithChildren) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): DiagBoundaryState {
     return { hasError: true, error };
   }
 
@@ -170,6 +183,43 @@ class DiagnosticsErrorBoundary extends Component {
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
+interface ParametresTabProps {
+  profile: any;
+  profileSaving?: boolean;
+  saveProfile: (data: any) => Promise<any>;
+  userEmail?: string;
+  patrons: Patron[];
+  clients: Client[];
+  lieux: Lieu[];
+  missions: Mission[];
+  fraisDivers?: any[];
+  acomptes?: any[];
+  onPatronEdit?: (patron: Patron) => void | Promise<void>;
+  onPatronDelete?: (patron: Patron) => void | Promise<void>;
+  onPatronAdd?: () => void;
+  onClientEdit?: (client: Client) => void | Promise<void>;
+  onClientDelete?: (client: Client) => void | Promise<void>;
+  onClientAdd?: () => void;
+  onLieuEdit?: (lieu: Lieu) => void | Promise<void>;
+  onLieuDelete?: (lieu: Lieu) => void | Promise<void>;
+  onLieuAdd?: () => void;
+  showMissionRateEditor?: boolean;
+  onToggleMissionRateEditor?: Dispatch<SetStateAction<boolean>>;
+  kmSettings?: KmSettings | null;
+  onRegeocoderLieu?: ((id: string, coords: Partial<Lieu>) => Promise<void>) | null;
+  domicileLatLng?: { lat: number; lng: number } | null;
+  missionsThisWeek?: Mission[];
+  kmFraisThisWeek?: KmFraisResult | null;
+  onRegeocoderBatch?: ((lieuxManquants: Lieu[]) => Promise<any>) | null;
+  onRecalculerKmSemaine?: (() => Promise<{ message: string }>) | null;
+  onRebuildBilans?: ((patronId: string | null, startWeek: number, endWeek: number) => Promise<any>) | null;
+  onRepairBilans?: ((patronId: string | null) => Promise<any>) | null;
+  deleteAcompte?: ((id: string) => Promise<void>) | null;
+  fetchAcomptes?: (() => Promise<any>) | null;
+  showConfirm?: ((options?: any) => Promise<boolean>) | null;
+  triggerAlert?: ((message: string) => void) | null;
+}
+
 export function ParametresTab({
   profile,
   profileSaving,
@@ -191,7 +241,7 @@ export function ParametresTab({
   onLieuDelete,
   onLieuAdd,
   showMissionRateEditor = true,
-  onToggleMissionRateEditor = () => {},
+  onToggleMissionRateEditor,
   kmSettings = null,
   onRegeocoderLieu = null,
   domicileLatLng = null,
@@ -205,10 +255,10 @@ export function ParametresTab({
   fetchAcomptes = null,
   showConfirm = null,
   triggerAlert = null,
-}) {
+}: ParametresTabProps) {
   const { darkMode } = useDarkMode();
   const { isAdmin, isPro, isViewer } = usePermissions();
-  const [activePanel, setActivePanel] = useState(null);
+  const [activePanel, setActivePanel] = useState<string | null>(null);
 
   const sections = useMemo(
     () => [
@@ -426,7 +476,7 @@ export function ParametresTab({
                         <button
                           type="button"
                           disabled={!isPro}
-                          onClick={() => onToggleMissionRateEditor((prev) => !prev)}
+                          onClick={() => onToggleMissionRateEditor?.((prev: boolean) => !prev)}
                           className={
                             "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
                             (showMissionRateEditor
@@ -617,10 +667,17 @@ export function ParametresTab({
 
 // ─── LabelsPanel ──────────────────────────────────────────────────────────────
 
-function LabelsPanel({ profile, saveProfile, darkMode, profileSaving }) {
-  const DEFS = { patron: "Patron", patrons: "Patrons", client: "Client", clients: "Clients", lieu: "Lieu", lieux: "Lieux", mission: "Mission", missions: "Missions" };
+interface LabelsPanelProps {
+  profile: any;
+  saveProfile: (data: any) => Promise<any>;
+  darkMode: boolean;
+  profileSaving?: boolean;
+}
+
+function LabelsPanel({ profile, saveProfile, darkMode, profileSaving }: LabelsPanelProps) {
+  const DEFS: Record<string, string> = { patron: "Patron", patrons: "Patrons", client: "Client", clients: "Clients", lieu: "Lieu", lieux: "Lieux", mission: "Mission", missions: "Missions" };
   const saved = profile?.features?.labels ?? {};
-  const [vals, setVals] = useState({
+  const [vals, setVals] = useState<Record<string, string>>({
     patron:   saved.patron   ?? "",
     patrons:  saved.patrons  ?? "",
     client:   saved.client   ?? "",
@@ -648,7 +705,7 @@ function LabelsPanel({ profile, saveProfile, darkMode, profileSaving }) {
 
   const handleSave = async () => {
     setSaving(true);
-    const cleaned = {};
+    const cleaned: Record<string, string> = {};
     Object.entries(vals).forEach(([k, v]) => { if (v.trim()) cleaned[k] = v.trim(); });
     await saveProfile({ features: { ...(profile?.features ?? {}), labels: Object.keys(cleaned).length ? cleaned : null } });
     setSaving(false);
@@ -668,7 +725,7 @@ function LabelsPanel({ profile, saveProfile, darkMode, profileSaving }) {
     { key: "mission", keyP: "missions", label: "Mission / Prestation" },
   ];
 
-  const inp = (key) => (
+  const inp = (key: string) => (
     <input
       type="text"
       value={vals[key]}
@@ -725,9 +782,16 @@ function LabelsPanel({ profile, saveProfile, darkMode, profileSaving }) {
 
 // ─── KmSettingsPanel ─────────────────────────────────────────────────────────
 
-function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
+interface KmSettingsPanelProps {
+  profile: any;
+  saveProfile: (data: any) => Promise<any>;
+  isPro: boolean;
+  darkMode?: boolean;
+}
+
+function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }: KmSettingsPanelProps) {
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [kmEnable, setKmEnable] = useState(() => getKmEnabled(profile?.features));
   const [kmIncludeRetour, setKmIncludeRetour] = useState(() => {
@@ -939,7 +1003,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro, darkMode = true }) {
             <p className={"text-sm " + (darkMode ? "text-white/70" : "text-slate-600")}>Inclure le trajet retour (aller-retour)</p>
             <button
               type="button"
-              onClick={() => setKmIncludeRetour((v) => !v)}
+              onClick={() => setKmIncludeRetour((v: boolean) => !v)}
               className={
                 "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
                 (kmIncludeRetour

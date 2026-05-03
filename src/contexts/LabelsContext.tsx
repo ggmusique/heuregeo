@@ -12,6 +12,7 @@ export interface LabelsContextType {
   clients: string;
   lieux: string;
   missions: string;
+  [key: string]: string;
 }
 
 // ─── Contexte ────────────────────────────────────────────────────────────────

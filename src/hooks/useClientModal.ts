@@ -6,8 +6,8 @@ import type { ConfirmFn } from "./useConfirm";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface UseClientModalArgs {
-  createClient: (data: Partial<Client>) => Promise<void>;
-  updateClient: (id: string, data: Partial<Client>) => Promise<void>;
+  createClient: (data: Partial<Client>) => Promise<Client | void>;
+  updateClient: (id: string, data: Partial<Client>) => Promise<Client | void>;
   deleteClient: (id: string) => Promise<void>;
   setLoading: (v: boolean) => void;
   triggerAlert: (msg: string) => void;

@@ -1,6 +1,6 @@
-import { supabase } from "../supabase.ts";
-import type { FraisDivers } from "../../types/entities.ts";
-import type { FraisKmRow } from "../../types/bilan.ts";
+import { supabase } from "../supabase";
+import type { FraisDivers } from "../../types/entities";
+import type { FraisKmRow } from "../../types/bilan";
 
 export const fetchFrais = async (): Promise<FraisDivers[]> => {
   const { data, error } = await supabase

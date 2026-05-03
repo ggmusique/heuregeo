@@ -2,9 +2,18 @@ import React, { useState, useEffect } from 'react'
 import { supabase } from '../services/supabase'
 import { EU_TVA_RATES } from '../utils/tvaRates'
 
-
 /* ── Section repliable réutilisable ─────────────────────────── */
-const Section = ({ title, titleColor = "text-indigo-300", badge, open, onToggle, children }) => (
+
+interface SectionProps {
+  title: string;
+  titleColor?: string;
+  badge?: string;
+  open: boolean;
+  onToggle: () => void;
+  children?: React.ReactNode;
+}
+
+const Section = ({ title, titleColor = "text-indigo-300", badge, open, onToggle, children }: SectionProps) => (
   <div className="bg-[#0f111a] border-2 border-white/10 rounded-[32px] overflow-hidden">
     <button
       onClick={onToggle}
@@ -36,7 +45,15 @@ const Section = ({ title, titleColor = "text-indigo-300", badge, open, onToggle,
 )
 
 /* ── Composant principal ─────────────────────────────────────── */
-export const CompteTab = ({ profile, saving, onSave, userEmail }) => {
+
+interface CompteTabProps {
+  profile: any;
+  saving?: boolean;
+  onSave: (data: any) => Promise<any>;
+  userEmail?: string;
+}
+
+export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps) => {
   const [form, setForm] = useState({
     prenom: '', nom: '', adresse: '', code_postal: '', ville: '', telephone: '',
     numero_tva: '', pays_tva: 'FR',
@@ -101,7 +118,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }) => {
         <Section
           title="Identité"
           titleColor="text-indigo-300"
-          badge={form.prenom || form.nom ? `${form.prenom} ${form.nom}`.trim() : null}
+          badge={form.prenom || form.nom ? `${form.prenom} ${form.nom}`.trim() : undefined}
           open={showIdent}
           onToggle={() => setShowIdent(v => !v)}
         >
@@ -125,7 +142,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }) => {
         <Section
           title="Coordonnées"
           titleColor="text-indigo-300"
-          badge={form.ville || form.adresse || null}
+          badge={form.ville || form.adresse || undefined}
           open={showCoords}
           onToggle={() => setShowCoords(v => !v)}
         >
@@ -165,7 +182,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }) => {
         <Section
           title="Facturation / TVA"
           titleColor="text-amber-400"
-          badge={form.numero_tva || null}
+          badge={form.numero_tva || undefined}
           open={showTva}
           onToggle={() => setShowTva(v => !v)}
         >

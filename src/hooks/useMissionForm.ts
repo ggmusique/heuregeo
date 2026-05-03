@@ -7,8 +7,8 @@ import type { ConfirmFn } from "./useConfirm";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface UseMissionFormArgs {
-  createMission: (data: Partial<Mission>) => Promise<void>;
-  updateMission: (id: string, data: Partial<Mission>) => Promise<void>;
+  createMission: (data: Partial<Mission>) => Promise<Mission | void>;
+  updateMission: (id: string, data: Partial<Mission>) => Promise<Mission | void>;
   deleteMission: (id: string) => Promise<void>;
   missions: Mission[];
   setLoading: (v: boolean) => void;
@@ -95,7 +95,7 @@ export function useMissionForm({ createMission, updateMission, deleteMission, mi
 
   const copierDerniereMission = (): void => {
     if (!missions.length) return triggerAlert("Aucune mission precedente.");
-    const derniere = [...missions].sort((a, b) => b.date_iso.localeCompare(a.date_iso))[0];
+    const derniere = [...missions].sort((a, b) => (b.date_iso ?? "").localeCompare(a.date_iso ?? ""))[0];
     setEditingMissionData({ lieu_id: derniere.lieu_id || null, lieu: derniere.lieu, debut: derniere.debut, fin: derniere.fin, pause: derniere.pause, patron_id: derniere.patron_id, client_id: derniere.client_id, client: derniere.client });
     setSelectedClientId(derniere.client_id || null);
     setSelectedLieuId(derniere.lieu_id || null);

@@ -137,5 +137,7 @@ export interface AgendaEvent {
   type?: string | null;
   /** Délai de rappel en minutes avant l'événement. */
   rappel_minutes?: number | null;
+  /** Description libre de l'événement. */
+  description?: string | null;
   [key: string]: unknown;
 }

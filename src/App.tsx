@@ -49,7 +49,7 @@ import { getLabels } from "./utils/labels";
 import "./inputs.css";
 
 interface AppProps {
-  user: User;
+  user?: User;
 }
 
 export default function App({ user }: AppProps) {
@@ -112,7 +112,7 @@ function AppContent({ user }: AppProps) {
 }
 
 interface AppInnerProps {
-  user: User;
+  user?: User;
   profile: any;
   profileSaving: any;
   saveProfile: any;
@@ -177,7 +177,7 @@ function AppInner({
   const patronModal = usePatronModal({ createPatron, updatePatron, deletePatron, setLoading, triggerAlert, showConfirm });
   const clientModal = useClientModal({ createClient, updateClient, deleteClient, setLoading, triggerAlert, showConfirm });
 
-  const agendaHook  = useAgenda({ userId: user?.id, triggerAlert });
+  const agendaHook  = useAgenda({ userId: user?.id ?? null, triggerAlert });
   const agendaModal = useAgendaModal({ createEvent: agendaHook.createEvent, updateEvent: agendaHook.updateEvent, deleteEvent: agendaHook.deleteEvent, triggerAlert });
 
   const agendaWorkedDays = useMemo(() => {

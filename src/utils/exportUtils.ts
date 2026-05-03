@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import { formatEuro, formatHeures, formatDateFR } from "./formatters.ts";
+import { formatEuro, formatHeures, formatDateFR } from "./formatters";
 
 /**
  * Utilitaires d'export (Excel, CSV)

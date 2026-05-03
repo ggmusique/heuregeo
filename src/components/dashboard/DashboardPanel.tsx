@@ -9,20 +9,47 @@ import { haversineKm } from "../../utils/calculators";
 import { supabase } from "../../services/supabase";
 import { useDarkMode } from "../../contexts/DarkModeContext";
 
-function getISOWeekYear(date) {
+interface ChartDataset {
+  data: number[];
+  [key: string]: unknown;
+}
+interface ChartInstance {
+  data: { labels: string[]; datasets: ChartDataset[] };
+  update(mode?: string): void;
+  destroy(): void;
+}
+declare global {
+  interface Window {
+    Chart: new (ctx: CanvasRenderingContext2D, config: unknown) => ChartInstance;
+  }
+}
+
+interface PreviousWeekData {
+  weekNum: number;
+  ca: number;
+  hours: number;
+  frais: number;
+  acomptes: number;
+  km: number;
+  kmKm: number;
+  reste: number;
+  missionsCount: number;
+}
+
+function getISOWeekYear(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   return d.getUTCFullYear();
 }
 
-function getMonthKey(dateIso) {
+function getMonthKey(dateIso: string | null): string | null {
   return dateIso ? dateIso.slice(0, 7) : null;
 }
 
-function fmtMonthShort(ym) {
+function fmtMonthShort(ym: string | null): string {
   if (!ym) return "";
   const [y, m] = ym.split("-");
-  return new Date(y, parseInt(m, 10) - 1).toLocaleString("fr-FR", { month: "short" });
+  return new Date(parseInt(y, 10), parseInt(m, 10) - 1).toLocaleString("fr-FR", { month: "short" });
 }
 
 interface DashboardPanelProps {
@@ -49,13 +76,13 @@ export function DashboardPanel({
   domicileLatLng = null,
 }: DashboardPanelProps) {
   const { darkMode } = useDarkMode();
-  const chartRef = useRef(null);
-  const chartInstance = useRef(null);
+  const chartRef = useRef<HTMLCanvasElement | null>(null);
+  const chartInstance = useRef<ChartInstance | null>(null);
 
-  const [selectedPatronId, setSelectedPatronId] = useState(null);
+  const [selectedPatronId, setSelectedPatronId] = useState<string | null>(null);
   const [barsReady, setBarsReady] = useState(false);
   const [chartLoaded, setChartLoaded] = useState(false);
-  const [allocByWeek, setAllocByWeek] = useState({});
+  const [allocByWeek, setAllocByWeek] = useState<Record<number, number>>({});
   const [totalImpayesDB, setTotalImpayesDB] = useState(0);
 
   const now = useMemo(() => new Date(), []);
@@ -85,7 +112,7 @@ export function DashboardPanel({
   const missionsLastWeek = useMemo(() => getMissionsForWeek(-1), [getMissionsForWeek]);
 
   const computeKmForMissions = useCallback(
-    (missionsList) => {
+    (missionsList: typeof missions) => {
       if (!kmEnabled || !missionsList?.length) {
         return { totalKm: 0, totalAmount: 0 };
       }
@@ -102,6 +129,8 @@ export function DashboardPanel({
       if (!Number.isFinite(effectiveDomicile?.lat) || !Number.isFinite(effectiveDomicile?.lng)) {
         return { totalKm: 0, totalAmount: 0 };
       }
+
+      if (!effectiveDomicile) return { totalKm: 0, totalAmount: 0 };
 
       const kmRateEffectif =
         kmSettings?.km_rate_mode === "CUSTOM"
@@ -140,7 +169,7 @@ export function DashboardPanel({
   const kmThisWeek = useMemo(() => computeKmForMissions(missionsThisWeek), [computeKmForMissions, missionsThisWeek]);
 
   const kpis = useMemo(() => {
-    const calc = (list) => ({
+    const calc = (list: typeof missions) => ({
       ca: list.reduce((s, m) => s + (m.montant || 0), 0),
       hours: list.reduce((s, m) => s + (m.duree || 0), 0),
       count: list.length,
@@ -165,10 +194,10 @@ export function DashboardPanel({
   }, [missionsThisWeek, missionsLastWeek]);
 
   const bilanSemaine = useMemo(() => {
-    const filterWeek = (items, dateField) =>
+    const filterWeek = (items: { [key: string]: unknown }[], dateField: string) =>
       items.filter((item) => {
         if (!item[dateField]) return false;
-        const d = new Date(item[dateField] + "T12:00:00");
+        const d = new Date(item[dateField] as string + "T12:00:00");
         return (
           getWeekNumber(d) === currentWeek &&
           getISOWeekYear(d) === currentYear &&
@@ -176,8 +205,8 @@ export function DashboardPanel({
         );
       });
 
-    const fraisWeek = filterWeek(fraisDivers, "date_frais").reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
-    const acomptesWeek = filterWeek(listeAcomptes, "date_acompte").reduce((s, a) => s + (parseFloat(a.montant) || 0), 0);
+    const fraisWeek = filterWeek(fraisDivers as { [key: string]: unknown }[], "date_frais").reduce((s, f) => s + (Number(f.montant) || 0), 0);
+    const acomptesWeek = filterWeek(listeAcomptes as { [key: string]: unknown }[], "date_acompte").reduce((s, a) => s + (Number(a.montant) || 0), 0);
 
     return {
       caWeek: kpis.ca.value,
@@ -209,7 +238,7 @@ export function DashboardPanel({
             (!selectedPatronId || f.patron_id === selectedPatronId)
           );
         })
-        .reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
+        .reduce((s, f) => s + (Number(f.montant) || 0), 0);
 
       const acomptesWeek = listeAcomptes
         .filter((a) => {
@@ -221,7 +250,7 @@ export function DashboardPanel({
             (!selectedPatronId || a.patron_id === selectedPatronId)
           );
         })
-        .reduce((s, a) => s + (parseFloat(a.montant) || 0), 0);
+        .reduce((s, a) => s + (Number(a.montant) || 0), 0);
 
       const ca = weekMissions.reduce((s, m) => s + (m.montant || 0), 0);
       const hours = weekMissions.reduce((s, m) => s + (m.duree || 0), 0);
@@ -238,11 +267,11 @@ export function DashboardPanel({
         reste: Math.max(0, ca - (allocByWeek[weekNum] || 0)),
         missionsCount: weekMissions.length,
       };
-    }).filter(Boolean);
+    }).filter((w): w is PreviousWeekData => w !== null);
   }, [filteredMissions, fraisDivers, listeAcomptes, currentWeek, currentYear, selectedPatronId, computeKmForMissions, allocByWeek]);
 
   const topClients = useMemo(() => {
-    const map = {};
+    const map: Record<string, { name: string; ca: number }> = {};
     filteredMissions.forEach((m) => {
       const key = m.client_id || m.client || "?";
       const name = m.client || clients.find((c) => c.id === m.client_id)?.nom || "Client";
@@ -263,15 +292,15 @@ export function DashboardPanel({
 
     const labels = months.map(fmtMonthShort);
 
-    const getMonthlyCA = (ym) =>
+    const getMonthlyCA = (ym: string | null) =>
       filteredMissions
         .filter((m) => getMonthKey(m.date_iso) === ym)
         .reduce((s, m) => s + (m.montant || 0), 0);
 
-    const getMonthlyFrais = (ym) =>
+    const getMonthlyFrais = (ym: string | null) =>
       fraisDivers
         .filter((f) => getMonthKey(f.date_frais) === ym && (!selectedPatronId || f.patron_id === selectedPatronId))
-        .reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
+        .reduce((s, f) => s + (Number(f.montant) || 0), 0);
 
     return {
       labels,
@@ -292,10 +321,10 @@ export function DashboardPanel({
         const { data, error } = await query;
         if (error) throw error;
 
-        const map = {};
+        const map: Record<number, number> = {};
         (data || []).forEach((a) => {
           const idx = a.periode_index;
-          map[idx] = (map[idx] || 0) + (parseFloat(a.amount) || 0);
+          map[idx] = (map[idx] || 0) + (Number(a.amount) || 0);
         });
         setAllocByWeek(map);
 
@@ -315,7 +344,7 @@ export function DashboardPanel({
         const totalImpayesFiltered = (bilansImpayes || [])
           .filter((b) => !selectedPatronId || b.patron_id === selectedPatronId)
           .reduce((s, b) => {
-            const ca = parseFloat(b.ca_brut_periode || 0);
+            const ca = Number(b.ca_brut_periode) || 0;
             const alloue = map[b.periode_index] || 0;
             return s + Math.max(0, ca - alloue);
           }, 0);
@@ -351,7 +380,8 @@ export function DashboardPanel({
         return;
       }
 
-      const ctx = chartRef.current.getContext("2d");
+      const ctx = chartRef.current!.getContext("2d");
+      if (!ctx) return;
       const caGradient = ctx.createLinearGradient(0, 0, 0, 400);
       caGradient.addColorStop(0, chartColors.indigo.gradient[0]);
       caGradient.addColorStop(1, chartColors.indigo.gradient[1]);
@@ -387,8 +417,8 @@ export function DashboardPanel({
         },
         options: {
           ...chartOptions,
-          onHover: (e, activeElements) => {
-            e.native.target.style.cursor = activeElements.length > 0 ? "pointer" : "default";
+          onHover: (e: { native: { target: HTMLElement } | null }, activeElements: unknown[]) => {
+            if (e.native?.target) e.native.target.style.cursor = activeElements.length > 0 ? "pointer" : "default";
           },
         },
       });
@@ -412,7 +442,7 @@ export function DashboardPanel({
   }, [topClients]);
 
   const patronColorMap = useMemo(() => {
-    const map = {};
+    const map: Record<string, string> = {};
     patrons.forEach((p, i) => {
       map[p.id] =
         p.couleur ||

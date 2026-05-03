@@ -1,4 +1,4 @@
-import { COMMON_MESSAGES } from "../constants/messages.ts";
+import { COMMON_MESSAGES } from "../constants/messages";
 
 interface AsyncActionOptions {
   run: () => Promise<any>;
