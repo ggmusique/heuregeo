@@ -5,6 +5,29 @@ import { useLabels } from "../contexts/LabelsContext";
 import { useDarkMode } from "../contexts/DarkModeContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { StatsCharts } from "../components/stats/StatsCharts";
+import type { Patron, Mission } from "../types/entities";
+
+interface Props {
+  // État
+  historique: any;
+  historiquePatronId: string | null;
+  historiqueTab: string;
+  loadingHistorique: boolean;
+
+  // Données
+  patrons: Patron[];
+  missions: Mission[];
+  listeAcomptes: any[];
+
+  // Handlers
+  onPatronFilterChange: (patronId: string | null) => void;
+  onTabChange: (tab: string) => void;
+  onLoadHistorique: (patronId?: string | null) => void;
+
+  // Viewer (can also come from PermissionsContext)
+  isViewer?: boolean;
+  viewerPatronId?: string | null;
+}
 
 /**
  * ✅ HistoriqueTab
@@ -30,7 +53,7 @@ export const HistoriqueTab = ({
   // Viewer (can also come from PermissionsContext)
   isViewer: isViewerProp,
   viewerPatronId: viewerPatronIdProp,
-}) => {
+}: Props) => {
   const { darkMode } = useDarkMode();
   const { isViewer: isViewerCtx, viewerPatronId: viewerPatronIdCtx } = usePermissions();
   const isViewer = isViewerProp !== undefined ? isViewerProp : isViewerCtx;
@@ -51,18 +74,18 @@ export const HistoriqueTab = ({
 
   // ── Clients uniques (pour le filtre missions) ─────────────────────────────
   const clientsUniques = useMemo(
-    () => [...new Set(missions.map((m) => m.client).filter(Boolean))].sort(),
+    () => [...new Set(missions.map((m) => m.client).filter((c): c is string => c !== null))].sort(),
     [missions]
   );
 
   // ── Mois disponibles (pour les selects De/À) ──────────────────────────────
   const availableMonths = useMemo(() => {
-    const months = new Set(missions.map((m) => m.date_iso?.slice(0, 7)).filter(Boolean));
+    const months = new Set(missions.map((m) => m.date_iso?.slice(0, 7)).filter((m): m is string => m != null));
     return [...months].sort();
   }, [missions]);
 
   const MONTH_NAMES = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-  const formatMonthLabel = (ym) => {
+  const formatMonthLabel = (ym: string | undefined) => {
     if (!ym) return "";
     const [y, m] = ym.split("-");
     return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
@@ -83,7 +106,7 @@ export const HistoriqueTab = ({
   const filteredImpayes = useMemo(
     () =>
       missions.length > 0
-        ? (historique.impayes || []).filter((row) => {
+        ? (historique.impayes || []).filter((row: any) => {
             const wk = parseInt(row.periode_value, 10);
             return Number.isFinite(wk) && validWeekNums.has(wk);
           })
@@ -93,7 +116,7 @@ export const HistoriqueTab = ({
   const filteredPayes = useMemo(
     () =>
       missions.length > 0
-        ? (historique.payes || []).filter((row) => {
+        ? (historique.payes || []).filter((row: any) => {
             const wk = parseInt(row.periode_value, 10);
             return Number.isFinite(wk) && validWeekNums.has(wk);
           })
@@ -207,7 +230,7 @@ export const HistoriqueTab = ({
 
           // Total impayés (using filtered list to exclude deleted-mission rows)
           const totalImpayes = filteredImpayes.reduce(
-            (s, r) => s + (r.ca_brut_periode || 0),  // ✅ au lieu de reste_a_percevoir
+            (s: number, r: any) => s + (r.ca_brut_periode || 0),  // ✅ au lieu de reste_a_percevoir
             0
           );
 
@@ -409,7 +432,7 @@ export const HistoriqueTab = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredImpayes.map((row) => (
+                  {filteredImpayes.map((row: any) => (
                     <div
                       key={row.id}
                       className={`flex items-center justify-between p-4 rounded-2xl ${
@@ -444,7 +467,7 @@ export const HistoriqueTab = ({
                     <p className="text-xl font-black text-orange-400 amount-safe">
                       {formatEuro(
                         filteredImpayes.reduce(
-                          (s, r) => s + (r.reste_a_percevoir || 0),
+                          (s: number, r: any) => s + (r.reste_a_percevoir || 0),
                           0
                         )
                       )}
@@ -473,7 +496,7 @@ export const HistoriqueTab = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredPayes.map((row) => (
+                  {filteredPayes.map((row: any) => (
                     <div
                       key={row.id}
                       className={`flex items-center justify-between p-4 rounded-2xl ${

@@ -6,6 +6,36 @@ import { useLabels } from "../contexts/LabelsContext";
 import { useDarkMode } from "../contexts/DarkModeContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { BilanPanel } from "../components/stats/BilanPanel";
+import type { Mission, Patron } from "../types/entities";
+import type { KmSettings, KmFraisResult } from "../hooks/useKmDomicile";
+
+interface Props {
+  bilan: any;
+  bilanPatronId: string | null;
+  currentWeek: number;
+  missionsThisWeek: Mission[];
+  patrons: Patron[];
+  getPatronNom: (id: string | null) => string;
+  getPatronColor: (id: string | null) => string;
+  onMarquerCommePaye?: () => void;
+  onFraisEdit?: (frais: any) => void;
+  onFraisDelete?: (frais: any) => void;
+  onMissionEdit?: (mission: any) => void;
+  onMissionDelete?: (id: string) => void;
+  profile: any;
+  isViewer?: boolean;
+  canBilanMois?: boolean;
+  canBilanAnnee?: boolean;
+  canExportPDF?: boolean;
+  canExportExcel?: boolean;
+  canExportCSV?: boolean;
+  canFacture?: boolean;
+  saveProfile?: any;
+  kmSettings?: KmSettings | null;
+  kmFraisThisWeek?: KmFraisResult | null;
+  domicileLatLng?: { lat: number; lng: number } | null;
+  onRecalculerFraisKm?: (() => void) | null;
+}
 
 export const BilanTab = ({
   bilan,
@@ -34,7 +64,7 @@ export const BilanTab = ({
   kmFraisThisWeek = null,
   domicileLatLng = null,
   onRecalculerFraisKm = null,
-}) => {
+}: Props) => {
   const { darkMode } = useDarkMode();
   const perms = usePermissions();
   const isViewer    = isViewerProp    !== undefined ? isViewerProp    : perms.isViewer;
@@ -56,7 +86,7 @@ export const BilanTab = ({
   const sortedBilanMissions = useMemo(() => {
     if (!bilan.bilanContent?.filteredData) return [];
     return [...bilan.bilanContent.filteredData].sort(
-      (a, b) => new Date(a.date_iso) - new Date(b.date_iso)
+      (a: Mission, b: Mission) => new Date(a.date_iso ?? "").getTime() - new Date(b.date_iso ?? "").getTime()
     );
   }, [bilan.bilanContent?.filteredData]);
 
@@ -90,13 +120,13 @@ export const BilanTab = ({
             </p>
           ) : (
             [...missionsThisWeek]
-              .sort((a, b) => new Date(a.date_iso) - new Date(b.date_iso))
+              .sort((a: Mission, b: Mission) => new Date(a.date_iso ?? "").getTime() - new Date(b.date_iso ?? "").getTime())
               .map((m) => (
                 <MissionCard
                   key={m.id}
                   mission={m}
-                  onEdit={isViewer ? null : onMissionEdit}
-                  onDelete={isViewer ? null : onMissionDelete}
+                  onEdit={isViewer ? undefined : onMissionEdit}
+                  onDelete={isViewer ? undefined : onMissionDelete}
                   patronNom={getPatronNom(m.patron_id)}
                   patronColor={getPatronColor(m.patron_id)}
                 />
@@ -105,7 +135,7 @@ export const BilanTab = ({
 
           {/* ── BLOC FRAIS KM – Semaine en cours ── */}
           {kmSettings?.km_enable === true && missionsThisWeek.length > 0 && (
-            kmFraisThisWeek?.items?.length > 0 ? (
+            kmFraisThisWeek !== null && kmFraisThisWeek.items.length > 0 ? (
               <div className={"mt-2 p-4 rounded-[25px] border backdrop-blur-md " +
                 (darkMode ? "bg-[#0A1628]/60 border-blue-600/20" : "bg-white/80 border-blue-200")}>
                 <p className={"text-[10px] font-black uppercase mb-3 tracking-[0.2em] " +
@@ -116,18 +146,18 @@ export const BilanTab = ({
                   {kmFraisThisWeek.items.filter((item) => item.amount !== null).map((item, i) => (
                     <div key={i} className="flex justify-between items-center text-sm">
                       <div>
-                        <span className={"font-bold " + (darkMode ? "text-white/80" : "text-slate-700")}>{formatDateFR(item.date)}</span>
+                        <span className={"font-bold " + (darkMode ? "text-white/80" : "text-slate-700")}>{formatDateFR(item.date ?? "")}</span>
                         <span className={"ml-2 " + (darkMode ? "text-white/50" : "text-slate-400")}>{item.labelLieuOuClient}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal)} km</span>
-                        <span className="font-bold text-blue-300 ml-2">{formatEuro(item.amount)}</span>
+                        <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal ?? 0)} km</span>
+                        <span className="font-bold text-blue-300 ml-2">{formatEuro(item.amount ?? 0)}</span>
                       </div>
                     </div>
                   ))}
                   {kmFraisThisWeek.items.filter((item) => item.amount === null).map((item, i) => (
                     <div key={`missing-${i}`} className={"text-sm italic " + (darkMode ? "text-white/40" : "text-slate-400")}>
-                      {formatDateFR(item.date)} — {item.labelLieuOuClient}
+                    {formatDateFR(item.date ?? "")} — {item.labelLieuOuClient}
                     </div>
                   ))}
                 </div>
@@ -217,7 +247,7 @@ export const BilanTab = ({
         onFraisEdit={onFraisEdit}
         onFraisDelete={onFraisDelete}
         kmSettings={kmSettings}
-        onRecalculerFraisKm={onRecalculerFraisKm}
+        onRecalculerFraisKm={onRecalculerFraisKm ?? undefined}
         isRecalculatingKm={bilan.isRecalculatingKm}
         domicileLatLng={domicileLatLng}
       />

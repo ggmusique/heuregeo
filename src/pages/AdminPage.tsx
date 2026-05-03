@@ -1,6 +1,15 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { supabase } from "../services/supabase";
 
+interface AdminUser {
+  id: string;
+  prenom: string | null;
+  nom: string | null;
+  created_at: string | null;
+  features: Record<string, unknown> | null;
+  is_admin: boolean | null;
+}
+
 /**
  * AdminPage — Page d'administration des utilisateurs
  *
@@ -34,11 +43,11 @@ import { supabase } from "../services/supabase";
  * }
  */
 export const AdminPage = ({ darkMode = true }) => {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [updating, setUpdating] = useState(null); // id de l'user en cours de mise à jour
-  const [updateError, setUpdateError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<string | null>(null); // id de l'user en cours de mise à jour
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -52,8 +61,8 @@ export const AdminPage = ({ darkMode = true }) => {
 
       if (error) throw error;
       setUsers(data || []);
-    } catch (err) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -63,7 +72,7 @@ export const AdminPage = ({ darkMode = true }) => {
     fetchUsers();
   }, [fetchUsers]);
 
-  const togglePlan = async (user) => {
+  const togglePlan = async (user: AdminUser) => {
     const currentPlan = user.features?.plan || "free";
     const newPlan = currentPlan === "pro" ? "free" : "pro";
 
@@ -108,14 +117,14 @@ export const AdminPage = ({ darkMode = true }) => {
           u.id === user.id ? { ...u, features: newFeatures } : u
         )
       );
-    } catch (err) {
-      setUpdateError(err.message);
+    } catch (err: unknown) {
+      setUpdateError(err instanceof Error ? err.message : String(err));
     } finally {
       setUpdating(null);
     }
   };
 
-  const formatDate = (dateStr) => {
+  const formatDate = (dateStr: string | null) => {
     if (!dateStr) return "—";
     return new Date(dateStr).toLocaleDateString("fr-FR", {
       day: "2-digit",
