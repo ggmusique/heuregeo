@@ -1,5 +1,5 @@
-import { supabase } from "../supabase.ts";
-import type { AgendaEvent } from "../../types/entities.ts";
+import { supabase } from "../supabase";
+import type { AgendaEvent } from "../../types/entities";
 
 export const fetchAgendaEvents = async (
   userId: string,

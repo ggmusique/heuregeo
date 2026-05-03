@@ -6,8 +6,8 @@ import type { ConfirmFn } from "./useConfirm";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface UsePatronModalArgs {
-  createPatron: (data: Partial<Patron>) => Promise<void>;
-  updatePatron: (id: string, data: Partial<Patron>) => Promise<void>;
+  createPatron: (data: Partial<Patron>) => Promise<Patron | void>;
+  updatePatron: (id: string, data: Partial<Patron>) => Promise<Patron | void>;
   deletePatron: (id: string) => Promise<void>;
   setLoading: (v: boolean) => void;
   triggerAlert: (msg: string) => void;

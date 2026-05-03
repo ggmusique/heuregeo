@@ -16,7 +16,7 @@ const JOURNEE_TYPE = { debut: "08:00", fin: "17:00", pause: 30 };
 const MAX_TIME_MINUTES = 23 * 60 + 45;
 const MAX_PAUSE_MINUTES = 180;
 
-const adjustTime = (time, deltaMinutes) => {
+const adjustTime = (time: string, deltaMinutes: number): string => {
   const [h, m] = time.split(":").map(Number);
   const total = Math.max(0, Math.min(MAX_TIME_MINUTES, h * 60 + m + deltaMinutes));
   return `${Math.floor(total / 60).toString().padStart(2, "0")}:${(total % 60).toString().padStart(2, "0")}`;
@@ -45,7 +45,7 @@ interface MissionFormProps {
   lieux?: any[];
   selectedLieuId?: string | null;
   onLieuChange?: (id: string | null) => void;
-  onAddNewLieu?: () => void;
+  onAddNewLieu?: (prefill?: { nom: string; notes: string } | null) => void;
   missions?: any[];
 }
 
@@ -76,7 +76,7 @@ export const MissionForm = ({
   missions = [],
 }: MissionFormProps) => {
   const L = useLabels();
-  const [pause, setPause] = useState(initialData?.pause ?? 30);
+  const [pause, setPause] = useState<number>(initialData?.pause ?? 30);
   const [dateMission, setDateMission] = useState(() => {
     return initialData?.date_iso || new Date().toISOString().split("T")[0];
   });
@@ -87,12 +87,12 @@ export const MissionForm = ({
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [weather, setWeather] = useState(null);
+  const [weather, setWeather] = useState<{ temp: number; icon: string; desc: string } | null>(null);
   const [weatherCity, setWeatherCity] = useState("");
   const [showRateEditor, setShowRateEditor] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  const clearError = useCallback((field) => {
+  const clearError = useCallback((field: string) => {
     setFormErrors((prev) => {
       if (!prev[field]) return prev;
       const next = { ...prev };
@@ -207,7 +207,7 @@ export const MissionForm = ({
   const handleSubmit = useCallback(() => {
     if (isSubmitting) return;
 
-    const errors = {};
+    const errors: Record<string, string> = {};
 
     if (!dateMission || !debut || !fin) {
       errors.horaires = "Date et horaires requis.";

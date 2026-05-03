@@ -4,6 +4,63 @@ import { getKmEnabled } from "../utils/kmSettings";
 import { supabase } from "../services/supabase";
 import { DIAGNOSTICS_MESSAGES } from "../constants/messages";
 import { runAsyncAction } from "../utils/asyncAction";
+import type { UserProfile } from "../types/profile";
+import type { Mission, Patron, Lieu } from "../types/entities";
+import type { KmFraisResult, KmSettings } from "../hooks/useKmDomicile";
+
+// ─── Types locaux ─────────────────────────────────────────────────────────────
+
+interface DiagData {
+  bilan: {
+    paye: boolean;
+    reste_a_percevoir: number | null;
+    ca_brut_periode: number | null;
+    acompte_consomme: number | null;
+    date_paiement: string | null;
+    periode_index: number;
+    id: string;
+  } | null;
+  impayePrecedent: number;
+  acomptes: { id: string; montant: number; date_acompte: string }[];
+  allocations: { acompte_id: string; amount: number; periode_index: number }[];
+  fraisKm: { date_frais: string; distance_km: number; rate_per_km: number; amount: number; mission_id: string }[];
+  queryErrors: string[];
+}
+
+interface RepairResult {
+  success: boolean;
+  message: string;
+  fixed: number;
+  skipped: number;
+}
+
+interface Anomaly {
+  severity: "critical" | "warning";
+  message: string;
+}
+
+interface DiagArgs {
+  kmEnabled: boolean;
+  domLat: number | null;
+  domLng: number | null;
+  lieuxSansCoords: Lieu[];
+  lieuxSuspects: Lieu[];
+  nbSansFraisKm: number;
+}
+
+interface DiagnosticsPageProps {
+  profile: UserProfile | null;
+  kmSettings: KmSettings | null;
+  domicileLatLng: { lat: number; lng: number } | null;
+  lieux?: Lieu[];
+  missionsThisWeek?: Mission[];
+  kmFraisThisWeek?: KmFraisResult;
+  onRegeocoderBatch?: ((lieux: Lieu[]) => Promise<unknown>) | null;
+  onRecalculerKmSemaine?: (() => Promise<unknown>) | null;
+  onRebuildBilans?: ((patronId: string | null, start: number, end: number) => Promise<unknown>) | null;
+  onRepairBilans?: ((patronId: string | null) => Promise<unknown>) | null;
+  patrons?: Patron[];
+}
 
 /**
  * DiagnosticsPage — Vue admin pour diagnostiquer l'ensemble du système :
@@ -24,7 +81,7 @@ export const DiagnosticsPage = ({
   onRebuildBilans = null,
   onRepairBilans = null,
   patrons = [],
-}) => {
+}: DiagnosticsPageProps) => {
   const [regeoLoading, setRegeoLoading] = useState(false);
   const [recalcLoading, setRecalcLoading] = useState(false);
   const [rebuildLoading, setRebuildLoading] = useState(false);
@@ -32,28 +89,29 @@ export const DiagnosticsPage = ({
   const [rebuildStart, setRebuildStart] = useState("1");
   const [rebuildEnd, setRebuildEnd] = useState("20");
   const [repairLoading, setRepairLoading] = useState(false);
-  const [repairResult, setRepairResult] = useState(null);
+  const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
   const [repairPatronId, setRepairPatronId] = useState("");
-  const [actionMsg, setActionMsg] = useState(null);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
   const [actionIsError, setActionIsError] = useState(false);
 
   // --- Diagnostic financier ---
   const [diagPatronId, setDiagPatronId] = useState("");
   const [diagWeek, setDiagWeek] = useState("");
-  const [diagData, setDiagData] = useState(null);
+  const [diagData, setDiagData] = useState<DiagData | null>(null);
   const [diagLoading, setDiagLoading] = useState(false);
-  const [diagError, setDiagError] = useState(null);
-  const [clipboardFeedback, setClipboardFeedback] = useState(null);
+  const [diagError, setDiagError] = useState<string | null>(null);
+  const [clipboardFeedback, setClipboardFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const features = profile?.features ?? {};
 
   // 1. kmEnabled value + source
   const kmEnabled = getKmEnabled(features);
-  const ks = features.km_settings ?? {};
+  const featuresLegacy = features as unknown as Record<string, unknown>;
+  const ks = (featuresLegacy.km_settings ?? {}) as Record<string, unknown>;
   const kmEnabledSource =
     typeof ks.enabled === "boolean"
       ? "km_settings.enabled"
-      : typeof features.km_enabled === "boolean"
+      : typeof featuresLegacy.km_enabled === "boolean"
         ? "km_enabled (legacy)"
         : "absent (false par défaut)";
 
@@ -109,13 +167,14 @@ export const DiagnosticsPage = ({
   });
 
   // ── Handlers ─────────────────────────────────────────────────────────────
-  const showMsg = (msg, isError = false) => {
+  const showMsg = (msg: string, isError = false) => {
     setActionMsg(msg);
     setActionIsError(isError);
   };
 
   const handleRebuildBilans = async () => {
-    if (!onRebuildBilans) return;
+    const fn = onRebuildBilans;
+    if (!fn) return;
     const start = parseInt(rebuildStart, 10);
     const end = parseInt(rebuildEnd, 10);
     if (!start || !end || start > end) {
@@ -126,7 +185,7 @@ setRebuildLoading(true);
     setActionMsg(null);
     try {
       await runAsyncAction({
-        run: () => onRebuildBilans(rebuildPatronId || null, start, end),
+        run: () => fn(rebuildPatronId || null, start, end),
         onSuccess: (result) => showMsg(result?.message || DIAGNOSTICS_MESSAGES.REBUILD_DONE, !result?.success),
         onError: (msg) => showMsg(msg, true),
         fallbackErrorMessage: DIAGNOSTICS_MESSAGES.REBUILD_FAILED,
@@ -137,13 +196,14 @@ setRebuildLoading(true);
   };
 
   const handleRepairBilans = async () => {
-    if (!onRepairBilans) return;
+    const fn = onRepairBilans;
+    if (!fn) return;
     setRepairLoading(true);
     setRepairResult(null);
     try {
       await runAsyncAction({
-        run: () => onRepairBilans(repairPatronId || null),
-        onSuccess: (result) => {
+        run: () => fn(repairPatronId || null),
+        onSuccess: (result: RepairResult) => {
           setRepairResult(result);
           showMsg(result.message, !result.success);
         },
@@ -156,12 +216,13 @@ setRebuildLoading(true);
   };
 
   const handleRegeocoderBatch = async () => {
-    if (!onRegeocoderBatch || lieuxSansCoords.length === 0) return;
+    const fn = onRegeocoderBatch;
+    if (!fn || lieuxSansCoords.length === 0) return;
     setRegeoLoading(true);
     setActionMsg(null);
     try {
       await runAsyncAction({
-        run: () => onRegeocoderBatch(lieuxSansCoords),
+        run: () => fn(lieuxSansCoords),
         onSuccess: (result) => showMsg(result?.message || DIAGNOSTICS_MESSAGES.GEOCODE_DONE),
         onError: (msg) => showMsg(msg, true),
         fallbackErrorMessage: DIAGNOSTICS_MESSAGES.GEOCODE_FAILED,
@@ -172,12 +233,13 @@ setRebuildLoading(true);
   };
 
   const handleRecalculerKm = async () => {
-    if (!onRecalculerKmSemaine || nbMissions === 0) return;
+    const fn = onRecalculerKmSemaine;
+    if (!fn || nbMissions === 0) return;
     setRecalcLoading(true);
     setActionMsg(null);
     try {
       await runAsyncAction({
-        run: () => onRecalculerKmSemaine(),
+        run: () => fn(),
         onSuccess: (result) => showMsg(result?.message || DIAGNOSTICS_MESSAGES.RECALC_KM_DONE),
         onError: (msg) => showMsg(msg, true),
         fallbackErrorMessage: DIAGNOSTICS_MESSAGES.RECALC_KM_FAILED,
@@ -247,19 +309,19 @@ setRebuildLoading(true);
       ].filter(Boolean);
 
       const impayePrecedent = (precedentsRes.data || []).reduce(
-        (sum, r) => sum + Math.max(0, parseFloat(r.reste_a_percevoir) || 0), 0
+        (sum, r) => sum + Math.max(0, parseFloat(String(r.reste_a_percevoir)) || 0), 0
       );
 
       setDiagData({
-        bilan: bilanRes.data,
+        bilan: bilanRes.data ?? null,
         impayePrecedent,
-        acomptes: acomptesRes.data || [],
-        allocations: allocRes.data || [],
-        fraisKm: fraisRes.data || [],
-        queryErrors,
+        acomptes: (acomptesRes.data || []) as DiagData["acomptes"],
+        allocations: (allocRes.data || []) as DiagData["allocations"],
+        fraisKm: (fraisRes.data || []) as DiagData["fraisKm"],
+        queryErrors: queryErrors as string[],
       });
     } catch (err) {
-      setDiagError(err.message);
+      setDiagError(err instanceof Error ? err.message : String(err));
     } finally {
       setDiagLoading(false);
     }
@@ -632,17 +694,17 @@ setRebuildLoading(true);
           <Card title={`🔎 Bilan S${diagWeek}`} statusBadge={getBilanCardStatus(diagData)}>
             {diagData.bilan ? (
               <>
-                <Row label="CA brut" value={`${parseFloat(diagData.bilan.ca_brut_periode || 0).toFixed(2)} €`} />
+                <Row label="CA brut" value={`${(diagData.bilan.ca_brut_periode ?? 0).toFixed(2)} €`} />
                 <Row
                   label="Impayé précédent"
                   value={`${diagData.impayePrecedent.toFixed(2)} €`}
                   valueClass={diagData.impayePrecedent > 0.01 ? "text-red-400" : "text-emerald-400"}
                 />
-                <Row label="Acompte consommé (DB)" value={`${parseFloat(diagData.bilan.acompte_consomme || 0).toFixed(2)} €`} />
+                <Row label="Acompte consommé (DB)" value={`${(diagData.bilan.acompte_consomme ?? 0).toFixed(2)} €`} />
                 <Row
                   label="Reste à percevoir (DB)"
-                  value={`${parseFloat(diagData.bilan.reste_a_percevoir || 0).toFixed(2)} €`}
-                  valueClass={parseFloat(diagData.bilan.reste_a_percevoir || 0) > 0.01 ? "text-red-400" : "text-emerald-400"}
+                  value={`${(diagData.bilan.reste_a_percevoir ?? 0).toFixed(2)} €`}
+                  valueClass={(diagData.bilan.reste_a_percevoir ?? 0) > 0.01 ? "text-red-400" : "text-emerald-400"}
                 />
                 <Row
                   label="Statut payé"
@@ -673,8 +735,8 @@ setRebuildLoading(true);
               <div className="space-y-3">
                 {diagData.acomptes.map((ac) => {
                   const allocs = diagData.allocations.filter((a) => a.acompte_id === ac.id);
-                  const totalAlloue = allocs.reduce((s, a) => s + parseFloat(a.amount || 0), 0);
-                  const solde = parseFloat(ac.montant || 0) - totalAlloue;
+                  const totalAlloue = allocs.reduce((s, a) => s + a.amount, 0);
+                  const solde = ac.montant - totalAlloue;
                   return (
                     <div key={ac.id} className="border-t border-white/10 pt-2 first:border-0 first:pt-0">
                       <div className="flex justify-between items-baseline mb-1">
@@ -682,7 +744,7 @@ setRebuildLoading(true);
                           {new Date(ac.date_acompte).toLocaleDateString("fr-FR")}
                         </span>
                         <span className="text-[12px] font-black text-yellow-300 font-mono">
-                          {parseFloat(ac.montant || 0).toFixed(2)} €
+                          {ac.montant.toFixed(2)} €
                         </span>
                       </div>
                       {allocs.length === 0 ? (
@@ -691,7 +753,7 @@ setRebuildLoading(true);
                         allocs.map((al, i) => (
                           <div key={i} className="flex justify-between pl-3 text-[11px]">
                             <span className="text-white/50">↳ S{al.periode_index}</span>
-                            <span className="font-mono text-white/70">{parseFloat(al.amount).toFixed(2)} €</span>
+                            <span className="font-mono text-white/70">{al.amount.toFixed(2)} €</span>
                           </div>
                         ))
                       )}
@@ -724,19 +786,19 @@ setRebuildLoading(true);
                       {new Date(f.date_frais).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}
                     </span>
                     <span className="text-white/60 font-mono">
-                      {parseFloat(f.distance_km).toFixed(1)} km × {parseFloat(f.rate_per_km).toFixed(2)} €
+                      {f.distance_km.toFixed(1)} km × {f.rate_per_km.toFixed(2)} €
                     </span>
                     <span className="font-black font-mono text-white shrink-0">
-                      {parseFloat(f.amount).toFixed(2)} €
+                      {f.amount.toFixed(2)} €
                     </span>
                   </div>
                 ))}
                 <div className="flex justify-between border-t border-white/10 pt-2 mt-1 text-[11px]">
                   <span className="text-white/50 font-black uppercase tracking-wider">Total</span>
                   <span className="font-black font-mono text-yellow-300">
-                    {diagData.fraisKm.reduce((s, f) => s + parseFloat(f.distance_km || 0), 0).toFixed(1)} km
+                    {diagData.fraisKm.reduce((s, f) => s + f.distance_km, 0).toFixed(1)} km
                     {" · "}
-                    {diagData.fraisKm.reduce((s, f) => s + parseFloat(f.amount || 0), 0).toFixed(2)} €
+                    {diagData.fraisKm.reduce((s, f) => s + f.amount, 0).toFixed(2)} €
                   </span>
                 </div>
               </>
@@ -756,7 +818,7 @@ const STATUS_BADGE_CFG = {
   critical: { label: "Critique",  cls: "text-red-400     border-red-500/40     bg-red-600/10"    },
 };
 
-function GlobalStatusCard({ status, summary }) {
+function GlobalStatusCard({ status, summary }: { status: "ok" | "warning" | "critical"; summary: string }) {
   const cfg = {
     ok:       { dot: "bg-emerald-400", border: "border-emerald-500/30", bg: "bg-emerald-600/10", label: "Cohérent", labelClass: "text-emerald-400" },
     warning:  { dot: "bg-orange-400",  border: "border-orange-500/30",  bg: "bg-orange-600/10",  label: "Vigilance", labelClass: "text-orange-400" },
@@ -779,7 +841,7 @@ function GlobalStatusCard({ status, summary }) {
   );
 }
 
-function AnomaliesCard({ anomalies, title = "Anomalies détectées" }) {
+function AnomaliesCard({ anomalies, title = "Anomalies détectées" }: { anomalies: Anomaly[]; title?: string }) {
   return (
     <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[#0A1628]/60 backdrop-blur-md space-y-2">
       <div className="flex items-center justify-between mb-1">
@@ -810,7 +872,7 @@ function AnomaliesCard({ anomalies, title = "Anomalies détectées" }) {
   );
 }
 
-function HumanSummaryCard({ diagData, diagWeek }) {
+function HumanSummaryCard({ diagData, diagWeek }: { diagData: DiagData; diagWeek: number | string }) {
   const sentences = getHumanDiagnosticSummary(diagData, diagWeek);
   if (!sentences || sentences.length === 0) return null;
 
@@ -826,7 +888,7 @@ function HumanSummaryCard({ diagData, diagWeek }) {
   );
 }
 
-function SectionLabel({ children }) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-3 pt-2 px-1">
       <div className="flex-1 h-px bg-white/10" />
@@ -836,7 +898,7 @@ function SectionLabel({ children }) {
   );
 }
 
-function Card({ title, badge, badgeClass = "text-white", statusBadge, children }) {
+function Card({ title, badge, badgeClass = "text-white", statusBadge, children }: { title: string; badge?: string | number; badgeClass?: string; statusBadge?: keyof typeof STATUS_BADGE_CFG; children: React.ReactNode }) {
   const sbCfg = statusBadge ? STATUS_BADGE_CFG[statusBadge] : null;
   return (
     <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[#0A1628]/60 backdrop-blur-md space-y-2">
@@ -858,7 +920,7 @@ function Card({ title, badge, badgeClass = "text-white", statusBadge, children }
   );
 }
 
-function Row({ label, value, valueClass = "text-white" }) {
+function Row({ label, value, valueClass = "text-white" }: { label: string; value: React.ReactNode; valueClass?: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-[11px] text-white/50 uppercase tracking-wider">{label}</span>
@@ -867,7 +929,7 @@ function Row({ label, value, valueClass = "text-white" }) {
   );
 }
 
-function Hint({ children }) {
+function Hint({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-[10px] text-white/35 italic leading-snug pt-0.5 border-t border-white/5 mt-1">
       {children}
@@ -877,7 +939,7 @@ function Hint({ children }) {
 
 // ── Utilitaires de diagnostic ─────────────────────────────────────────────
 
-function getDiagnosticStatus({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }) {
+function getDiagnosticStatus({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }: DiagArgs): "ok" | "warning" | "critical" {
   if (kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng))) return "critical";
   if (lieuxSansCoords.length >= 3) return "critical";
   if (lieuxSansCoords.length > 0 || lieuxSuspects.length > 0) return "warning";
@@ -885,7 +947,7 @@ function getDiagnosticStatus({ kmEnabled, domLat, domLng, lieuxSansCoords, lieux
   return "ok";
 }
 
-function getDiagnosticSummary({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }) {
+function getDiagnosticSummary({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }: DiagArgs): string {
   if (kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng))) {
     return "Incohérence critique : coordonnées domicile manquantes — calcul KM impossible.";
   }
@@ -901,8 +963,8 @@ function getDiagnosticSummary({ kmEnabled, domLat, domLng, lieuxSansCoords, lieu
   return `${issues.length} points de vigilance : ${issues.join(", ")}.`;
 }
 
-function getStaticAnomalies({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }) {
-  const anomalies = [];
+function getStaticAnomalies({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }: DiagArgs): Anomaly[] {
+  const anomalies: Anomaly[] = [];
   if (kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng))) {
     anomalies.push({
       severity: "critical",
@@ -930,15 +992,15 @@ function getStaticAnomalies({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxS
   return anomalies;
 }
 
-function getDiagDataAnomalies(diagData, diagWeek) {
-  const anomalies = [];
+function getDiagDataAnomalies(diagData: DiagData, diagWeek: number | string): Anomaly[] {
+  const anomalies: Anomaly[] = [];
   const bilan = diagData.bilan;
 
   // Semaine payée avec reste > 0
-  if (bilan?.paye && parseFloat(bilan.reste_a_percevoir || 0) > 0.01) {
+  if (bilan?.paye && (bilan.reste_a_percevoir ?? 0) > 0.01) {
     anomalies.push({
       severity: "critical",
-      message: `S${diagWeek} marquée payée mais reste à percevoir de ${parseFloat(bilan.reste_a_percevoir).toFixed(2)} € en base.`,
+      message: `S${diagWeek} marquée payée mais reste à percevoir de ${(bilan.reste_a_percevoir ?? 0).toFixed(2)} € en base.`,
     });
   }
 
@@ -957,8 +1019,8 @@ function getDiagDataAnomalies(diagData, diagWeek) {
   const acomptesOverAlloues = diagData.acomptes.filter((ac) => {
     const totalAlloue = diagData.allocations
       .filter((al) => al.acompte_id === ac.id)
-      .reduce((s, al) => s + parseFloat(al.amount || 0), 0);
-    return totalAlloue > parseFloat(ac.montant || 0) + 0.01;
+      .reduce((s, al) => s + al.amount, 0);
+    return totalAlloue > ac.montant + 0.01;
   });
   if (acomptesOverAlloues.length > 0) {
     anomalies.push({
@@ -978,21 +1040,21 @@ function getDiagDataAnomalies(diagData, diagWeek) {
   return anomalies;
 }
 
-function getBilanCardStatus(diagData) {
+function getBilanCardStatus(diagData: DiagData): keyof typeof STATUS_BADGE_CFG {
   if (diagData.queryErrors?.some((e) => e.startsWith("Bilan:"))) return "critical";
   if (!diagData.bilan) return "warning";
-  if (diagData.bilan.paye && parseFloat(diagData.bilan.reste_a_percevoir || 0) > 0.01) return "critical";
+  if (diagData.bilan.paye && parseFloat(String(diagData.bilan.reste_a_percevoir || 0)) > 0.01) return "critical";
   if (diagData.impayePrecedent > 0.01) return "warning";
   return "ok";
 }
 
-function getAcompteCardStatus(diagData) {
+function getAcompteCardStatus(diagData: DiagData): keyof typeof STATUS_BADGE_CFG {
   if (diagData.queryErrors?.some((e) => e.startsWith("Acomptes:") || e.startsWith("Allocations:"))) return "critical";
   const overAlloue = diagData.acomptes.some((ac) => {
     const total = diagData.allocations
       .filter((al) => al.acompte_id === ac.id)
-      .reduce((s, al) => s + parseFloat(al.amount || 0), 0);
-    return total > parseFloat(ac.montant || 0) + 0.01;
+      .reduce((s, al) => s + al.amount, 0);
+    return total > ac.montant + 0.01;
   });
   if (overAlloue) return "critical";
   const sansAlloc = diagData.acomptes.some(
@@ -1002,17 +1064,17 @@ function getAcompteCardStatus(diagData) {
   return "ok";
 }
 
-function getKmCardStatus(diagData) {
+function getKmCardStatus(diagData: DiagData): keyof typeof STATUS_BADGE_CFG {
   if (diagData.queryErrors?.some((e) => e.startsWith("Frais KM:"))) return "critical";
   if (diagData.fraisKm.length === 0) return "warning";
   return "ok";
 }
 
-function getHumanDiagnosticSummary(diagData, diagWeek) {
+function getHumanDiagnosticSummary(diagData: DiagData | null, diagWeek: number | string): string[] {
   if (!diagData) return [];
   const sentences = [];
   const bilan = diagData.bilan;
-  const wk = parseInt(diagWeek, 10);
+  const wk = parseInt(String(diagWeek), 10);
 
   // Phrase 1 : état du bilan
   if (!bilan) {
@@ -1022,13 +1084,13 @@ function getHumanDiagnosticSummary(diagData, diagWeek) {
       ? new Date(bilan.date_paiement).toLocaleDateString("fr-FR")
       : null;
     sentences.push(`La semaine S${diagWeek} est soldée${dateStr ? ` le ${dateStr}` : ""}.`);
-    if (parseFloat(bilan.reste_a_percevoir || 0) > 0.01) {
+    if ((bilan.reste_a_percevoir ?? 0) > 0.01) {
       sentences.push(
-        `Attention : elle est marquée payée mais un reste de ${parseFloat(bilan.reste_a_percevoir).toFixed(2)} € subsiste en base.`
+        `Attention : elle est marquée payée mais un reste de ${(bilan.reste_a_percevoir ?? 0).toFixed(2)} € subsiste en base.`
       );
     }
   } else {
-    const reste = parseFloat(bilan.reste_a_percevoir || 0);
+    const reste = (bilan.reste_a_percevoir ?? 0);
     if (reste > 0.01) {
       sentences.push(`La semaine S${diagWeek} reste impayée (${reste.toFixed(2)} € à percevoir).`);
     } else {
@@ -1046,11 +1108,11 @@ function getHumanDiagnosticSummary(diagData, diagWeek) {
         const allAllocsForAc = diagData.allocations.filter((al) => al.acompte_id === ac.id);
         const semaines = allAllocsForAc.map((al) => `S${al.periode_index}`).join(", ");
         sentences.push(
-          `Un acompte de ${parseFloat(ac.montant || 0).toFixed(2)} € a été alloué sur ${semaines}.`
+          `Un acompte de ${ac.montant.toFixed(2)} € a été alloué sur ${semaines}.`
         );
       }
     } else {
-      const totalCouvert = allocsThisWeek.reduce((s, al) => s + parseFloat(al.amount || 0), 0);
+      const totalCouvert = allocsThisWeek.reduce((s, al) => s + al.amount, 0);
       sentences.push(
         `${acompteIds.length} acomptes couvrent ${totalCouvert.toFixed(2)} € sur S${diagWeek}.`
       );
@@ -1071,17 +1133,17 @@ function getHumanDiagnosticSummary(diagData, diagWeek) {
   return sentences;
 }
 
-function buildDiagnosticClipboardText(diagData, diagWeek, patronNom) {
+function buildDiagnosticClipboardText(diagData: DiagData, diagWeek: number | string, patronNom: string): string {
   const lines = [];
   lines.push(`Patron : ${patronNom || "—"}`);
   lines.push(`Semaine : ${diagWeek}`);
   lines.push("");
 
   if (diagData.bilan) {
-    lines.push(`CA brut : ${parseFloat(diagData.bilan.ca_brut_periode || 0).toFixed(2)} €`);
+    lines.push(`CA brut : ${(diagData.bilan.ca_brut_periode ?? 0).toFixed(2)} €`);
     lines.push(`Impayé précédent : ${diagData.impayePrecedent.toFixed(2)} €`);
     lines.push(`Statut payé : ${diagData.bilan.paye ? "Oui" : "Non"}`);
-    lines.push(`Reste à percevoir : ${parseFloat(diagData.bilan.reste_a_percevoir || 0).toFixed(2)} €`);
+    lines.push(`Reste à percevoir : ${(diagData.bilan.reste_a_percevoir ?? 0).toFixed(2)} €`);
   } else {
     lines.push("Bilan : absent");
   }
@@ -1093,7 +1155,7 @@ function buildDiagnosticClipboardText(diagData, diagWeek, patronNom) {
   } else {
     diagData.acomptes.forEach((ac) => {
       lines.push(
-        `- ${new Date(ac.date_acompte).toLocaleDateString("fr-FR")} : ${parseFloat(ac.montant || 0).toFixed(2)} €`
+        `- ${new Date(ac.date_acompte).toLocaleDateString("fr-FR")} : ${ac.montant.toFixed(2)} €`
       );
     });
   }
@@ -1104,7 +1166,7 @@ function buildDiagnosticClipboardText(diagData, diagWeek, patronNom) {
     lines.push("- Aucune allocation");
   } else {
     diagData.allocations.forEach((al) => {
-      lines.push(`- S${al.periode_index} : ${parseFloat(al.amount || 0).toFixed(2)} €`);
+      lines.push(`- S${al.periode_index} : ${al.amount.toFixed(2)} €`);
     });
   }
 
@@ -1115,7 +1177,7 @@ function buildDiagnosticClipboardText(diagData, diagWeek, patronNom) {
   } else {
     diagData.fraisKm.forEach((f) => {
       lines.push(
-        `- ${new Date(f.date_frais).toLocaleDateString("fr-FR")} : ${parseFloat(f.distance_km).toFixed(1)} km — ${parseFloat(f.amount).toFixed(2)} €`
+        `- ${new Date(f.date_frais).toLocaleDateString("fr-FR")} : ${f.distance_km.toFixed(1)} km — ${f.amount.toFixed(2)} €`
       );
     });
   }
@@ -1132,21 +1194,21 @@ function buildDiagnosticClipboardText(diagData, diagWeek, patronNom) {
   return lines.join("\n");
 }
 
-function formatAcompteAllocationSummary(acompte, allocations) {
+function formatAcompteAllocationSummary(acompte: DiagData["acomptes"][number], allocations: DiagData["allocations"]): string {
   const allocs = allocations.filter((a) => a.acompte_id === acompte.id);
   if (allocs.length === 0) return "Aucune allocation — acompte non affecté à une semaine.";
   const semaines = allocs.map((a) => `S${a.periode_index}`).join(", ");
-  const totalAlloue = allocs.reduce((s, a) => s + parseFloat(a.amount || 0), 0);
-  const montant = parseFloat(acompte.montant || 0);
+  const totalAlloue = allocs.reduce((s, a) => s + a.amount, 0);
+  const montant = parseFloat(String(acompte.montant || 0));
   const solde = montant - totalAlloue;
   if (Math.abs(solde) < 0.01) return `Alloué intégralement sur ${semaines}.`;
   if (solde > 0) return `Alloué sur ${semaines} · solde non affecté : ${solde.toFixed(2)} €.`;
   return `Sur-alloué sur ${semaines} (dépassement de ${Math.abs(solde).toFixed(2)} €).`;
 }
 
-function formatBilanSummary(bilan, diagWeek, impayePrecedent) {
+function formatBilanSummary(bilan: DiagData["bilan"], diagWeek: number | string, impayePrecedent: number): string {
   if (!bilan) return `Aucun bilan enregistré pour S${diagWeek}.`;
-  const reste = parseFloat(bilan.reste_a_percevoir || 0);
+  const reste = (bilan.reste_a_percevoir ?? 0);
   if (bilan.paye) {
     const dateStr = bilan.date_paiement
       ? new Date(bilan.date_paiement).toLocaleDateString("fr-FR")
@@ -1165,12 +1227,12 @@ function formatBilanSummary(bilan, diagWeek, impayePrecedent) {
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 /** Returns singular suffix when count === 1, plural suffix otherwise. */
-function pluralFr(count, singular, plural) {
+function pluralFr(count: number, singular: string, plural: string): string {
   return count !== 1 ? plural : singular;
 }
 
 /** ISO week number → Monday date string (YYYY-MM-DD). */
-function isoWeekStart(wk, year = new Date().getFullYear()) {
+function isoWeekStart(wk: number, year: number = new Date().getFullYear()): string {
   const jan4 = new Date(year, 0, 4);
   const dow = jan4.getDay() || 7;
   const d = new Date(jan4);
@@ -1179,7 +1241,7 @@ function isoWeekStart(wk, year = new Date().getFullYear()) {
 }
 
 /** ISO week number → Sunday date string (YYYY-MM-DD). */
-function isoWeekEnd(wk, year) {
+function isoWeekEnd(wk: number, year: number = new Date().getFullYear()): string {
   const d = new Date(isoWeekStart(wk, year));
   d.setDate(d.getDate() + 6);
   return d.toISOString().slice(0, 10);

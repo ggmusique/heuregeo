@@ -1,4 +1,4 @@
-import { PERIOD_TYPES } from "../constants/bilanPeriods.ts";
+import { PERIOD_TYPES } from "../constants/bilanPeriods";
 
 export function computePeriodeIndex(type: string, value: string | number): number {
   const v = value?.toString?.() ?? "";

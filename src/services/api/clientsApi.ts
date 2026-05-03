@@ -1,5 +1,5 @@
-import { supabase } from "../supabase.ts";
-import type { Client } from "../../types/entities.ts";
+import { supabase } from "../supabase";
+import type { Client } from "../../types/entities";
 
 export interface ClientStats {
   nombreMissions: number;

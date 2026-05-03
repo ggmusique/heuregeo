@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { EU_TVA_RATES } from "./tvaRates.ts";
+import { EU_TVA_RATES } from "./tvaRates";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

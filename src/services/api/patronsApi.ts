@@ -1,5 +1,5 @@
-import { supabase } from "../supabase.ts";
-import type { Patron } from "../../types/entities.ts";
+import { supabase } from "../supabase";
+import type { Patron } from "../../types/entities";
 
 export type PatronInsert = Omit<Patron, "id" | "created_at">;
 export type PatronUpdate = Partial<Omit<Patron, "id" | "user_id" | "created_at">>;

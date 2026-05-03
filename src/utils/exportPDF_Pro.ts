@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
-import { formatEuro, formatHeures, formatDateFR } from "./formatters.ts";
+import { formatEuro, formatHeures, formatDateFR } from "./formatters";
 
 /**
  * PALETTE CLASSIQUE PRO — Blanc / Bleu Marine

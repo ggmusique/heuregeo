@@ -1,4 +1,4 @@
-import { supabase } from "../supabase.ts";
+import { supabase } from "../supabase";
 
 const LIEUX_COLUMNS = ["nom", "adresse_complete", "latitude", "longitude", "notes", "user_id", "type"];
 

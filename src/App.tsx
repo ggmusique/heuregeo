@@ -49,7 +49,7 @@ import { getLabels } from "./utils/labels";
 import "./inputs.css";
 
 interface AppProps {
-  user: User;
+  user?: User;
 }
 
 export default function App({ user }: AppProps) {

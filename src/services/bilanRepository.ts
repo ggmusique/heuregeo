@@ -1,6 +1,6 @@
-import { supabase } from "./supabase.ts";
-import { mapWeeklyAcompteMetricsFromRows } from "../lib/bilanMetrics.ts";
-import type { BilanRow, BilanRowForRepair, AcompteAllocation, FraisKmRow, WeeklyAcompteMetrics } from "../types/bilan.ts";
+import { supabase } from "./supabase";
+import { mapWeeklyAcompteMetricsFromRows } from "../lib/bilanMetrics";
+import type { BilanRow, BilanRowForRepair, AcompteAllocation, FraisKmRow, WeeklyAcompteMetrics } from "../types/bilan";
 
 const TABLE = "bilans_status_v2";
 

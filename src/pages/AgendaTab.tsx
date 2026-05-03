@@ -2,6 +2,33 @@ import React, { useState, useMemo } from "react";
 import { getWeekNumber } from "../utils/dateUtils";
 import { AgendaWeekView } from "../components/agenda/AgendaWeekView";
 import { useDarkMode } from "../contexts/DarkModeContext";
+import { AgendaEvent } from "../types/entities";
+
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+interface BarItem {
+  id: string;
+  titre: string;
+  startCol: number;
+  spanCols: number;
+  lane: number;
+}
+
+interface AgendaTabProps {
+  events?: AgendaEvent[];
+  loading?: boolean;
+  currentYear: number;
+  currentMonth: number;
+  currentWeekStart?: string;
+  workedDays?: Set<string>;
+  onGoToPrev?: () => void;
+  onGoToNext?: () => void;
+  onGoToToday?: () => void;
+  onGoToPrevWeek?: () => void;
+  onGoToNextWeek?: () => void;
+  onOpenForDate?: (date: string) => void;
+  onEventEdit?: (event: AgendaEvent) => void;
+}
 
 // ─── Constantes ────────────────────────────────────────────────────────────
 
@@ -29,11 +56,11 @@ const TYPE_PILL = {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function toIso(year, month, day) {
+function toIso(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
 }
 
-function buildCalendarGrid(year, month) {
+function buildCalendarGrid(year: number, month: number): (number | null)[] {
   const firstDay    = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
   const startOffset = (firstDay.getDay() + 6) % 7; // lundi = 0
@@ -48,25 +75,25 @@ function buildCalendarGrid(year, month) {
  * Calcule les barres visuelles pour les congés multi-jours dans une ligne de semaine.
  * Retourne [{ id, titre, startCol, spanCols, lane }]
  */
-function computeWeekBars(weekDays, year, month, rawEvents) {
-  const multiMap = new Map();
+function computeWeekBars(weekDays: (number | null)[], year: number, month: number, rawEvents: AgendaEvent[]): BarItem[] {
+  const multiMap = new Map<string, AgendaEvent>();
 
   rawEvents.forEach((e) => {
     if (e.type !== "conge" || !e.date_fin || e.date_fin === e.date_iso) return;
     weekDays.forEach((day) => {
       if (!day) return;
       const iso = toIso(year, month, day);
-      if (iso >= e.date_iso && iso <= e.date_fin) multiMap.set(e.id, e);
+      if (iso >= e.date_iso && iso <= (e.date_fin as string)) multiMap.set(e.id, e);
     });
   });
 
-  const bars = [];
+  const bars: BarItem[] = [];
   multiMap.forEach((e) => {
     let startCol = -1, endCol = -1;
     weekDays.forEach((day, col) => {
       if (!day) return;
       const iso = toIso(year, month, day);
-      if (iso >= e.date_iso && iso <= e.date_fin) {
+      if (iso >= e.date_iso && iso <= (e.date_fin as string)) {
         if (startCol === -1) startCol = col;
         endCol = col;
       }
@@ -77,11 +104,11 @@ function computeWeekBars(weekDays, year, month, rawEvents) {
 
   // Greedy lane assignment
   bars.sort((a, b) => a.startCol - b.startCol || b.spanCols - a.spanCols);
-  const occ = [];
+  const occ: boolean[][] = [];
   bars.forEach((bar) => {
     let l = 0;
     while (true) {
-      if (!occ[l]) occ[l] = Array(7).fill(false);
+      if (!occ[l]) occ[l] = Array(7).fill(false) as boolean[];
       let free = true;
       for (let c = bar.startCol; c < bar.startCol + bar.spanCols; c++) {
         if (occ[l][c]) { free = false; break; }
@@ -106,7 +133,7 @@ export function AgendaTab({
   currentYear,
   currentMonth,
   currentWeekStart,
-  workedDays       = new Set(),
+  workedDays       = new Set<string>(),
   onGoToPrev,
   onGoToNext,
   onGoToToday,
@@ -114,13 +141,13 @@ export function AgendaTab({
   onGoToNextWeek,
   onOpenForDate,
   onEventEdit,
-}) {
+}: AgendaTabProps) {
   const { darkMode } = useDarkMode();
   const today    = new Date();
   const todayIso = toIso(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
   const [view,         setView]         = useState("month");
-  const [selectedDay,  setSelectedDay]  = useState(null);
+  const [selectedDay,  setSelectedDay]  = useState<number | null>(null);
 
   // ── Données dérivées ─────────────────────────────────────────────────────
   const cells = useMemo(() => buildCalendarGrid(currentYear, currentMonth), [currentYear, currentMonth]);
@@ -131,7 +158,7 @@ export function AgendaTab({
   }, [cells]);
 
   const eventsByDate = useMemo(() => {
-    const map = {};
+    const map: Record<string, AgendaEvent[]> = {};
     events.forEach((e) => {
       if (e.type === "conge" && e.date_fin) {
         let cur = new Date(e.date_iso + "T12:00:00");
@@ -356,7 +383,7 @@ export function AgendaTab({
                             {pillEvts.slice(0, 2).map((e, ei) => (
                               <div
                                 key={ei}
-                                className={`w-full rounded-[3px] px-1 text-[8px] font-bold truncate leading-tight py-[1px] ${TYPE_PILL[e.type] || TYPE_PILL.note}`}
+                                className={`w-full rounded-[3px] px-1 text-[8px] font-bold truncate leading-tight py-[1px] ${TYPE_PILL[e.type as keyof typeof TYPE_PILL] || TYPE_PILL.note}`}
                               >
                                 {e.type === "rdv" && e.heure_debut
                                   ? e.heure_debut.slice(0, 5) + " "
@@ -421,7 +448,7 @@ export function AgendaTab({
                 })}
               </p>
               <button
-                onClick={() => onOpenForDate?.(selectedIso)}
+                onClick={() => onOpenForDate?.(selectedIso ?? "")}
                 className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 text-xl flex items-center justify-center hover:bg-emerald-500/30 transition-all font-black"
               >
                 +
@@ -442,8 +469,8 @@ export function AgendaTab({
                 conge: { bg: "bg-orange-500/15",   text: "text-orange-400",  border: "border-orange-500/30",  emoji: "🌴" },
                 note:  { bg: "bg-emerald-500/15",  text: "text-emerald-400", border: "border-emerald-500/30", emoji: "📝" },
               };
-              const badge = badges[evt.type] || { bg: "bg-white/5", text, border: "border-white/10", emoji: "📌" };
-              const fmtD  = (iso) =>
+              const badge = badges[evt.type as keyof typeof badges] || { bg: "bg-white/5", text, border: "border-white/10", emoji: "📌" };
+              const fmtD  = (iso: string) =>
                 new Date(iso + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 
               return (

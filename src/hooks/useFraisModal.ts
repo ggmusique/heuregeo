@@ -5,8 +5,8 @@ import type { ConfirmFn } from "./useConfirm";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface UseFraisModalArgs {
-  createFrais: (data: Partial<FraisDivers>) => Promise<void>;
-  updateFrais: (id: string, data: Partial<FraisDivers>) => Promise<void>;
+  createFrais: (data: Partial<FraisDivers>) => Promise<FraisDivers | void>;
+  updateFrais: (id: string, data: Partial<FraisDivers>) => Promise<FraisDivers | void>;
   deleteFrais: (id: string) => Promise<void>;
   setLoading: (v: boolean) => void;
   triggerAlert: (msg: string) => void;
