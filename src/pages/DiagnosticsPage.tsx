@@ -104,16 +104,8 @@ export const DiagnosticsPage = ({
 
   const features = profile?.features ?? {};
 
-  // 1. kmEnabled value + source
+  // 1. kmEnabled
   const kmEnabled = getKmEnabled(features);
-  const featuresLegacy = features as unknown as Record<string, unknown>;
-  const ks = (featuresLegacy.km_settings ?? {}) as Record<string, unknown>;
-  const kmEnabledSource =
-    typeof ks.enabled === "boolean"
-      ? "km_settings.enabled"
-      : typeof featuresLegacy.km_enabled === "boolean"
-        ? "km_enabled (legacy)"
-        : "absent (false par défaut)";
 
   // 2. Domicile coords
   const domLat = domicileLatLng?.lat ?? kmSettings?.km_domicile_lat ?? null;
@@ -133,9 +125,7 @@ export const DiagnosticsPage = ({
   // 5. Semaine courante
   const nbMissions = missionsThisWeek.length;
   const fraisItems = kmFraisThisWeek.items || [];
-  const fraisKmLies = fraisItems.filter((f) => f.kmTotal !== null);
   const missionsSansFraisKm = fraisItems.filter((f) => f.kmTotal === null);
-  const nbFraisKmLies = fraisKmLies.length;
   const nbSansFraisKm = missionsSansFraisKm.length;
 
   // ── Synthèse & anomalies ─────────────────────────────────────────────────
@@ -339,19 +329,13 @@ setRebuildLoading(true);
         <h2 className="text-2xl font-black text-[#C9A84C] italic font-['Playfair_Display'] mb-1">
           Diagnostics avancés
         </h2>
-        <p className="text-[11px] opacity-40">
-          GPS · bilans · acomptes · allocations · rebuild · erreurs
-        </p>
         <p className="text-[10px] opacity-30 mt-0.5">Vue réservée admin · non visible des viewers</p>
       </div>
 
-      {/* ── Bloc statut global ─────────────────────────────────────── */}
+      {/* BLOC 1 — Statut global */}
       <GlobalStatusCard status={globalStatus} summary={globalSummary} />
 
-      {/* ── Anomalies détectées ────────────────────────────────────── */}
-      <AnomaliesCard anomalies={staticAnomalies} />
-
-      {/* Message d'action (feedback boutons) */}
+      {/* Feedback actions */}
       {actionMsg && (
         <div
           className={`p-3 rounded-2xl text-sm text-center border ${
@@ -364,459 +348,303 @@ setRebuildLoading(true);
         </div>
       )}
 
-      {/* ── Section : GPS & Frais kilométriques ──────────────────── */}
-      <SectionLabel>GPS &amp; Frais kilométriques</SectionLabel>
+      {/* BLOC 2 — Points à corriger */}
+      {staticAnomalies.length === 0 ? (
+        <div className="p-4 rounded-[20px] border border-emerald-500/30 bg-emerald-600/10 backdrop-blur-md flex items-center gap-3">
+          <span className="w-3 h-3 rounded-full bg-emerald-400 shadow-lg shadow-emerald-500/50 shrink-0" />
+          <p className="text-[13px] text-emerald-300 font-black">Aucun problème détecté ✓</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng)) && (
+            <AnomalyCard
+              severity="critical"
+              title="Domicile non localisé"
+              description="Les frais kilométriques sont activés mais les coordonnées de votre domicile sont manquantes — le calcul des distances est impossible."
+            />
+          )}
+          {lieuxSansCoords.length > 0 && (
+            <AnomalyCard
+              severity={lieuxSansCoords.length >= 3 ? "critical" : "warning"}
+              title={`${lieuxSansCoords.length} lieu${pluralFr(lieuxSansCoords.length, "", "x")} sans coordonnées GPS`}
+              description={
+                lieuxSansCoords.length === 1
+                  ? "Ce lieu ne génère pas de frais kilométriques car ses coordonnées GPS sont manquantes."
+                  : "Ces lieux ne génèrent pas de frais kilométriques car leurs coordonnées GPS sont manquantes."
+              }
+              list={lieuxSansCoords.map((l) => l.nom || "—")}
+              action={
+                onRegeocoderBatch
+                  ? {
+                      label: regeoLoading
+                        ? "Géocodage en cours…"
+                        : `Re-géocoder ${lieuxSansCoords.length} lieu${pluralFr(lieuxSansCoords.length, "", "x")}`,
+                      loading: regeoLoading,
+                      onClick: handleRegeocoderBatch,
+                    }
+                  : undefined
+              }
+            />
+          )}
+          {lieuxSuspects.length > 0 && (
+            <AnomalyCard
+              severity="warning"
+              title={`${lieuxSuspects.length} lieu${pluralFr(lieuxSuspects.length, "", "x")} suspect${pluralFr(lieuxSuspects.length, "", "s")}`}
+              description="Ces lieux ont des coordonnées très proches de votre domicile — ils ont peut-être été géocodés par erreur sur votre adresse."
+              list={lieuxSuspects.map((l) => l.nom || "—")}
+            />
+          )}
+          {kmEnabled && nbSansFraisKm > 0 && (
+            <AnomalyCard
+              severity="warning"
+              title={`${nbSansFraisKm} mission${pluralFr(nbSansFraisKm, "", "s")} sans frais kilométriques`}
+              description={
+                nbSansFraisKm > 1
+                  ? "Ces missions de la semaine en cours n'ont pas de frais km associés — vérifiez les lieux."
+                  : "Cette mission de la semaine en cours n'a pas de frais km associés — vérifiez les lieux."
+              }
+              list={missionsSansFraisKm.map((f) =>
+                [f.labelLieuOuClient || "—", f.date || ""].filter(Boolean).join(" · ")
+              )}
+              action={
+                onRecalculerKmSemaine
+                  ? {
+                      label: recalcLoading ? "Recalcul en cours…" : "Recalculer KM",
+                      loading: recalcLoading,
+                      onClick: handleRecalculerKm,
+                    }
+                  : undefined
+              }
+            />
+          )}
+        </div>
+      )}
 
-      {/* KM Enabled */}
-      <Card title="Frais kilométriques">
-        <Row
-          label="kmEnabled"
-          value={String(kmEnabled)}
-          valueClass={kmEnabled ? "text-emerald-400" : "text-red-400"}
-        />
-        <Row label="Source" value={kmEnabledSource} valueClass="text-white/60 text-xs" />
-        <Hint>
-          {kmEnabled
-            ? `Frais KM actifs. ${nbFraisKmLies} entrée${pluralFr(nbFraisKmLies, "", "s")} calculée${pluralFr(nbFraisKmLies, "", "s")} cette semaine.`
-            : "Frais KM désactivés — aucun calcul de distance n'est effectué."}
-        </Hint>
-      </Card>
-
-      {/* Domicile */}
-      <Card title="Domicile">
-        <Row
-          label="lat"
-          value={Number.isFinite(domLat) ? String(domLat) : "—"}
-          valueClass={Number.isFinite(domLat) ? "text-white" : "text-red-400"}
-        />
-        <Row
-          label="lng"
-          value={Number.isFinite(domLng) ? String(domLng) : "—"}
-          valueClass={Number.isFinite(domLng) ? "text-white" : "text-red-400"}
-        />
-        <Row label="label" value={domLabel || "—"} valueClass="text-white/60 text-xs" />
-        <Hint>
-          {Number.isFinite(domLat) && Number.isFinite(domLng)
-            ? `Domicile localisé${domLabel ? ` (${domLabel})` : ""}.`
-            : kmEnabled
-              ? "Coordonnées manquantes — le calcul des distances KM est impossible."
-              : "Coordonnées non renseignées (frais KM désactivés)."}
-        </Hint>
-      </Card>
-
-      {/* Lieux sans coords */}
-      <Card
-        title="Lieux sans coordonnées GPS"
-        badge={lieuxSansCoords.length}
-        badgeClass={lieuxSansCoords.length > 0 ? "text-red-400" : "text-emerald-400"}
-      >
-        <Hint>
-          {lieuxSansCoords.length === 0
-            ? "Tous les lieux ont des coordonnées GPS."
-            : `${lieuxSansCoords.length} lieu${pluralFr(lieuxSansCoords.length, "", "x")} sans coordonnées — ils ne génèrent pas de frais km.`}
-        </Hint>
-        {lieuxSansCoords.length > 0 && (
-          <ul className="mt-1 space-y-1 max-h-40 overflow-y-auto">
-            {lieuxSansCoords.map((l) => (
-              <li key={l.id} className="text-[11px] text-white/60 flex justify-between gap-2">
-                <span className="truncate">{l.nom || "—"}</span>
-                <span className="text-white/30 font-mono shrink-0">{String(l.id).substring(0, 8)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      {/* Lieux suspects */}
-      <Card
-        title="Lieux suspects (proches domicile)"
-        badge={lieuxSuspects.length}
-        badgeClass={lieuxSuspects.length > 0 ? "text-orange-400" : "text-emerald-400"}
-      >
-        <Hint>
-          {lieuxSuspects.length === 0
-            ? "Aucun lieu n'a de coordonnées anormalement proches du domicile."
-            : `${lieuxSuspects.length} lieu${pluralFr(lieuxSuspects.length, "", "x")} avec coordonnées possiblement copiées du domicile.`}
-        </Hint>
-        {lieuxSuspects.length > 0 && (
-          <ul className="mt-1 space-y-1 max-h-40 overflow-y-auto">
-            {lieuxSuspects.map((l) => (
-              <li key={l.id} className="text-[11px] text-white/60 flex justify-between gap-2">
-                <span className="truncate">{l.nom || "—"}</span>
-                <span className="text-white/30 font-mono shrink-0">{String(l.id).substring(0, 8)}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      {/* Semaine courante */}
-      <Card title="Semaine courante">
-        <Row label="Missions" value={String(nbMissions)} />
-        <Row
-          label="Frais km liés (mission_id)"
-          value={String(nbFraisKmLies)}
-          valueClass={nbFraisKmLies > 0 ? "text-emerald-400" : "text-white/60"}
-        />
-        <Row
-          label="Missions sans frais km"
-          value={String(nbSansFraisKm)}
-          valueClass={nbSansFraisKm > 0 ? "text-red-400" : "text-emerald-400"}
-        />
-        <Hint>
-          {!kmEnabled
-            ? "Frais KM désactivés sur ce profil."
-            : nbSansFraisKm > 0
-              ? `${nbSansFraisKm} mission${pluralFr(nbSansFraisKm, "", "s")} sans frais km — vérifier les lieux associés.`
-              : nbMissions === 0
-                ? "Aucune mission cette semaine."
-                : "Toutes les missions ont des frais km associés."}
-        </Hint>
-        {missionsSansFraisKm.length > 0 && (
-          <ul className="mt-2 space-y-1 max-h-40 overflow-y-auto border-t border-white/10 pt-2">
-            {missionsSansFraisKm.map((f) => (
-              <li key={f.missionId} className="text-[11px] text-white/60 flex justify-between gap-2">
-                <span className="truncate">{f.labelLieuOuClient || "—"}</span>
-                <span className="text-white/30 shrink-0">{f.date || ""}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-
-      {/* ── Section : Actions & Rebuild ───────────────────────────── */}
-      <SectionLabel>Actions &amp; Rebuild</SectionLabel>
-
-      {/* Rebuild Bilans semaines */}
-      {onRebuildBilans && (
-        <Card title="Rebuild bilans semaines">
-          <p className="text-[10px] text-white/40 mb-2">
-            Reconstruit les bilans en DB dans l&apos;ordre croissant (règle glissante N-1).
-            Utile pour corriger des restes incohérents après un fix.
-          </p>
-          <div className="flex gap-2 mb-2">
+      {/* BLOC 3 — Analyser une semaine spécifique */}
+      <details className="rounded-[20px] border border-white/10 bg-[#0A1628]/40 backdrop-blur-md overflow-hidden">
+        <summary className="p-4 cursor-pointer select-none flex items-center justify-between">
+          <span className="text-[12px] font-black text-white/70">🔍 Analyser une semaine spécifique</span>
+        </summary>
+        <div className="px-4 pb-4 space-y-3">
+          {/* Sélecteur patron + semaine */}
+          <div className="flex gap-2">
             <div className="flex-1">
               <label className="text-[10px] uppercase text-white/40 tracking-wider">Patron</label>
               <select
-                value={rebuildPatronId}
-                onChange={(e) => setRebuildPatronId(e.target.value)}
+                value={diagPatronId}
+                onChange={(e) => { setDiagPatronId(e.target.value); setDiagData(null); }}
                 className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono"
               >
-                <option value="">Global</option>
+                <option value="">— choisir —</option>
                 {patrons.map((p) => (
                   <option key={p.id} value={p.id}>{p.nom}</option>
                 ))}
               </select>
             </div>
-            <div className="w-16">
-              <label className="text-[10px] uppercase text-white/40 tracking-wider">De S</label>
+            <div className="w-20">
+              <label className="text-[10px] uppercase text-white/40 tracking-wider">Semaine n°</label>
               <input
                 type="number" min="1" max="53"
-                value={rebuildStart}
-                onChange={(e) => setRebuildStart(e.target.value)}
-                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono text-center"
-              />
-            </div>
-            <div className="w-16">
-              <label className="text-[10px] uppercase text-white/40 tracking-wider">À S</label>
-              <input
-                type="number" min="1" max="53"
-                value={rebuildEnd}
-                onChange={(e) => setRebuildEnd(e.target.value)}
+                value={diagWeek}
+                onChange={(e) => { setDiagWeek(e.target.value); setDiagData(null); }}
                 className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono text-center"
               />
             </div>
           </div>
           <button
             type="button"
-            onClick={handleRebuildBilans}
-            disabled={rebuildLoading}
-            className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-orange-500/40 text-orange-300 bg-orange-600/10 hover:bg-orange-600/20 ${rebuildLoading ? "opacity-50 cursor-wait" : ""}`}
+            onClick={loadDiagnostique}
+            disabled={diagLoading || !diagPatronId || !diagWeek}
+            className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-cyan-500/40 text-cyan-300 bg-cyan-600/10 hover:bg-cyan-600/20 ${diagLoading || !diagPatronId || !diagWeek ? "opacity-40 cursor-not-allowed" : ""}`}
           >
-            {rebuildLoading ? "Rebuild en cours…" : "🔧 Reconstruire bilans"}
+            {diagLoading ? "Chargement…" : "Charger"}
           </button>
-        </Card>
-      )}
-
-      <Card title="🔧 Réparer bilans_status_v2">
-        <p className="text-[10px] text-white/40 mb-2">
-          Recalcule acompte_consomme et reste_a_percevoir depuis acompte_allocations (source de vérité).
-          Corrige les lignes corrompues sans toucher aux données payées correctement.
-        </p>
-        <div className="mb-2">
-          <label className="text-[10px] uppercase text-white/40 tracking-wider">Patron</label>
-          <select
-            value={repairPatronId}
-            onChange={(e) => setRepairPatronId(e.target.value)}
-            className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono"
-          >
-            <option value="">Tous les patrons</option>
-            {patrons.map((p) => (
-              <option key={p.id} value={p.id}>{p.nom}</option>
-            ))}
-          </select>
-        </div>
-        {repairResult && (
-          <div className={`mb-2 p-2 rounded-xl text-[10px] font-black ${
-            repairResult.success
-              ? "bg-emerald-600/20 border border-emerald-500/30 text-emerald-300"
-              : "bg-red-600/20 border border-red-500/30 text-red-400"
-          }`}>
-            {repairResult.message}
-            {repairResult.success && (
-              <span className="ml-2 opacity-60">
-                ({repairResult.fixed} corrigée(s) / {repairResult.skipped} ok)
-              </span>
-            )}
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={handleRepairBilans}
-          disabled={repairLoading || !onRepairBilans}
-          className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-emerald-500/40 text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/20 ${repairLoading ? "opacity-50 cursor-wait" : ""}`}
-        >
-          {repairLoading ? "Réparation en cours…" : "🔧 Réparer les bilans corrompus"}
-        </button>
-      </Card>
-
-      {/* Actions GPS */}
-      <Card title="Actions GPS">
-        <button
-          type="button"
-          onClick={handleRegeocoderBatch}
-          disabled={regeoLoading || lieuxSansCoords.length === 0}
-          className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 ${
-            lieuxSansCoords.length === 0
-              ? "opacity-30 cursor-not-allowed border-white/10 text-white/30"
-              : "border-yellow-500/40 text-yellow-300 bg-yellow-600/10 hover:bg-yellow-600/20"
-          } ${regeoLoading ? "opacity-50 cursor-wait" : ""}`}
-        >
-          {regeoLoading
-            ? "Géocodage en cours…"
-            : `Re-géocoder ${lieuxSansCoords.length} lieu${pluralFr(lieuxSansCoords.length, "", "x")} manquant${pluralFr(lieuxSansCoords.length, "", "s")}`}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleRecalculerKm}
-          disabled={recalcLoading || nbMissions === 0}
-          className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 ${
-            nbMissions === 0
-              ? "opacity-30 cursor-not-allowed border-white/10 text-white/30"
-              : "border-blue-500/40 text-blue-300 bg-blue-600/10 hover:bg-blue-600/20"
-          } ${recalcLoading ? "opacity-50 cursor-wait" : ""}`}
-        >
-          {recalcLoading ? "Recalcul en cours…" : "Recalculer KM semaine"}
-        </button>
-      </Card>
-
-      {/* ── Section : Diagnostic financier ───────────────────────── */}
-      <SectionLabel>Diagnostic financier</SectionLabel>
-
-      {/* Sélecteur patron + semaine */}
-      <Card title="Sélection">
-        <div className="flex gap-2 mb-2">
-          <div className="flex-1">
-            <label className="text-[10px] uppercase text-white/40 tracking-wider">Patron</label>
-            <select
-              value={diagPatronId}
-              onChange={(e) => { setDiagPatronId(e.target.value); setDiagData(null); }}
-              className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono"
-            >
-              <option value="">— choisir —</option>
-              {patrons.map((p) => (
-                <option key={p.id} value={p.id}>{p.nom}</option>
-              ))}
-            </select>
-          </div>
-          <div className="w-20">
-            <label className="text-[10px] uppercase text-white/40 tracking-wider">Semaine S</label>
-            <input
-              type="number" min="1" max="53"
-              value={diagWeek}
-              onChange={(e) => { setDiagWeek(e.target.value); setDiagData(null); }}
-              className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono text-center"
-            />
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={loadDiagnostique}
-          disabled={diagLoading || !diagPatronId || !diagWeek}
-          className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-cyan-500/40 text-cyan-300 bg-cyan-600/10 hover:bg-cyan-600/20 ${diagLoading || !diagPatronId || !diagWeek ? "opacity-40 cursor-not-allowed" : ""}`}
-        >
-          {diagLoading ? "Chargement…" : "🔍 Charger le diagnostic"}
-        </button>
-        {diagError && (
-          <p className="mt-2 text-red-400 text-[11px] text-center">❌ {diagError}</p>
-        )}
-      </Card>
-
-      {/* Résultats financiers */}
-      {diagData && (
-        <>
-          {/* Anomalies dynamiques (diagData) */}
-          {diagDataAnomalies.length > 0 && (
-            <AnomaliesCard anomalies={diagDataAnomalies} title={`Anomalies détectées — S${diagWeek}`} />
+          {diagError && (
+            <p className="text-red-400 text-[11px] text-center">❌ {diagError}</p>
           )}
 
-          {/* Résumé humain */}
-          <HumanSummaryCard diagData={diagData} diagWeek={diagWeek} />
+          {/* Résultats */}
+          {diagData && (
+            <div className="space-y-3">
+              {/* Alertes dynamiques en langage humain */}
+              {diagDataAnomalies.length > 0 && (
+                <div className="space-y-2">
+                  {diagDataAnomalies.map((a, i) => (
+                    <AnomalyCard key={i} severity={a.severity} title={a.message} description="" />
+                  ))}
+                </div>
+              )}
 
-          {/* Bouton Copier le diagnostic */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopyDiagnostic}
-              className="flex-1 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-white/15 text-white/50 bg-white/5 hover:bg-white/10 hover:text-white/70"
-            >
-              Copier le diagnostic
-            </button>
-            {clipboardFeedback && (
-              <span className={`text-[11px] font-black shrink-0 ${clipboardFeedback.ok ? "text-emerald-400" : "text-red-400"}`}>
-                {clipboardFeedback.msg}
-              </span>
-            )}
-          </div>
+              {/* Résumé principal en langage humain */}
+              <HumanSummaryCard diagData={diagData} diagWeek={diagWeek} />
 
-          {/* Erreurs de requête */}
-          {diagData.queryErrors?.length > 0 && (
-            <div className="p-3 rounded-2xl bg-red-600/20 border border-red-500/40 space-y-1">
-              <p className="text-[10px] font-black uppercase text-red-400 tracking-wider">Erreurs de requête</p>
-              {diagData.queryErrors.map((e, i) => (
-                <p key={i} className="text-[11px] text-red-300 font-mono">{e}</p>
-              ))}
+              {/* Trajets KM — résumé humain */}
+              {diagData.fraisKm.length > 0 && (
+                <div className="p-4 rounded-[20px] border border-white/10 bg-[#0A1628]/50 backdrop-blur-md">
+                  <p className="text-[13px] text-white/80 leading-relaxed">
+                    {diagData.fraisKm.length} trajet{pluralFr(diagData.fraisKm.length, "", "s")} km enregistré{pluralFr(diagData.fraisKm.length, "", "s")} cette semaine — total{" "}
+                    <span className="font-black text-white">
+                      {diagData.fraisKm.reduce((s, f) => s + f.distance_km, 0).toFixed(1)} km
+                    </span>
+                    {" / "}
+                    <span className="font-black text-yellow-300">
+                      {diagData.fraisKm.reduce((s, f) => s + f.amount, 0).toFixed(2)} €
+                    </span>
+                  </p>
+                </div>
+              )}
+
+              {/* Bouton Copier le diagnostic */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyDiagnostic}
+                  className="flex-1 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-white/15 text-white/50 bg-white/5 hover:bg-white/10 hover:text-white/70"
+                >
+                  Copier le diagnostic
+                </button>
+                {clipboardFeedback && (
+                  <span className={`text-[11px] font-black shrink-0 ${clipboardFeedback.ok ? "text-emerald-400" : "text-red-400"}`}>
+                    {clipboardFeedback.msg}
+                  </span>
+                )}
+              </div>
+
+              {/* Données techniques (accordéon secondaire) */}
+              <details className="rounded-[16px] border border-white/10 bg-white/5 overflow-hidden">
+                <summary className="p-3 cursor-pointer select-none text-[10px] font-black uppercase tracking-widest text-white/40">
+                  Données techniques
+                </summary>
+                <pre className="px-3 pb-3 text-[10px] text-white/40 font-mono whitespace-pre-wrap overflow-auto max-h-72 leading-relaxed">
+                  {JSON.stringify(
+                    {
+                      bilan: diagData.bilan,
+                      impaye_anterieur: diagData.impayePrecedent,
+                      avances: diagData.acomptes,
+                      allocations: diagData.allocations,
+                      frais_km: diagData.fraisKm,
+                      erreurs: diagData.queryErrors,
+                    },
+                    null,
+                    2
+                  )}
+                </pre>
+              </details>
             </div>
           )}
+        </div>
+      </details>
 
-          {/* Card 1 — Bilan */}
-          <Card title={`🔎 Bilan S${diagWeek}`} statusBadge={getBilanCardStatus(diagData)}>
-            {diagData.bilan ? (
-              <>
-                <Row label="CA brut" value={`${(diagData.bilan.ca_brut_periode ?? 0).toFixed(2)} €`} />
-                <Row
-                  label="Impayé précédent"
-                  value={`${diagData.impayePrecedent.toFixed(2)} €`}
-                  valueClass={diagData.impayePrecedent > 0.01 ? "text-red-400" : "text-emerald-400"}
-                />
-                <Row label="Acompte consommé (DB)" value={`${(diagData.bilan.acompte_consomme ?? 0).toFixed(2)} €`} />
-                <Row
-                  label="Reste à percevoir (DB)"
-                  value={`${(diagData.bilan.reste_a_percevoir ?? 0).toFixed(2)} €`}
-                  valueClass={(diagData.bilan.reste_a_percevoir ?? 0) > 0.01 ? "text-red-400" : "text-emerald-400"}
-                />
-                <Row
-                  label="Statut payé"
-                  value={diagData.bilan.paye ? "✅ Payé" : "❌ Non payé"}
-                  valueClass={diagData.bilan.paye ? "text-emerald-400" : "text-red-400"}
-                />
-                <Row
-                  label="Date paiement"
-                  value={diagData.bilan.date_paiement
-                    ? new Date(diagData.bilan.date_paiement).toLocaleDateString("fr-FR")
-                    : "—"}
-                  valueClass="text-white/60"
-                />
-                <Hint>
-                  {formatBilanSummary(diagData.bilan, diagWeek, diagData.impayePrecedent)}
-                </Hint>
-              </>
-            ) : (
-              <p className="text-[11px] text-white/40 text-center py-2">Aucun bilan en DB pour S{diagWeek}</p>
-            )}
-          </Card>
+      {/* BLOC 4 — Outils avancés */}
+      <details className="rounded-[20px] border border-white/10 bg-[#0A1628]/40 backdrop-blur-md overflow-hidden">
+        <summary className="p-4 cursor-pointer select-none flex items-center justify-between">
+          <span className="text-[12px] font-black text-white/50">⚙️ Outils avancés</span>
+        </summary>
+        <div className="px-4 pb-4 space-y-3">
+          <p className="text-[10px] text-white/30 italic">
+            Ces outils modifient des données en base. Utiliser avec précaution.
+          </p>
 
-          {/* Card 2 — Acomptes & allocations */}
-          <Card title="💳 Acomptes & allocations" statusBadge={getAcompteCardStatus(diagData)}>
-            {diagData.acomptes.length === 0 ? (
-              <p className="text-[11px] text-white/40 text-center py-2">Aucun acompte pour ce patron</p>
-            ) : (
-              <div className="space-y-3">
-                {diagData.acomptes.map((ac) => {
-                  const allocs = diagData.allocations.filter((a) => a.acompte_id === ac.id);
-                  const totalAlloue = allocs.reduce((s, a) => s + a.amount, 0);
-                  const solde = ac.montant - totalAlloue;
-                  return (
-                    <div key={ac.id} className="border-t border-white/10 pt-2 first:border-0 first:pt-0">
-                      <div className="flex justify-between items-baseline mb-1">
-                        <span className="text-[12px] font-black text-white">
-                          {new Date(ac.date_acompte).toLocaleDateString("fr-FR")}
-                        </span>
-                        <span className="text-[12px] font-black text-yellow-300 font-mono">
-                          {ac.montant.toFixed(2)} €
-                        </span>
-                      </div>
-                      {allocs.length === 0 ? (
-                        <p className="text-[10px] text-white/30 pl-3">Aucune allocation</p>
-                      ) : (
-                        allocs.map((al, i) => (
-                          <div key={i} className="flex justify-between pl-3 text-[11px]">
-                            <span className="text-white/50">↳ S{al.periode_index}</span>
-                            <span className="font-mono text-white/70">{al.amount.toFixed(2)} €</span>
-                          </div>
-                        ))
-                      )}
-                      <div className="flex justify-between pl-3 text-[11px] mt-0.5">
-                        <span className="text-white/40">Solde non alloué</span>
-                        <span className={`font-mono font-black ${Math.abs(solde) < 0.01 ? "text-emerald-400" : "text-yellow-300"}`}>
-                          {solde.toFixed(2)} €
-                        </span>
-                      </div>
-                      <Hint>{formatAcompteAllocationSummary(ac, diagData.allocations)}</Hint>
-                    </div>
-                  );
-                })}
+          {/* Reconstruire les bilans */}
+          {onRebuildBilans && (
+            <Card title="Reconstruire les bilans">
+              <p className="text-[10px] text-white/40 mb-2">
+                <span className="font-black text-white/60">À utiliser si :</span> des montants restants sont incohérents après une correction.<br />
+                <span className="font-black text-white/60">Effet :</span> recalcule les bilans en ordre croissant (règle glissante semaine N-1).
+              </p>
+              <div className="flex gap-2 mb-2">
+                <div className="flex-1">
+                  <label className="text-[10px] uppercase text-white/40 tracking-wider">Patron</label>
+                  <select
+                    value={rebuildPatronId}
+                    onChange={(e) => setRebuildPatronId(e.target.value)}
+                    className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono"
+                  >
+                    <option value="">Global</option>
+                    {patrons.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nom}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-16">
+                  <label className="text-[10px] uppercase text-white/40 tracking-wider">De S</label>
+                  <input
+                    type="number" min="1" max="53"
+                    value={rebuildStart}
+                    onChange={(e) => setRebuildStart(e.target.value)}
+                    className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono text-center"
+                  />
+                </div>
+                <div className="w-16">
+                  <label className="text-[10px] uppercase text-white/40 tracking-wider">À S</label>
+                  <input
+                    type="number" min="1" max="53"
+                    value={rebuildEnd}
+                    onChange={(e) => setRebuildEnd(e.target.value)}
+                    className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono text-center"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleRebuildBilans}
+                disabled={rebuildLoading}
+                className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-orange-500/40 text-orange-300 bg-orange-600/10 hover:bg-orange-600/20 ${rebuildLoading ? "opacity-50 cursor-wait" : ""}`}
+              >
+                {rebuildLoading ? "Reconstruction en cours…" : "🔧 Reconstruire les bilans"}
+              </button>
+            </Card>
+          )}
+
+          {/* Réparer les bilans corrompus */}
+          <Card title="Réparer les bilans corrompus">
+            <p className="text-[10px] text-white/40 mb-2">
+              <span className="font-black text-white/60">À utiliser si :</span> des montants "avance déduite" ou "à recevoir" sont incohérents.<br />
+              <span className="font-black text-white/60">Effet :</span> recalcule depuis les allocations d&apos;acomptes (source de vérité), sans toucher aux données correctes.
+            </p>
+            <div className="mb-2">
+              <label className="text-[10px] uppercase text-white/40 tracking-wider">Patron</label>
+              <select
+                value={repairPatronId}
+                onChange={(e) => setRepairPatronId(e.target.value)}
+                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono"
+              >
+                <option value="">Tous les patrons</option>
+                {patrons.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nom}</option>
+                ))}
+              </select>
+            </div>
+            {repairResult && (
+              <div className={`mb-2 p-2 rounded-xl text-[10px] font-black ${
+                repairResult.success
+                  ? "bg-emerald-600/20 border border-emerald-500/30 text-emerald-300"
+                  : "bg-red-600/20 border border-red-500/30 text-red-400"
+              }`}>
+                {repairResult.message}
+                {repairResult.success && (
+                  <span className="ml-2 opacity-60">
+                    ({repairResult.fixed} corrigée(s) / {repairResult.skipped} ok)
+                  </span>
+                )}
               </div>
             )}
+            <button
+              type="button"
+              onClick={handleRepairBilans}
+              disabled={repairLoading || !onRepairBilans}
+              className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-emerald-500/40 text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/20 ${repairLoading ? "opacity-50 cursor-wait" : ""}`}
+            >
+              {repairLoading ? "Réparation en cours…" : "🔧 Réparer les bilans corrompus"}
+            </button>
           </Card>
-
-          {/* Card 3 — Frais KM détaillés */}
-          <Card
-            title={`🚗 Frais KM — S${diagWeek} (${isoWeekStart(parseInt(diagWeek))} → ${isoWeekEnd(parseInt(diagWeek))})`}
-            statusBadge={getKmCardStatus(diagData)}
-          >
-            {diagData.fraisKm.length === 0 ? (
-              <p className="text-[11px] text-white/40 text-center py-2">Aucun frais KM en DB pour cette semaine</p>
-            ) : (
-              <>
-                {diagData.fraisKm.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between text-[11px] gap-2">
-                    <span className="text-white/50 shrink-0">
-                      {new Date(f.date_frais).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}
-                    </span>
-                    <span className="text-white/60 font-mono">
-                      {f.distance_km.toFixed(1)} km × {f.rate_per_km.toFixed(2)} €
-                    </span>
-                    <span className="font-black font-mono text-white shrink-0">
-                      {f.amount.toFixed(2)} €
-                    </span>
-                  </div>
-                ))}
-                <div className="flex justify-between border-t border-white/10 pt-2 mt-1 text-[11px]">
-                  <span className="text-white/50 font-black uppercase tracking-wider">Total</span>
-                  <span className="font-black font-mono text-yellow-300">
-                    {diagData.fraisKm.reduce((s, f) => s + f.distance_km, 0).toFixed(1)} km
-                    {" · "}
-                    {diagData.fraisKm.reduce((s, f) => s + f.amount, 0).toFixed(2)} €
-                  </span>
-                </div>
-              </>
-            )}
-          </Card>
-        </>
-      )}
+        </div>
+      </details>
     </div>
   );
 };
 
 // ── Sous-composants UI ─────────────────────────────────────────────────────
-
-const STATUS_BADGE_CFG = {
-  ok:       { label: "OK",        cls: "text-emerald-400 border-emerald-500/40 bg-emerald-600/10" },
-  warning:  { label: "Vigilance", cls: "text-orange-400  border-orange-500/40  bg-orange-600/10" },
-  critical: { label: "Critique",  cls: "text-red-400     border-red-500/40     bg-red-600/10"    },
-};
 
 function GlobalStatusCard({ status, summary }: { status: "ok" | "warning" | "critical"; summary: string }) {
   const cfg = {
@@ -841,32 +669,57 @@ function GlobalStatusCard({ status, summary }: { status: "ok" | "warning" | "cri
   );
 }
 
-function AnomaliesCard({ anomalies, title = "Anomalies détectées" }: { anomalies: Anomaly[]; title?: string }) {
+interface AnomalyCardAction {
+  label: string;
+  loading: boolean;
+  onClick: () => void;
+}
+
+function AnomalyCard({ severity, title, description, list, action }: {
+  severity: "critical" | "warning";
+  title: string;
+  description: string;
+  list?: string[];
+  action?: AnomalyCardAction;
+}) {
+  const isCritical = severity === "critical";
+  const borderCls = isCritical ? "border-red-500/30" : "border-orange-500/30";
+  const bgCls = isCritical ? "bg-red-600/10" : "bg-orange-600/10";
+  const badgeCls = isCritical
+    ? "text-red-400 border-red-500/30 bg-red-600/20"
+    : "text-orange-400 border-orange-500/30 bg-orange-600/20";
+  const badgeLabel = isCritical ? "Critique" : "Vigilance";
+  const btnCls = isCritical
+    ? "border-red-500/40 text-red-300 bg-red-600/10 hover:bg-red-600/20"
+    : "border-yellow-500/40 text-yellow-300 bg-yellow-600/10 hover:bg-yellow-600/20";
+
   return (
-    <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[#0A1628]/60 backdrop-blur-md space-y-2">
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/70">{title}</p>
-        <span className={`text-sm font-black ${anomalies.length > 0 ? "text-red-400" : "text-emerald-400"}`}>
-          {anomalies.length}
+    <div className={`p-4 rounded-[20px] border ${borderCls} ${bgCls} backdrop-blur-md space-y-2`}>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[13px] font-black text-white/90 leading-snug">{title}</p>
+        <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${badgeCls}`}>
+          {badgeLabel}
         </span>
       </div>
-      {anomalies.length === 0 ? (
-        <p className="text-[12px] text-emerald-400/80">Aucune anomalie détectée.</p>
-      ) : (
-        <ul className="space-y-1.5">
-          {anomalies.map((a, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0 mt-0.5 ${
-                a.severity === "critical"
-                  ? "bg-red-600/20 text-red-400 border border-red-500/30"
-                  : "bg-orange-600/20 text-orange-400 border border-orange-500/30"
-              }`}>
-                {a.severity === "critical" ? "Critique" : "Vigilance"}
-              </span>
-              <span className="text-[12px] text-white/70 leading-snug">{a.message}</span>
-            </li>
+      {description ? (
+        <p className="text-[11px] text-white/55 leading-relaxed">{description}</p>
+      ) : null}
+      {list && list.length > 0 && (
+        <ul className="space-y-0.5 max-h-32 overflow-y-auto">
+          {list.map((item, i) => (
+            <li key={i} className="text-[11px] text-white/40 pl-2">· {item}</li>
           ))}
         </ul>
+      )}
+      {action && (
+        <button
+          type="button"
+          onClick={action.onClick}
+          disabled={action.loading}
+          className={`w-full mt-1 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 ${btnCls} ${action.loading ? "opacity-50 cursor-wait" : ""}`}
+        >
+          {action.label}
+        </button>
       )}
     </div>
   );
@@ -888,54 +741,15 @@ function HumanSummaryCard({ diagData, diagWeek }: { diagData: DiagData; diagWeek
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 pt-2 px-1">
-      <div className="flex-1 h-px bg-white/10" />
-      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/30 shrink-0">{children}</p>
-      <div className="flex-1 h-px bg-white/10" />
-    </div>
-  );
-}
-
-function Card({ title, badge, badgeClass = "text-white", statusBadge, children }: { title: string; badge?: string | number; badgeClass?: string; statusBadge?: keyof typeof STATUS_BADGE_CFG; children: React.ReactNode }) {
-  const sbCfg = statusBadge ? STATUS_BADGE_CFG[statusBadge] : null;
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[#0A1628]/60 backdrop-blur-md space-y-2">
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/70">{title}</p>
-        <div className="flex items-center gap-2">
-          {sbCfg && (
-            <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border ${sbCfg.cls}`}>
-              {sbCfg.label}
-            </span>
-          )}
-          {badge !== undefined && (
-            <span className={`text-sm font-black ${badgeClass}`}>{badge}</span>
-          )}
-        </div>
-      </div>
+      <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/70 mb-1">{title}</p>
       {children}
     </div>
   );
 }
 
-function Row({ label, value, valueClass = "text-white" }: { label: string; value: React.ReactNode; valueClass?: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <span className="text-[11px] text-white/50 uppercase tracking-wider">{label}</span>
-      <span className={`text-[12px] font-mono font-black ${valueClass}`}>{value}</span>
-    </div>
-  );
-}
-
-function Hint({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[10px] text-white/35 italic leading-snug pt-0.5 border-t border-white/5 mt-1">
-      {children}
-    </p>
-  );
-}
 
 // ── Utilitaires de diagnostic ─────────────────────────────────────────────
 
@@ -1000,7 +814,7 @@ function getDiagDataAnomalies(diagData: DiagData, diagWeek: number | string): An
   if (bilan?.paye && (bilan.reste_a_percevoir ?? 0) > 0.01) {
     anomalies.push({
       severity: "critical",
-      message: `S${diagWeek} marquée payée mais reste à percevoir de ${(bilan.reste_a_percevoir ?? 0).toFixed(2)} € en base.`,
+      message: `Semaine n° ${diagWeek} marquée payée mais un montant de ${(bilan.reste_a_percevoir ?? 0).toFixed(2)} € reste à recevoir.`,
     });
   }
 
@@ -1011,7 +825,7 @@ function getDiagDataAnomalies(diagData: DiagData, diagWeek: number | string): An
   if (acomptesSansAlloc.length > 0) {
     anomalies.push({
       severity: "warning",
-      message: `${acomptesSansAlloc.length} acompte${pluralFr(acomptesSansAlloc.length, "", "s")} sans aucune allocation associée.`,
+      message: `${acomptesSansAlloc.length} avance${pluralFr(acomptesSansAlloc.length, "", "s")} sans aucune allocation associée.`,
     });
   }
 
@@ -1025,7 +839,7 @@ function getDiagDataAnomalies(diagData: DiagData, diagWeek: number | string): An
   if (acomptesOverAlloues.length > 0) {
     anomalies.push({
       severity: "critical",
-      message: `${acomptesOverAlloues.length} acompte${pluralFr(acomptesOverAlloues.length, "", "s")} sur-alloué${pluralFr(acomptesOverAlloues.length, "", "s")} (total allocations > montant).`,
+      message: `${acomptesOverAlloues.length} avance${pluralFr(acomptesOverAlloues.length, "", "s")} sur-allouée${pluralFr(acomptesOverAlloues.length, "", "s")} — le total des allocations dépasse le montant de l'avance.`,
     });
   }
 
@@ -1040,36 +854,6 @@ function getDiagDataAnomalies(diagData: DiagData, diagWeek: number | string): An
   return anomalies;
 }
 
-function getBilanCardStatus(diagData: DiagData): keyof typeof STATUS_BADGE_CFG {
-  if (diagData.queryErrors?.some((e) => e.startsWith("Bilan:"))) return "critical";
-  if (!diagData.bilan) return "warning";
-  if (diagData.bilan.paye && parseFloat(String(diagData.bilan.reste_a_percevoir || 0)) > 0.01) return "critical";
-  if (diagData.impayePrecedent > 0.01) return "warning";
-  return "ok";
-}
-
-function getAcompteCardStatus(diagData: DiagData): keyof typeof STATUS_BADGE_CFG {
-  if (diagData.queryErrors?.some((e) => e.startsWith("Acomptes:") || e.startsWith("Allocations:"))) return "critical";
-  const overAlloue = diagData.acomptes.some((ac) => {
-    const total = diagData.allocations
-      .filter((al) => al.acompte_id === ac.id)
-      .reduce((s, al) => s + al.amount, 0);
-    return total > ac.montant + 0.01;
-  });
-  if (overAlloue) return "critical";
-  const sansAlloc = diagData.acomptes.some(
-    (ac) => !diagData.allocations.some((al) => al.acompte_id === ac.id)
-  );
-  if (sansAlloc) return "warning";
-  return "ok";
-}
-
-function getKmCardStatus(diagData: DiagData): keyof typeof STATUS_BADGE_CFG {
-  if (diagData.queryErrors?.some((e) => e.startsWith("Frais KM:"))) return "critical";
-  if (diagData.fraisKm.length === 0) return "warning";
-  return "ok";
-}
-
 function getHumanDiagnosticSummary(diagData: DiagData | null, diagWeek: number | string): string[] {
   if (!diagData) return [];
   const sentences = [];
@@ -1078,23 +862,23 @@ function getHumanDiagnosticSummary(diagData: DiagData | null, diagWeek: number |
 
   // Phrase 1 : état du bilan
   if (!bilan) {
-    sentences.push(`Aucun bilan enregistré pour S${diagWeek}.`);
+    sentences.push(`Aucun bilan enregistré pour la semaine n° ${diagWeek}.`);
   } else if (bilan.paye) {
     const dateStr = bilan.date_paiement
       ? new Date(bilan.date_paiement).toLocaleDateString("fr-FR")
       : null;
-    sentences.push(`La semaine S${diagWeek} est soldée${dateStr ? ` le ${dateStr}` : ""}.`);
+    sentences.push(`La semaine n° ${diagWeek} est soldée${dateStr ? ` le ${dateStr}` : ""}.`);
     if ((bilan.reste_a_percevoir ?? 0) > 0.01) {
       sentences.push(
-        `Attention : elle est marquée payée mais un reste de ${(bilan.reste_a_percevoir ?? 0).toFixed(2)} € subsiste en base.`
+        `Attention : elle est marquée payée mais un montant de ${(bilan.reste_a_percevoir ?? 0).toFixed(2)} € reste à recevoir.`
       );
     }
   } else {
     const reste = (bilan.reste_a_percevoir ?? 0);
     if (reste > 0.01) {
-      sentences.push(`La semaine S${diagWeek} reste impayée (${reste.toFixed(2)} € à percevoir).`);
+      sentences.push(`La semaine n° ${diagWeek} reste impayée — montant encore dû : ${reste.toFixed(2)} €.`);
     } else {
-      sentences.push(`S${diagWeek} n'est pas marquée payée mais le reste à percevoir est nul.`);
+      sentences.push(`La semaine n° ${diagWeek} n'est pas marquée payée mais le montant à recevoir est nul.`);
     }
   }
 
@@ -1106,21 +890,21 @@ function getHumanDiagnosticSummary(diagData: DiagData | null, diagWeek: number |
       const ac = diagData.acomptes.find((a) => a.id === acompteIds[0]);
       if (ac) {
         const allAllocsForAc = diagData.allocations.filter((al) => al.acompte_id === ac.id);
-        const semaines = allAllocsForAc.map((al) => `S${al.periode_index}`).join(", ");
+        const semaines = allAllocsForAc.map((al) => `semaine n° ${al.periode_index}`).join(", ");
         sentences.push(
-          `Un acompte de ${ac.montant.toFixed(2)} € a été alloué sur ${semaines}.`
+          `Une avance de ${ac.montant.toFixed(2)} € a été allouée sur ${semaines}.`
         );
       }
     } else {
       const totalCouvert = allocsThisWeek.reduce((s, al) => s + al.amount, 0);
       sentences.push(
-        `${acompteIds.length} acomptes couvrent ${totalCouvert.toFixed(2)} € sur S${diagWeek}.`
+        `${acompteIds.length} avances couvrent ${totalCouvert.toFixed(2)} € sur la semaine n° ${diagWeek}.`
       );
     }
   } else if (diagData.acomptes.length > 0) {
-    sentences.push(`Aucun acompte n'est alloué à S${diagWeek}.`);
+    sentences.push(`Aucune avance n'est allouée à la semaine n° ${diagWeek}.`);
   } else {
-    sentences.push("Aucun acompte enregistré pour ce patron.");
+    sentences.push("Aucune avance enregistrée pour ce patron.");
   }
 
   // Phrase 3 : impayé précédent
@@ -1140,18 +924,18 @@ function buildDiagnosticClipboardText(diagData: DiagData, diagWeek: number | str
   lines.push("");
 
   if (diagData.bilan) {
-    lines.push(`CA brut : ${(diagData.bilan.ca_brut_periode ?? 0).toFixed(2)} €`);
-    lines.push(`Impayé précédent : ${diagData.impayePrecedent.toFixed(2)} €`);
-    lines.push(`Statut payé : ${diagData.bilan.paye ? "Oui" : "Non"}`);
-    lines.push(`Reste à percevoir : ${(diagData.bilan.reste_a_percevoir ?? 0).toFixed(2)} €`);
+    lines.push(`Total de la période : ${(diagData.bilan.ca_brut_periode ?? 0).toFixed(2)} €`);
+    lines.push(`Impayé antérieur : ${diagData.impayePrecedent.toFixed(2)} €`);
+    lines.push(`Statut : ${diagData.bilan.paye ? "Payé" : "Non payé"}`);
+    lines.push(`À recevoir : ${(diagData.bilan.reste_a_percevoir ?? 0).toFixed(2)} €`);
   } else {
     lines.push("Bilan : absent");
   }
 
   lines.push("");
-  lines.push("Acomptes :");
+  lines.push("Avances :");
   if (diagData.acomptes.length === 0) {
-    lines.push("- Aucun acompte");
+    lines.push("- Aucune avance");
   } else {
     diagData.acomptes.forEach((ac) => {
       lines.push(
@@ -1166,7 +950,7 @@ function buildDiagnosticClipboardText(diagData: DiagData, diagWeek: number | str
     lines.push("- Aucune allocation");
   } else {
     diagData.allocations.forEach((al) => {
-      lines.push(`- S${al.periode_index} : ${al.amount.toFixed(2)} €`);
+      lines.push(`- Semaine n° ${al.periode_index} : ${al.amount.toFixed(2)} €`);
     });
   }
 
@@ -1192,36 +976,6 @@ function buildDiagnosticClipboardText(diagData: DiagData, diagWeek: number | str
   }
 
   return lines.join("\n");
-}
-
-function formatAcompteAllocationSummary(acompte: DiagData["acomptes"][number], allocations: DiagData["allocations"]): string {
-  const allocs = allocations.filter((a) => a.acompte_id === acompte.id);
-  if (allocs.length === 0) return "Aucune allocation — acompte non affecté à une semaine.";
-  const semaines = allocs.map((a) => `S${a.periode_index}`).join(", ");
-  const totalAlloue = allocs.reduce((s, a) => s + a.amount, 0);
-  const montant = parseFloat(String(acompte.montant || 0));
-  const solde = montant - totalAlloue;
-  if (Math.abs(solde) < 0.01) return `Alloué intégralement sur ${semaines}.`;
-  if (solde > 0) return `Alloué sur ${semaines} · solde non affecté : ${solde.toFixed(2)} €.`;
-  return `Sur-alloué sur ${semaines} (dépassement de ${Math.abs(solde).toFixed(2)} €).`;
-}
-
-function formatBilanSummary(bilan: DiagData["bilan"], diagWeek: number | string, impayePrecedent: number): string {
-  if (!bilan) return `Aucun bilan enregistré pour S${diagWeek}.`;
-  const reste = (bilan.reste_a_percevoir ?? 0);
-  if (bilan.paye) {
-    const dateStr = bilan.date_paiement
-      ? new Date(bilan.date_paiement).toLocaleDateString("fr-FR")
-      : "date inconnue";
-    return `S${diagWeek} soldée le ${dateStr}.`;
-  }
-  if (reste > 0.01) {
-    const cause = impayePrecedent > 0.01
-      ? `dont ${impayePrecedent.toFixed(2)} € d'impayé antérieur`
-      : "aucun acompte ne couvre entièrement la semaine";
-    return `S${diagWeek} reste impayée (${reste.toFixed(2)} € restants — ${cause}).`;
-  }
-  return `S${diagWeek} à jour, pas de reste à percevoir.`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
