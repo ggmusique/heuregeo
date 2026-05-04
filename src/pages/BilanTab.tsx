@@ -6,11 +6,13 @@ import { useLabels } from "../contexts/LabelsContext";
 import { useDarkMode } from "../contexts/DarkModeContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { BilanPanel } from "../components/stats/BilanPanel";
-import type { Mission, Patron } from "../types/entities";
+import type { Mission, Patron, FraisDivers } from "../types/entities";
+import type { UserProfile } from "../types/profile";
 import type { KmSettings, KmFraisResult } from "../hooks/useKmDomicile";
+import type { UseBilanReturn } from "../hooks/useBilan";
 
 interface Props {
-  bilan: any;
+  bilan: UseBilanReturn;
   bilanPatronId: string | null;
   currentWeek: number;
   missionsThisWeek: Mission[];
@@ -18,11 +20,11 @@ interface Props {
   getPatronNom: (id: string | null) => string;
   getPatronColor: (id: string | null) => string;
   onMarquerCommePaye?: () => void;
-  onFraisEdit?: (frais: any) => void;
-  onFraisDelete?: (frais: any) => void;
-  onMissionEdit?: (mission: any) => void;
+  onFraisEdit?: (frais: FraisDivers) => void;
+  onFraisDelete?: (frais: FraisDivers) => void;
+  onMissionEdit?: (mission: Mission) => void;
   onMissionDelete?: (id: string) => void;
-  profile: any;
+  profile: UserProfile | null;
   isViewer?: boolean;
   canBilanMois?: boolean;
   canBilanAnnee?: boolean;
@@ -30,7 +32,7 @@ interface Props {
   canExportExcel?: boolean;
   canExportCSV?: boolean;
   canFacture?: boolean;
-  saveProfile?: any;
+  saveProfile?: ((updates: Partial<UserProfile>) => Promise<{ data?: UserProfile; error?: string }>) | null;
   kmSettings?: KmSettings | null;
   kmFraisThisWeek?: KmFraisResult | null;
   domicileLatLng?: { lat: number; lng: number } | null;
@@ -197,7 +199,7 @@ export const BilanTab = ({
         <WeekPicker
           value={bilan.bilanPeriodValue}
           weeks={bilan.availablePeriods}
-          onChange={bilan.handleWeekChange}
+          onChange={(w) => bilan.handleWeekChange(String(w))}
           onPrevious={bilan.gotoPreviousWeek}
           onNext={bilan.gotoNextWeek}
           hasPrevious={bilan.hasPreviousWeek}
@@ -207,7 +209,7 @@ export const BilanTab = ({
 
       <BilanPanel
         bilanContent={bilan.bilanContent}
-        bilanPeriodType={bilan.bilanPeriodType}
+        bilanPeriodType={bilan.bilanPeriodType as "semaine" | "mois" | "annee" | undefined}
         bilanPaye={bilan.bilanPaye}
         sortedMissions={sortedBilanMissions}
         onMarquerCommePaye={onMarquerCommePaye}
@@ -241,8 +243,11 @@ export const BilanTab = ({
         onExportFacture={async () => {
           const { generateFacture } = await import("../utils/generateFacture");
           const patron = patrons.find((p) => p.id === bilanPatronId) || null;
+          const sp = saveProfile
+            ? async (data: Partial<UserProfile>) => { await saveProfile(data); }
+            : async () => {};
           await generateFacture(exportBilanContent, bilan.bilanPeriodType,
-            bilan.bilanPeriodValue, profile, patron, saveProfile, L);
+            bilan.bilanPeriodValue, profile, patron, sp, L);
         }}
         onFraisEdit={onFraisEdit}
         onFraisDelete={onFraisDelete}

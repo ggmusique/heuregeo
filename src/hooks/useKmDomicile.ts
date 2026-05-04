@@ -60,25 +60,16 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
   const kmSettings = useMemo((): KmSettings | null => {
     if (!profile) return null;
     const f = profile.features ?? {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ks = (f as any).km_settings ?? {};
+    const ks = f.km_settings ?? {};
     return {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      km_enable: getKmEnabled(f as any),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      km_include_retour: (f as any).km_include_retour ?? ks.roundTrip ?? false,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      km_domicile_adresse: (f as any).km_domicile_address || ks.homeLabel || "",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      km_domicile_lat: (f as any).km_domicile_lat != null ? Number((f as any).km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      km_domicile_lng: (f as any).km_domicile_lng != null ? Number((f as any).km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      km_country_code: (f as any).km_country || ks.countryCode || "FR",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      km_rate_mode: (f as any).km_rate_mode || "AUTO_BY_COUNTRY",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      km_rate: (f as any).km_rate_custom || 0,
+      km_enable: getKmEnabled(f),
+      km_include_retour: f.km_include_retour ?? ks.roundTrip ?? false,
+      km_domicile_adresse: f.km_domicile_address || ks.homeLabel || "",
+      km_domicile_lat: f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null),
+      km_domicile_lng: f.km_domicile_lng != null ? Number(f.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null),
+      km_country_code: f.km_country || ks.countryCode || "FR",
+      km_rate_mode: f.km_rate_mode || "AUTO_BY_COUNTRY",
+      km_rate: f.km_rate_custom || 0,
     };
   }, [profile]);
 
@@ -97,8 +88,7 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
     geocodeAddress(addr).then((result: { lat: number; lng: number } | null) => {
       if (result) {
         setDomicileLatLng({ lat: result.lat, lng: result.lng });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        saveProfile({ features: { ...featuresSnapshot, km_domicile_lat: result.lat, km_domicile_lng: result.lng } as any });
+        saveProfile({ features: { ...featuresSnapshot, km_domicile_lat: result.lat, km_domicile_lng: result.lng } });
       }
     });
   }, [kmSettings?.km_enable, kmSettings?.km_domicile_lat, kmSettings?.km_domicile_lng, kmSettings?.km_domicile_adresse, profile?.adresse, profile?.code_postal, profile?.ville, saveProfile]);
@@ -107,19 +97,16 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
   useEffect(() => {
     if (!profile) return;
     const f = profile.features ?? {};
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const fa = f as any;
-    const ks = fa.km_settings ?? {};
+    const ks = f.km_settings ?? {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const normalizedEnabled = getKmEnabled(f as any);
-    const normalizedLat = fa.km_domicile_lat != null ? Number(fa.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null);
-    const normalizedLng = fa.km_domicile_lng != null ? Number(fa.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null);
-    const normalizedAddress = fa.km_domicile_address || ks.homeLabel || null;
-    const normalizedCountry = fa.km_country || ks.countryCode || "FR";
-    const normalizedRoundTrip = fa.km_include_retour ?? ks.roundTrip ?? false;
-    const normalizedRateMode = fa.km_rate_mode || (ks.ratePerKm != null ? "CUSTOM" : "AUTO_BY_COUNTRY");
-    const normalizedRateCustom = fa.km_rate_custom ?? (ks.ratePerKm ?? null);
+    const normalizedEnabled = getKmEnabled(f);
+    const normalizedLat = f.km_domicile_lat != null ? Number(f.km_domicile_lat) : (ks.homeLat != null ? Number(ks.homeLat) : null);
+    const normalizedLng = f.km_domicile_lng != null ? Number(f.km_domicile_lng) : (ks.homeLng != null ? Number(ks.homeLng) : null);
+    const normalizedAddress = f.km_domicile_address || ks.homeLabel || null;
+    const normalizedCountry = f.km_country || ks.countryCode || "FR";
+    const normalizedRoundTrip = f.km_include_retour ?? ks.roundTrip ?? false;
+    const normalizedRateMode = f.km_rate_mode || (ks.ratePerKm != null ? "CUSTOM" : "AUTO_BY_COUNTRY");
+    const normalizedRateCustom = f.km_rate_custom ?? (ks.ratePerKm ?? null);
 
     const needsSync =
       ks.enabled !== normalizedEnabled ||
@@ -129,15 +116,15 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
       ks.countryCode !== normalizedCountry ||
       ks.roundTrip !== normalizedRoundTrip ||
       (ks.ratePerKm ?? null) !== (normalizedRateCustom ?? null) ||
-      fa.km_enabled !== normalizedEnabled ||
-      fa.km_enable !== undefined ||
-      fa.km_domicile_lat !== normalizedLat ||
-      fa.km_domicile_lng !== normalizedLng ||
-      (fa.km_domicile_address || null) !== normalizedAddress ||
-      (fa.km_country || "FR") !== normalizedCountry ||
-      (fa.km_include_retour ?? false) !== normalizedRoundTrip ||
-      (fa.km_rate_mode || "AUTO_BY_COUNTRY") !== normalizedRateMode ||
-      (fa.km_rate_custom ?? null) !== (normalizedRateCustom ?? null);
+      f.km_enabled !== normalizedEnabled ||
+      f.km_enable !== undefined ||
+      f.km_domicile_lat !== normalizedLat ||
+      f.km_domicile_lng !== normalizedLng ||
+      (f.km_domicile_address || null) !== normalizedAddress ||
+      (f.km_country || "FR") !== normalizedCountry ||
+      (f.km_include_retour ?? false) !== normalizedRoundTrip ||
+      (f.km_rate_mode || "AUTO_BY_COUNTRY") !== normalizedRateMode ||
+      (f.km_rate_custom ?? null) !== (normalizedRateCustom ?? null);
 
     if (!needsSync) return;
 
@@ -163,8 +150,7 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
         countryCode: normalizedCountry,
       },
     };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    saveProfile({ features: nextFeatures as any });
+    saveProfile({ features: nextFeatures });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id, profile?.features]);
 

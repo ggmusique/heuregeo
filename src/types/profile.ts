@@ -42,9 +42,37 @@ export interface UserFeatures {
   /** Module génération de factures. */
   facture?: boolean;
   /** Coordonnées GPS du domicile pour le calcul km. */
-  km_domicile_lat?: number;
-  km_domicile_lng?: number;
-  km_domicile_address?: string;
+  km_domicile_lat?: number | null;
+  km_domicile_lng?: number | null;
+  km_domicile_address?: string | null;
+
+  // ─── Km settings ─────────────────────────────────────────────────────────
+
+  /**
+   * Canonical km settings object (source of truth for the new format).
+   * Kept in sync with the flat legacy fields below.
+   */
+  km_settings?: {
+    enabled?: boolean;
+    roundTrip?: boolean;
+    homeLabel?: string | null;
+    homeLat?: number | null;
+    homeLng?: number | null;
+    countryCode?: string;
+    ratePerKm?: number | null;
+  };
+  /** Legacy km enabled flag (kept in sync with km_settings.enabled). */
+  km_enabled?: boolean;
+  /** Obsolete flag — removed on save; never read. */
+  km_enable?: boolean;
+  /** Include return trip in km distance calculation. */
+  km_include_retour?: boolean;
+  /** Country code used for km rate lookup (e.g., "FR"). */
+  km_country?: string;
+  /** Rate mode: 'AUTO_BY_COUNTRY' | 'CUSTOM'. */
+  km_rate_mode?: string;
+  /** Custom km rate in €/km (used when km_rate_mode === 'CUSTOM'). */
+  km_rate_custom?: number | null;
 }
 
 // ─── Profil complet ──────────────────────────────────────────────────────────

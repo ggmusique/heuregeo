@@ -8,6 +8,9 @@ import { KM_RATES } from "../../utils/kmRatesByCountry";
 import { haversineKm } from "../../utils/calculators";
 import { supabase } from "../../services/supabase";
 import { useDarkMode } from "../../contexts/DarkModeContext";
+import type { Mission, FraisDivers, Acompte, Patron, Client, Lieu } from "../../types/entities";
+import type { UserProfile } from "../../types/profile";
+import type { KmSettings } from "../../hooks/useKmDomicile";
 
 interface ChartDataset {
   data: number[];
@@ -53,14 +56,14 @@ function fmtMonthShort(ym: string | null): string {
 }
 
 interface DashboardPanelProps {
-  missions?: any[];
-  fraisDivers?: any[];
-  listeAcomptes?: any[];
-  patrons?: any[];
-  clients?: any[];
-  lieux?: any[];
-  profile?: any;
-  kmSettings?: any;
+  missions?: Mission[];
+  fraisDivers?: FraisDivers[];
+  listeAcomptes?: Acompte[];
+  patrons?: Patron[];
+  clients?: Client[];
+  lieux?: Lieu[];
+  profile?: UserProfile | null;
+  kmSettings?: KmSettings | null;
   domicileLatLng?: { lat: number; lng: number } | null;
 }
 
@@ -119,10 +122,10 @@ export function DashboardPanel({
 
       const effectiveDomicile =
         domicileLatLng ??
-        (Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng)
+        (Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng) && kmSettings !== null && kmSettings !== undefined
           ? {
-              lat: kmSettings.km_domicile_lat,
-              lng: kmSettings.km_domicile_lng,
+              lat: kmSettings.km_domicile_lat as number,
+              lng: kmSettings.km_domicile_lng as number,
             }
           : null);
 
@@ -134,7 +137,7 @@ export function DashboardPanel({
 
       const kmRateEffectif =
         kmSettings?.km_rate_mode === "CUSTOM"
-          ? parseFloat(kmSettings?.km_rate) || 0
+          ? kmSettings?.km_rate || 0
           : KM_RATES[kmSettings?.km_country_code || "FR"] || 0.42;
 
       const multiplicateur = kmSettings?.km_include_retour ? 2 : 1;
@@ -194,10 +197,11 @@ export function DashboardPanel({
   }, [missionsThisWeek, missionsLastWeek]);
 
   const bilanSemaine = useMemo(() => {
-    const filterWeek = (items: { [key: string]: unknown }[], dateField: string) =>
+    const filterWeek = <T extends { patron_id?: string | null }>(items: T[], dateField: keyof T) =>
       items.filter((item) => {
-        if (!item[dateField]) return false;
-        const d = new Date(item[dateField] as string + "T12:00:00");
+        const dateVal = item[dateField];
+        if (!dateVal) return false;
+        const d = new Date((dateVal as string) + "T12:00:00");
         return (
           getWeekNumber(d) === currentWeek &&
           getISOWeekYear(d) === currentYear &&
@@ -205,8 +209,8 @@ export function DashboardPanel({
         );
       });
 
-    const fraisWeek = filterWeek(fraisDivers as { [key: string]: unknown }[], "date_frais").reduce((s, f) => s + (Number(f.montant) || 0), 0);
-    const acomptesWeek = filterWeek(listeAcomptes as { [key: string]: unknown }[], "date_acompte").reduce((s, a) => s + (Number(a.montant) || 0), 0);
+    const fraisWeek = filterWeek(fraisDivers, "date_frais").reduce((s, f) => s + (Number(f.montant) || 0), 0);
+    const acomptesWeek = filterWeek(listeAcomptes, "date_acompte").reduce((s, a) => s + (Number(a.montant) || 0), 0);
 
     return {
       caWeek: kpis.ca.value,

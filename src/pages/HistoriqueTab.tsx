@@ -5,11 +5,12 @@ import { useLabels } from "../contexts/LabelsContext";
 import { useDarkMode } from "../contexts/DarkModeContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { StatsCharts } from "../components/stats/StatsCharts";
-import type { Patron, Mission } from "../types/entities";
+import type { Patron, Mission, Acompte } from "../types/entities";
+import type { NormalizedHistorique, HistoriqueRow } from "../types/bilan";
 
 interface Props {
   // État
-  historique: any;
+  historique: NormalizedHistorique;
   historiquePatronId: string | null;
   historiqueTab: string;
   loadingHistorique: boolean;
@@ -17,7 +18,7 @@ interface Props {
   // Données
   patrons: Patron[];
   missions: Mission[];
-  listeAcomptes: any[];
+  listeAcomptes: Acompte[];
 
   // Handlers
   onPatronFilterChange: (patronId: string | null) => void;
@@ -106,8 +107,8 @@ export const HistoriqueTab = ({
   const filteredImpayes = useMemo(
     () =>
       missions.length > 0
-        ? (historique.impayes || []).filter((row: any) => {
-            const wk = parseInt(row.periode_value, 10);
+        ? (historique.impayes || []).filter((row: HistoriqueRow) => {
+            const wk = parseInt(String(row.periode_value), 10);
             return Number.isFinite(wk) && validWeekNums.has(wk);
           })
         : historique.impayes || [],
@@ -116,8 +117,8 @@ export const HistoriqueTab = ({
   const filteredPayes = useMemo(
     () =>
       missions.length > 0
-        ? (historique.payes || []).filter((row: any) => {
-            const wk = parseInt(row.periode_value, 10);
+        ? (historique.payes || []).filter((row: HistoriqueRow) => {
+            const wk = parseInt(String(row.periode_value), 10);
             return Number.isFinite(wk) && validWeekNums.has(wk);
           })
         : historique.payes || [],
@@ -230,7 +231,7 @@ export const HistoriqueTab = ({
 
           // Total impayés (using filtered list to exclude deleted-mission rows)
           const totalImpayes = filteredImpayes.reduce(
-            (s: number, r: any) => s + (r.ca_brut_periode || 0),  // ✅ au lieu de reste_a_percevoir
+            (s: number, r: HistoriqueRow) => s + Number(r.ca_brut_periode || 0),  // ✅ au lieu de reste_a_percevoir
             0
           );
 
@@ -432,7 +433,7 @@ export const HistoriqueTab = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredImpayes.map((row: any) => (
+                  {filteredImpayes.map((row: HistoriqueRow) => (
                     <div
                       key={row.id}
                       className={`flex items-center justify-between p-4 rounded-2xl ${
@@ -451,7 +452,7 @@ export const HistoriqueTab = ({
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-black text-orange-400 amount-safe">
-                          {formatEuro(row.reste_a_percevoir || 0)}
+                          {formatEuro(Number(row.reste_a_percevoir || 0))}
                         </p>
                         <p className="text-[9px] uppercase opacity-40 tracking-wider">
                           non payé
@@ -467,7 +468,7 @@ export const HistoriqueTab = ({
                     <p className="text-xl font-black text-orange-400 amount-safe">
                       {formatEuro(
                         filteredImpayes.reduce(
-                          (s: number, r: any) => s + (r.reste_a_percevoir || 0),
+                          (s: number, r: HistoriqueRow) => s + Number(r.reste_a_percevoir || 0),
                           0
                         )
                       )}
@@ -496,7 +497,7 @@ export const HistoriqueTab = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {filteredPayes.map((row: any) => (
+                  {filteredPayes.map((row: HistoriqueRow) => (
                     <div
                       key={row.id}
                       className={`flex items-center justify-between p-4 rounded-2xl ${
@@ -515,7 +516,7 @@ export const HistoriqueTab = ({
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-black text-green-400 amount-safe">
-                          {formatEuro(row.ca_brut_periode || 0)}
+                          {formatEuro(Number(row.ca_brut_periode || 0))}
                         </p>
                         <p className="text-[9px] opacity-40">
                           {row.date_paiement
