@@ -1,17 +1,16 @@
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { DateSelector } from "../common/DateSelector";
-import { PatronSelectorCompact } from "../patron/PatronSelector";
 import {
   PAUSE_OPTIONS,
   TARIF_OPTIONS,
   TIME_OPTIONS,
 } from "../../constants/options";
 import { calculerDuree } from "../../utils/calculators";
-import { ClientSelector } from "../client/ClientSelector";
-import { WeatherIcon } from "../common/WeatherIcon";
-import { LieuSelector } from "../lieu/LieuSelector";
 import { useLabels } from "../../contexts/LabelsContext";
 import { useWeather } from "../../hooks/useWeather";
+import { GlassCard } from "../ui/GlassCard";
+import { NeonButton } from "../ui/NeonButton";
+import { NeonSelect } from "../ui/NeonSelect";
 
 const JOURNEE_TYPE = { debut: "08:00", fin: "17:00", pause: 30 };
 const MAX_TIME_MINUTES = 23 * 60 + 45;
@@ -201,351 +200,368 @@ export const MissionForm = ({
   const getDay = () => safeDate.getDate().toString().padStart(2, "0");
   const getYear = () => safeDate.getFullYear();
 
-  const adjustBtnClass = darkMode
-    ? "flex-1 py-1 rounded-xl text-[11px] font-black border transition-all active:scale-95 bg-white/5 border-white/10 text-white/60 hover:bg-white/10"
-    : "flex-1 py-1 rounded-xl text-[11px] font-black border transition-all active:scale-95 bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200";
+  const shortDate = useMemo(() =>
+    safeDate.toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "long" }),
+    [safeDate]
+  );
+
+  // Live duration + amount summary
+  const dureeCalculee = useMemo(() => {
+    if (!debut || !fin) return null;
+    const [hD, mD] = debut.split(":").map(Number);
+    const [hF, mF] = fin.split(":").map(Number);
+    const minutesDebut = hD * 60 + mD;
+    const minutesFin = hF * 60 + mF;
+    if (minutesFin <= minutesDebut) return null;
+    if (pause >= minutesFin - minutesDebut) return null;
+    const dureeH = calculerDuree(debut, fin, pause);
+    if (dureeH <= 0) return null;
+    const tarifNum = parseFloat(tarifHoraire);
+    const tarifFin = Number.isFinite(tarifNum) ? tarifNum : null;
+    const montant = tarifFin != null ? dureeH * tarifFin : null;
+    const totalMinutes = Math.round(dureeH * 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    const dureeStr = m > 0 ? `${h}h${m.toString().padStart(2, "0")}` : `${h}h`;
+    return { dureeStr, montant, tarifFin };
+  }, [debut, fin, pause, tarifHoraire]);
+
+  // NeonSelect options
+  const patronOptions = useMemo(() =>
+    (Array.isArray(patrons) ? patrons : []).map((p) => ({ value: String(p.id), label: String(p.nom) })),
+    [patrons]
+  );
+  const clientOptions = useMemo(() =>
+    (Array.isArray(clients) ? clients : []).map((c) => ({ value: String(c.id), label: String(c.nom) })),
+    [clients]
+  );
+  const lieuOptions = useMemo(() =>
+    (Array.isArray(lieux) ? lieux : []).map((l) => ({ value: String(l.id), label: String(l.nom) })),
+    [lieux]
+  );
+  const tarifSelectOptions = useMemo(() =>
+    TARIF_OPTIONS.map((val) => ({ value: val.toString(), label: `${val.toFixed(2)} €/h` })),
+    []
+  );
+
+  const sectionStyle: React.CSSProperties = {
+    position: "relative",
+    padding: "2rem",
+    borderRadius: editMode ? "var(--radius-lg)" : "var(--radius-xxl)",
+    background: "var(--color-surface)",
+    backdropFilter: "var(--blur-card)",
+    WebkitBackdropFilter: "var(--blur-card)",
+    border: "1px solid var(--color-border)",
+    boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+    overflow: "hidden",
+  };
+
+  const sectionTitleStyle: React.CSSProperties = {
+    textAlign: "center",
+    color: "var(--color-text-dim)",
+    fontSize: "10px",
+    textTransform: "uppercase",
+    letterSpacing: "0.15em",
+    fontWeight: 700,
+    marginBottom: "0.75rem",
+  };
 
   return (
-    <section
-      className={`relative p-8 rounded-[50px] shadow-2xl border backdrop-blur-2xl overflow-hidden ${
-        darkMode ? "bg-white/5 border-indigo-500/20" : "bg-white/70 border-slate-200/80"
-      }`}
-    >
-      <div
-        className={`relative mb-6 rounded-[28px] overflow-hidden backdrop-blur-2xl shadow-xl border ${
-          darkMode ? "border-yellow-600/20" : "bg-white/35 border-white/25"
-        }`}
-        style={{
-          background: weather
-            ? weather.temp < 10
-              ? "linear-gradient(135deg, #0a1628, #1a2a4a)"
-              : weather.temp < 20
-              ? "linear-gradient(135deg, #0d1f3c, #1e3a5f)"
-              : "linear-gradient(135deg, #1a2a4a, #2a3a6a)"
-            : "linear-gradient(135deg, #0d1f3c, #1e3a5f)",
-        }}
-      >
-        <div className="relative z-10 flex flex-row items-center justify-between gap-3 px-4 py-3 sm:py-4 md:gap-5 md:px-6 md:py-5">
-          <div className="flex items-center gap-3 flex-1">
-            {weather ? (
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl backdrop-blur-md border border-white/25 shadow-md shrink-0">
-                  <WeatherIcon code={weather.icon} className="w-10 h-10 sm:w-12 sm:h-12" />
-                </div>
-                <div>
-                  <div className="text-2xl sm:text-3xl font-black text-white drop-shadow leading-none">
-                    {weather.temp}°
-                  </div>
-                  <div className="text-xs sm:text-sm font-medium text-white/90 capitalize">
-                    {weather.desc}
-                  </div>
-                  {weatherCity && (
-                    <div className="text-[10px] sm:text-xs text-white/70 font-medium truncate max-w-[140px] sm:max-w-[180px]">
-                      📍 {weatherCity}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 animate-pulse">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl" />
-                <div className="space-y-1">
-                  <div className="h-7 w-16 bg-white/25 rounded" />
-                  <div className="h-4 w-24 bg-white/25 rounded" />
-                </div>
-              </div>
-            )}
-          </div>
+    <section style={sectionStyle}>
 
-          <button
-            type="button"
-            onClick={() => setShowDatePicker((v) => !v)}
-            className="shrink-0 flex flex-col items-center justify-center px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-br from-[#C9A84C] via-[#A07830] to-[#7A5C20] rounded-2xl backdrop-blur-xl border border-yellow-600/50 shadow-xl hover:scale-105 transition-all active:scale-95 cursor-pointer min-w-[110px] sm:min-w-[130px] md:min-w-[150px]"
-          >
-            <div className="text-[9px] sm:text-[10px] font-black uppercase text-yellow-100/90 tracking-wider mb-0.5">
-              DATE MISSION
-            </div>
-            <div className="text-center leading-tight">
-              <div className="text-xs sm:text-sm font-black uppercase text-white/90">
-                {getMonthName()}
-              </div>
-              <div className="text-3xl sm:text-4xl md:text-5xl font-black text-white drop-shadow-lg my-0.5">
-                {getDay()}
-              </div>
-              <div className="text-xs sm:text-sm font-black text-white/90">
-                {getYear()}
-              </div>
-            </div>
-            <div className="text-[9px] sm:text-[10px] font-black uppercase text-yellow-100/90 tracking-wider mt-1">
-              CHANGER
-            </div>
-          </button>
-        </div>
-      </div>
-
+      {/* ── DatePicker modal ──────────────────────────────────────────── */}
       {showDatePicker && (
         <div
           className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
           onClick={() => setShowDatePicker(false)}
         >
           <div
-            className={`w-full max-w-sm p-6 rounded-[30px] ${
-              darkMode
-                ? "bg-[#1a1f2e] border-2 border-indigo-500/40"
-                : "bg-white border-2 border-slate-200"
-            } shadow-2xl`}
+            style={{
+              background: "var(--color-surface)",
+              border: "2px solid var(--color-border-primary)",
+              borderRadius: "var(--radius-lg)",
+              padding: "1.5rem",
+              width: "100%",
+              maxWidth: "24rem",
+              boxShadow: "var(--glow-primary)",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-black uppercase mb-4 text-center text-white">
+            <h3 style={{ color: "var(--color-text)", textAlign: "center", fontWeight: 900, fontSize: "1.125rem", textTransform: "uppercase", marginBottom: "1rem" }}>
               Choisir la date
             </h3>
             <DateSelector
               dateMission={dateMission}
-              setDateMission={(newDate) => {
-                setDateMission(newDate);
-                setShowDatePicker(false);
-              }}
+              setDateMission={(newDate) => { setDateMission(newDate); setShowDatePicker(false); }}
               isIOS={isIOS}
             />
-            <button
-              onClick={() => setShowDatePicker(false)}
-              className="w-full mt-4 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-2xl font-black uppercase text-[11px] text-white transition-all"
-            >
-              Valider
-            </button>
+            <div style={{ marginTop: "1rem" }}>
+              <NeonButton fullWidth onClick={() => setShowDatePicker(false)}>Valider</NeonButton>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="mb-6">
-        <PatronSelectorCompact
-          patrons={patrons}
-          selectedPatronId={selectedPatronId}
-          onSelect={(id) => { onPatronChange(id); clearError("patron"); }}
-          required={true}
-          darkMode={darkMode}
-          onAddNew={onAddNewPatron}
-        />
-        {formErrors.patron && (
-          <p className="mt-1 text-xs font-black text-red-400">{formErrors.patron}</p>
-        )}
-
-        {showRateEditorControl && (
-          <div className={`mt-3 p-3 rounded-xl border ${darkMode ? "bg-emerald-900/15 border-emerald-500/20" : "bg-emerald-50 border-emerald-200"}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black uppercase opacity-60 tracking-wider">Taux mission</p>
-                <p className="text-sm font-black text-emerald-300">
-                  {Number.isFinite(currentRate) ? `${currentRate.toFixed(2)} €/h` : "Non défini"}
-                </p>
-                {patronRate != null && (
-                  <p className="text-[10px] opacity-70">Taux patron: {Number(patronRate).toFixed(2)} €/h</p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowRateEditor((v) => !v)}
-                className="px-3 py-2 rounded-lg border border-emerald-400/30 text-emerald-300 text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500/10 transition-all"
-              >
-                {showRateEditor ? "Fermer" : "Modifier le taux du jour"}
-              </button>
+      {/* ── BLOC 1 — QUAND ? ─────────────────────────────────────────── */}
+      {editMode ? (
+        <GlassCard color="primary" padding="sm" className="mb-6">
+          <p style={{ color: "var(--color-text-muted)", fontSize: "13px" }}>
+            ✏️&nbsp; Modification&nbsp;·&nbsp;
+            <span>{selectedClient?.nom || ""}</span>
+            &nbsp;·&nbsp;
+            <span style={{ color: "var(--color-primary)" }}>{shortDate}</span>
+          </p>
+        </GlassCard>
+      ) : (
+        <GlassCard color="primary" className="mb-5">
+          <div className="flex items-center justify-between gap-4">
+            {/* Weather chip */}
+            <div>
+              {weather ? (
+                <span style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>
+                  {weather.icon} {weather.temp}°{weatherCity ? ` · ${weatherCity}` : ""}
+                </span>
+              ) : (
+                <span style={{ fontSize: "13px", color: "var(--color-text-dim)" }}>⛅ …</span>
+              )}
             </div>
 
-            {isCustomRate && (
-              <p className="mt-2 text-[10px] font-black uppercase tracking-wider text-amber-300">
-                Taux personnalisé actif
-              </p>
-            )}
+            {/* Date button */}
+            <button
+              type="button"
+              onClick={() => setShowDatePicker((v) => !v)}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--color-primary)",
+                border: "1px solid var(--color-border-primary)",
+                borderRadius: "var(--radius-md)",
+                padding: "0.75rem 1.25rem",
+                cursor: "pointer",
+                color: "var(--color-bg)",
+                transition: "var(--transition-fast)",
+                minWidth: "110px",
+              }}
+            >
+              <span style={{ fontSize: "11px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", opacity: 0.8 }}>
+                {getMonthName()}
+              </span>
+              <span style={{ fontSize: "2.5rem", fontWeight: 900, lineHeight: 1.1 }}>
+                {getDay()}
+              </span>
+              <span style={{ fontSize: "12px", fontWeight: 700 }}>
+                {getYear()}
+              </span>
+              <span style={{ fontSize: "9px", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.08em", opacity: 0.7, marginTop: "2px" }}>
+                DATE MISSION · Appuyer pour changer
+              </span>
+            </button>
+          </div>
 
+          {/* Action buttons */}
+          <div className="flex gap-2 mt-3">
+            <NeonButton
+              variant="ghost"
+              size="sm"
+              onClick={() => { setDebut(JOURNEE_TYPE.debut); setFin(JOURNEE_TYPE.fin); setPause(JOURNEE_TYPE.pause); }}
+            >
+              ☀️ Journée type
+            </NeonButton>
+            {onCopyLast && (
+              <NeonButton variant="ghost" size="sm" onClick={onCopyLast}>
+                📋 Dupliquer
+              </NeonButton>
+            )}
+          </div>
+        </GlassCard>
+      )}
+
+      {/* ── BLOC 2 — POUR QUI ? ──────────────────────────────────────── */}
+      <p style={sectionTitleStyle}>POUR QUI ?</p>
+
+      <div className="flex flex-col gap-4 mb-6">
+        <NeonSelect
+          label="PATRON"
+          color="primary"
+          value={selectedPatronId || ""}
+          onChange={(id) => { onPatronChange(id || null); clearError("patron"); }}
+          options={patronOptions}
+          onAddNew={onAddNewPatron}
+          error={formErrors.patron}
+          required
+        />
+
+        {showRateEditorControl && (
+          <div>
+            <NeonButton
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowRateEditor((v) => !v)}
+            >
+              💶 Taux horaire · {Number.isFinite(currentRate) ? `${currentRate.toFixed(2)} €/h` : "—"}
+              {isCustomRate && (
+                <span style={{
+                  marginLeft: "8px",
+                  fontSize: "10px",
+                  background: "var(--color-surface)",
+                  border: "1px solid var(--color-border-primary)",
+                  color: "var(--color-primary)",
+                  borderRadius: "var(--radius-pill)",
+                  padding: "1px 6px",
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                }}>
+                  Taux personnalisé
+                </span>
+              )}
+            </NeonButton>
             {showRateEditor && (
-              <div className="mt-3">
-                <select
+              <div style={{ marginTop: "8px" }}>
+                <NeonSelect
+                  label="TARIF"
+                  color="green"
                   value={tarifHoraire}
-                  onChange={(e) => setTarifHoraire(e.target.value)}
-                  className={`w-full p-3 rounded-xl font-black text-sm border-2 outline-none ${
-                    darkMode
-                      ? "bg-black/30 border-emerald-500/30 text-white"
-                      : "bg-white border-emerald-300 text-slate-900"
-                  }`}
-                >
-                  {TARIF_OPTIONS.map((val) => (
-                    <option key={val} value={val}>
-                      {val.toFixed(2)} €/h
-                    </option>
-                  ))}
-                </select>
+                  onChange={setTarifHoraire}
+                  options={tarifSelectOptions}
+                />
               </div>
             )}
           </div>
         )}
-      </div>
 
-      <div className="mb-6">
-        <ClientSelector
-          clients={clients}
-          selectedClientId={selectedClientId}
-          onSelect={(id) => { onClientChange(id); clearError("client"); }}
-          required={true}
-          darkMode={darkMode}
+        <NeonSelect
+          label="CLIENT"
+          color="cyan"
+          value={selectedClientId || ""}
+          onChange={(id) => { onClientChange(id || null); clearError("client"); }}
+          options={clientOptions}
           onAddNew={onAddNewClient}
+          error={formErrors.client}
+          required
         />
-        {formErrors.client && (
-          <p className="mt-1 text-xs font-black text-red-400">{formErrors.client}</p>
-        )}
-      </div>
 
-      <div className="mb-6">
-        <LieuSelector
-          lieux={lieux}
-          selectedLieuId={selectedLieuId}
-          onSelect={(id) => { onLieuChange(id); clearError("lieu"); }}
-          required={true}
-          darkMode={darkMode}
+        <NeonSelect
+          label="LIEU"
+          color="violet"
+          value={selectedLieuId || ""}
+          onChange={(id) => { onLieuChange(id || null); clearError("lieu"); }}
+          options={lieuOptions}
           onAddNew={() => {
             const prefill = selectedClient?.nom
               ? { nom: "", notes: `Lieu pour ${selectedClient.nom}` }
               : null;
             onAddNewLieu(prefill);
           }}
-          selectedClientId={selectedClientId}
-          missions={missions}
+          error={formErrors.lieu}
+          required
         />
-        {formErrors.lieu && (
-          <p className="mt-1 text-xs font-black text-red-400">{formErrors.lieu}</p>
-        )}
       </div>
 
-      {/* Preset + Duplicate row */}
-      <div className="flex gap-2 mb-3">
-        <button
-          type="button"
-          onClick={() => { setDebut(JOURNEE_TYPE.debut); setFin(JOURNEE_TYPE.fin); setPause(JOURNEE_TYPE.pause); }}
-          className={`flex-1 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider border transition-all active:scale-95 ${
-            darkMode
-              ? "bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20"
-              : "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
-          }`}
-        >
-          ☀️ Journée type
-        </button>
-        {onCopyLast && (
-          <button
-            type="button"
-            onClick={onCopyLast}
-            className={`flex-1 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider border transition-all active:scale-95 ${
-              darkMode
-                ? "bg-indigo-500/10 border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20"
-                : "bg-indigo-50 border-indigo-300 text-indigo-700 hover:bg-indigo-100"
-            }`}
-          >
-            📋 Dupliquer
-          </button>
-        )}
-      </div>
+      {/* ── BLOC 3 — COMBIEN DE TEMPS ? ─────────────────────────────── */}
+      <p style={sectionTitleStyle}>COMBIEN DE TEMPS ?</p>
 
-      <div className="grid grid-cols-3 gap-3">
-        {/* Début */}
-        <div className="flex flex-col gap-1">
-          <div
-            className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
-              formErrors.fin ? "border-red-500" : darkMode ? "border-slate-700" : "border-slate-300"
-            } backdrop-blur-md`}
-          >
-            <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Début</span>
-            <span className="text-xl font-black text-indigo-400">{debut}</span>
-            <select
-              value={debut}
-              onChange={(e) => { setDebut(e.target.value); clearError("fin"); clearError("horaires"); }}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            >
-              {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
-            </select>
+      <GlassCard color="neutral" className="mb-3">
+        <div className="grid grid-cols-3 gap-3">
+
+          {/* Début */}
+          <div className="flex flex-col items-center gap-2">
+            <span style={{ fontSize: "9px", fontWeight: 900, textTransform: "uppercase", color: "var(--color-text-dim)", letterSpacing: "0.1em" }}>Début</span>
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", minHeight: "40px" }}>
+              <span style={{ fontSize: "1.25rem", fontWeight: 900, color: "var(--color-accent-cyan)" }}>{debut}</span>
+              <select
+                value={debut}
+                onChange={(e) => { setDebut(e.target.value); clearError("fin"); clearError("horaires"); }}
+                style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
+              >
+                {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
+              </select>
+            </div>
+            <div className="flex gap-1">
+              <NeonButton variant="ghost" size="sm" onClick={() => { setDebut(adjustTime(debut, -15)); clearError("fin"); }}>−</NeonButton>
+              <NeonButton variant="ghost" size="sm" onClick={() => { setDebut(adjustTime(debut, 15)); clearError("fin"); }}>+</NeonButton>
+            </div>
           </div>
-          <div className="flex gap-1">
-            <button type="button" onClick={() => { setDebut(adjustTime(debut, -15)); clearError("fin"); }} className={adjustBtnClass}>−</button>
-            <button type="button" onClick={() => { setDebut(adjustTime(debut, 15)); clearError("fin"); }} className={adjustBtnClass}>+</button>
+
+          {/* Pause */}
+          <div className="flex flex-col items-center gap-2">
+            <span style={{ fontSize: "9px", fontWeight: 900, textTransform: "uppercase", color: "var(--color-text-dim)", letterSpacing: "0.1em" }}>Pause</span>
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", minHeight: "40px" }}>
+              <span style={{ fontSize: "1.25rem", fontWeight: 900, color: "var(--color-primary)" }}>{pause}m</span>
+              <select
+                value={pause}
+                onChange={(e) => { setPause(parseInt(e.target.value, 10)); clearError("pause"); }}
+                style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
+              >
+                {PAUSE_OPTIONS.map((val) => (<option key={val} value={val}>{val} min</option>))}
+              </select>
+            </div>
+            <div className="flex gap-1">
+              <NeonButton variant="ghost" size="sm" onClick={() => { setPause((p) => Math.max(0, p - 15)); clearError("pause"); }}>−</NeonButton>
+              <NeonButton variant="ghost" size="sm" onClick={() => { setPause((p) => Math.min(MAX_PAUSE_MINUTES, p + 15)); clearError("pause"); }}>+</NeonButton>
+            </div>
           </div>
+
+          {/* Fin */}
+          <div className="flex flex-col items-center gap-2">
+            <span style={{ fontSize: "9px", fontWeight: 900, textTransform: "uppercase", color: "var(--color-text-dim)", letterSpacing: "0.1em" }}>Fin</span>
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", minHeight: "40px" }}>
+              <span style={{ fontSize: "1.25rem", fontWeight: 900, color: "var(--color-accent-violet)" }}>{fin}</span>
+              <select
+                value={fin}
+                onChange={(e) => { setFin(e.target.value); clearError("fin"); clearError("horaires"); }}
+                style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer" }}
+              >
+                {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
+              </select>
+            </div>
+            <div className="flex gap-1">
+              <NeonButton variant="ghost" size="sm" onClick={() => { setFin(adjustTime(fin, -15)); clearError("fin"); }}>−</NeonButton>
+              <NeonButton variant="ghost" size="sm" onClick={() => { setFin(adjustTime(fin, 15)); clearError("fin"); }}>+</NeonButton>
+            </div>
+          </div>
+
         </div>
+      </GlassCard>
 
-        {/* Pause */}
-        <div className="flex flex-col gap-1">
-          <div
-            className={`p-4 bg-black/40 rounded-[28px] border-2 relative flex flex-col items-center justify-center text-center min-h-[90px] ${
-              formErrors.pause ? "border-red-500" : darkMode ? "border-slate-700" : "border-slate-300"
-            } backdrop-blur-md`}
-          >
-            <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Pause</span>
-            <div className="font-black text-xl text-indigo-400">{pause}m</div>
-            <select
-              value={pause}
-              onChange={(e) => { setPause(parseInt(e.target.value, 10)); clearError("pause"); }}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            >
-              {PAUSE_OPTIONS.map((val) => (<option key={val} value={val}>{val} min</option>))}
-            </select>
-          </div>
-          <div className="flex gap-1">
-            <button type="button" onClick={() => { setPause((p) => Math.max(0, p - 15)); clearError("pause"); }} className={adjustBtnClass}>−</button>
-            <button type="button" onClick={() => { setPause((p) => Math.min(MAX_PAUSE_MINUTES, p + 15)); clearError("pause"); }} className={adjustBtnClass}>+</button>
-          </div>
-        </div>
-
-        {/* Fin */}
-        <div className="flex flex-col gap-1">
-          <div
-            className={`p-4 rounded-[28px] border-2 bg-black/40 relative text-center flex flex-col items-center justify-center min-h-[90px] ${
-              formErrors.fin ? "border-red-500" : darkMode ? "border-slate-700" : "border-slate-300"
-            } backdrop-blur-md`}
-          >
-            <span className="text-[9px] font-black opacity-40 uppercase block mb-1">Fin</span>
-            <span className="text-xl font-black text-purple-400">{fin}</span>
-            <select
-              value={fin}
-              onChange={(e) => { setFin(e.target.value); clearError("fin"); clearError("horaires"); }}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            >
-              {TIME_OPTIONS.map((t) => (<option key={t} value={t}>{t}</option>))}
-            </select>
-          </div>
-          <div className="flex gap-1">
-            <button type="button" onClick={() => { setFin(adjustTime(fin, -15)); clearError("fin"); }} className={adjustBtnClass}>−</button>
-            <button type="button" onClick={() => { setFin(adjustTime(fin, 15)); clearError("fin"); }} className={adjustBtnClass}>+</button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-2 mb-10 min-h-[20px] text-center">
-        {(formErrors.fin || formErrors.pause || formErrors.horaires) && (
-          <p className="text-xs font-black text-red-400">
-            {formErrors.fin || formErrors.pause || formErrors.horaires}
+      {/* Duration summary */}
+      {dureeCalculee && (
+        <GlassCard color="green" padding="sm" className="mb-3" glow>
+          <p style={{ textAlign: "center", color: "var(--color-text)", fontSize: "14px", fontWeight: 700 }}>
+            ⏱&nbsp; {dureeCalculee.dureeStr}
+            {dureeCalculee.montant != null && ` · ${dureeCalculee.montant.toFixed(2)} €`}
+            {dureeCalculee.tarifFin != null && ` (${dureeCalculee.tarifFin.toFixed(2)} €/h)`}
           </p>
-        )}
-      </div>
+        </GlassCard>
+      )}
 
-      <div className="flex flex-col gap-3">
-        <button
+      {/* Time errors */}
+      {(formErrors.fin || formErrors.pause || formErrors.horaires) && (
+        <p style={{ color: "var(--color-accent-red)", fontSize: "12px", textAlign: "center", fontWeight: 700, marginBottom: "0.75rem" }}>
+          {formErrors.fin || formErrors.pause || formErrors.horaires}
+        </p>
+      )}
+
+      {/* ── BOUTON VALIDER ───────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 mt-4">
+        <NeonButton
+          variant="primary"
+          size="lg"
+          fullWidth
+          loading={isSubmitting || loading}
           onClick={handleSubmit}
-          disabled={loading || isSubmitting}
-          className="relative w-full py-6 group overflow-hidden rounded-[30px] font-black uppercase tracking-widest text-[13px] transition-all active:scale-95 disabled:opacity-50 border border-yellow-600/50"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0d1f3c] to-[#1e3a5f]" />
-          <div className="absolute inset-0 bg-white/5 backdrop-blur-sm" />
-          <span className="relative z-10 text-yellow-100 drop-shadow">
-            {isSubmitting
-              ? "Enregistrement..."
-              : editMode ? "Mettre à jour" : "Enregistrer la mission"}
-          </span>
-        </button>
+          {editMode ? "Mettre à jour" : "Enregistrer la mission"}
+        </NeonButton>
 
-        {onCancel && (
-          <button
-            onClick={onCancel}
-            className="py-4 text-white/60 font-bold uppercase text-[11px] hover:text-white transition-colors"
-          >
+        {(editMode || onCancel) && (
+          <NeonButton variant="ghost" onClick={onCancel}>
             Annuler
-          </button>
+          </NeonButton>
         )}
       </div>
+
     </section>
   );
 };
