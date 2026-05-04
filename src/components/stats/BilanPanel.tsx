@@ -5,6 +5,9 @@ import { SectionLabel, AccentSpan } from "../common/SectionLabel";
 import { formatEuro, formatHeures, formatDateFR } from "../../utils/formatters";
 import { useLabels } from "../../contexts/LabelsContext";
 import { WeatherIcon } from "../common/WeatherIcon";
+import type { Mission, FraisDivers } from "../../types/entities";
+import type { BilanContent, MissionWithWeather } from "../../hooks/useBilan";
+import type { KmSettings } from "../../hooks/useKmDomicile";
 
 // ─── Ligne label / valeur ──────────────────────────────────────────────────────
 
@@ -87,10 +90,10 @@ function ExportBtn({ label, onClick, disabled, color }: ExportBtnProps) {
 // ─── Composant principal ───────────────────────────────────────────────────────
 
 interface BilanPanelProps {
-  bilanContent: any;
+  bilanContent: BilanContent;
   bilanPeriodType?: "semaine" | "mois" | "annee";
   bilanPaye?: boolean;
-  sortedMissions?: any[];
+  sortedMissions?: MissionWithWeather[];
   onMarquerCommePaye?: () => void;
   isViewer?: boolean;
   canExportExcel?: boolean;
@@ -102,9 +105,9 @@ interface BilanPanelProps {
   onExportCSV?: () => void;
   onExportCSVWithFrais?: () => void;
   onExportFacture?: () => void;
-  onFraisEdit?: (frais: any) => void;
-  onFraisDelete?: (frais: any) => void;
-  kmSettings?: any;
+  onFraisEdit?: (frais: FraisDivers) => void;
+  onFraisDelete?: (frais: FraisDivers) => void;
+  kmSettings?: KmSettings | null;
   onRecalculerFraisKm?: () => void;
   isRecalculatingKm?: boolean;
   domicileLatLng?: { lat: number; lng: number } | null;
@@ -266,7 +269,7 @@ export function BilanPanel({
           <SectionLabel>Frais</SectionLabel>
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
             {[...bilanContent.fraisDivers]
-              .sort((a, b) => new Date(a.date_frais).getTime() - new Date(b.date_frais).getTime())
+              .sort((a, b) => new Date(a.date_frais ?? "").getTime() - new Date(b.date_frais ?? "").getTime())
               .map((f) => (
                 <div
                   key={f.id}
@@ -285,7 +288,7 @@ export function BilanPanel({
                       fontWeight: 700,
                     }}
                   >
-                    {f.description} — {formatDateFR(f.date_frais)}
+                    {f.description} — {formatDateFR(f.date_frais ?? "")}
                   </span>
                   <span
                     style={{
@@ -649,7 +652,7 @@ export function BilanPanel({
           <SectionLabel>Détail des missions</SectionLabel>
           <div style={{ display: "flex", flexDirection: "column", gap }}>
             {sortedMissions.map((m, i) => {
-              const date = new Date(m.date_iso);
+              const date = new Date(m.date_iso ?? "");
               const day = date.getDate().toString().padStart(2, "0");
               const monthShort = date
                 .toLocaleString("fr-FR", { month: "short" })

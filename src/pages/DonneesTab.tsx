@@ -3,7 +3,7 @@ import { PatronsManager } from "../components/patron/PatronsManager";
 import { ClientsManager } from "../components/client/ClientsManager";
 import { LieuxManager } from "../components/lieu/LieuxManager";
 import { useLabels } from "../contexts/LabelsContext";
-import type { Patron, Client, Lieu } from "../types/entities";
+import type { Patron, Client, Lieu, Mission, FraisDivers, Acompte } from "../types/entities";
 import type { KmSettings } from "../hooks/useKmDomicile";
 
 interface AccordionSectionProps {
@@ -19,9 +19,9 @@ interface DonneesTabProps {
   patrons: Patron[];
   clients: Client[];
   lieux: Lieu[];
-  missions?: any[];
-  fraisDivers?: any[];
-  acomptes?: any[];
+  missions?: Mission[];
+  fraisDivers?: FraisDivers[];
+  acomptes?: Acompte[];
   darkMode?: boolean;
   onPatronEdit?: (patron: Patron) => void | Promise<void>;
   onPatronDelete?: (patron: Patron) => void | Promise<void>;
