@@ -11,6 +11,7 @@ import { ClientSelector } from "../client/ClientSelector";
 import { WeatherIcon } from "../common/WeatherIcon";
 import { LieuSelector } from "../lieu/LieuSelector";
 import { useLabels } from "../../contexts/LabelsContext";
+import { useWeather } from "../../hooks/useWeather";
 
 const JOURNEE_TYPE = { debut: "08:00", fin: "17:00", pause: 30 };
 const MAX_TIME_MINUTES = 23 * 60 + 45;
@@ -87,8 +88,7 @@ export const MissionForm = ({
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [weather, setWeather] = useState<{ temp: number; icon: string; desc: string } | null>(null);
-  const [weatherCity, setWeatherCity] = useState("");
+  const { weather, weatherCity } = useWeather(dateMission);
   const [showRateEditor, setShowRateEditor] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -128,73 +128,6 @@ export const MissionForm = ({
       onLieuChange(initialData.lieu_id);
     }
   }, [editMode, initialData, onLieuChange]);
-
-  useEffect(() => {
-    if (!dateMission) return;
-    let alive = true;
-    const loadWeatherAndCity = async () => {
-      if (!navigator.geolocation) {
-        if (!alive) return;
-        setWeatherCity("Géolocalisation non supportée");
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          try {
-            const weatherRes = await fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`
-            );
-            if (!weatherRes.ok) throw new Error("Météo HTTP error");
-            const weatherData = await weatherRes.json();
-            if (!alive) return;
-            if (weatherData?.current) {
-              const code = weatherData.current.weathercode;
-              let icon = "01d";
-              let desc = "Ensoleillé";
-              if (code >= 61 && code <= 67) { icon = "09d"; desc = "Pluie"; }
-              else if (code >= 71 && code <= 77) { icon = "13d"; desc = "Neige"; }
-              else if (code >= 80 && code <= 86) { icon = "09d"; desc = "Averses"; }
-              else if (code >= 95) { icon = "11d"; desc = "Orage"; }
-              else if (code >= 2 && code <= 3) { icon = "02d"; desc = "Nuageux"; }
-              setWeather({ temp: Math.round(weatherData.current.temperature_2m), icon, desc });
-            } else {
-              setWeather(null);
-            }
-          } catch (err) {
-            if (!alive) return;
-            setWeather(null);
-          }
-          try {
-            const cityRes = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`
-            );
-            if (!cityRes.ok) throw new Error("Ville HTTP error");
-            const cityData = await cityRes.json();
-            if (!alive) return;
-            const city =
-              cityData?.address?.city ||
-              cityData?.address?.town ||
-              cityData?.address?.village ||
-              cityData?.address?.municipality ||
-              "Position actuelle";
-            setWeatherCity(city);
-          } catch (err) {
-            if (!alive) return;
-            setWeatherCity("Position actuelle");
-          }
-        },
-        (err) => {
-          if (!alive) return;
-          setWeatherCity("Localisation indisponible");
-        },
-        { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
-      );
-    };
-    loadWeatherAndCity();
-    return () => { alive = false; };
-  }, [dateMission]);
 
   useEffect(() => {
     if (!selectedPatronId || !Array.isArray(patrons) || patrons.length === 0) return;
