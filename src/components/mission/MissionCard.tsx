@@ -118,4 +118,4 @@ export const MissionCard = React.memo(function MissionCard({ mission, onEdit, on
   );
 });
 
-(MissionCard as any).displayName = "MissionCard";
+MissionCard.displayName = "MissionCard";

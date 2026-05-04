@@ -9,7 +9,7 @@ function parseDate(raw: any): string | null {
   if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, "0")}-${dmy[1].padStart(2, "0")}`;
   if (/^\d+$/.test(s)) {
     try {
-      const d = (XLSX as any).SSF.parse_date_code(Number(s));
+      const d = (XLSX as unknown as { SSF: { parse_date_code: (n: number) => { y: number; m: number; d: number } | null } }).SSF.parse_date_code(Number(s));
       if (d) return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
     } catch { /* ignore */ }
   }
