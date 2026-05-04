@@ -1,0 +1,49 @@
+[data-theme="neon"], :root {
+  /* Couleurs primaires */
+  --color-primary:       #C9A84C;
+  --color-accent-cyan:   #22d3ee;
+  --color-accent-violet: #a78bfa;
+  --color-accent-green:  #34d399;
+  --color-accent-red:    #f87171;
+  --color-accent-orange: #fb923c;
+
+  /* Surfaces */
+  --color-surface:       rgba(13, 31, 60, 0.8);
+  --color-surface-hover: rgba(13, 31, 60, 0.95);
+  --color-bg:            #020818;
+  --color-bg-input:      rgba(255,255,255,0.04);
+
+  /* Texte */
+  --color-text:          #ffffff;
+  --color-text-muted:    rgba(255,255,255,0.5);
+  --color-text-dim:      rgba(255,255,255,0.25);
+
+  /* Bordures */
+  --color-border:         rgba(255,255,255,0.08);
+  --color-border-primary: rgba(201,168,76,0.4);
+  --color-border-cyan:    rgba(34,211,238,0.4);
+  --color-border-violet:  rgba(167,139,250,0.4);
+  --color-border-green:   rgba(52,211,153,0.4);
+  --color-border-neutral: rgba(255,255,255,0.08);
+
+  /* Glow (box-shadow) */
+  --glow-primary: 0 0 20px rgba(201,168,76,0.25), 0 0 40px rgba(201,168,76,0.10);
+  --glow-cyan:    0 0 20px rgba(34,211,238,0.25),  0 0 40px rgba(34,211,238,0.10);
+  --glow-violet:  0 0 20px rgba(167,139,250,0.25), 0 0 40px rgba(167,139,250,0.10);
+  --glow-green:   0 0 20px rgba(52,211,153,0.25),  0 0 40px rgba(52,211,153,0.10);
+
+  /* Radius */
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   24px;
+  --radius-xl:   32px;
+  --radius-pill: 999px;
+
+  /* Blur */
+  --blur-card:  blur(20px);
+  --blur-modal: blur(40px);
+
+  /* Transitions */
+  --transition-fast:   all 0.15s ease;
+  --transition-normal: all 0.25s ease;
+}
