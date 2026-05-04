@@ -247,7 +247,7 @@ export const MissionForm = ({
   const sectionStyle: React.CSSProperties = {
     position: "relative",
     padding: "2rem",
-    borderRadius: editMode ? "var(--radius-lg)" : "50px",
+    borderRadius: editMode ? "var(--radius-lg)" : "var(--radius-xxl)",
     background: "var(--color-surface)",
     backdropFilter: "var(--blur-card)",
     WebkitBackdropFilter: "var(--blur-card)",
@@ -405,10 +405,10 @@ export const MissionForm = ({
                 <span style={{
                   marginLeft: "8px",
                   fontSize: "10px",
-                  background: "rgba(251,191,36,0.15)",
-                  border: "1px solid rgba(251,191,36,0.4)",
-                  color: "rgba(251,191,36,1)",
-                  borderRadius: "9999px",
+                  background: "var(--color-surface)",
+                  border: "1px solid var(--color-border-primary)",
+                  color: "var(--color-primary)",
+                  borderRadius: "var(--radius-pill)",
                   padding: "1px 6px",
                   fontWeight: 700,
                   textTransform: "uppercase",
