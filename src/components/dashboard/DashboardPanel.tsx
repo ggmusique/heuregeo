@@ -122,10 +122,10 @@ export function DashboardPanel({
 
       const effectiveDomicile =
         domicileLatLng ??
-        (Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng) && kmSettings !== null && kmSettings !== undefined
+        (Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng)
           ? {
-              lat: kmSettings.km_domicile_lat as number,
-              lng: kmSettings.km_domicile_lng as number,
+              lat: kmSettings!.km_domicile_lat as number,
+              lng: kmSettings!.km_domicile_lng as number,
             }
           : null);
 

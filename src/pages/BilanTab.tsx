@@ -243,6 +243,8 @@ export const BilanTab = ({
         onExportFacture={async () => {
           const { generateFacture } = await import("../utils/generateFacture");
           const patron = patrons.find((p) => p.id === bilanPatronId) || null;
+          // Wrap saveProfile to match generateFacture's (data: any) => Promise<void> signature
+          // and safely handle the null case (no-op when saveProfile is unavailable).
           const sp = saveProfile
             ? async (data: Partial<UserProfile>) => { await saveProfile(data); }
             : async () => {};

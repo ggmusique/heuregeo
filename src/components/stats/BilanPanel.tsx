@@ -8,7 +8,6 @@ import { WeatherIcon } from "../common/WeatherIcon";
 import type { Mission, FraisDivers } from "../../types/entities";
 import type { BilanContent, MissionWithWeather } from "../../hooks/useBilan";
 import type { KmSettings } from "../../hooks/useKmDomicile";
-import type { WeatherData } from "../../types/bilan";
 
 // ─── Ligne label / valeur ──────────────────────────────────────────────────────
 
@@ -786,7 +785,7 @@ export function BilanPanel({
                           }}
                         >
                           <WeatherIcon
-                            code={(m.weather as WeatherData).icon}
+                            code={m.weather.icon}
                             className="w-7 h-7 flex-shrink-0"
                           />
                           <div
@@ -797,7 +796,7 @@ export function BilanPanel({
                             }}
                           >
                             <div style={{ fontWeight: 500 }}>
-                              {(m.weather as WeatherData).tempMin}–{(m.weather as WeatherData).tempMax}°
+                              {m.weather.tempMin}–{m.weather.tempMax}°
                             </div>
                             <div
                               style={{
@@ -808,7 +807,7 @@ export function BilanPanel({
                                 maxWidth: "56px",
                               }}
                             >
-                              {(m.weather as WeatherData).desc}
+                              {m.weather.desc}
                             </div>
                           </div>
                         </div>

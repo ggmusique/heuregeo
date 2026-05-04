@@ -13,6 +13,7 @@ import { computeRepairDecision } from "../lib/bilanRepair";
 import { logBilanError } from "../utils/bilanLogger";
 import type { Mission, FraisDivers, Patron, Lieu } from "../types/entities";
 import type { KmSettings } from "./useKmDomicile";
+import type { WeatherData } from "../types/bilan";
 import type { HistoriqueData } from "./useHistorique";
 import type { FraisKmRow } from "../types/bilan";
 
@@ -36,7 +37,7 @@ export interface BilanKmResult {
 }
 
 export interface MissionWithWeather extends Mission {
-  weather?: unknown;
+  weather?: WeatherData;
 }
 
 export interface BilanGroupedRow {
@@ -522,7 +523,7 @@ export function useBilan({
         let filteredWithWeather: MissionWithWeather[] = filtered;
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE && filtered.length > 0) {
           const uniqueDates = [...new Set(filtered.map((m) => m.date_iso))];
-          const weatherCache: Record<string, unknown> = {};
+          const weatherCache: Record<string, WeatherData | null> = {};
           await Promise.all(
             uniqueDates.map(async (date) => {
               if (!date || weatherCache[date]) return;
@@ -545,7 +546,7 @@ export function useBilan({
           );
           filteredWithWeather = filtered.map((m) => ({
             ...m,
-            weather: m.date_iso ? weatherCache[m.date_iso] : undefined,
+            weather: m.date_iso ? (weatherCache[m.date_iso] ?? undefined) : undefined,
           }));
         }
 
