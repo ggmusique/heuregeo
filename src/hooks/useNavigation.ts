@@ -9,6 +9,7 @@ export interface NavItem {
   label: string;
   icon: string;
   activeClass: string;
+  onClick?: () => void;
 }
 
 export interface UseNavigationReturn {
