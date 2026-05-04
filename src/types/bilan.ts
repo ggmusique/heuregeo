@@ -1,8 +1,10 @@
 /**
- * Types partagés pour les modules bilan (lib/*, services/*, utils/*).
+ * Types partagés pour les modules bilan (lib/*, services/*, utils/*, hooks/*).
  * Ces types correspondent aux structures de données des tables Supabase
  * et aux valeurs calculées par le moteur de bilan.
  */
+
+import type { Mission, FraisDivers, Lieu } from "./entities";
 
 // ─── Tables Supabase ─────────────────────────────────────────────────────────
 
@@ -127,4 +129,59 @@ export interface NormalizedBilanPayload {
   reste_a_percevoir: number;
   paye: boolean;
   date_paiement: string | null;
+}
+
+// ─── Types bilan UI (partagés entre useBilan et sous-hooks) ─────────────────
+
+/** Un item km calculé pour une mission. */
+export interface BilanKmItem {
+  missionId: string;
+  date: string | null;
+  labelLieuOuClient: string;
+  kmOneWay: number | null;
+  kmTotal: number | null;
+  amount: number | null;
+}
+
+/** Résultat du calcul km pour une période. */
+export interface BilanKmResult {
+  items: BilanKmItem[];
+  totalKm: number;
+  totalAmount: number;
+}
+
+/** Mission enrichie avec des données météo optionnelles. */
+export interface MissionWithWeather extends Mission {
+  weather?: WeatherData;
+}
+
+/** Ligne groupée du bilan (par semaine ou par mois). */
+export interface BilanGroupedRow {
+  label: string;
+  h: number;
+  e: number;
+  missions: Mission[];
+}
+
+/** Contenu calculé d'un bilan pour une période et un patron donnés. */
+export interface BilanContent {
+  titre: string;
+  totalE: number;
+  totalH: number;
+  filteredData: MissionWithWeather[];
+  groupedData: BilanGroupedRow[];
+  totalFrais: number;
+  fraisDivers: FraisDivers[];
+  impayePrecedent: number;
+  resteCettePeriode: number;
+  resteAPercevoir: number;
+  soldeAcomptesAvant: number;
+  soldeAcomptesApres: number;
+  acomptesDansPeriode: number;
+  totalAcomptes: number;
+  acompteConsommePeriode: number;
+  selectedPatronId: string | null;
+  selectedPatronNom: string;
+  fraisKilometriques: BilanKmResult;
+  lieux?: Lieu[];
 }
