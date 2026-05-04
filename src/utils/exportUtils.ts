@@ -243,7 +243,7 @@ export const exportToCSV = (
 export const exportToPDF = (bilanContent: any, periodType: string): void => {
   console.warn("exportToPDF est déprécié. Utilisez exportToPDFPro à la place.");
 
-  const jsPDFLib = (window as any).jspdf;
+  const jsPDFLib = (window as unknown as { jspdf?: { jsPDF: typeof import("jspdf").default } }).jspdf;
   if (!jsPDFLib) {
     throw new Error("PDF non prêt");
   }
@@ -278,7 +278,7 @@ export const exportToPDF = (bilanContent: any, periodType: string): void => {
     const startX = (210 - tableWidth) / 2;
 
     doc.setFontSize(12);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(79, 70, 229);
     doc.text("DÉTAIL DES MISSIONS", startX, y);
     y += 10;
@@ -289,7 +289,7 @@ export const exportToPDF = (bilanContent: any, periodType: string): void => {
     y += 6;
 
     doc.setFontSize(9);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(100, 100, 100);
     let x = startX;
     ["DATE", "CLIENT", "DÉBUT", "PAUSE", "FIN", "MONTANT"].forEach(
@@ -305,7 +305,7 @@ export const exportToPDF = (bilanContent: any, periodType: string): void => {
     y += 4;
 
     doc.setFontSize(9);
-    doc.setFont(undefined, "normal");
+    doc.setFont("helvetica", "normal");
     bilanContent.filteredData.forEach((mission: any, index: number) => {
       if (!mission) return;
 
@@ -337,7 +337,7 @@ export const exportToPDF = (bilanContent: any, periodType: string): void => {
       x += colWidths[1];
 
       doc.setTextColor(79, 70, 229);
-      doc.setFont(undefined, "bold");
+      doc.setFont("helvetica", "bold");
       doc.text(mission.debut || "-", x + colWidths[2] / 2, y, {
         align: "center",
       });
@@ -382,7 +382,7 @@ export const exportToPDF = (bilanContent: any, periodType: string): void => {
     doc.roundedRect(12, y, 186, hauteurFrais + 5, 3, 3, "S");
 
     doc.setFontSize(11);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(245, 158, 11);
     doc.text("FRAIS DIVERS", 18, y + 8);
 
@@ -391,7 +391,7 @@ export const exportToPDF = (bilanContent: any, periodType: string): void => {
     bilanContent.fraisDivers.forEach((frais: any) => {
       if (!frais) return;
       doc.text(`• ${frais.description || ""}`, 20, fraisY);
-      doc.setFont(undefined, "bold");
+      doc.setFont("helvetica", "bold");
       doc.text(`${formatEuro(frais.montant || 0)}`, 150, fraisY);
       fraisY += lineHeight;
     });
@@ -421,20 +421,20 @@ export const exportToPDF = (bilanContent: any, periodType: string): void => {
   doc.roundedRect(12, y, 186, 15, 3, 3, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(11);
-  doc.setFont(undefined, "bold");
+  doc.setFont("helvetica", "bold");
   doc.text("RÉCAPITULATIF", 18, y + 10);
 
   doc.setTextColor(60, 60, 60);
   doc.setFontSize(9);
-  doc.setFont(undefined, "normal");
+  doc.setFont("helvetica", "normal");
   doc.text("Total Heures:", 20, y + 24);
-  doc.setFont(undefined, "bold");
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(79, 70, 229);
   doc.text(`${formatHeures(totalH)}`, 140, y + 24);
 
   doc.setTextColor(60, 60, 60);
   doc.text("Total Missions:", 20, y + 34);
-  doc.setFont(undefined, "bold");
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(34, 197, 94);
   doc.text(`${formatEuro(totalMissions)}`, 140, y + 34);
 
@@ -442,13 +442,13 @@ export const exportToPDF = (bilanContent: any, periodType: string): void => {
   if (totalFrais > 0) {
     doc.setTextColor(60, 60, 60);
     doc.text("Total Frais:", 20, ligne);
-    doc.setFont(undefined, "bold");
+    doc.setFont("helvetica", "bold");
     doc.setTextColor(245, 158, 11);
     doc.text(`${formatEuro(totalFrais)}`, 140, ligne);
   }
 
   doc.setFontSize(11);
-  doc.setFont(undefined, "bold");
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
   doc.text("GRAND TOTAL:", 20, ligne + 8);
   doc.setFontSize(12);
@@ -477,7 +477,7 @@ export const exportToPDF = (bilanContent: any, periodType: string): void => {
       doc.roundedRect(12, y, 186, hauteurAcomptes, 3, 3, "S");
 
       doc.setFontSize(11);
-      doc.setFont(undefined, "bold");
+      doc.setFont("helvetica", "bold");
       doc.setTextColor(99, 102, 241);
       doc.text("SUIVI DES ACOMPTES", 18, y + 10);
 
@@ -512,7 +512,7 @@ export const exportToPDF = (bilanContent: any, periodType: string): void => {
 
       doc.setTextColor(34, 197, 94);
       doc.setFontSize(11);
-      doc.setFont(undefined, "bold");
+      doc.setFont("helvetica", "bold");
       doc.text(
         `Solde restant à reporter : ${formatEuro(
           bilanContent.soldeAcomptesApres || 0

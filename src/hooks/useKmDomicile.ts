@@ -184,15 +184,13 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
       const latLieu = Number(lieu?.latitude);
       const lngLieu = Number(lieu?.longitude);
       if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const kmOneWay: number = (haversineKm as any)(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
+        const kmOneWay: number = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
         const kmTot = kmOneWay * multiplicateur;
         const amount = kmTot * kmRateEffectif;
         result.items.push({
           missionId: m.id,
           date: m.date_iso,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          labelLieuOuClient: (getLieuLabel as any)(lieu, m),
+          labelLieuOuClient: getLieuLabel(lieu, m),
           kmOneWay, kmTotal: kmTot, amount,
         });
         result.totalKm += kmTot;
@@ -201,8 +199,7 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
         result.items.push({
           missionId: m.id,
           date: m.date_iso,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          labelLieuOuClient: (getLieuLabel as any)(lieu, m),
+          labelLieuOuClient: getLieuLabel(lieu, m),
           kmOneWay: null, kmTotal: null, amount: null,
         });
       }
@@ -237,8 +234,7 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
       const latLieu = Number(lieu?.latitude);
       const lngLieu = Number(lieu?.longitude);
       if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const kmOneWay: number = (haversineKm as any)(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
+        const kmOneWay: number = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
         const distanceKm = kmOneWay * multiplicateur;
         const amount = distanceKm * kmRateEffectif;
         rows.push({

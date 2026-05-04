@@ -35,9 +35,9 @@ export const DateSelector = React.memo(
         dateInputRef.current.focus();
 
         // ✅ showPicker: plus "propre" sur certains navigateurs
-        if (typeof (dateInputRef.current as any).showPicker === "function") {
+        if (typeof (dateInputRef.current as unknown as { showPicker?: () => void }).showPicker === "function") {
           try {
-            (dateInputRef.current as any).showPicker();
+            (dateInputRef.current as unknown as { showPicker: () => void }).showPicker();
           } catch (e) {
             // ✅ si showPicker échoue (certaines plateformes), fallback click
             dateInputRef.current.click();

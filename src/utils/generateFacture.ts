@@ -1,5 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import type { Table } from "jspdf-autotable";
 import { EU_TVA_RATES } from "./tvaRates";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -204,17 +205,17 @@ export async function generateFacture(
         font: "helvetica",
         fontSize: 9,
         cellPadding: 3,
-        textColor: C.black as any,
-        lineColor: C.grayL as any,
+        textColor: C.black,
+        lineColor: C.grayL,
         lineWidth: 0.1,
       },
       headStyles: {
-        fillColor: C.blueB as any,
-        textColor: C.white as any,
+        fillColor: C.blueB,
+        textColor: C.white,
         fontStyle: "bold",
         fontSize: 9,
       },
-      alternateRowStyles: { fillColor: C.light as any },
+      alternateRowStyles: { fillColor: C.light },
       columnStyles: {
         0: { cellWidth: 24 },
         1: { cellWidth: "auto" },
@@ -224,7 +225,7 @@ export async function generateFacture(
       },
     });
 
-    y = (doc as any).lastAutoTable.finalY + 4;
+    y = ((doc as unknown as { lastAutoTable: Table }).lastAutoTable?.finalY ?? y) + 4;
   }
 
   // ── FRAIS DIVERS ───────────────────────────────────────────────────────
@@ -239,9 +240,9 @@ export async function generateFacture(
         fmtEuro(f.montant),
       ]),
       margin: { left: ML, right: MR },
-      styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: C.black as any, lineColor: C.grayL as any, lineWidth: 0.1 },
-      headStyles: { fillColor: C.blue as any, textColor: C.white as any, fontStyle: "bold", fontSize: 9 },
-      alternateRowStyles: { fillColor: [245, 248, 255] as any },
+      styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: C.black, lineColor: C.grayL, lineWidth: 0.1 },
+      headStyles: { fillColor: C.blue, textColor: C.white, fontStyle: "bold", fontSize: 9 },
+      alternateRowStyles: { fillColor: [245, 248, 255] },
       columnStyles: {
         0: { cellWidth: 24 },
         1: { cellWidth: "auto" },
@@ -250,7 +251,7 @@ export async function generateFacture(
         4: { cellWidth: 26, halign: "right" },
       },
     });
-    y = (doc as any).lastAutoTable.finalY + 4;
+    y = ((doc as unknown as { lastAutoTable: Table }).lastAutoTable?.finalY ?? y) + 4;
   }
 
   // ── FRAIS KM ────────────────────────────────────────────────────────────
@@ -260,8 +261,8 @@ export async function generateFacture(
       head: [["", "Frais kilométriques", "", "km", "Montant"]],
       body: [["", `${Math.round(km.totalKm)} km parcourus`, "", String(Math.round(km.totalKm)), fmtEuro(km.totalAmount)]],
       margin: { left: ML, right: MR },
-      styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: C.black as any, lineColor: C.grayL as any, lineWidth: 0.1 },
-      headStyles: { fillColor: C.blue as any, textColor: C.white as any, fontStyle: "bold", fontSize: 9 },
+      styles: { font: "helvetica", fontSize: 9, cellPadding: 3, textColor: C.black, lineColor: C.grayL, lineWidth: 0.1 },
+      headStyles: { fillColor: C.blue, textColor: C.white, fontStyle: "bold", fontSize: 9 },
       columnStyles: {
         0: { cellWidth: 24 },
         1: { cellWidth: "auto" },
@@ -270,7 +271,7 @@ export async function generateFacture(
         4: { cellWidth: 26, halign: "right" },
       },
     });
-    y = (doc as any).lastAutoTable.finalY + 4;
+    y = ((doc as unknown as { lastAutoTable: Table }).lastAutoTable?.finalY ?? y) + 4;
   }
 
   // ── TOTAUX ─────────────────────────────────────────────────────────────
@@ -323,10 +324,9 @@ export async function generateFacture(
     doc.setFont("helvetica", "bold");
     doc.setFontSize(52);
     doc.setTextColor(...(C.red.map((v) => Math.min(255, v + 40)) as [number, number, number]));
-    const GState = (doc as any).GState;
-    if ((doc as any).setGState && GState) (doc as any).setGState(new GState({ opacity: 0.18 }));
+    doc.setGState(doc.GState({ opacity: 0.18 }));
     doc.text("PAYÉ", W / 2, 160, { align: "center", angle: -35 });
-    if ((doc as any).setGState && GState) (doc as any).setGState(new GState({ opacity: 1 }));
+    doc.setGState(doc.GState({ opacity: 1 }));
   }
 
   // ── PIED DE PAGE ───────────────────────────────────────────────────────
