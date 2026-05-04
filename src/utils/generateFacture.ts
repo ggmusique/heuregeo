@@ -57,6 +57,12 @@ function computeNumFacture(features: any): { numFacture: string; newCounter: num
   };
 }
 
+// ── Helper: récupère le finalY du dernier autoTable ──────────────────────────
+
+function getLastTableY(doc: jsPDF, fallback: number): number {
+  return (doc as unknown as { lastAutoTable?: Table }).lastAutoTable?.finalY ?? fallback;
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────
 
 export async function generateFacture(
@@ -225,7 +231,7 @@ export async function generateFacture(
       },
     });
 
-    y = ((doc as unknown as { lastAutoTable: Table }).lastAutoTable?.finalY ?? y) + 4;
+    y = getLastTableY(doc, y) + 4;
   }
 
   // ── FRAIS DIVERS ───────────────────────────────────────────────────────
@@ -251,7 +257,7 @@ export async function generateFacture(
         4: { cellWidth: 26, halign: "right" },
       },
     });
-    y = ((doc as unknown as { lastAutoTable: Table }).lastAutoTable?.finalY ?? y) + 4;
+    y = getLastTableY(doc, y) + 4;
   }
 
   // ── FRAIS KM ────────────────────────────────────────────────────────────
@@ -271,7 +277,7 @@ export async function generateFacture(
         4: { cellWidth: 26, halign: "right" },
       },
     });
-    y = ((doc as unknown as { lastAutoTable: Table }).lastAutoTable?.finalY ?? y) + 4;
+    y = getLastTableY(doc, y) + 4;
   }
 
   // ── TOTAUX ─────────────────────────────────────────────────────────────

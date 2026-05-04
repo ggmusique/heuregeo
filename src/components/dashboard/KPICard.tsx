@@ -13,7 +13,7 @@ interface Props {
 
 export const KPICard = memo(function KPICard({ icon, label, value, delta, accentColor, delay = 0, ariaLabel }: Props) {
   const colorMap = tokens.colors as unknown as Record<string, typeof tokens.colors.gold>;
-  const color = (accentColor ? colorMap[accentColor] : null) ?? tokens.colors.gold;
+  const color = colorMap[accentColor ?? ""] ?? tokens.colors.gold;
 
   return (
     <article
