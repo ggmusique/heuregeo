@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HeurGeo — Historique Neon Glass v2</title>
+<style>
+  :root {
+    --color-primary: #C9A84C; --color-accent-cyan: #22d3ee; --color-accent-violet: #a78bfa;
+    --color-accent-green: #34d399; --color-accent-red: #f87171; --color-accent-orange: #fb923c;
+    --color-surface: rgba(13,31,60,0.85); --color-bg: #020818; --color-bg-input: rgba(255,255,255,0.04);
+    --color-text: #ffffff; --color-text-muted: rgba(255,255,255,0.5); --color-text-dim: rgba(255,255,255,0.25);
+    --color-border: rgba(255,255,255,0.08); --color-border-primary: rgba(201,168,76,0.4);
+    --color-border-cyan: rgba(34,211,238,0.4); --color-border-violet: rgba(167,139,250,0.4); --color-border-green: rgba(52,211,153,0.4);
+    --glow-primary: 0 0 24px rgba(201,168,76,0.22), 0 0 48px rgba(201,168,76,0.08);
+    --glow-cyan: 0 0 24px rgba(34,211,238,0.22), 0 0 48px rgba(34,211,238,0.08);
+    --glow-violet: 0 0 24px rgba(167,139,250,0.22), 0 0 48px rgba(167,139,250,0.08);
+    --glow-green: 0 0 24px rgba(52,211,153,0.22), 0 0 48px rgba(52,211,153,0.08);
+    --radius-md: 16px; --radius-lg: 24px; --transition: all 0.25s ease;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--color-bg); color: var(--color-text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+  body::before { content:''; position:fixed; inset:0; z-index:0;
+    background: radial-gradient(ellipse 60% 40% at 10% 10%, rgba(30,60,180,0.12) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 60% at 90% 80%, rgba(100,40,180,0.10) 0%, transparent 70%);
+    pointer-events:none; }
+  .app { position:relative; z-index:1; max-width:440px; margin:0 auto; padding:20px 16px 60px; }
+  .toggle-row { display:flex; justify-content:flex-end; margin-bottom:16px; }
+  .toggle-btn { padding:6px 14px; border-radius:999px; border:1px solid var(--color-border); background:var(--color-bg-input); color:var(--color-text-muted); font-size:10px; font-weight:700; cursor:pointer; transition:var(--transition); }
+  .toggle-btn:hover { border-color:var(--color-border-primary); color:var(--color-primary); }
+  .header { text-align:center; margin-bottom:20px; }
+  .header-sup { font-size:9px; font-weight:900; letter-spacing:0.25em; text-transform:uppercase; color:var(--color-text-dim); margin-bottom:4px; }
+  .header-title { font-size:26px; font-weight:900; color:var(--color-primary); font-style:italic; margin-bottom:4px; }
+  .header-sub { font-size:11px; color:var(--color-text-muted); }
+  .global-summary { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:22px; }
+  .sc { background:var(--color-surface); border-radius:var(--radius-md); padding:12px 10px; text-align:center; backdrop-filter:blur(20px); }
+  .sc.gold { border:1px solid var(--color-border-primary); } .sc.cyan { border:1px solid var(--color-border-cyan); } .sc.green { border:1px solid var(--color-border-green); }
+  .sc-label { font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:0.15em; color:var(--color-text-dim); margin-bottom:4px; }
+  .sc-value { font-size:16px; font-weight:900; } .sc.gold .sc-value { color:var(--color-primary); } .sc.cyan .sc-value { color:var(--color-accent-cyan); } .sc.green .sc-value { color:var(--color-accent-green); }
+  .sc-sub { font-size:9px; color:var(--color-text-muted); margin-top:2px; }
+  .year-tabs { display:flex; gap:8px; margin-bottom:18px; }
+  .year-tab { padding:6px 16px; border-radius:999px; border:1px solid var(--color-border); background:transparent; color:var(--color-text-muted); font-size:11px; font-weight:700; cursor:pointer; transition:var(--transition); }
+  .year-tab.active { background:rgba(201,168,76,0.12); border-color:var(--color-border-primary); color:var(--color-primary); box-shadow:var(--glow-primary); }
+  .week-card { background:var(--color-surface); border:1px solid var(--color-border); border-radius:var(--radius-lg); margin-bottom:12px; backdrop-filter:blur(20px); overflow:hidden; transition:var(--transition); }
+  .week-card:hover { border-color:rgba(255,255,255,0.14); transform:translateY(-1px); }
+  .week-card.open { border-color:var(--color-border-primary); box-shadow:var(--glow-primary); }
+  .week-card.paye { border-left:3px solid var(--color-accent-green); } .week-card.attente { border-left:3px solid var(--color-accent-orange); } .week-card.partiel { border-left:3px solid var(--color-accent-cyan); }
+  .week-header { padding:16px 18px; display:flex; align-items:center; gap:12px; cursor:pointer; }
+  .week-badge { min-width:44px; height:44px; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(201,168,76,0.1); border:1px solid var(--color-border-primary); }
+  .week-num { font-size:17px; font-weight:900; color:var(--color-primary); line-height:1; } .week-lbl { font-size:7px; font-weight:700; color:var(--color-text-dim); text-transform:uppercase; letter-spacing:0.1em; }
+  .week-info { flex:1; } .week-dates { font-size:10px; color:var(--color-text-muted); margin-bottom:2px; } .week-amount { font-size:20px; font-weight:900; } .week-meta { font-size:11px; color:var(--color-text-muted); }
+  .week-right { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+  .badge-status { padding:3px 10px; border-radius:999px; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:0.08em; }
+  .badge-paye { background:rgba(52,211,153,0.15); color:var(--color-accent-green); border:1px solid rgba(52,211,153,0.3); }
+  .badge-attente { background:rgba(251,146,60,0.15); color:var(--color-accent-orange); border:1px solid rgba(251,146,60,0.3); }
+  .badge-partiel { background:rgba(34,211,238,0.15); color:var(--color-accent-cyan); border:1px solid rgba(34,211,238,0.3); }
+  .chevron { font-size:13px; color:var(--color-text-dim); transition:transform 0.25s ease; }
+  .week-card.open .chevron { transform:rotate(180deg); color:var(--color-primary); }
+  .week-body { max-height:0; overflow:hidden; transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1); }
+  .week-card.open .week-body { max-height:2000px; border-top:1px solid var(--color-border); }
+  .week-body-inner { padding:14px 16px 16px; display:flex; flex-direction:column; gap:10px; }
+  .patron-card { border-radius:16px; overflow:hidden; transition:var(--transition); }
+  .patron-card.p0 { border:1px solid rgba(167,139,250,0.3); background:rgba(167,139,250,0.04); }
+  .patron-card.p1 { border:1px solid rgba(34,211,238,0.3); background:rgba(34,211,238,0.04); }
+  .patron-card.p2 { border:1px solid rgba(201,168,76,0.3); background:rgba(201,168,76,0.04); }
+  .patron-card.open.p0 { box-shadow:var(--glow-violet); } .patron-card.open.p1 { box-shadow:var(--glow-cyan); } .patron-card.open.p2 { box-shadow:var(--glow-primary); }
+  .patron-header { padding:12px 14px; display:flex; align-items:center; gap:10px; cursor:pointer; }
+  .patron-avatar { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; flex-shrink:0; }
+  .p0 .patron-avatar { background:rgba(167,139,250,0.15); color:var(--color-accent-violet); } .p1 .patron-avatar { background:rgba(34,211,238,0.15); color:var(--color-accent-cyan); } .p2 .patron-avatar { background:rgba(201,168,76,0.15); color:var(--color-primary); }
+  .patron-info { flex:1; } .patron-name { font-size:13px; font-weight:900; color:var(--color-text); } .patron-meta { font-size:10px; color:var(--color-text-muted); }
+  .patron-right { display:flex; flex-direction:column; align-items:flex-end; gap:3px; } .patron-amount { font-size:15px; font-weight:900; } .p0 .patron-amount { color:var(--color-accent-violet); } .p1 .patron-amount { color:var(--color-accent-cyan); } .p2 .patron-amount { color:var(--color-primary); }
+  .patron-hours { font-size:10px; color:var(--color-text-muted); } .patron-chevron { font-size:11px; color:var(--color-text-dim); transition:transform 0.25s ease; margin-left:4px; }
+  .patron-card.open .patron-chevron { transform:rotate(180deg); }
+  .patron-detail { max-height:0; overflow:hidden; transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1); }
+  .patron-card.open .patron-detail { max-height:600px; border-top:1px solid rgba(255,255,255,0.06); }
+  .patron-detail-inner { padding:12px 14px 14px; display:flex; flex-direction:column; gap:10px; }
+  .detail-section-title { font-size:8px; font-weight:900; text-transform:uppercase; letter-spacing:0.2em; color:var(--color-text-dim); margin-bottom:6px; }
+  .mission-row { display:flex; justify-content:space-between; align-items:center; padding:7px 10px; border-radius:8px; background:rgba(255,255,255,0.03); margin-bottom:3px; }
+  .mission-left { font-size:11px; color:var(--color-text-muted); } .mission-left strong { color:var(--color-text); font-weight:700; display:block; font-size:12px; } .mission-left span { font-size:10px; }
+  .mission-right { font-size:12px; font-weight:900; text-align:right; } .mission-right small { display:block; font-size:10px; color:var(--color-text-muted); font-weight:400; }
+  .fin-row { display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:10px; margin-bottom:4px; }
+  .fin-row.total { border:1px solid var(--color-border-primary); background:rgba(201,168,76,0.06); }
+  .fin-row.acompte { border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03); }
+  .fin-row.reste-ok { border:1px solid rgba(52,211,153,0.3); background:rgba(52,211,153,0.06); }
+  .fin-row.reste-due { border:1px solid rgba(251,146,60,0.3); background:rgba(251,146,60,0.06); }
+  .fin-label { font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:0.08em; color:var(--color-text-muted); }
+  .fin-value { font-size:16px; font-weight:900; } .fin-row.total .fin-value { color:var(--color-primary); } .fin-row.acompte .fin-value { color:var(--color-text-muted); font-size:13px; } .fin-row.reste-ok .fin-value { color:var(--color-accent-green); } .fin-row.reste-due .fin-value { color:var(--color-accent-orange); }
+  .week-total-row { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:14px; border:1px solid var(--color-border-primary); background:rgba(201,168,76,0.05); margin-top:4px; }
+  .week-total-label { font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:0.1em; color:var(--color-text-muted); } .week-total-value { font-size:19px; font-weight:900; color:var(--color-primary); }
+  .week-actions { display:flex; gap:8px; }
+  .btn-g { flex:1; padding:9px; border-radius:11px; border:1px solid var(--color-border); background:var(--color-bg-input); color:var(--color-text-muted); font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:0.08em; cursor:pointer; transition:var(--transition); text-align:center; }
+  .btn-g:hover { border-color:var(--color-border-primary); color:var(--color-primary); }
+  .btn-p { flex:1; padding:9px; border-radius:11px; border:1px solid var(--color-border-primary); background:rgba(201,168,76,0.1); color:var(--color-primary); font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:0.08em; cursor:pointer; transition:var(--transition); text-align:center; }
+  .btn-p:hover { background:rgba(201,168,76,0.2); box-shadow:var(--glow-primary); }
+  body.light { background:#f0f4ff; --color-bg:#f0f4ff; --color-surface:rgba(255,255,255,0.88); --color-text:#0f172a; --color-text-muted:rgba(15,23,42,0.55); --color-text-dim:rgba(15,23,42,0.28); --color-border:rgba(15,23,42,0.08); --color-bg-input:rgba(15,23,42,0.03); --glow-primary:0 4px 20px rgba(201,168,76,0.18); }
+  body.light .mission-row { background:rgba(15,23,42,0.03); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="toggle-row"><button class="toggle-btn" onclick="document.body.classList.toggle('light');this.textContent=document.body.classList.contains('light')?'🌙 Mode sombre':'☀️ Mode clair'">☀️ Mode clair</button></div>
+  <div class="header"><div class="header-sup">HeurGeo · Historique</div><div class="header-title">Mes semaines</div><div class="header-sub">Tap semaine → tap patron → détail complet</div></div>
+  <div class="year-tabs"><button class="year-tab active">2026</button><button class="year-tab" onclick="this.parentElement.querySelectorAll('.year-tab').forEach(t=>t.classList.remove('active'));this.classList.add('active')">2025</button></div>
+  <div class="global-summary">
+    <div class="sc gold"><div class="sc-label">Total 2026</div><div class="sc-value">4 821 €</div><div class="sc-sub">19 semaines</div></div>
+    <div class="sc cyan"><div class="sc-label">Heures</div><div class="sc-value">312h</div><div class="sc-sub">~16h/sem</div></div>
+    <div class="sc green"><div class="sc-label">Perçu</div><div class="sc-value">4 440 €</div><div class="sc-sub">92%</div></div>
+  </div>
+  <div class="week-card paye open" id="wk19">
+    <div class="week-header" onclick="toggleWeek('wk19')">
+      <div class="week-badge"><div class="week-num">19</div><div class="week-lbl">sem.</div></div>
+      <div class="week-info"><div class="week-dates">5 – 11 mai 2026</div><div class="week-amount">581,25 €</div><div class="week-meta">38h45 · 3 patrons</div></div>
+      <div class="week-right"><span class="badge-status badge-paye">✓ Payé</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="week-body"><div class="week-body-inner">
+      <div class="patron-card p0 open" id="pt19_0">
+        <div class="patron-header" onclick="togglePatron('pt19_0')"><div class="patron-avatar">MD</div><div class="patron-info"><div class="patron-name">Martin Dupont</div><div class="patron-meta">3 missions · Lun Mar Jeu</div></div><div class="patron-right"><div class="patron-amount">240,00 €</div><div class="patron-hours">24h00</div></div><span class="patron-chevron">▾</span></div>
+        <div class="patron-detail"><div class="patron-detail-inner">
+          <div><div class="detail-section-title">📋 Missions</div>
+            <div class="mission-row"><div class="mission-left"><strong>Les Pins · Lundi</strong><span>08:00 – 16:00 · pause 30min</span></div><div class="mission-right" style="color:var(--color-accent-violet)">7h30<small>75,00 €</small></div></div>
+            <div class="mission-row"><div class="mission-left"><strong>Les Pins · Mardi</strong><span>08:00 – 17:00 · pause 30min</span></div><div class="mission-right" style="color:var(--color-accent-violet)">8h30<small>85,00 €</small></div></div>
+            <div class="mission-row"><div class="mission-left"><strong>Les Pins · Jeudi</strong><span>08:00 – 17:00 · pause 30min</span></div><div class="mission-right" style="color:var(--color-accent-violet)">8h00<small>80,00 €</small></div></div>
+          </div>
+          <div><div class="detail-section-title">🚗 Frais km · 18,4 km</div>
+            <div class="mission-row"><div class="mission-left"><span>3 trajets · 0,45 €/km</span></div><div class="mission-right" style="color:var(--color-accent-green)">8,28 €</div></div>
+          </div>
+          <div><div class="detail-section-title">💶 Acomptes</div>
+            <div class="mission-row"><div class="mission-left"><strong>Virement</strong><span>7 mai 2026</span></div><div class="mission-right" style="color:var(--color-primary)">−200,00 €</div></div>
+          </div>
+          <div class="fin-row total"><div class="fin-label">Total brut</div><div class="fin-value">240,00 €</div></div>
+          <div class="fin-row reste-ok"><div class="fin-label">✓ Entièrement payé</div><div class="fin-value">0,00 €</div></div>
+        </div></div>
+      </div>
+      <div class="patron-card p1" id="pt19_1">
+        <div class="patron-header" onclick="togglePatron('pt19_1')"><div class="patron-avatar">SB</div><div class="patron-info"><div class="patron-name">Sophie Bernard</div><div class="patron-meta">1 mission · Mercredi</div></div><div class="patron-right"><div class="patron-amount">127,50 €</div><div class="patron-hours">8h30</div></div><span class="patron-chevron">▾</span></div>
+        <div class="patron-detail"><div class="patron-detail-inner">
+          <div><div class="detail-section-title">📋 Missions</div><div class="mission-row"><div class="mission-left"><strong>Rue des Acacias · Mercredi</strong><span>08:30 – 17:30 · pause 30min</span></div><div class="mission-right" style="color:var(--color-accent-cyan)">8h30<small>127,50 €</small></div></div></div>
+          <div class="fin-row total"><div class="fin-label">Total brut</div><div class="fin-value">127,50 €</div></div>
+          <div class="fin-row reste-ok"><div class="fin-label">✓ Payé</div><div class="fin-value">0,00 €</div></div>
+        </div></div>
+      </div>
+      <div class="patron-card p2" id="pt19_2">
+        <div class="patron-header" onclick="togglePatron('pt19_2')"><div class="patron-avatar">JM</div><div class="patron-info"><div class="patron-name">Jean Moreau</div><div class="patron-meta">2 missions · Ven Sam</div></div><div class="patron-right"><div class="patron-amount">213,75 €</div><div class="patron-hours">14h15</div></div><span class="patron-chevron">▾</span></div>
+        <div class="patron-detail"><div class="patron-detail-inner">
+          <div><div class="detail-section-title">📋 Missions</div>
+            <div class="mission-row"><div class="mission-left"><strong>Av. Victoria · Vendredi</strong><span>08:00 – 15:00 · pause 30min</span></div><div class="mission-right" style="color:var(--color-primary)">6h30<small>97,50 €</small></div></div>
+            <div class="mission-row"><div class="mission-left"><strong>Av. Victoria · Samedi</strong><span>09:00 – 17:15 · pause 30min</span></div><div class="mission-right" style="color:var(--color-primary)">7h45<small>116,25 €</small></div></div>
+          </div>
+          <div class="fin-row total"><div class="fin-label">Total brut</div><div class="fin-value">213,75 €</div></div>
+          <div class="fin-row reste-due"><div class="fin-label">⏳ Reste à percevoir</div><div class="fin-value">63,75 €</div></div>
+        </div></div>
+      </div>
+      <div class="week-total-row"><div class="week-total-label">Total semaine 19</div><div class="week-total-value">581,25 €</div></div>
+      <div class="week-actions"><button class="btn-g">✏️ Modifier</button><button class="btn-p">📄 Exporter</button></div>
+    </div></div>
+  </div>
+  <div class="week-card partiel" id="wk18">
+    <div class="week-header" onclick="toggleWeek('wk18')">
+      <div class="week-badge"><div class="week-num">18</div><div class="week-lbl">sem.</div></div>
+      <div class="week-info"><div class="week-dates">28 avr – 4 mai 2026</div><div class="week-amount">490,00 €</div><div class="week-meta">32h00 · 2 patrons</div></div>
+      <div class="week-right"><span class="badge-status badge-partiel">⏳ Partiel</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="week-body"><div class="week-body-inner">
+      <div class="patron-card p0" id="pt18_0"><div class="patron-header" onclick="togglePatron('pt18_0')"><div class="patron-avatar">MD</div><div class="patron-info"><div class="patron-name">Martin Dupont</div><div class="patron-meta">2 missions · Lun Mer</div></div><div class="patron-right"><div class="patron-amount">160,00 €</div><div class="patron-hours">16h00</div></div><span class="patron-chevron">▾</span></div><div class="patron-detail"><div class="patron-detail-inner"><div class="fin-row total"><div class="fin-label">Total brut</div><div class="fin-value">160,00 €</div></div><div class="fin-row reste-ok"><div class="fin-label">✓ Payé</div><div class="fin-value">0,00 €</div></div></div></div></div>
+      <div class="patron-card p1" id="pt18_1"><div class="patron-header" onclick="togglePatron('pt18_1')"><div class="patron-avatar">SB</div><div class="patron-info"><div class="patron-name">Sophie Bernard</div><div class="patron-meta">2 missions · Jeu Ven</div></div><div class="patron-right"><div class="patron-amount">240,00 €</div><div class="patron-hours">16h00</div></div><span class="patron-chevron">▾</span></div><div class="patron-detail"><div class="patron-detail-inner"><div class="fin-row total"><div class="fin-label">Total brut</div><div class="fin-value">240,00 €</div></div><div class="fin-row reste-due"><div class="fin-label">⏳ Reste à percevoir</div><div class="fin-value">190,00 €</div></div></div></div></div>
+      <div class="week-total-row"><div class="week-total-label">Total semaine 18</div><div class="week-total-value">490,00 €</div></div>
+      <div class="week-actions"><button class="btn-g">✏️ Modifier</button><button class="btn-p">📄 Exporter</button></div>
+    </div></div>
+  </div>
+  <div class="week-card attente" id="wk17">
+    <div class="week-header" onclick="toggleWeek('wk17')">
+      <div class="week-badge"><div class="week-num">17</div><div class="week-lbl">sem.</div></div>
+      <div class="week-info"><div class="week-dates">21 – 27 avr 2026</div><div class="week-amount">320,50 €</div><div class="week-meta">21h20 · 2 patrons</div></div>
+      <div class="week-right"><span class="badge-status badge-attente">⚠ En attente</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="week-body"><div class="week-body-inner"><div class="week-total-row"><div class="week-total-label">Total semaine 17</div><div class="week-total-value">320,50 €</div></div><div class="week-actions"><button class="btn-g">✏️ Modifier</button><button class="btn-p">📄 Exporter</button></div></div></div>
+  </div>
+</div>
+<script>
+function toggleWeek(id){const c=document.getElementById(id);const was=c.classList.contains('open');document.querySelectorAll('.week-card').forEach(x=>x.classList.remove('open'));if(!was)c.classList.add('open');}
+function togglePatron(id){document.getElementById(id).classList.toggle('open');}
+</script>
+</body>
+</html>
