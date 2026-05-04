@@ -104,7 +104,7 @@ export const DiagnosticsPage = ({
 
   const features = profile?.features ?? {};
 
-  // 1. kmEnabled
+  // 1. Feature flag : frais kilométriques activés sur ce profil
   const kmEnabled = getKmEnabled(features);
 
   // 2. Domicile coords
@@ -550,7 +550,7 @@ setRebuildLoading(true);
             <Card title="Reconstruire les bilans">
               <p className="text-[10px] text-white/40 mb-2">
                 <span className="font-black text-white/60">À utiliser si :</span> des montants restants sont incohérents après une correction.<br />
-                <span className="font-black text-white/60">Effet :</span> recalcule les bilans en ordre croissant (règle glissante semaine N-1).
+                <span className="font-black text-white/60">Effet :</span> recalcule les bilans en ordre croissant (chaque semaine tient compte des montants impayés de la semaine précédente).
               </p>
               <div className="flex gap-2 mb-2">
                 <div className="flex-1">
