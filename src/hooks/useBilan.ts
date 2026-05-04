@@ -206,7 +206,7 @@ export function useBilan({
       }
     },
     [bilanPeriodValue, bilanPeriodType, getMissionsByPeriod, getFraisByWeek, getTotalFrais,
-      getSoldeAvant, getAcomptesDansPeriode, db.getImpayePrecedent, db.getAcomptesUtilisesAvantPeriode,
+      getSoldeAvant, getAcomptesDansPeriode, db.getImpayePrecedent,
       getTotalAcomptesJusqua, db.getStatutPaiement, period.formatCurrentPeriodLabel,
       triggerAlert, patrons, kmSettings, domicileLatLng, lieux]
   );

@@ -239,7 +239,6 @@ export function useBilanDB({
           const fraisFiltres = getFraisByWeek(weekNum, patronId);
           const totalFrais = getTotalFrais(fraisFiltres);
           const caBrutPeriode = totalMissions + totalFrais;
-          const impayePrecedent = await getImpayePrecedent(weekNum, patronId);
 
           const existingBilan = await fetchBilanByPeriodAndPatron({
             periodeType: PERIOD_TYPES.SEMAINE,
@@ -269,7 +268,6 @@ export function useBilanDB({
           }
 
           rebuilt++;
-          void impayePrecedent;
         }
 
         return {
@@ -284,7 +282,7 @@ export function useBilanDB({
         };
       }
     },
-    [getMissionsByPeriod, getFraisByWeek, getTotalFrais, getImpayePrecedent]
+    [getMissionsByPeriod, getFraisByWeek, getTotalFrais]
   );
 
   const repairBilansDB = useCallback(
