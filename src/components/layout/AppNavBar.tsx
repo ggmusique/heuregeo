@@ -2,11 +2,13 @@ import React from "react";
 import { useDarkMode } from "../../contexts/DarkModeContext";
 import { usePermissions } from "../../contexts/PermissionsContext";
 import { supabase } from "../../services/supabase";
+import type { NavItem } from "../../hooks/useNavigation";
+import type { TabId } from "../../types/ui";
 
 interface Props {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  proNavItems: any[];
+  activeTab: TabId;
+  setActiveTab: (tab: TabId) => void;
+  proNavItems: NavItem[];
 }
 
 export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
@@ -24,7 +26,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
             (darkMode ? "bg-[#030d22]/95 border-yellow-500/30" : "bg-white/95 border-slate-200/80")
           }
         >
-          {proNavItems.map((item: any) => {
+          {proNavItems.map((item: NavItem) => {
             const isActive = activeTab === item.key;
             return (
               <button

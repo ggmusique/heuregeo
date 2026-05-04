@@ -1,6 +1,6 @@
 declare const __APP_VERSION__: string;
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { User } from "@supabase/supabase-js";
 
 import { ParametresTab } from "./pages/ParametresTab";
@@ -27,6 +27,7 @@ import { useAcompteModal } from "./hooks/useAcompteModal";
 import { useAgenda } from "./hooks/useAgenda";
 import { useAgendaModal } from "./hooks/useAgendaModal";
 import { useNavigation } from "./hooks/useNavigation";
+import type { NavItem } from "./hooks/useNavigation";
 import { useBilanFilters } from "./hooks/useBilanFilters";
 
 import { CustomAlert } from "./components/common/CustomAlert";
@@ -42,9 +43,12 @@ import { VueSaisie } from "./components/views/VueSaisie";
 
 import { DarkModeProvider } from "./contexts/DarkModeContext";
 import { useAppUI } from "./hooks/useAppUI";
+import { useAppProps } from "./hooks/useAppProps";
 import { PermissionsContext } from "./contexts/PermissionsContext";
 import { LabelsContext } from "./contexts/LabelsContext";
 import { getLabels } from "./utils/labels";
+import type { AlertState, TabId } from "./types/ui";
+import type { UserProfile } from "./types/profile";
 
 import "./inputs.css";
 
@@ -113,25 +117,25 @@ function AppContent({ user }: AppProps) {
 
 interface AppInnerProps {
   user?: User;
-  profile: any;
-  profileSaving: any;
-  saveProfile: any;
-  activeTab: any;
-  setActiveTab: any;
-  canAgenda: any;
-  canDashboard: any;
-  isViewer: any;
-  proNavItems: any;
-  viewerPatronId: any;
-  isPro: any;
-  darkMode: any;
-  liveTime: any;
-  isIOS: any;
-  loading: any;
-  setLoading: any;
-  triggerAlert: any;
-  customAlert: any;
-  dismissAlert: any;
+  profile: UserProfile | null;
+  profileSaving: boolean;
+  saveProfile: (data: Partial<UserProfile>) => Promise<{ data?: UserProfile; error?: string }>;
+  activeTab: TabId;
+  setActiveTab: (tab: TabId) => void;
+  canAgenda: boolean;
+  canDashboard: boolean;
+  isViewer: boolean;
+  proNavItems: NavItem[];
+  viewerPatronId: string | null;
+  isPro: boolean;
+  darkMode: boolean;
+  liveTime: string;
+  isIOS: boolean;
+  loading: boolean;
+  setLoading: (v: boolean) => void;
+  triggerAlert: (msg: string) => void;
+  customAlert: AlertState;
+  dismissAlert: () => void;
   APP_VERSION: string;
 }
 
@@ -180,12 +184,6 @@ function AppInner({
   const agendaHook  = useAgenda({ userId: user?.id ?? null, triggerAlert });
   const agendaModal = useAgendaModal({ createEvent: agendaHook.createEvent, updateEvent: agendaHook.updateEvent, deleteEvent: agendaHook.deleteEvent, triggerAlert });
 
-  const agendaWorkedDays = useMemo(() => {
-    const s = new Set();
-    missions.forEach((m) => { if (m.date_iso) s.add(m.date_iso); });
-    return s;
-  }, [missions]);
-
   useEffect(() => {
     document.title = "Heures de Geo";
     fetchMissions();
@@ -222,124 +220,18 @@ function AppInner({
 
   const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || historiqueHook.loadingHistorique || agendaHook.loading;
 
-  const modalsProps = {
-    confirmState, hideConfirm,
-    fraisModal, loading, isIOS, patrons, clients, lieux,
-    acompteModal,
-    patronModal,
-    clientModal,
+  const { saisieProps, dashboardProps, suiviProps, agendaProps, modalsProps } = useAppProps({
+    missionForm, lieuModal, fraisModal, acompteModal, patronModal, clientModal,
     bilan, bilanPatronId, setBilanPatronId, bilanClientId, setBilanClientId,
-    lieuModal,
-    agendaModal,
-    showImportModal, setShowImportModal, bulkCreateMissions,
-  };
-
-  const saisieProps = {
-    editingMissionId: missionForm.editingMissionId,
-    editingMissionData: missionForm.editingMissionData,
-    selectedClientId: missionForm.selectedClientId,
-    selectedLieuId: missionForm.selectedLieuId,
-    selectedPatronId: missionForm.selectedPatronId,
-    onMissionSubmit: missionForm.handleMissionSubmit,
-    onMissionCancel: missionForm.resetMissionForm,
-    onCopyLast: missionForm.copierDerniereMission,
-    lieux,
-    patrons,
-    clients,
-    missions,
-    isIOS,
-    loading,
-    onLieuChange: (lieuId: any) => {
-      missionForm.setSelectedLieuId(lieuId);
-      if (missionForm.editingMissionId) {
-        const selected = lieux.find((l: any) => String(l.id) === String(lieuId));
-        missionForm.setEditingMissionData((prev: any) => ({ ...(prev || {}), lieu_id: lieuId, lieu: selected?.nom || prev?.lieu || "" }));
-      }
-    },
-    onPatronChange: (patronId: any) => {
-      missionForm.setSelectedPatronId(patronId);
-      if (missionForm.editingMissionId) missionForm.setEditingMissionData((prev: any) => ({ ...(prev || {}), patron_id: patronId }));
-    },
-    onClientChange: (clientId: any) => {
-      missionForm.setSelectedClientId(clientId);
-      if (missionForm.editingMissionId) {
-        const selected = clients.find((c: any) => c.id === clientId);
-        missionForm.setEditingMissionData((prev: any) => ({ ...(prev || {}), client_id: clientId, client: selected?.nom || prev?.client || "" }));
-      }
-    },
-    onShowLieuModal: () => { lieuModal.resetLieuForm(); lieuModal.setShowLieuModal(true); },
-    onShowClientModal: () => { clientModal.resetClientForm(); clientModal.setShowClientModal(true); },
-    onShowPatronModal: () => { patronModal.resetPatronForm(); patronModal.setShowPatronModal(true); },
-    onShowFraisModal: () => fraisModal.setShowFraisModal(true),
-    onShowAcompteModal: () => acompteModal.setShowAcompteModal(true),
-    onShowImportModal: () => setShowImportModal(true),
-    showMissionRateEditor,
-  };
-
-  const dashboardProps = {
-    missions,
-    fraisDivers,
-    listeAcomptes,
-    patrons,
-    clients,
-    lieux,
-    profile,
-    kmSettings,
-    domicileLatLng,
-  };
-
-  const suiviProps = {
-    defaultView: isViewer ? "bilan" : historiqueHook.suiviDefaultView,
-    historiqueProps: {
-      historique: historiqueHook.historique,
-      historiquePatronId: historiqueHook.historiquePatronId,
-      historiqueTab: historiqueHook.historiqueTab,
-      loadingHistorique: historiqueHook.loadingHistorique,
-      patrons,
-      missions,
-      listeAcomptes,
-      onPatronFilterChange: (patronId: any) => { historiqueHook.setHistoriquePatronId(patronId); historiqueHook.chargerHistorique(patronId); },
-      onTabChange: historiqueHook.setHistoriqueTab,
-      onLoadHistorique: historiqueHook.chargerHistorique,
-    },
-    bilanProps: {
-      bilan,
-      bilanPatronId,
-      currentWeek,
-      missionsThisWeek,
-      patrons,
-      getPatronNom,
-      getPatronColor,
-      onMarquerCommePaye: marquerCommePaye,
-      onFraisEdit: fraisModal.handleFraisEdit,
-      onFraisDelete: fraisModal.handleFraisDelete,
-      onMissionEdit: missionForm.handleMissionEdit,
-      onMissionDelete: missionForm.handleMissionDelete,
-      profile,
-      saveProfile,
-      kmSettings,
-      kmFraisThisWeek,
-      domicileLatLng,
-      onRecalculerFraisKm: () => bilan.recalculerFraisKm(bilanPatronId),
-    },
-    onNavigateDashboard: () => setActiveTab("dashboard"),
-  };
-
-  const agendaProps = {
-    events: agendaHook.events,
-    loading: agendaHook.loading,
-    currentYear: agendaHook.currentYear,
-    currentMonth: agendaHook.currentMonth,
-    currentWeekStart: agendaHook.currentWeekStart,
-    workedDays: agendaWorkedDays,
-    onGoToPrev: agendaHook.goToPrevMonth,
-    onGoToNext: agendaHook.goToNextMonth,
-    onGoToToday: agendaHook.goToToday,
-    onGoToPrevWeek: agendaHook.goToPrevWeek,
-    onGoToNextWeek: agendaHook.goToNextWeek,
-    onOpenForDate: agendaModal.openForDate,
-    onEventEdit: agendaModal.handleEventEdit,
-  };
+    historiqueHook, agendaHook, agendaModal,
+    kmSettings, domicileLatLng, currentWeek, missionsThisWeek, kmFraisThisWeek,
+    marquerCommePaye, getPatronNom, getPatronColor,
+    setActiveTab, setShowImportModal, showImportModal, bulkCreateMissions,
+    confirmState, hideConfirm,
+    isViewer, viewerPatronId,
+    lieux, patrons, clients, missions, fraisDivers, listeAcomptes,
+    profile, saveProfile, loading, isIOS, showMissionRateEditor,
+  });
 
   return (
     <div className={"min-h-screen relative overflow-hidden transition-all duration-700 " + (darkMode ? "dark bg-[#020818] text-white" : "light bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900")}>
