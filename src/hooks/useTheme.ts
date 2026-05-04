@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type AppTheme = "navy" | "purple" | "emerald";
+export type AppTheme = "neon" | "light";
 
 export interface UseThemeReturn {
   theme: AppTheme;
@@ -13,7 +13,7 @@ export interface UseThemeReturn {
 
 export function useTheme(): UseThemeReturn {
   const [theme, setTheme] = useState<AppTheme>(() => {
-    return (localStorage.getItem("app-theme") || "navy") as AppTheme;
+    return (localStorage.getItem("app-theme") || "neon") as AppTheme;
   });
 
   useEffect(() => {
@@ -22,12 +22,7 @@ export function useTheme(): UseThemeReturn {
   }, [theme]);
 
   const toggleTheme = (): void => {
-    setTheme((current) => {
-      const themes: AppTheme[] = ["navy", "purple", "emerald"];
-      const currentIndex = themes.indexOf(current);
-      const nextIndex = (currentIndex + 1) % themes.length;
-      return themes[nextIndex];
-    });
+    setTheme((current) => (current === "neon" ? "light" : "neon"));
   };
 
   return { theme, toggleTheme };

@@ -22,6 +22,17 @@ const adjustTime = (time: string, deltaMinutes: number): string => {
   return `${Math.floor(total / 60).toString().padStart(2, "0")}:${(total % 60).toString().padStart(2, "0")}`;
 };
 
+function weatherCodeToEmoji(code: string): string {
+  const codePrefix = code.replace(/[dn]$/, '');
+  const map: Record<string, string> = {
+    '01': code.endsWith('n') ? '🌙' : '☀️',
+    '02': '⛅', '03': '☁️', '04': '☁️',
+    '09': '🌧️', '10': '🌧️', '11': '⛈️',
+    '13': '❄️', '50': '🌫️',
+  };
+  return map[codePrefix] ?? '🌡️';
+}
+
 interface MissionFormProps {
   editMode?: boolean;
   initialData?: any;
@@ -253,7 +264,6 @@ export const MissionForm = ({
     WebkitBackdropFilter: "var(--blur-card)",
     border: "1px solid var(--color-border)",
     boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
-    overflow: "hidden",
   };
 
   const sectionTitleStyle: React.CSSProperties = {
@@ -267,7 +277,7 @@ export const MissionForm = ({
   };
 
   return (
-    <section style={sectionStyle}>
+    <section data-theme="neon" style={sectionStyle}>
 
       {/* ── DatePicker modal ──────────────────────────────────────────── */}
       {showDatePicker && (
@@ -319,7 +329,7 @@ export const MissionForm = ({
             <div>
               {weather ? (
                 <span style={{ fontSize: "13px", color: "var(--color-text-muted)" }}>
-                  {weather.icon} {weather.temp}°{weatherCity ? ` · ${weatherCity}` : ""}
+                  {weatherCodeToEmoji(weather.icon)} {weather.temp}°{weatherCity ? ` · ${weatherCity}` : ""}
                 </span>
               ) : (
                 <span style={{ fontSize: "13px", color: "var(--color-text-dim)" }}>⛅ …</span>
@@ -551,6 +561,7 @@ export const MissionForm = ({
           fullWidth
           loading={isSubmitting || loading}
           onClick={handleSubmit}
+          glow
         >
           {editMode ? "Mettre à jour" : "Enregistrer la mission"}
         </NeonButton>

@@ -9,6 +9,7 @@ interface NeonButtonProps {
   loading?: boolean;
   fullWidth?: boolean;
   type?: "button" | "submit";
+  glow?: boolean;
 }
 
 const variantStyles: Record<string, React.CSSProperties> = {
@@ -81,6 +82,7 @@ export function NeonButton({
   loading = false,
   fullWidth = false,
   type = "button",
+  glow = false,
 }: NeonButtonProps) {
   const isDisabled = disabled || loading;
 
@@ -94,7 +96,7 @@ export function NeonButton({
     opacity: isDisabled ? 0.5 : 1,
     transition: "var(--transition-fast)",
     width: fullWidth ? "100%" : undefined,
-    boxShadow: hovered && !isDisabled ? variantHoverGlow[variant] : "none",
+    boxShadow: (glow || hovered) && !isDisabled ? variantHoverGlow[variant] : "none",
     ...variantStyles[variant],
     ...sizeStyles[size],
   };
