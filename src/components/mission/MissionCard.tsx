@@ -21,7 +21,7 @@ const dateBadgeStyle = {
   justifyContent: "center",
   minWidth: "60px",
   height: "60px",
-  background: tokens.colors.bg.surfaceElevated,
+  background: "var(--color-surface-2)",
   border: `1px solid ${tokens.colors.border.accent}`,
   borderRadius: "14px",
   backdropFilter: tokens.effects.blur,
@@ -29,19 +29,19 @@ const dateBadgeStyle = {
 };
 
 const dateMonthStyle = { ...tokens.text.badge, color: tokens.colors.gold.primary, lineHeight: 1, marginBottom: "4px" };
-const dateDayStyle = { fontSize: "22px", fontWeight: 700, color: tokens.colors.text.primary, fontFamily: tokens.font.mono, lineHeight: 1 };
+const dateDayStyle = { fontSize: "22px", fontWeight: 700, color: "var(--color-text)", fontFamily: tokens.font.mono, lineHeight: 1 };
 const infoContainerStyle = { flex: 1, overflow: "hidden" };
-const clientLabelStyle = { fontWeight: 700, textTransform: "uppercase" as const, fontSize: "14px", color: tokens.colors.text.primary, margin: "0 0 4px", whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis", fontFamily: tokens.font.base };
+const clientLabelStyle = { fontWeight: 700, textTransform: "uppercase" as const, fontSize: "14px", color: "var(--color-text)", margin: "0 0 4px", whiteSpace: "nowrap" as const, overflow: "hidden", textOverflow: "ellipsis", fontFamily: tokens.font.base };
 const hoursRowStyle = { display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" as const };
 const hoursTextStyle = { ...tokens.text.caption, textTransform: "uppercase" as const, fontWeight: 600, letterSpacing: "0.05em", margin: 0, fontFamily: tokens.font.mono };
 const pauseBadgeStyle = { ...tokens.text.badge, padding: "3px 8px", borderRadius: "20px", background: tokens.colors.amber.glow, border: `1px solid ${tokens.colors.amber.primary}4D`, color: tokens.colors.amber.primary };
 const patronRowStyle = { display: "flex", alignItems: "center", gap: "6px", marginTop: tokens.spacing.sm };
-const patronNameStyle = { ...tokens.text.badge, color: tokens.colors.text.muted };
+const patronNameStyle = { ...tokens.text.badge, color: "var(--color-text-muted)" };
 const actionsContainerStyle = { display: "flex", alignItems: "center", gap: tokens.spacing.lg };
-const amountStyle = { fontSize: "16px", fontWeight: 700, color: tokens.colors.emerald.primary, fontFamily: tokens.font.mono, whiteSpace: "nowrap" as const };
+const amountStyle = { fontSize: "16px", fontWeight: 700, color: "var(--color-success)", fontFamily: tokens.font.mono, whiteSpace: "nowrap" as const };
 const buttonGroupStyle = { display: "flex", flexDirection: "column" as const, gap: "10px" };
 const btnBase = mergeStyles(tokens.button.base, { width: "40px", height: "40px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "18px", padding: 0, outline: "none", transition: tokens.transitions.default });
-const btnEditStyle = mergeStyles(btnBase, { background: tokens.colors.border.default, border: `1px solid ${tokens.colors.border.hover}` });
+const btnEditStyle = mergeStyles(btnBase, { background: "var(--color-surface-offset)", border: `1px solid var(--color-border)` });
 const btnDeleteStyle = mergeStyles(btnBase, { background: tokens.colors.rose.glow, border: `1px solid ${tokens.colors.rose.primary}4D` });
 
 interface Props {

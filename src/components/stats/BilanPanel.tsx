@@ -27,11 +27,11 @@ function Row({ label, value, valueColor }: RowProps) {
         fontSize: "13px",
       }}
     >
-      <span style={{ color: tokens.colors.text.secondary }}>{label}</span>
+      <span style={{ color: "var(--color-text-muted)" }}>{label}</span>
       <span
         style={{
           fontWeight: 700,
-          color: valueColor || tokens.colors.text.primary,
+          color: valueColor || "var(--color-text)",
         }}
       >
         {value}
@@ -368,7 +368,7 @@ export function BilanPanel({
                       <span
                         style={{
                           fontWeight: 700,
-                          color: tokens.colors.text.secondary,
+                          color: "var(--color-text-muted)",
                         }}
                       >
                         {formatDateFR(item.date)}
@@ -376,7 +376,7 @@ export function BilanPanel({
                       <span
                         style={{
                           marginLeft: "8px",
-                          color: tokens.colors.text.disabled,
+                          color: "var(--color-text-dim)",
                         }}
                       >
                         {item.labelLieuOuClient}
@@ -567,7 +567,7 @@ export function BilanPanel({
                   ...tokens.button.base,
                   width: "100%",
                   background: "rgba(139,32,32,0.8)",
-                  color: tokens.colors.text.primary,
+                  color: "#ffffff",
                   border: "1px solid rgba(239,68,68,0.5)",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",

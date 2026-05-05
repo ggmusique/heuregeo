@@ -20,8 +20,8 @@ export const KPICard = memo(function KPICard({ icon, label, value, delta, accent
       className="kpi-card group"
       style={{
         animation: `fadeInUp 0.5s ${delay}ms both`,
-        background: tokens.colors.bg.surface,
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border)",
         borderRadius: "20px",
         padding: "20px",
         position: "relative",
@@ -34,12 +34,12 @@ export const KPICard = memo(function KPICard({ icon, label, value, delta, accent
       onMouseEnter={(e) => {
         e.currentTarget.style.transform = "translateY(-4px)";
         e.currentTarget.style.boxShadow = `0 12px 40px ${color.glow}`;
-        e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+        e.currentTarget.style.borderColor = "var(--color-border)";
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.transform = "translateY(0)";
         e.currentTarget.style.boxShadow = "none";
-        e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+        e.currentTarget.style.borderColor = "var(--color-border)";
       }}
       role="region"
       aria-label={ariaLabel || label}
@@ -88,7 +88,7 @@ export const KPICard = memo(function KPICard({ icon, label, value, delta, accent
             fontSize: "9px",
             textTransform: "uppercase",
             letterSpacing: "0.2em",
-            color: tokens.colors.text.muted,
+            color: "var(--color-text-muted)",
             fontWeight: 700,
             lineHeight: 1.2,
           }}
@@ -117,7 +117,7 @@ export const KPICard = memo(function KPICard({ icon, label, value, delta, accent
           style={{
             fontSize: "11px",
             fontWeight: 600,
-            color: delta >= 0 ? tokens.colors.emerald.primary : "#EF4444",
+            color: delta >= 0 ? "var(--color-success)" : "var(--color-error)",
             display: "flex",
             alignItems: "center",
             gap: "4px",
@@ -126,7 +126,7 @@ export const KPICard = memo(function KPICard({ icon, label, value, delta, accent
           className="group-hover:opacity-100 opacity-90"
         >
           {delta >= 0 ? "▴" : "▾"} {Math.abs(delta)}%
-          <span style={{ color: tokens.colors.text.muted, fontWeight: 400 }}>vs sem. préc.</span>
+          <span style={{ color: "var(--color-text-muted)", fontWeight: 400 }}>vs sem. préc.</span>
         </div>
       )}
     </article>
