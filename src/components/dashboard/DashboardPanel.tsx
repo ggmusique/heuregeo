@@ -482,7 +482,7 @@ export function DashboardPanel({
         <div
           style={{
             fontSize: "10px",
-            color: "rgba(255,255,255,0.4)",
+            color: "var(--color-text-muted)",
             textTransform: "uppercase",
             letterSpacing: "0.2em",
             fontWeight: 700,
@@ -494,11 +494,11 @@ export function DashboardPanel({
           style={{
             fontFamily: "'DM Mono', monospace",
             fontSize: "11px",
-            color: "rgba(255,255,255,0.45)",
+            color: "var(--color-text-muted)",
             padding: "6px 14px",
             borderRadius: "10px",
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "rgba(255,255,255,0.03)",
+            border: "1px solid var(--color-border)",
+            background: "var(--color-surface-offset)",
           }}
         >
           Semaine {currentWeek} · {currentYear}
@@ -517,7 +517,7 @@ export function DashboardPanel({
           <span
             style={{
               fontSize: "10px",
-              color: "rgba(255,255,255,0.35)",
+              color: "var(--color-text-muted)",
               textTransform: "uppercase",
               letterSpacing: "0.18em",
               fontWeight: 600,
@@ -534,9 +534,9 @@ export function DashboardPanel({
               fontFamily: "'Syne', sans-serif",
               fontSize: "13px",
               fontWeight: 600,
-              color: selectedPatronId ? "#D4AF37" : "rgba(255,255,255,0.7)",
-              background: "rgba(10,22,40,0.9)",
-              border: `1px solid ${selectedPatronId ? "rgba(212,175,55,0.4)" : "rgba(255,255,255,0.12)"}`,
+              color: selectedPatronId ? "#D4AF37" : "var(--color-text)",
+              background: "var(--color-bg-input)",
+              border: `1px solid ${selectedPatronId ? "rgba(212,175,55,0.4)" : "var(--color-border)"}`,
               borderRadius: "12px",
               padding: "8px 36px 8px 14px",
               cursor: "pointer",
@@ -622,8 +622,8 @@ export function DashboardPanel({
       >
         <div
           style={{
-            background: tokens.colors.bg.surface,
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
             borderRadius: "20px",
             padding: "14px",
             backdropFilter: "blur(12px)",
@@ -635,7 +635,7 @@ export function DashboardPanel({
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.2em",
-              color: "rgba(255,255,255,0.35)",
+              color: "var(--color-text-muted)",
               marginBottom: "16px",
               display: "flex",
               alignItems: "center",
@@ -647,12 +647,12 @@ export function DashboardPanel({
             </span>
 
             <div style={{ display: "flex", gap: "12px" }}>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "9px", color: "rgba(255,255,255,0.4)" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "9px", color: "var(--color-text-muted)" }}>
                 <span style={{ width: "10px", height: "10px", borderRadius: "3px", background: chartColors.indigo.primary, display: "inline-block" }} aria-hidden="true" />
                 Missions
               </span>
 
-              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "9px", color: "rgba(255,255,255,0.4)" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "9px", color: "var(--color-text-muted)" }}>
                 <span style={{ width: "10px", height: "10px", borderRadius: "3px", background: chartColors.amber.primary, display: "inline-block" }} aria-hidden="true" />
                 Frais
               </span>
@@ -667,8 +667,8 @@ export function DashboardPanel({
 
         <div
           style={{
-            background: tokens.colors.bg.surface,
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
             borderRadius: "20px",
             padding: "20px",
             backdropFilter: "blur(12px)",
@@ -680,7 +680,7 @@ export function DashboardPanel({
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.2em",
-              color: "rgba(255,255,255,0.35)",
+              color: "var(--color-text-muted)",
               marginBottom: "16px",
             }}
           >
@@ -727,7 +727,7 @@ export function DashboardPanel({
                 fontWeight: 700,
                 textTransform: "uppercase",
                 letterSpacing: "0.18em",
-                color: "rgba(255,255,255,0.35)",
+                color: "var(--color-text-muted)",
                 marginTop: "2px",
               }}
             >
@@ -739,7 +739,7 @@ export function DashboardPanel({
                 fontFamily: "'DM Mono', monospace",
                 fontSize: "22px",
                 fontWeight: 600,
-                color: kmThisWeek.totalAmount > 0 ? "#10B981" : "rgba(255,255,255,0.25)",
+                color: kmThisWeek.totalAmount > 0 ? "#10B981" : "var(--color-text-dim)",
                 lineHeight: 1.1,
               }}
             >
@@ -756,9 +756,9 @@ export function DashboardPanel({
               style={{
                 marginTop: "8px",
                 paddingTop: "10px",
-                borderTop: "1px solid rgba(255,255,255,0.06)",
+                borderTop: "1px solid var(--color-divider)",
                 fontSize: "11px",
-                color: "rgba(255,255,255,0.45)",
+                color: "var(--color-text-muted)",
                 lineHeight: 1.6,
               }}
             >
@@ -777,7 +777,7 @@ export function DashboardPanel({
       >
         <div
           style={{
-            background: `linear-gradient(135deg, ${tokens.colors.bg.surfaceElevated}, ${tokens.colors.bg.surface})`,
+            background: "linear-gradient(135deg, var(--color-surface-2), var(--color-surface))",
             border: `1px solid ${tokens.colors.gold.glow}`,
             borderRadius: "20px",
             padding: "20px",
@@ -790,35 +790,35 @@ export function DashboardPanel({
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.2em",
-              color: "rgba(255,255,255,0.35)",
+              color: "var(--color-text-muted)",
               marginBottom: "14px",
             }}
           >
             Bilan <span style={{ color: "#D4AF37" }}>semaine {currentWeek}</span>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", fontSize: "12px" }}>
-            <span style={{ color: "rgba(255,255,255,0.4)" }}>Missions</span>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--color-divider)", fontSize: "12px" }}>
+            <span style={{ color: "var(--color-text-muted)" }}>Missions</span>
             <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 500 }}>{formatEuro(bilanSemaine.caWeek)}</span>
           </div>
 
           {bilanSemaine.fraisWeek > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", fontSize: "12px" }}>
-              <span style={{ color: "rgba(255,255,255,0.4)" }}>Frais divers</span>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--color-divider)", fontSize: "12px" }}>
+              <span style={{ color: "var(--color-text-muted)" }}>Frais divers</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 500, color: chartColors.amber.primary }}>+{formatEuro(bilanSemaine.fraisWeek)}</span>
             </div>
           )}
 
           {kmEnabled && bilanSemaine.kmWeek > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", fontSize: "12px" }}>
-              <span style={{ color: "rgba(255,255,255,0.4)" }}>Frais km</span>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--color-divider)", fontSize: "12px" }}>
+              <span style={{ color: "var(--color-text-muted)" }}>Frais km</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 500, color: "#10B981" }}>+{formatEuro(bilanSemaine.kmWeek)}</span>
             </div>
           )}
 
           {bilanSemaine.acomptesWeek > 0 && (
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)", fontSize: "12px" }}>
-              <span style={{ color: "rgba(255,255,255,0.4)" }}>Acomptes reçus</span>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--color-divider)", fontSize: "12px" }}>
+              <span style={{ color: "var(--color-text-muted)" }}>Acomptes reçus</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontWeight: 500, color: chartColors.cyan.primary }}>-{formatEuro(bilanSemaine.acomptesWeek)}</span>
             </div>
           )}
@@ -859,8 +859,8 @@ export function DashboardPanel({
 
         <div
           style={{
-            background: tokens.colors.bg.surface,
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
             borderRadius: "20px",
             padding: "20px",
             backdropFilter: "blur(12px)",
@@ -872,7 +872,7 @@ export function DashboardPanel({
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.2em",
-              color: "rgba(255,255,255,0.35)",
+              color: "var(--color-text-muted)",
               marginBottom: "14px",
             }}
           >
@@ -880,7 +880,7 @@ export function DashboardPanel({
           </div>
 
           {topClients.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "24px 0", fontSize: "12px", color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>
+            <div style={{ textAlign: "center", padding: "24px 0", fontSize: "12px", color: "var(--color-text-dim)", fontStyle: "italic" }}>
               Aucun client trouvé
             </div>
           ) : (
@@ -900,7 +900,7 @@ export function DashboardPanel({
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "11px" }}>
                       <span
                         style={{
-                          color: "rgba(255,255,255,0.7)",
+                          color: "var(--color-text)",
                           fontWeight: 600,
                           whiteSpace: "nowrap",
                           overflow: "hidden",
@@ -910,12 +910,12 @@ export function DashboardPanel({
                       >
                         {c.name}
                       </span>
-                      <span style={{ fontFamily: "'DM Mono', monospace", color: "rgba(255,255,255,0.4)", fontSize: "10px" }}>
+                      <span style={{ fontFamily: "'DM Mono', monospace", color: "var(--color-text-muted)", fontSize: "10px" }}>
                         {Math.round(c.ca).toLocaleString("fr-FR")} €
                       </span>
                     </div>
 
-                    <div style={{ height: "5px", background: "rgba(255,255,255,0.07)", borderRadius: "4px", overflow: "hidden" }}>
+                    <div style={{ height: "5px", background: "var(--color-border)", borderRadius: "4px", overflow: "hidden" }}>
                       <div
                         style={{
                           height: "100%",
@@ -940,8 +940,8 @@ export function DashboardPanel({
 
         <div
           style={{
-            background: tokens.colors.bg.surface,
-            border: "1px solid rgba(255,255,255,0.08)",
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border)",
             borderRadius: "20px",
             padding: "20px",
             backdropFilter: "blur(12px)",
@@ -953,7 +953,7 @@ export function DashboardPanel({
               fontWeight: 700,
               textTransform: "uppercase",
               letterSpacing: "0.2em",
-              color: "rgba(255,255,255,0.35)",
+              color: "var(--color-text-muted)",
               marginBottom: "14px",
             }}
           >
@@ -961,7 +961,7 @@ export function DashboardPanel({
           </div>
 
           {previousWeeks.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "24px 0", fontSize: "12px", color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>
+            <div style={{ textAlign: "center", padding: "24px 0", fontSize: "12px", color: "var(--color-text-dim)", fontStyle: "italic" }}>
               Aucune donnée
             </div>
           ) : (
@@ -977,7 +977,7 @@ export function DashboardPanel({
                     style={{
                       borderRadius: "12px",
                       overflow: "hidden",
-                      border: "1px solid rgba(255,255,255,0.05)",
+                      border: "1px solid var(--color-divider)",
                       opacity: hasData ? 1 : 0.4,
                     }}
                   >
@@ -996,22 +996,22 @@ export function DashboardPanel({
                           width: "32px",
                           height: "32px",
                           borderRadius: "8px",
-                          background: idx === 0 ? "rgba(212,175,55,0.12)" : "rgba(255,255,255,0.04)",
-                          border: `1px solid ${idx === 0 ? "rgba(212,175,55,0.25)" : "rgba(255,255,255,0.07)"}`,
+                          background: idx === 0 ? "rgba(212,175,55,0.12)" : "var(--color-surface-offset)",
+                          border: `1px solid ${idx === 0 ? "rgba(212,175,55,0.25)" : "var(--color-border)"}`,
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "center",
                           justifyContent: "center",
                         }}
                       >
-                        <span style={{ fontSize: "7px", color: "rgba(255,255,255,0.3)", textTransform: "uppercase", lineHeight: 1 }}>S</span>
+                        <span style={{ fontSize: "7px", color: "var(--color-text-dim)", textTransform: "uppercase", lineHeight: 1 }}>S</span>
                         <span
                           style={{
                             fontSize: "13px",
                             fontWeight: 700,
                             lineHeight: 1,
                             fontFamily: "'DM Mono', monospace",
-                            color: idx === 0 ? "#D4AF37" : "rgba(255,255,255,0.55)",
+                            color: idx === 0 ? "#D4AF37" : "var(--color-text-muted)",
                           }}
                         >
                           {w.weekNum}
@@ -1019,7 +1019,7 @@ export function DashboardPanel({
                       </div>
 
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ height: "3px", background: "rgba(255,255,255,0.06)", borderRadius: "2px", overflow: "hidden", marginBottom: "5px" }}>
+                        <div style={{ height: "3px", background: "var(--color-divider)", borderRadius: "2px", overflow: "hidden", marginBottom: "5px" }}>
                           <div
                             style={{
                               height: "100%",
@@ -1040,17 +1040,17 @@ export function DashboardPanel({
                               fontFamily: "'DM Mono', monospace",
                               fontSize: "12px",
                               fontWeight: 600,
-                              color: hasData ? "#fff" : "rgba(255,255,255,0.2)",
+                              color: hasData ? "var(--color-text)" : "var(--color-text-faint)",
                             }}
                           >
                             {formatEuro(w.ca)}
                           </span>
-                          <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.2)" }}>·</span>
-                          <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.35)" }}>{formatHeures(w.hours)}</span>
+                          <span style={{ fontSize: "9px", color: "var(--color-text-faint)" }}>·</span>
+                          <span style={{ fontSize: "10px", color: "var(--color-text-muted)" }}>{formatHeures(w.hours)}</span>
                           {w.missionsCount > 0 && (
                             <>
-                              <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.2)" }}>·</span>
-                              <span style={{ fontSize: "10px", color: "rgba(255,255,255,0.28)" }}>{w.missionsCount}×</span>
+                              <span style={{ fontSize: "9px", color: "var(--color-text-faint)" }}>·</span>
+                              <span style={{ fontSize: "10px", color: "var(--color-text-dim)" }}>{w.missionsCount}×</span>
                             </>
                           )}
                         </div>
@@ -1095,7 +1095,7 @@ export function DashboardPanel({
                           display: "flex",
                           gap: "10px",
                           padding: "4px 12px 7px 54px",
-                          borderTop: "1px solid rgba(255,255,255,0.04)",
+                          borderTop: "1px solid var(--color-divider)",
                           flexWrap: "wrap",
                         }}
                       >
