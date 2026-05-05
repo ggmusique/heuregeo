@@ -483,7 +483,7 @@ setRebuildLoading(true);
                 <div className="p-4 rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-md">
                   <p className="text-[13px] text-[var(--color-text)] leading-relaxed">
                     {diagData.fraisKm.length} trajet{pluralFr(diagData.fraisKm.length, "", "s")} km enregistré{pluralFr(diagData.fraisKm.length, "", "s")} cette semaine — total{" "}
-                    <span className="font-black text-white">
+                    <span className="font-black text-[var(--color-text)]">
                       {diagData.fraisKm.reduce((s, f) => s + f.distance_km, 0).toFixed(1)} km
                     </span>
                     {" / "}
