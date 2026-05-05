@@ -66,7 +66,7 @@ export const PeriodModal = ({
       <div
         className={`w-full max-w-sm p-8 rounded-[45px] border-2 ${
           darkMode
-            ? "bg-[#0f111a] border-white/10"
+            ? "bg-[var(--color-surface)] border-[var(--color-border)]"
             : "bg-white border-slate-200"
         } backdrop-blur-xl`}
       >
@@ -136,7 +136,7 @@ export const PeriodModal = ({
             <select
               value={periodValue || ""}
               onChange={(e) => setPeriodValue(e.target.value)}
-              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-indigo-500/40 appearance-none cursor-pointer focus:outline-none focus:border-indigo-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[#1a1f2e] text-white" : "bg-white text-slate-900 border-slate-200"}`}
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-indigo-500/40 appearance-none cursor-pointer focus:outline-none focus:border-indigo-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
             >
               <option value="" disabled>
                 Sélectionner une période...
@@ -183,7 +183,7 @@ export const PeriodModal = ({
                 const value = e.target.value;
                 onPatronChange(value === "" ? null : value);
               }}
-              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-green-500/40 appearance-none cursor-pointer focus:outline-none focus:border-green-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[#1a1f2e] text-white" : "bg-white text-slate-900 border-slate-200"}`}
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-green-500/40 appearance-none cursor-pointer focus:outline-none focus:border-green-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
             >
               <option value="">📊 Tous les {L.patrons} (Global)</option>
 
@@ -233,7 +233,7 @@ export const PeriodModal = ({
                 const value = e.target.value;
                 onClientChange(value === "" ? null : value);
               }}
-              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-amber-500/40 appearance-none cursor-pointer focus:outline-none focus:border-amber-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[#1a1f2e] text-white" : "bg-white text-slate-900 border-slate-200"}`}
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-amber-500/40 appearance-none cursor-pointer focus:outline-none focus:border-amber-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
             >
               <option value="">👥 Tous les {L.clients}</option>
 

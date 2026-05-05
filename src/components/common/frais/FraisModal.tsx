@@ -71,7 +71,7 @@ export const FraisModal = ({
       <div
         className={`w-full max-w-sm p-8 rounded-[40px] border-2 ${
           darkMode
-            ? "bg-[#121420] border-white/10"
+            ? "bg-[var(--color-surface)] border-[var(--color-border)]"
             : "bg-white border-slate-200"
         } backdrop-blur-xl`}
       >

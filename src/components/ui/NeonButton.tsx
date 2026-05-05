@@ -30,8 +30,8 @@ const variantStyles: Record<string, React.CSSProperties> = {
     color: "var(--color-accent-violet)",
   },
   ghost: {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(255,255,255,0.10)",
+    background: "var(--color-surface-offset)",
+    border: "1px solid var(--color-border)",
     color: "var(--color-text)",
   },
   danger: {

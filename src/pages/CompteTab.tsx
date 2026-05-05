@@ -13,8 +13,8 @@ interface SectionProps {
   children?: React.ReactNode;
 }
 
-const Section = ({ title, titleColor = "text-indigo-300", badge, open, onToggle, children }: SectionProps) => (
-  <div className="bg-[#0f111a] border-2 border-white/10 rounded-[32px] overflow-hidden">
+const Section = ({ title, titleColor = "text-indigo-400", badge, open, onToggle, children }: SectionProps) => (
+  <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-[32px] overflow-hidden">
     <button
       onClick={onToggle}
       className="w-full flex items-center justify-between px-6 py-4 text-left"
@@ -24,20 +24,20 @@ const Section = ({ title, titleColor = "text-indigo-300", badge, open, onToggle,
           {title}
         </span>
         {badge && (
-          <span className="text-[9px] font-bold text-white/40 bg-white/5 px-2 py-0.5 rounded-full truncate max-w-[140px]">
+          <span className="text-[9px] font-bold text-[var(--color-text-dim)] bg-[var(--color-surface-offset)] px-2 py-0.5 rounded-full truncate max-w-[140px]">
             {badge}
           </span>
         )}
       </div>
       <span
-        className="text-white/30 text-lg shrink-0 ml-2"
+        className="text-[var(--color-text-dim)] text-lg shrink-0 ml-2"
         style={{ display: 'inline-block', transition: 'transform .2s', transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}
       >
         ›
       </span>
     </button>
     {open && (
-      <div className="px-6 pb-6 space-y-4 border-t border-white/5 pt-4">
+      <div className="px-6 pb-6 space-y-4 border-t border-[var(--color-divider)] pt-4">
         {children}
       </div>
     )}
@@ -99,17 +99,17 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
 
   const tauxSelectionne = EU_TVA_RATES.find(c => c.code === form.pays_tva)?.rate ?? ''
 
-  const inputCls = (border = 'border-white/10') =>
-    `w-full p-4 rounded-2xl bg-[#1a1f2e] border-2 ${border} text-white placeholder-white/30 font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all`
+  const inputCls = (border = 'border-[var(--color-border)]') =>
+    `w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 ${border} text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all`
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#050510] pb-32">
+    <div className="flex flex-col min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] pb-32">
       <div className="p-6 space-y-4 max-w-sm mx-auto w-full">
 
         {/* Header */}
         <div className="text-center pt-4 pb-2">
           <div className="text-4xl mb-2">👤</div>
-          <h2 className="text-xl font-black uppercase tracking-tighter italic text-white">
+          <h2 className="text-xl font-black uppercase tracking-tighter italic text-[var(--color-text)]">
             Mon Compte
           </h2>
         </div>
@@ -117,7 +117,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
         {/* ── Identité ── */}
         <Section
           title="Identité"
-          titleColor="text-indigo-300"
+          titleColor="text-indigo-400"
           badge={form.prenom || form.nom ? `${form.prenom} ${form.nom}`.trim() : undefined}
           open={showIdent}
           onToggle={() => setShowIdent(v => !v)}
@@ -141,7 +141,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
         {/* ── Coordonnées ── */}
         <Section
           title="Coordonnées"
-          titleColor="text-indigo-300"
+          titleColor="text-indigo-400"
           badge={form.ville || form.adresse || undefined}
           open={showCoords}
           onToggle={() => setShowCoords(v => !v)}
@@ -159,14 +159,14 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
               placeholder="Code postal"
               value={form.code_postal}
               onChange={e => setForm(f => ({ ...f, code_postal: e.target.value }))}
-              className={`w-1/3 p-4 rounded-2xl bg-[#1a1f2e] border-2 border-white/10 text-white placeholder-white/30 font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all`}
+              className={`w-1/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all`}
             />
             <input
               type="text"
               placeholder="Ville"
               value={form.ville}
               onChange={e => setForm(f => ({ ...f, ville: e.target.value }))}
-              className={`w-2/3 p-4 rounded-2xl bg-[#1a1f2e] border-2 border-white/10 text-white placeholder-white/30 font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all`}
+              className={`w-2/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all`}
             />
           </div>
           <input
@@ -186,10 +186,10 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
           open={showTva}
           onToggle={() => setShowTva(v => !v)}
         >
-          <p className="text-[10px] text-white/25 italic">📄 À remplir pour vos factures</p>
+          <p className="text-[10px] text-[var(--color-text-dim)] italic">📄 À remplir pour vos factures</p>
 
           <div>
-            <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-1">
+            <p className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider mb-1">
               N° TVA intracommunautaire
             </p>
             <input
@@ -197,26 +197,26 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
               placeholder="ex : FR12345678901"
               value={form.numero_tva}
               onChange={e => setForm(f => ({ ...f, numero_tva: e.target.value.toUpperCase() }))}
-              className="w-full p-4 rounded-2xl bg-[#1a1f2e] border-2 border-amber-500/30 text-white placeholder-white/20 font-black text-[13px] uppercase focus:outline-none focus:border-amber-400 transition-all tracking-widest"
+              className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-amber-500/30 text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] uppercase focus:outline-none focus:border-amber-400 transition-all tracking-widest"
             />
           </div>
 
           <div>
-            <p className="text-[10px] text-white/40 font-bold uppercase tracking-wider mb-1">
+            <p className="text-[10px] text-[var(--color-text-muted)] font-bold uppercase tracking-wider mb-1">
               Taux de TVA applicable
             </p>
             <div className="flex gap-3 items-center">
               <select
                 value={form.pays_tva}
                 onChange={e => setForm(f => ({ ...f, pays_tva: e.target.value }))}
-                className="flex-1 p-4 rounded-2xl bg-[#1a1f2e] border-2 border-amber-500/30 text-white font-black text-[13px] focus:outline-none focus:border-amber-400 transition-all appearance-none"
+                className="flex-1 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-amber-500/30 text-[var(--color-text)] font-black text-[13px] focus:outline-none focus:border-amber-400 transition-all appearance-none"
               >
                 {EU_TVA_RATES.map(c => (
                   <option key={c.code} value={c.code}>{c.label} — {c.rate} %</option>
                 ))}
               </select>
               {tauxSelectionne && (
-                <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-300 font-black text-[18px] min-w-[64px] text-center">
+                <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-500 font-black text-[18px] min-w-[64px] text-center">
                   {tauxSelectionne}%
                 </div>
               )}
@@ -225,10 +225,10 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
         </Section>
 
         {/* ── Compte ── */}
-        <div className="bg-[#0f111a] border-2 border-white/10 rounded-[32px] p-5 space-y-2">
-          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-indigo-300 opacity-80">Compte</p>
-          <p className="text-white/50 text-[13px] font-black">📧 {userEmail}</p>
-          <p className="text-[9px] text-white/20">Email non modifiable</p>
+        <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-[32px] p-5 space-y-2">
+          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-indigo-400 opacity-80">Compte</p>
+          <p className="text-[var(--color-text-muted)] text-[13px] font-black">📧 {userEmail}</p>
+          <p className="text-[9px] text-[var(--color-text-faint)]">Email non modifiable</p>
         </div>
 
         {/* Enregistrer */}
@@ -240,7 +240,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
               ? saved
                 ? 'bg-green-600 text-white'
                 : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg active:scale-95'
-              : 'bg-gray-600/30 text-white/30 cursor-not-allowed'
+              : 'bg-[var(--color-surface-offset)] text-[var(--color-text-dim)] cursor-not-allowed'
           }`}
         >
           {saving ? '⏳ Enregistrement...' : saved ? '✅ Enregistré !' : '💾 Enregistrer'}
