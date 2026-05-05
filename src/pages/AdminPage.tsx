@@ -139,7 +139,7 @@ export const AdminPage = ({ darkMode = true }) => {
         <p className="text-[11px] font-black uppercase opacity-40 px-2 tracking-[0.25em] text-center mb-4">
           Administration
         </p>
-        <h2 className="text-2xl font-black text-[#C9A84C] italic font-['Playfair_Display'] text-center mb-2">
+        <h2 className="text-2xl font-black text-[var(--color-primary)] italic font-['Playfair_Display'] text-center mb-2">
           Gestion des utilisateurs
         </h2>
         <p className="text-[11px] opacity-50 text-center">
@@ -176,33 +176,33 @@ export const AdminPage = ({ darkMode = true }) => {
             return (
               <div
                 key={user.id}
-                className="p-5 rounded-[25px] border border-yellow-600/20 bg-[#0A1628]/60 backdrop-blur-md"
+                className="p-5 rounded-[25px] border border-[var(--color-border-primary)] bg-[var(--color-surface)] backdrop-blur-md"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <span className="font-black text-sm text-white truncate">
+                      <span className="font-black text-sm text-[var(--color-text)] truncate">
                         {[user.prenom, user.nom].filter(Boolean).join(" ") || "—"}
                       </span>
                       {user.is_admin && (
-                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-600/30 border border-purple-500/40 text-purple-300">
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-600/30 border border-purple-500/40 text-purple-400">
                           Admin
                         </span>
                       )}
                       <span
                         className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
                           isPro
-                            ? "bg-yellow-600/20 border-yellow-500/40 text-yellow-300"
-                            : "bg-white/10 border-white/20 text-white/50"
+                            ? "bg-yellow-600/20 border-yellow-500/40 text-yellow-400"
+                            : "bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text-muted)]"
                         }`}
                       >
                         {isPro ? "✨ Pro" : "Free"}
                       </span>
                     </div>
-                    <p className="text-[11px] opacity-60 truncate">
+                    <p className="text-[11px] text-[var(--color-text-muted)] truncate">
                       {user.id?.substring(0, 8)}...
                     </p>
-                    <p className="text-[10px] opacity-40 mt-1">
+                    <p className="text-[10px] text-[var(--color-text-dim)] mt-1">
                       Inscription : {formatDate(user.created_at)}
                     </p>
                   </div>
@@ -212,8 +212,8 @@ export const AdminPage = ({ darkMode = true }) => {
                     disabled={isUpdating}
                     className={`shrink-0 px-4 py-2 rounded-xl font-black text-[10px] uppercase border transition-all active:scale-95 ${
                       isPro
-                        ? "bg-white/10 border-white/20 text-white/60 hover:bg-red-600/20 hover:border-red-500/40 hover:text-red-300"
-                        : "bg-yellow-600/20 border-yellow-500/40 text-yellow-300 hover:bg-yellow-600/40"
+                        ? "bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-red-600/20 hover:border-red-500/40 hover:text-red-400"
+                        : "bg-yellow-600/20 border-yellow-500/40 text-yellow-400 hover:bg-yellow-600/40"
                     } ${isUpdating ? "opacity-50 cursor-wait" : ""}`}
                   >
                     {isUpdating ? "..." : isPro ? "→ Free" : "→ Pro"}

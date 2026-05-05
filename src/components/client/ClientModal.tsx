@@ -61,7 +61,7 @@ export const ClientModal = ({
       <div
         className={`w-full max-w-md p-6 rounded-[30px] max-h-[calc(100vh-8rem)] overflow-y-auto ${
           darkMode
-            ? "bg-[#1a1f2e] border-2 border-indigo-500/40"
+            ? "bg-[var(--color-field)] border-2 border-indigo-500/40"
             : "bg-white border-2 border-slate-200"
         } shadow-2xl`}
         onClick={(e) => e.stopPropagation()}

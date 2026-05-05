@@ -326,7 +326,7 @@ setRebuildLoading(true);
         <p className="text-[11px] font-black uppercase opacity-40 tracking-[0.25em] mb-2">
           Admin / Dev
         </p>
-        <h2 className="text-2xl font-black text-[#C9A84C] italic font-['Playfair_Display'] mb-1">
+        <h2 className="text-2xl font-black text-[var(--color-primary)] italic font-['Playfair_Display'] mb-1">
           Diagnostics avancés
         </h2>
         <p className="text-[10px] opacity-30 mt-0.5">Vue réservée admin · non visible des viewers</p>
@@ -421,19 +421,19 @@ setRebuildLoading(true);
       )}
 
       {/* BLOC 3 — Analyser une semaine spécifique */}
-      <details className="rounded-[20px] border border-white/10 bg-[#0A1628]/40 backdrop-blur-md overflow-hidden">
+      <details className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-md overflow-hidden">
         <summary className="p-4 cursor-pointer select-none flex items-center justify-between">
-          <span className="text-[12px] font-black text-white/70">🔍 Analyser une semaine spécifique</span>
+          <span className="text-[12px] font-black text-[var(--color-text-muted)]">🔍 Analyser une semaine spécifique</span>
         </summary>
         <div className="px-4 pb-4 space-y-3">
           {/* Sélecteur patron + semaine */}
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="text-[10px] uppercase text-white/40 tracking-wider">Patron</label>
+              <label className="text-[10px] uppercase text-[var(--color-text-dim)] tracking-wider">Patron</label>
               <select
                 value={diagPatronId}
                 onChange={(e) => { setDiagPatronId(e.target.value); setDiagData(null); }}
-                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono"
+                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-white text-[12px] font-mono"
               >
                 <option value="">— choisir —</option>
                 {patrons.map((p) => (
@@ -442,12 +442,12 @@ setRebuildLoading(true);
               </select>
             </div>
             <div className="w-20">
-              <label className="text-[10px] uppercase text-white/40 tracking-wider">Semaine n°</label>
+              <label className="text-[10px] uppercase text-[var(--color-text-dim)] tracking-wider">Semaine n°</label>
               <input
                 type="number" min="1" max="53"
                 value={diagWeek}
                 onChange={(e) => { setDiagWeek(e.target.value); setDiagData(null); }}
-                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono text-center"
+                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-white text-[12px] font-mono text-center"
               />
             </div>
           </div>
@@ -480,10 +480,10 @@ setRebuildLoading(true);
 
               {/* Trajets KM — résumé humain */}
               {diagData.fraisKm.length > 0 && (
-                <div className="p-4 rounded-[20px] border border-white/10 bg-[#0A1628]/50 backdrop-blur-md">
-                  <p className="text-[13px] text-white/80 leading-relaxed">
+                <div className="p-4 rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-md">
+                  <p className="text-[13px] text-[var(--color-text)] leading-relaxed">
                     {diagData.fraisKm.length} trajet{pluralFr(diagData.fraisKm.length, "", "s")} km enregistré{pluralFr(diagData.fraisKm.length, "", "s")} cette semaine — total{" "}
-                    <span className="font-black text-white">
+                    <span className="font-black text-[var(--color-text)]">
                       {diagData.fraisKm.reduce((s, f) => s + f.distance_km, 0).toFixed(1)} km
                     </span>
                     {" / "}
@@ -499,7 +499,7 @@ setRebuildLoading(true);
                 <button
                   type="button"
                   onClick={handleCopyDiagnostic}
-                  className="flex-1 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-white/15 text-white/50 bg-white/5 hover:bg-white/10 hover:text-white/70"
+                  className="flex-1 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-[var(--color-border)] text-[var(--color-text-muted)] bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-offset)] hover:text-[var(--color-text-muted)]"
                 >
                   Copier le diagnostic
                 </button>
@@ -511,11 +511,11 @@ setRebuildLoading(true);
               </div>
 
               {/* Données techniques (accordéon secondaire) */}
-              <details className="rounded-[16px] border border-white/10 bg-white/5 overflow-hidden">
-                <summary className="p-3 cursor-pointer select-none text-[10px] font-black uppercase tracking-widest text-white/40">
+              <details className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface-offset)] overflow-hidden">
+                <summary className="p-3 cursor-pointer select-none text-[10px] font-black uppercase tracking-widest text-[var(--color-text-dim)]">
                   Données techniques
                 </summary>
-                <pre className="px-3 pb-3 text-[10px] text-white/40 font-mono whitespace-pre-wrap overflow-auto max-h-72 leading-relaxed">
+                <pre className="px-3 pb-3 text-[10px] text-[var(--color-text-dim)] font-mono whitespace-pre-wrap overflow-auto max-h-72 leading-relaxed">
                   {JSON.stringify(
                     {
                       bilan: diagData.bilan,
@@ -536,29 +536,29 @@ setRebuildLoading(true);
       </details>
 
       {/* BLOC 4 — Outils avancés */}
-      <details className="rounded-[20px] border border-white/10 bg-[#0A1628]/40 backdrop-blur-md overflow-hidden">
+      <details className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-md overflow-hidden">
         <summary className="p-4 cursor-pointer select-none flex items-center justify-between">
-          <span className="text-[12px] font-black text-white/50">⚙️ Outils avancés</span>
+          <span className="text-[12px] font-black text-[var(--color-text-muted)]">⚙️ Outils avancés</span>
         </summary>
         <div className="px-4 pb-4 space-y-3">
-          <p className="text-[10px] text-white/30 italic">
+          <p className="text-[10px] text-[var(--color-text-dim)] italic">
             Ces outils modifient des données en base. Utiliser avec précaution.
           </p>
 
           {/* Reconstruire les bilans */}
           {onRebuildBilans && (
             <Card title="Reconstruire les bilans">
-              <p className="text-[10px] text-white/40 mb-2">
-                <span className="font-black text-white/60">À utiliser si :</span> des montants restants sont incohérents après une correction.<br />
-                <span className="font-black text-white/60">Effet :</span> recalcule les bilans en ordre croissant (chaque semaine tient compte des montants impayés de la semaine précédente).
+              <p className="text-[10px] text-[var(--color-text-dim)] mb-2">
+                <span className="font-black text-[var(--color-text-muted)]">À utiliser si :</span> des montants restants sont incohérents après une correction.<br />
+                <span className="font-black text-[var(--color-text-muted)]">Effet :</span> recalcule les bilans en ordre croissant (chaque semaine tient compte des montants impayés de la semaine précédente).
               </p>
               <div className="flex gap-2 mb-2">
                 <div className="flex-1">
-                  <label className="text-[10px] uppercase text-white/40 tracking-wider">Patron</label>
+                  <label className="text-[10px] uppercase text-[var(--color-text-dim)] tracking-wider">Patron</label>
                   <select
                     value={rebuildPatronId}
                     onChange={(e) => setRebuildPatronId(e.target.value)}
-                    className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono"
+                    className="w-full mt-1 px-2 py-1.5 rounded-lg bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-white text-[12px] font-mono"
                   >
                     <option value="">Global</option>
                     {patrons.map((p) => (
@@ -567,21 +567,21 @@ setRebuildLoading(true);
                   </select>
                 </div>
                 <div className="w-16">
-                  <label className="text-[10px] uppercase text-white/40 tracking-wider">De S</label>
+                  <label className="text-[10px] uppercase text-[var(--color-text-dim)] tracking-wider">De S</label>
                   <input
                     type="number" min="1" max="53"
                     value={rebuildStart}
                     onChange={(e) => setRebuildStart(e.target.value)}
-                    className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono text-center"
+                    className="w-full mt-1 px-2 py-1.5 rounded-lg bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-white text-[12px] font-mono text-center"
                   />
                 </div>
                 <div className="w-16">
-                  <label className="text-[10px] uppercase text-white/40 tracking-wider">À S</label>
+                  <label className="text-[10px] uppercase text-[var(--color-text-dim)] tracking-wider">À S</label>
                   <input
                     type="number" min="1" max="53"
                     value={rebuildEnd}
                     onChange={(e) => setRebuildEnd(e.target.value)}
-                    className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono text-center"
+                    className="w-full mt-1 px-2 py-1.5 rounded-lg bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-white text-[12px] font-mono text-center"
                   />
                 </div>
               </div>
@@ -598,16 +598,16 @@ setRebuildLoading(true);
 
           {/* Réparer les bilans corrompus */}
           <Card title="Réparer les bilans corrompus">
-            <p className="text-[10px] text-white/40 mb-2">
-              <span className="font-black text-white/60">À utiliser si :</span> des montants "avance déduite" ou "à recevoir" sont incohérents.<br />
-              <span className="font-black text-white/60">Effet :</span> recalcule depuis les allocations d&apos;acomptes (source de vérité), sans toucher aux données correctes.
+            <p className="text-[10px] text-[var(--color-text-dim)] mb-2">
+              <span className="font-black text-[var(--color-text-muted)]">À utiliser si :</span> des montants "avance déduite" ou "à recevoir" sont incohérents.<br />
+              <span className="font-black text-[var(--color-text-muted)]">Effet :</span> recalcule depuis les allocations d&apos;acomptes (source de vérité), sans toucher aux données correctes.
             </p>
             <div className="mb-2">
-              <label className="text-[10px] uppercase text-white/40 tracking-wider">Patron</label>
+              <label className="text-[10px] uppercase text-[var(--color-text-dim)] tracking-wider">Patron</label>
               <select
                 value={repairPatronId}
                 onChange={(e) => setRepairPatronId(e.target.value)}
-                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-[12px] font-mono"
+                className="w-full mt-1 px-2 py-1.5 rounded-lg bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-white text-[12px] font-mono"
               >
                 <option value="">Tous les patrons</option>
                 {patrons.map((p) => (
@@ -656,14 +656,14 @@ function GlobalStatusCard({ status, summary }: { status: "ok" | "warning" | "cri
   return (
     <div className={`p-4 rounded-[20px] border ${cfg.border} ${cfg.bg} backdrop-blur-md`}>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] font-black uppercase tracking-widest text-white/50">Statut global</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Statut global</p>
         <span className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${cfg.border} ${cfg.labelClass}`}>
           {cfg.label}
         </span>
       </div>
       <div className="flex items-center gap-3">
         <span className={`w-3 h-3 rounded-full shrink-0 ${cfg.dot} shadow-lg`} />
-        <p className="text-[13px] text-white/80 leading-snug">{summary}</p>
+        <p className="text-[13px] text-[var(--color-text)] leading-snug">{summary}</p>
       </div>
     </div>
   );
@@ -696,18 +696,18 @@ function AnomalyCard({ severity, title, description, list, action }: {
   return (
     <div className={`p-4 rounded-[20px] border ${borderCls} ${bgCls} backdrop-blur-md space-y-2`}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[13px] font-black text-white/90 leading-snug">{title}</p>
+        <p className="text-[13px] font-black text-[var(--color-text)]/90 leading-snug">{title}</p>
         <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${badgeCls}`}>
           {badgeLabel}
         </span>
       </div>
       {description ? (
-        <p className="text-[11px] text-white/55 leading-relaxed">{description}</p>
+        <p className="text-[11px] text-[var(--color-text-muted)] leading-relaxed">{description}</p>
       ) : null}
       {list && list.length > 0 && (
         <ul className="space-y-0.5 max-h-32 overflow-y-auto">
           {list.map((item, i) => (
-            <li key={i} className="text-[11px] text-white/40 pl-2">· {item}</li>
+            <li key={i} className="text-[11px] text-[var(--color-text-dim)] pl-2">· {item}</li>
           ))}
         </ul>
       )}
@@ -730,11 +730,11 @@ function HumanSummaryCard({ diagData, diagWeek }: { diagData: DiagData; diagWeek
   if (!sentences || sentences.length === 0) return null;
 
   return (
-    <div className="p-4 rounded-[20px] border border-[#C9A84C]/25 bg-[#C9A84C]/5 backdrop-blur-md">
-      <p className="text-[10px] font-black uppercase tracking-widest text-[#C9A84C]/60 mb-3">Résumé</p>
+    <div className="p-4 rounded-[20px] border border-[var(--color-border-primary)] bg-[var(--color-primary)]/5 backdrop-blur-md">
+      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-primary)]/60 mb-3">Résumé</p>
       <div className="space-y-2">
         {sentences.map((s, i) => (
-          <p key={i} className="text-[13px] text-white/85 leading-relaxed">{s}</p>
+          <p key={i} className="text-[13px] text-[var(--color-text)]/85 leading-relaxed">{s}</p>
         ))}
       </div>
     </div>
@@ -743,7 +743,7 @@ function HumanSummaryCard({ diagData, diagWeek }: { diagData: DiagData; diagWeek
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[#0A1628]/60 backdrop-blur-md space-y-2">
+    <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[var(--color-surface)] backdrop-blur-md space-y-2">
       <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/70 mb-1">{title}</p>
       {children}
     </div>

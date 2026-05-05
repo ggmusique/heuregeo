@@ -23,7 +23,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
         <div
           className={
             "backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " +
-            (darkMode ? "bg-[#030d22]/95 border-yellow-500/30" : "bg-white/95 border-slate-200/80")
+            (darkMode ? "bg-[var(--color-surface)] border-yellow-500/30" : "bg-white/95 border-slate-200/80")
           }
         >
           {proNavItems.map((item: NavItem) => {
@@ -55,7 +55,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
           className={
             "backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " +
             (darkMode
-              ? "bg-[#020818]/90 border-yellow-600/20"
+              ? "bg-[var(--color-surface)] border-yellow-600/20"
               : "bg-white/95 border-slate-200/80")
           }
         >

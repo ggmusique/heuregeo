@@ -120,7 +120,7 @@ export const ClientSelector = ({
           ref={dropdownRef}
           className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${
             darkMode
-              ? "bg-[#1a1f2e] border-indigo-500/40"
+              ? "bg-[var(--color-field)] border-indigo-500/40"
               : "bg-white border-slate-200"
           } backdrop-blur-xl`}
         >

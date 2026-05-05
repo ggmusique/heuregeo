@@ -1,0 +1,55 @@
+[data-theme="light"] {
+  /* Couleurs primaires */
+  --color-primary:       #C9A84C;
+  --color-accent-cyan:   #0891b2;
+  --color-accent-violet: #7c3aed;
+  --color-accent-green:  #059669;
+  --color-accent-red:    #dc2626;
+  --color-accent-orange: #ea580c;
+
+  /* Surfaces */
+  --color-surface:        rgba(255, 255, 255, 0.88);
+  --color-surface-hover:  rgba(255, 255, 255, 1);
+  --color-surface-2:      rgba(248, 250, 252, 0.95);
+  --color-surface-offset: rgba(0, 0, 0, 0.03);
+  --color-bg:             #f1f5f9;
+  --color-bg-input:       rgba(255, 255, 255, 0.9);
+  --color-field:          #ffffff;
+
+  /* Texte */
+  --color-text:          #0f172a;
+  --color-text-muted:    rgba(15, 23, 42, 0.55);
+  --color-text-dim:      rgba(15, 23, 42, 0.30);
+  --color-text-faint:    rgba(15, 23, 42, 0.18);
+
+  /* Bordures */
+  --color-border:         rgba(15, 23, 42, 0.10);
+  --color-border-primary: rgba(201, 168, 76, 0.50);
+  --color-border-cyan:    rgba(8, 145, 178, 0.40);
+  --color-border-violet:  rgba(124, 58, 237, 0.40);
+  --color-border-green:   rgba(5, 150, 105, 0.40);
+  --color-border-neutral: rgba(15, 23, 42, 0.10);
+  --color-divider:        rgba(15, 23, 42, 0.07);
+
+  /* Glow (box-shadow) — atténués pour le mode clair */
+  --glow-primary: 0 0 12px rgba(201,168,76,0.20), 0 0 24px rgba(201,168,76,0.08);
+  --glow-cyan:    0 0 12px rgba(8,145,178,0.20),   0 0 24px rgba(8,145,178,0.08);
+  --glow-violet:  0 0 12px rgba(124,58,237,0.20),  0 0 24px rgba(124,58,237,0.08);
+  --glow-green:   0 0 12px rgba(5,150,105,0.20),   0 0 24px rgba(5,150,105,0.08);
+
+  /* Radius */
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   24px;
+  --radius-xl:   32px;
+  --radius-xxl:  50px;
+  --radius-pill: 999px;
+
+  /* Blur */
+  --blur-card:  blur(20px);
+  --blur-modal: blur(40px);
+
+  /* Transitions */
+  --transition-fast:   all 0.15s ease;
+  --transition-normal: all 0.25s ease;
+}

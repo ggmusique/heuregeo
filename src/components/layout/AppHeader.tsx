@@ -24,7 +24,7 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION }: P
         className={
           "absolute inset-0 backdrop-blur-xl " +
           (darkMode
-            ? "bg-gradient-to-br from-[#020818] via-[#0A1628] to-[#020818]"
+            ? "bg-[var(--color-surface)]"
             : "bg-gradient-to-br from-white via-slate-50 to-indigo-50/60")
         }
       />
@@ -38,7 +38,7 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION }: P
         >
           {darkMode ? "☀️" : "🌙"}
         </button>
-        <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[#D4AF37] mb-2 drop-shadow-2xl font-['Playfair_Display']">
+        <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[var(--color-primary)] mb-2 drop-shadow-2xl font-['Playfair_Display']">
           {"HEURES DE " + (profile?.prenom?.trim()?.toUpperCase() || "GEO")}
         </h1>
         {isViewer && <ViewerBadge patronNom={profile?.nom || ""} />}

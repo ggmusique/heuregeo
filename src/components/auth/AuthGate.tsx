@@ -65,17 +65,17 @@ export default function AuthGate({ children }: Props) {
 
   if (loading || !minDelayDone) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a001f]">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--color-bg)] text-[var(--color-text)]">
         <div className="flex flex-col items-center gap-5">
           <div className="w-24 h-24 rounded-[28px] bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-700 flex items-center justify-center shadow-2xl shadow-indigo-500/40">
-            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
             </svg>
           </div>
           <div className="text-center">
-            <h1 className="text-5xl font-black text-white tracking-tight">Tracko</h1>
-            <p className="text-white/35 text-xs mt-2 tracking-[0.2em] uppercase">Gérez vos heures &amp; km</p>
+            <h1 className="text-5xl font-black text-[var(--color-text)] tracking-tight">Tracko</h1>
+            <p className="text-[var(--color-text-muted)] text-xs mt-2 tracking-[0.2em] uppercase">Gérez vos heures &amp; km</p>
           </div>
           <div className="flex gap-2 mt-4">
             <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "0ms" }} />
@@ -89,16 +89,16 @@ export default function AuthGate({ children }: Props) {
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-[#0a001f] text-white">
-        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--color-bg)] text-[var(--color-text)]">
+        <div className="w-full max-w-md rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl p-6">
           <h2 className="text-2xl font-black mb-2">Connexion</h2>
-          <p className="text-sm opacity-70 mb-6">
+          <p className="text-sm text-[var(--color-text-muted)] mb-6">
             (RLS actif: il faut être connecté)
           </p>
 
           <form onSubmit={handleAuth}>
             <input
-              className="w-full mb-3 p-3 rounded-xl bg-black/30 border border-white/10 text-white"
+              className="w-full mb-3 p-3 rounded-xl bg-[var(--color-field)] border border-[var(--color-border)] text-[var(--color-text)]"
               placeholder="Email"
               type="email"
               name="email"
@@ -110,7 +110,7 @@ export default function AuthGate({ children }: Props) {
             />
             
             <input
-              className="w-full mb-4 p-3 rounded-xl bg-black/30 border border-white/10 text-white"
+              className="w-full mb-4 p-3 rounded-xl bg-[var(--color-field)] border border-[var(--color-border)] text-[var(--color-text)]"
               placeholder="Mot de passe"
               type="password"
               name="password"
@@ -126,7 +126,7 @@ export default function AuthGate({ children }: Props) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-2xl bg-indigo-600 font-black uppercase text-sm active:scale-95 transition-all disabled:opacity-50"
+              className="w-full py-3 rounded-2xl bg-indigo-600 text-white font-black uppercase text-sm active:scale-95 transition-all disabled:opacity-50"
             >
               {mode === "signup" ? "Créer un compte" : "Se connecter"}
             </button>
@@ -135,7 +135,7 @@ export default function AuthGate({ children }: Props) {
           <button
             type="button"
             onClick={() => setMode(mode === "login" ? "signup" : "login")}
-            className="w-full mt-3 py-3 rounded-2xl bg-white/10 font-black uppercase text-xs active:scale-95 transition-all"
+            className="w-full mt-3 py-3 rounded-2xl bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-[var(--color-text-muted)] font-black uppercase text-xs active:scale-95 transition-all"
           >
             {mode === "login" ? "Créer un compte" : "J'ai déjà un compte"}
           </button>

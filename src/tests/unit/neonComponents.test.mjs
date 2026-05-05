@@ -96,7 +96,7 @@ test("NeonButton: variant ghost n'a pas de glow", () => {
   const html = renderToString(
     React.createElement(NeonButton, { variant: "ghost" }, "OK")
   );
-  assert.ok(html.includes("rgba(255,255,255,0.05)"), "Le variant ghost doit avoir un fond rgba blanc subtil");
+  assert.ok(html.includes("var(--color-surface-offset)"), "Le variant ghost doit utiliser la variable CSS --color-surface-offset");
 });
 
 // ── GlassCard ────────────────────────────────────────────────────────────────
