@@ -19,10 +19,10 @@ par des tokens CSS `var(--color-*)`.
 - [x] `PatronModal.tsx` — 09/05/2026 — 13 remplacements : inputCls, overlay, fond modal, container facturation, séparateur, 6 inputs inline, bloc aperçu, bouton Annuler → tokens CSS
 - [x] `LieuModal.tsx` — 09/05/2026 — 5 remplacements : inputCls, fond modal, inputs lat/lng, textarea notes → tokens CSS
 - [x] `PatronSelector.tsx` — 09/05/2026 — 6 remplacements : bouton sélectionné/non-sélectionné, bouton nouveau, input recherche, dropdown fond, ligne sélectionnée → tokens CSS
-- [ ] `LieuSelector.tsx` — 4 ternaires (lignes 156, 175, 186, 205) — input, dropdown
-- [ ] `PatronsManager.tsx` — ~5 ternaires (lignes 81, 98, 106, 168, 179) — cards, boutons
+- [x] `LieuSelector.tsx` — 09/05/2026 — 4 remplacements : input recherche, dropdown fond, ligne historique, autres lieux → tokens CSS
+- [x] `PatronsManager.tsx` — 09/05/2026 — 5 remplacements : card container, bloc expanded, mini-card stat, bouton Modifier, bouton Supprimer → tokens CSS
+- [x] `StatsCharts.tsx` — 09/05/2026 — 5 ternaires code mort + 1 réel : darkMode supprimé des 3 sous-composants, 4 appels nettoyés → tokens CSS
 - [ ] `ImportMissionsModal.tsx` — ~8 ternaires (lignes 172–174, 198, 206, 222, 234, 237, 254, 267, 273)
-- [ ] `StatsCharts.tsx` — 5 ternaires (ligne 40 + 4 inutiles identiques) — bg, border
 
 ## [BAS] Priorité basse — Refactoring pur (tabs complexes)
 
@@ -38,6 +38,9 @@ par des tokens CSS `var(--color-*)`.
 
 ## Déjà corrigés
 
+- [x] `StatsCharts.tsx` — 6 ternaires → tokens CSS, darkMode supprimé des sous-composants (09/05/2026)
+- [x] `LieuSelector.tsx` — 4 ternaires → tokens CSS (09/05/2026)
+- [x] `PatronsManager.tsx` — 5 ternaires → tokens CSS (09/05/2026)
 - [x] `PatronSelector.tsx` — 6 ternaires → tokens CSS (09/05/2026)
 - [x] `LieuModal.tsx` — 5 ternaires → tokens CSS (09/05/2026)
 - [x] `PatronModal.tsx` — 13 ternaires → tokens CSS (09/05/2026)
