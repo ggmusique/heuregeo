@@ -11,8 +11,8 @@ par des tokens CSS `var(--color-*)`.
 
 ## [HAUTE] Priorité haute — Visible sur toutes les pages
 
-- [x] `AppNavBar.tsx` — 09/05/2026 — import useDarkMode supprimé, 2 borders → `--color-border-primary`, 6 boutons inactifs → `--color-text-muted`
-- [x] `AppHeader.tsx` — 09/05/2026 — border, backdrop, bouton toggle, badge Pro, heure → tokens CSS. Emojis ☀️/🌙 → SVG inline. 1 ternaire résiduel ligne ~70 (badge version) — non bloquant
+- [x] `AppNavBar.tsx` — 09/05/2026
+- [x] `AppHeader.tsx` — 09/05/2026 — 1 ternaire résiduel badge version (non bloquant)
 
 ## [MOYEN] Priorité moyenne — Modals fréquentes ✅ TERMINÉ
 
@@ -21,37 +21,17 @@ par des tokens CSS `var(--color-*)`.
 - [x] `PatronSelector.tsx` — 09/05/2026 — 6 remplacements
 - [x] `LieuSelector.tsx` — 09/05/2026 — 4 remplacements
 - [x] `PatronsManager.tsx` — 09/05/2026 — 5 remplacements
-- [x] `StatsCharts.tsx` — 09/05/2026 — 6 ternaires (dont 5 code mort)
-- [x] `ImportMissionsModal.tsx` — 09/05/2026 — 3 variables locales supprimées + 9 ternaires → tokens CSS
+- [x] `StatsCharts.tsx` — 09/05/2026 — 6 ternaires
+- [x] `ImportMissionsModal.tsx` — 09/05/2026 — 3 variables locales + 9 ternaires
 
-## [BAS] Priorité basse — Refactoring pur ✅ TERMINÉ
+## [BAS] Priorité basse ✅ TERMINÉ (sauf ParametresTab)
 
-- [x] `LieuxManager.tsx` — 09/05/2026 — cls.split supprimé, 4 cards stats directs, 6 ternaires → tokens CSS
-- [x] `DonneesTab.tsx` — 09/05/2026 — 1 ternaire AccordionSection → tokens CSS. darkMode conservé dans destructuring (passé aux enfants).
-- [x] `SuiviTab.tsx` — 09/05/2026 — import + const useDarkMode supprimés, 3 ternaires → tokens CSS
-- [x] `BilanTab.tsx` — 09/05/2026 — import + const useDarkMode supprimés, 8 ternaires → tokens CSS
-- [ ] `HistoriqueTab.tsx` — ~8 ternaires
-- [ ] `ParametresTab.tsx` — ~30 ternaires — chantier le plus important
-
----
-
-## Déjà corrigés
-
-- [x] `BilanTab.tsx` — 8 ternaires → tokens CSS, useDarkMode supprimé (09/05/2026)
-- [x] `SuiviTab.tsx` — 3 ternaires → tokens CSS, useDarkMode supprimé (09/05/2026)
-- [x] `DonneesTab.tsx` — 1 ternaire → tokens CSS (09/05/2026)
-- [x] `LieuxManager.tsx` — cls.split + 6 ternaires → tokens CSS (09/05/2026)
-- [x] `ImportMissionsModal.tsx` — 3 variables locales + 9 ternaires → tokens CSS (09/05/2026)
-- [x] `StatsCharts.tsx` — 6 ternaires → tokens CSS, darkMode supprimé des sous-composants (09/05/2026)
-- [x] `LieuSelector.tsx` — 4 ternaires → tokens CSS (09/05/2026)
-- [x] `PatronsManager.tsx` — 5 ternaires → tokens CSS (09/05/2026)
-- [x] `PatronSelector.tsx` — 6 ternaires → tokens CSS (09/05/2026)
-- [x] `LieuModal.tsx` — 5 ternaires → tokens CSS (09/05/2026)
-- [x] `PatronModal.tsx` — 13 ternaires → tokens CSS (09/05/2026)
-- [x] `AppHeader.tsx` — tokens CSS + SVG toggle (09/05/2026)
-- [x] `AppNavBar.tsx` — import useDarkMode supprimé, borders + textes → tokens CSS (09/05/2026)
-- [x] `MissionForm.tsx` — data-theme hardcodé → dynamique (09/05/2026)
-- [x] `App.tsx` — data-theme déjà dynamique
+- [x] `LieuxManager.tsx` — 09/05/2026 — cls.split supprimé + 6 ternaires
+- [x] `DonneesTab.tsx` — 09/05/2026 — 1 ternaire. darkMode conservé dans destructuring (passé aux enfants)
+- [x] `SuiviTab.tsx` — 09/05/2026 — useDarkMode supprimé, 3 ternaires
+- [x] `BilanTab.tsx` — 09/05/2026 — useDarkMode supprimé, 8 ternaires
+- [x] `HistoriqueTab.tsx` — 09/05/2026 — useDarkMode supprimé, 20 ternaires (+ darkMode={darkMode} retiré de StatsCharts)
+- [ ] `ParametresTab.tsx` — ~30 ternaires — chantier final
 
 ---
 
