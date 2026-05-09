@@ -24,20 +24,22 @@ par des tokens CSS `var(--color-*)`.
 - [x] `StatsCharts.tsx` — 09/05/2026 — 6 ternaires (dont 5 code mort)
 - [x] `ImportMissionsModal.tsx` — 09/05/2026 — 3 variables locales supprimées + 9 ternaires → tokens CSS
 
-## [BAS] Priorité basse — Refactoring pur (tabs complexes)
+## [BAS] Priorité basse — Refactoring pur ✅ TERMINÉ
 
 - [x] `LieuxManager.tsx` — 09/05/2026 — cls.split supprimé, 4 cards stats directs, 6 ternaires → tokens CSS
-- [ ] `ParametresTab.tsx` — ~30 ternaires — chantier le plus important
-- [ ] `AgendaTab.tsx` — ~15 ternaires
+- [x] `DonneesTab.tsx` — 09/05/2026 — 1 ternaire AccordionSection → tokens CSS. darkMode conservé dans destructuring (passé aux enfants).
+- [x] `SuiviTab.tsx` — 09/05/2026 — import + const useDarkMode supprimés, 3 ternaires → tokens CSS
+- [x] `BilanTab.tsx` — 09/05/2026 — import + const useDarkMode supprimés, 8 ternaires → tokens CSS
 - [ ] `HistoriqueTab.tsx` — ~8 ternaires
-- [ ] `BilanTab.tsx` — ~7 ternaires
-- [ ] `SuiviTab.tsx` — ~3 ternaires
-- [ ] `DonneesTab.tsx` — ~1 ternaire
+- [ ] `ParametresTab.tsx` — ~30 ternaires — chantier le plus important
 
 ---
 
 ## Déjà corrigés
 
+- [x] `BilanTab.tsx` — 8 ternaires → tokens CSS, useDarkMode supprimé (09/05/2026)
+- [x] `SuiviTab.tsx` — 3 ternaires → tokens CSS, useDarkMode supprimé (09/05/2026)
+- [x] `DonneesTab.tsx` — 1 ternaire → tokens CSS (09/05/2026)
 - [x] `LieuxManager.tsx` — cls.split + 6 ternaires → tokens CSS (09/05/2026)
 - [x] `ImportMissionsModal.tsx` — 3 variables locales + 9 ternaires → tokens CSS (09/05/2026)
 - [x] `StatsCharts.tsx` — 6 ternaires → tokens CSS, darkMode supprimé des sous-composants (09/05/2026)
@@ -57,4 +59,5 @@ par des tokens CSS `var(--color-*)`.
 
 - Les ternaires **fonctionnent visuellement** — pas de bug, dette technique uniquement
 - `ParametresTab` en dernier — complexe, risque de régression élevé
+- `DonneesTab` : darkMode conservé dans le destructuring tant que les enfants acceptent la prop (inoffensif)
 - Pattern de remplacement : `darkMode ? "bg-white/5" : "bg-slate-100"` → `className="bg-[var(--color-surface)]"`
