@@ -3,6 +3,8 @@ import { MissionCard } from "../components/mission/MissionCard";
 import { WeekPicker } from "../components/common/bilan/WeekPicker";
 import { formatEuro, formatDateFR } from "../utils/formatters";
 import { BilanPanel } from "../components/stats/BilanPanel";
+import { useLabels } from "../contexts/LabelsContext";
+import { usePermissions } from "../contexts/PermissionsContext";
 import type { Mission, Patron, FraisDivers } from "../types/entities";
 import type { UserProfile } from "../types/profile";
 import type { KmSettings, KmFraisResult } from "../hooks/useKmDomicile";
@@ -64,8 +66,7 @@ export const BilanTab = ({
   domicileLatLng = null,
   onRecalculerFraisKm = null,
 }: Props) => {
-import { useLabels } from "../contexts/LabelsContext";
-import { usePermissions } from "../contexts/PermissionsContext";
+  const perms = usePermissions();
   const isViewer    = isViewerProp    !== undefined ? isViewerProp    : perms.isViewer;
   const canBilanMois  = canBilanMoisProp  !== undefined ? canBilanMoisProp  : perms.canBilanMois;
   const canBilanAnnee = canBilanAnneeProp !== undefined ? canBilanAnneeProp : perms.canBilanAnnee;
@@ -101,7 +102,7 @@ import { usePermissions } from "../contexts/PermissionsContext";
               bilan.setShowBilan(false);
               bilan.setShowPeriodModal(true);
             }}
-  const perms = usePermissions();
+            className="w-full py-6 bg-gradient-to-r from-[var(--color-primary)] to-[color-mix(in_srgb,var(--color-primary)_60%,black)] rounded-3xl font-black text-[14px] uppercase shadow-xl active:scale-95 transition-all text-[var(--color-text)]"
           >
             Rapport bilan
           </button>
@@ -134,15 +135,16 @@ import { usePermissions } from "../contexts/PermissionsContext";
           {/* ── BLOC FRAIS KM – Semaine en cours ── */}
           {kmSettings?.km_enable === true && missionsThisWeek.length > 0 && (
             kmFraisThisWeek !== null && kmFraisThisWeek.items.length > 0 ? (
-            className="w-full py-6 bg-gradient-to-r from-[var(--color-primary)] to-[color-mix(in_srgb,var(--color-primary)_60%,black)] rounded-3xl font-black text-[14px] uppercase shadow-xl active:scale-95 transition-all text-[var(--color-text)]"
               <div className="mt-2 p-4 rounded-[25px] border backdrop-blur-md bg-[var(--color-surface)] border-[var(--color-border)]">
+                <p className="text-[10px] font-black uppercase mb-3 tracking-[0.2em] text-blue-400/70">
                   🚗 Frais kilométriques
                 </p>
                 <div className="space-y-2 mb-3">
                   {kmFraisThisWeek.items.filter((item) => item.amount !== null).map((item, i) => (
                     <div key={i} className="flex justify-between items-center text-sm">
                       <div>
-                <p className="text-[10px] font-black uppercase mb-3 tracking-[0.2em] text-blue-400/70">
+                        <span className="font-bold text-[var(--color-text)]">{formatDateFR(item.date ?? "")}</span>
+                        <span className="ml-2 text-[var(--color-text-muted)]">{item.labelLieuOuClient}</span>
                       </div>
                       <div className="text-right">
                         <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal ?? 0)} km</span>
@@ -151,21 +153,20 @@ import { usePermissions } from "../contexts/PermissionsContext";
                     </div>
                   ))}
                   {kmFraisThisWeek.items.filter((item) => item.amount === null).map((item, i) => (
-                        <span className="font-bold text-[var(--color-text)]">{formatDateFR(item.date ?? "")}</span>
-                        <span className="ml-2 text-[var(--color-text-muted)]">{item.labelLieuOuClient}</span>
-                    {formatDateFR(item.date ?? "")} — {item.labelLieuOuClient}
+                    <div key={`missing-${i}`} className="text-sm italic text-[var(--color-text-muted)]">
+                      {formatDateFR(item.date ?? "")} — {item.labelLieuOuClient}
                     </div>
                   ))}
                 </div>
                 {kmFraisThisWeek.totalAmount > 0 && (
-                    <div key={`missing-${i}`} className="text-sm italic text-[var(--color-text-muted)]">
+                  <div className="pt-2 border-t flex justify-between border-[var(--color-border)]">
+                    <span className="text-sm text-[var(--color-text-muted)]">{Math.round(kmFraisThisWeek.totalKm)} km total</span>
                     <span className="font-black text-blue-300">{formatEuro(kmFraisThisWeek.totalAmount)}</span>
                   </div>
                 )}
               </div>
             ) : (
-                  <div className="pt-2 border-t flex justify-between border-[var(--color-border)]">
-                    <span className="text-sm text-[var(--color-text-muted)]">{Math.round(kmFraisThisWeek.totalKm)} km total</span>
+              <div className="mt-2 p-4 rounded-[25px] border text-sm italic bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)]">
                 🚗 Frais kilométriques —{" "}
                 {!domicileLatLng
                   ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"
