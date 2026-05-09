@@ -11,7 +11,7 @@ par des tokens CSS `var(--color-*)`.
 
 ## 🔴 Priorité haute — Visible sur toutes les pages
 
-- [ ] `AppNavBar.tsx` — 2 ternaires (lignes 26, 124) — border + text
+- [x] `AppNavBar.tsx` — ✅ 09/05/2026 — import useDarkMode supprimé, 2 borders → `--color-border-primary`, 6 boutons inactifs → `--color-text-muted`
 - [ ] `AppHeader.tsx` — 4 ternaires (lignes 20, 36, 74, +1) — border, bg, text
 
 ## 🟡 Priorité moyenne — Modals fréquentes
@@ -38,6 +38,7 @@ par des tokens CSS `var(--color-*)`.
 
 ## ✅ Déjà corrigés
 
+- [x] `AppNavBar.tsx` — import useDarkMode supprimé, borders + textes → tokens CSS (09/05/2026)
 - [x] `MissionForm.tsx` — `data-theme="neon"` hardcodé → `data-theme={darkMode ? "neon" : "light"}` (09/05/2026)
 - [x] `App.tsx` — `data-theme` déjà dynamique ✅
 
