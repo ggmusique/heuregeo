@@ -86,9 +86,7 @@ export const DonneesTab = ({
     return (
       <div
         key={id}
-        className={`rounded-[30px] border-2 overflow-hidden ${
-          darkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200"
-        } backdrop-blur-xl`}
+        className="rounded-[30px] border-2 overflow-hidden bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-xl"
       >
         <button
           onClick={() => !disabled && setIsOpen(!isOpen)}

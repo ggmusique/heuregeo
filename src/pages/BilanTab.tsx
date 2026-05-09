@@ -1,10 +1,7 @@
 import React, { useMemo } from "react";
-import { formatEuro, formatDateFR } from "../utils/formatters";
 import { MissionCard } from "../components/mission/MissionCard";
 import { WeekPicker } from "../components/common/bilan/WeekPicker";
-import { useLabels } from "../contexts/LabelsContext";
-import { useDarkMode } from "../contexts/DarkModeContext";
-import { usePermissions } from "../contexts/PermissionsContext";
+import { formatEuro, formatDateFR } from "../utils/formatters";
 import { BilanPanel } from "../components/stats/BilanPanel";
 import type { Mission, Patron, FraisDivers } from "../types/entities";
 import type { UserProfile } from "../types/profile";
@@ -67,8 +64,8 @@ export const BilanTab = ({
   domicileLatLng = null,
   onRecalculerFraisKm = null,
 }: Props) => {
-  const { darkMode } = useDarkMode();
-  const perms = usePermissions();
+import { useLabels } from "../contexts/LabelsContext";
+import { usePermissions } from "../contexts/PermissionsContext";
   const isViewer    = isViewerProp    !== undefined ? isViewerProp    : perms.isViewer;
   const canBilanMois  = canBilanMoisProp  !== undefined ? canBilanMoisProp  : perms.canBilanMois;
   const canBilanAnnee = canBilanAnneeProp !== undefined ? canBilanAnneeProp : perms.canBilanAnnee;
@@ -104,8 +101,7 @@ export const BilanTab = ({
               bilan.setShowBilan(false);
               bilan.setShowPeriodModal(true);
             }}
-            className={"w-full py-6 bg-gradient-to-r from-[var(--color-primary)] to-[color-mix(in_srgb,var(--color-primary)_60%,black)] rounded-3xl font-black text-[14px] uppercase shadow-xl active:scale-95 transition-all " +
-              (darkMode ? "text-white" : "text-slate-800")}
+  const perms = usePermissions();
           >
             Rapport bilan
           </button>
@@ -138,18 +134,15 @@ export const BilanTab = ({
           {/* ── BLOC FRAIS KM – Semaine en cours ── */}
           {kmSettings?.km_enable === true && missionsThisWeek.length > 0 && (
             kmFraisThisWeek !== null && kmFraisThisWeek.items.length > 0 ? (
-              <div className={"mt-2 p-4 rounded-[25px] border backdrop-blur-md " +
-                (darkMode ? "bg-[var(--color-bg)]/60 border-blue-600/20" : "bg-[var(--color-surface)]/80 border-[var(--color-border)]")}>
-                <p className={"text-[10px] font-black uppercase mb-3 tracking-[0.2em] " +
-                  (darkMode ? "text-blue-400/70" : "text-blue-600")}>
+            className="w-full py-6 bg-gradient-to-r from-[var(--color-primary)] to-[color-mix(in_srgb,var(--color-primary)_60%,black)] rounded-3xl font-black text-[14px] uppercase shadow-xl active:scale-95 transition-all text-[var(--color-text)]"
+              <div className="mt-2 p-4 rounded-[25px] border backdrop-blur-md bg-[var(--color-surface)] border-[var(--color-border)]">
                   🚗 Frais kilométriques
                 </p>
                 <div className="space-y-2 mb-3">
                   {kmFraisThisWeek.items.filter((item) => item.amount !== null).map((item, i) => (
                     <div key={i} className="flex justify-between items-center text-sm">
                       <div>
-                        <span className={"font-bold " + (darkMode ? "text-white/80" : "text-slate-700")}>{formatDateFR(item.date ?? "")}</span>
-                        <span className={"ml-2 " + (darkMode ? "text-white/50" : "text-slate-400")}>{item.labelLieuOuClient}</span>
+                <p className="text-[10px] font-black uppercase mb-3 tracking-[0.2em] text-blue-400/70">
                       </div>
                       <div className="text-right">
                         <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal ?? 0)} km</span>
@@ -158,21 +151,21 @@ export const BilanTab = ({
                     </div>
                   ))}
                   {kmFraisThisWeek.items.filter((item) => item.amount === null).map((item, i) => (
-                    <div key={`missing-${i}`} className={"text-sm italic " + (darkMode ? "text-white/40" : "text-slate-400")}>
+                        <span className="font-bold text-[var(--color-text)]">{formatDateFR(item.date ?? "")}</span>
+                        <span className="ml-2 text-[var(--color-text-muted)]">{item.labelLieuOuClient}</span>
                     {formatDateFR(item.date ?? "")} — {item.labelLieuOuClient}
                     </div>
                   ))}
                 </div>
                 {kmFraisThisWeek.totalAmount > 0 && (
-                  <div className={"pt-2 border-t flex justify-between " + (darkMode ? "border-white/10" : "border-slate-200")}>
-                    <span className={"text-sm " + (darkMode ? "text-white/60" : "text-slate-500")}>{Math.round(kmFraisThisWeek.totalKm)} km total</span>
+                    <div key={`missing-${i}`} className="text-sm italic text-[var(--color-text-muted)]">
                     <span className="font-black text-blue-300">{formatEuro(kmFraisThisWeek.totalAmount)}</span>
                   </div>
                 )}
               </div>
             ) : (
-              <div className={"mt-2 p-4 rounded-[25px] border text-sm italic " +
-                (darkMode ? "bg-[var(--color-bg)]/40 border-blue-600/10 text-white/40" : "bg-[var(--color-surface)]/60 border-[var(--color-border)] text-[var(--color-text-muted)]")}>
+                  <div className="pt-2 border-t flex justify-between border-[var(--color-border)]">
+                    <span className="text-sm text-[var(--color-text-muted)]">{Math.round(kmFraisThisWeek.totalKm)} km total</span>
                 🚗 Frais kilométriques —{" "}
                 {!domicileLatLng
                   ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"
