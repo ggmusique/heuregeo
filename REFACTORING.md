@@ -14,15 +14,15 @@ par des tokens CSS `var(--color-*)`.
 - [x] `AppNavBar.tsx` — 09/05/2026 — import useDarkMode supprimé, 2 borders → `--color-border-primary`, 6 boutons inactifs → `--color-text-muted`
 - [x] `AppHeader.tsx` — 09/05/2026 — border, backdrop, bouton toggle, badge Pro, heure → tokens CSS. Emojis ☀️/🌙 → SVG inline. 1 ternaire résiduel ligne ~70 (badge version) — non bloquant
 
-## [MOYEN] Priorité moyenne — Modals fréquentes
+## [MOYEN] Priorité moyenne — Modals fréquentes ✅ TERMINÉ
 
-- [x] `PatronModal.tsx` — 09/05/2026 — 13 remplacements : inputCls, overlay, fond modal, container facturation, séparateur, 6 inputs inline, bloc aperçu, bouton Annuler → tokens CSS
-- [x] `LieuModal.tsx` — 09/05/2026 — 5 remplacements : inputCls, fond modal, inputs lat/lng, textarea notes → tokens CSS
-- [x] `PatronSelector.tsx` — 09/05/2026 — 6 remplacements : bouton sélectionné/non-sélectionné, bouton nouveau, input recherche, dropdown fond, ligne sélectionnée → tokens CSS
-- [x] `LieuSelector.tsx` — 09/05/2026 — 4 remplacements : input recherche, dropdown fond, ligne historique, autres lieux → tokens CSS
-- [x] `PatronsManager.tsx` — 09/05/2026 — 5 remplacements : card container, bloc expanded, mini-card stat, bouton Modifier, bouton Supprimer → tokens CSS
-- [x] `StatsCharts.tsx` — 09/05/2026 — 5 ternaires code mort + 1 réel : darkMode supprimé des 3 sous-composants, 4 appels nettoyés → tokens CSS
-- [ ] `ImportMissionsModal.tsx` — ~8 ternaires (lignes 172–174, 198, 206, 222, 234, 237, 254, 267, 273)
+- [x] `PatronModal.tsx` — 09/05/2026 — 13 remplacements
+- [x] `LieuModal.tsx` — 09/05/2026 — 5 remplacements
+- [x] `PatronSelector.tsx` — 09/05/2026 — 6 remplacements
+- [x] `LieuSelector.tsx` — 09/05/2026 — 4 remplacements
+- [x] `PatronsManager.tsx` — 09/05/2026 — 5 remplacements
+- [x] `StatsCharts.tsx` — 09/05/2026 — 6 ternaires (dont 5 code mort)
+- [x] `ImportMissionsModal.tsx` — 09/05/2026 — 3 variables locales supprimées + 9 ternaires → tokens CSS
 
 ## [BAS] Priorité basse — Refactoring pur (tabs complexes)
 
@@ -38,6 +38,7 @@ par des tokens CSS `var(--color-*)`.
 
 ## Déjà corrigés
 
+- [x] `ImportMissionsModal.tsx` — 3 variables locales + 9 ternaires → tokens CSS (09/05/2026)
 - [x] `StatsCharts.tsx` — 6 ternaires → tokens CSS, darkMode supprimé des sous-composants (09/05/2026)
 - [x] `LieuSelector.tsx` — 4 ternaires → tokens CSS (09/05/2026)
 - [x] `PatronsManager.tsx` — 5 ternaires → tokens CSS (09/05/2026)
