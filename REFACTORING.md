@@ -14,15 +14,15 @@ par des tokens CSS `var(--color-*)`.
 - [x] `AppNavBar.tsx` — 09/05/2026 — import useDarkMode supprimé, 2 borders → `--color-border-primary`, 6 boutons inactifs → `--color-text-muted`
 - [x] `AppHeader.tsx` — 09/05/2026 — border, backdrop, bouton toggle, badge Pro, heure → tokens CSS. Emojis ☀️/🌙 → SVG inline. 1 ternaire résiduel ligne ~70 (badge version) — non bloquant
 
-## [MOYEN] Priorité moyenne — Modals fréquentes
+## [MOYEN] Priorité moyenne — Modals fréquentes ✅ TERMINÉ
 
-- [x] `PatronModal.tsx` — 09/05/2026 — 13 remplacements : inputCls, overlay, fond modal, container facturation, séparateur, 6 inputs inline, bloc aperçu, bouton Annuler → tokens CSS
-- [x] `LieuModal.tsx` — 09/05/2026 — 5 remplacements : inputCls, fond modal, inputs lat/lng, textarea notes → tokens CSS
-- [ ] `PatronSelector.tsx` — ~6 ternaires (lignes 46–47, 64, 128, 140, 143, 160) — sélection, dropdown, input
-- [ ] `LieuSelector.tsx` — 4 ternaires (lignes 156, 175, 186, 205) — input, dropdown
-- [ ] `PatronsManager.tsx` — ~5 ternaires (lignes 81, 98, 106, 168, 179) — cards, boutons
-- [ ] `ImportMissionsModal.tsx` — ~8 ternaires (lignes 172–174, 198, 206, 222, 234, 237, 254, 267, 273)
-- [ ] `StatsCharts.tsx` — 5 ternaires (ligne 40 + 4 inutiles identiques) — bg, border
+- [x] `PatronModal.tsx` — 09/05/2026 — 13 remplacements
+- [x] `LieuModal.tsx` — 09/05/2026 — 5 remplacements
+- [x] `PatronSelector.tsx` — 09/05/2026 — 6 remplacements
+- [x] `LieuSelector.tsx` — 09/05/2026 — 4 remplacements
+- [x] `PatronsManager.tsx` — 09/05/2026 — 5 remplacements
+- [x] `StatsCharts.tsx` — 09/05/2026 — 6 ternaires (dont 5 code mort)
+- [x] `ImportMissionsModal.tsx` — 09/05/2026 — 3 variables locales supprimées + 9 ternaires → tokens CSS
 
 ## [BAS] Priorité basse — Refactoring pur (tabs complexes)
 
@@ -38,6 +38,11 @@ par des tokens CSS `var(--color-*)`.
 
 ## Déjà corrigés
 
+- [x] `ImportMissionsModal.tsx` — 3 variables locales + 9 ternaires → tokens CSS (09/05/2026)
+- [x] `StatsCharts.tsx` — 6 ternaires → tokens CSS, darkMode supprimé des sous-composants (09/05/2026)
+- [x] `LieuSelector.tsx` — 4 ternaires → tokens CSS (09/05/2026)
+- [x] `PatronsManager.tsx` — 5 ternaires → tokens CSS (09/05/2026)
+- [x] `PatronSelector.tsx` — 6 ternaires → tokens CSS (09/05/2026)
 - [x] `LieuModal.tsx` — 5 ternaires → tokens CSS (09/05/2026)
 - [x] `PatronModal.tsx` — 13 ternaires → tokens CSS (09/05/2026)
 - [x] `AppHeader.tsx` — tokens CSS + SVG toggle (09/05/2026)
