@@ -18,7 +18,7 @@ par des tokens CSS `var(--color-*)`.
 
 - [x] `PatronModal.tsx` — 09/05/2026 — 13 remplacements : inputCls, overlay, fond modal, container facturation, séparateur, 6 inputs inline, bloc aperçu, bouton Annuler → tokens CSS
 - [x] `LieuModal.tsx` — 09/05/2026 — 5 remplacements : inputCls, fond modal, inputs lat/lng, textarea notes → tokens CSS
-- [ ] `PatronSelector.tsx` — ~6 ternaires (lignes 46–47, 64, 128, 140, 143, 160) — sélection, dropdown, input
+- [x] `PatronSelector.tsx` — 09/05/2026 — 6 remplacements : bouton sélectionné/non-sélectionné, bouton nouveau, input recherche, dropdown fond, ligne sélectionnée → tokens CSS
 - [ ] `LieuSelector.tsx` — 4 ternaires (lignes 156, 175, 186, 205) — input, dropdown
 - [ ] `PatronsManager.tsx` — ~5 ternaires (lignes 81, 98, 106, 168, 179) — cards, boutons
 - [ ] `ImportMissionsModal.tsx` — ~8 ternaires (lignes 172–174, 198, 206, 222, 234, 237, 254, 267, 273)
@@ -38,6 +38,7 @@ par des tokens CSS `var(--color-*)`.
 
 ## Déjà corrigés
 
+- [x] `PatronSelector.tsx` — 6 ternaires → tokens CSS (09/05/2026)
 - [x] `LieuModal.tsx` — 5 ternaires → tokens CSS (09/05/2026)
 - [x] `PatronModal.tsx` — 13 ternaires → tokens CSS (09/05/2026)
 - [x] `AppHeader.tsx` — tokens CSS + SVG toggle (09/05/2026)
