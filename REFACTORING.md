@@ -9,12 +9,12 @@ par des tokens CSS `var(--color-*)`.
 
 ---
 
-## 🔴 Priorité haute — Visible sur toutes les pages
+## [HAUTE] Priorité haute — Visible sur toutes les pages
 
-- [ ] `AppNavBar.tsx` — 2 ternaires (lignes 26, 124) — border + text
-- [ ] `AppHeader.tsx` — 4 ternaires (lignes 20, 36, 74, +1) — border, bg, text
+- [x] `AppNavBar.tsx` — 09/05/2026 — import useDarkMode supprimé, 2 borders → `--color-border-primary`, 6 boutons inactifs → `--color-text-muted`
+- [x] `AppHeader.tsx` — 09/05/2026 — border, backdrop, bouton toggle, badge Pro, heure → tokens CSS. Emojis ☀️/🌙 → SVG inline. 1 ternaire résiduel ligne ~70 (badge version) — non bloquant
 
-## 🟡 Priorité moyenne — Modals fréquentes
+## [MOYEN] Priorité moyenne — Modals fréquentes
 
 - [ ] `PatronModal.tsx` — ~8 ternaires (lignes 73, 77, 78, 103, 110–117, 123, 135) — inputs, fond modal, boutons
 - [ ] `LieuModal.tsx` — 3 ternaires (lignes 263, 278, 290) — inputs textarea
@@ -24,7 +24,7 @@ par des tokens CSS `var(--color-*)`.
 - [ ] `ImportMissionsModal.tsx` — ~8 ternaires (lignes 172–174, 198, 206, 222, 234, 237, 254, 267, 273)
 - [ ] `StatsCharts.tsx` — 5 ternaires (ligne 40 + 4 inutiles identiques) — bg, border
 
-## 🟢 Priorité basse — Refactoring pur (tabs complexes)
+## [BAS] Priorité basse — Refactoring pur (tabs complexes)
 
 - [ ] `ParametresTab.tsx` — ~30 ternaires — chantier le plus important
 - [ ] `AgendaTab.tsx` — ~15 ternaires
@@ -36,16 +36,17 @@ par des tokens CSS `var(--color-*)`.
 
 ---
 
-## ✅ Déjà corrigés
+## Déjà corrigés
 
-- [x] `MissionForm.tsx` — `data-theme="neon"` hardcodé → `data-theme={darkMode ? "neon" : "light"}` (09/05/2026)
-- [x] `App.tsx` — `data-theme` déjà dynamique ✅
+- [x] `AppHeader.tsx` — tokens CSS + SVG toggle (09/05/2026)
+- [x] `AppNavBar.tsx` — import useDarkMode supprimé, borders + textes → tokens CSS (09/05/2026)
+- [x] `MissionForm.tsx` — data-theme hardcodé → dynamique (09/05/2026)
+- [x] `App.tsx` — data-theme déjà dynamique
 
 ---
 
 ## Notes
 
 - Les ternaires **fonctionnent visuellement** — pas de bug, dette technique uniquement
-- Commencer par `AppNavBar` + `AppHeader` (impact maximal, risque minimal)
 - `ParametresTab` en dernier — complexe, risque de régression élevé
 - Pattern de remplacement : `darkMode ? "bg-white/5" : "bg-slate-100"` → `className="bg-[var(--color-surface)]"`
