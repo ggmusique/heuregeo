@@ -690,7 +690,7 @@ export function DashboardPanel({
 
           <div
             style={{
-              background: "linear-gradient(135deg, rgba(16,185,129,0.12), rgba(16,185,129,0.04))",
+              background: "linear-gradient(135deg, color-mix(in srgb,var(--color-accent-green) 12%,transparent), color-mix(in srgb,var(--color-accent-green) 4%,transparent))",
               border: "1px solid var(--color-border-green)",
               borderRadius: "18px",
               padding: "16px 18px",
@@ -711,7 +711,7 @@ export function DashboardPanel({
                 textTransform: "uppercase",
                 letterSpacing: "0.15em",
                 color: "var(--color-accent-green)",
-                background: "rgba(16,185,129,0.1)",
+                background: "color-mix(in srgb,var(--color-accent-green) 10%,transparent)",
                 border: "1px solid var(--color-border-green)",
                 borderRadius: "6px",
                 padding: "2px 6px",
@@ -893,7 +893,7 @@ export function DashboardPanel({
                   chartColors.emerald.primary,
                   chartColors.amber.primary,
                   chartColors.cyan.primary,
-                  "#F472B6",
+                  "var(--color-accent-fuchsia)",
                 ];
 
                 return (
@@ -988,7 +988,7 @@ export function DashboardPanel({
                         alignItems: "center",
                         gap: "10px",
                         padding: "9px 12px",
-                        background: idx === 0 ? "rgba(212,175,55,0.04)" : "transparent",
+                        background: idx === 0 ? "color-mix(in srgb,var(--color-primary) 4%,transparent)" : "transparent",
                       }}
                     >
                       <div
@@ -997,7 +997,7 @@ export function DashboardPanel({
                           width: "32px",
                           height: "32px",
                           borderRadius: "8px",
-                          background: idx === 0 ? "rgba(212,175,55,0.12)" : "var(--color-surface-offset)",
+                          background: idx === 0 ? "color-mix(in srgb,var(--color-primary) 12%,transparent)" : "var(--color-surface-offset)",
                           border: `1px solid ${idx === 0 ? "var(--color-border-primary)" : "var(--color-border)"}`,
 
                           display: "flex",
@@ -1030,7 +1030,7 @@ export function DashboardPanel({
                               background:
                                 idx === 0
                                   ? `linear-gradient(90deg, var(--color-primary), ${tokens.colors.gold.light})`
-                                  : `linear-gradient(90deg, ${chartColors.indigo.primary}, rgba(79,70,229,0.3))`,
+                                  : `linear-gradient(90deg, ${chartColors.indigo.primary}, color-mix(in srgb,var(--color-accent-violet) 30%,transparent))` ,
                               transition: `width ${0.5 + idx * 0.08}s cubic-bezier(0.16, 1, 0.3, 1)`,
                             }}
                           />
@@ -1066,8 +1066,8 @@ export function DashboardPanel({
                               fontFamily: "'DM Mono', monospace",
                               color: chartColors.amber.primary,
                               fontWeight: 600,
-                              background: "rgba(245,158,11,0.08)",
-                              border: "1px solid rgba(245,158,11,0.18)",
+                              background: "color-mix(in srgb,var(--color-accent-amber) 8%,transparent)",
+                              border: "1px solid color-mix(in srgb,var(--color-accent-amber) 18%,transparent)",
                               borderRadius: "6px",
                               padding: "2px 7px",
                             }}
@@ -1079,8 +1079,8 @@ export function DashboardPanel({
                             style={{
                               fontSize: "9px",
                               color: "var(--color-accent-green)",
-                              background: "rgba(16,185,129,0.08)",
-                              border: "1px solid rgba(16,185,129,0.18)",
+                              background: "color-mix(in srgb,var(--color-accent-green) 8%,transparent)",
+                              border: "1px solid color-mix(in srgb,var(--color-accent-green) 18%,transparent)",
                               borderRadius: "6px",
                               padding: "2px 7px",
                             }}
@@ -1132,7 +1132,7 @@ export function DashboardPanel({
               marginTop: "12px",
               padding: "10px 12px",
               borderRadius: "12px",
-              background: "rgba(16,185,129,0.06)",
+              background: "color-mix(in srgb,var(--color-accent-green) 6%,transparent)",
               border: "1px solid var(--color-border-green)",
               display: "flex",
               justifyContent: "space-between",

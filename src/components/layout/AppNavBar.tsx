@@ -23,7 +23,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
         <div
           className={
             "backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " +
-            (darkMode ? "bg-[var(--color-surface)] border-yellow-500/30" : "bg-white/95 border-slate-200/80")
+            (darkMode ? "bg-[var(--color-surface)] border-yellow-500/30" : "bg-[var(--color-surface)]/95 border-[var(--color-border)]")
           }
         >
           {proNavItems.map((item: NavItem) => {
@@ -56,7 +56,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
             "backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " +
             (darkMode
               ? "bg-[var(--color-surface)] border-yellow-600/20"
-              : "bg-white/95 border-slate-200/80")
+              : "bg-[var(--color-surface)]/95 border-[var(--color-border)]")
           }
         >
           {!isViewer && (
@@ -65,7 +65,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
               className={
                 "flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " +
                 (activeTab === "saisie"
-                  ? "bg-gradient-to-br from-indigo-600 to-indigo-800 text-white"
+                  ? "bg-gradient-to-br from-[var(--color-accent-violet)] to-[color-mix(in_srgb,var(--color-accent-violet)_80%,black)] text-white"
                   : darkMode
                   ? "text-white/30"
                   : "text-slate-400")
@@ -80,7 +80,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
               className={
                 "flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " +
                 (activeTab === "dashboard"
-                  ? "bg-gradient-to-br from-violet-600 to-indigo-700 text-white"
+                  ? "bg-gradient-to-br from-[var(--color-accent-fuchsia)] to-[var(--color-accent-violet)] text-white"
                   : darkMode
                   ? "text-white/30"
                   : "text-slate-400")
@@ -94,7 +94,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
             className={
               "flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " +
               (activeTab === "suivi"
-                ? "bg-gradient-to-br from-cyan-600 to-indigo-700 text-white"
+                  ? "bg-gradient-to-br from-[var(--color-accent-cyan)] to-[var(--color-accent-violet)] text-white"
                 : darkMode
                 ? "text-white/30"
                 : "text-slate-400")
@@ -108,7 +108,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
               className={
                 "flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " +
                 (activeTab === "parametres"
-                  ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white"
+                  ? "bg-gradient-to-br from-[var(--color-accent-violet)] to-[var(--color-accent-fuchsia)] text-white"
                   : darkMode
                   ? "text-white/30"
                   : "text-slate-400")

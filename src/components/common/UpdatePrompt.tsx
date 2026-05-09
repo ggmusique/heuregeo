@@ -32,11 +32,11 @@ export function UpdatePrompt() {
         <div className="flex flex-col gap-3">
           {/* Header */}
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-500/20 text-2xl">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary)]/20 text-2xl">
               🚀
             </div>
             <div className="flex-1">
-              <p className="text-sm font-black uppercase tracking-wide text-yellow-300">
+              <p className="text-sm font-black uppercase tracking-wide text-[var(--color-primary)]">
                 Nouvelle version disponible
               </p>
               <p className="text-xs text-white/50">
@@ -55,7 +55,7 @@ export function UpdatePrompt() {
             </button>
             <button
               onClick={handleUpdate}
-              className="flex-1 rounded-xl bg-gradient-to-r from-yellow-500 to-yellow-600 px-4 py-2.5 text-xs font-black uppercase tracking-wide text-slate-900 shadow-lg transition-all hover:from-yellow-400 hover:to-yellow-500 active:scale-95"
+              className="flex-1 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-[color-mix(in_srgb,var(--color-primary)_80%,black)] px-4 py-2.5 text-xs font-black uppercase tracking-wide text-[var(--color-bg)] shadow-lg transition-all hover:from-[color-mix(in_srgb,var(--color-primary)_120%,white)] hover:to-[var(--color-primary)] active:scale-95"
             >
               Mettre à jour
             </button>

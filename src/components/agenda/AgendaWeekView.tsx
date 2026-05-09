@@ -9,9 +9,9 @@ const TOTAL_HEIGHT = (HOUR_END - HOUR_START) * PX_PER_HOUR;
 const DAYS_ABBR  = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 const EVENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  rdv:   { bg: "bg-blue-500/80",    text: "text-white",       border: "border-blue-400/50"   },
-  conge: { bg: "bg-orange-500/80",  text: "text-white",       border: "border-orange-400/50" },
-  note:  { bg: "bg-emerald-500/80", text: "text-white",       border: "border-emerald-400/50"},
+  rdv:   { bg: "bg-[var(--color-event-rdv)]/80",   text: "text-white", border: "border-[var(--color-event-rdv)]/50"   },
+  conge: { bg: "bg-[var(--color-event-conge)]/80", text: "text-white", border: "border-[var(--color-event-conge)]/50" },
+  note:  { bg: "bg-[var(--color-event-note)]/80",  text: "text-white", border: "border-[var(--color-event-note)]/50"  },
 };
 
 const ALLDAY_COLORS: Record<string, { bg: string; text: string }> = {
@@ -152,7 +152,7 @@ export function AgendaWeekView({
   const nbAllDayLanes = allDayBars.length > 0 ? Math.max(...allDayBars.map((b) => b.lane)) + 1 : 0;
   const allDayHeight  = nbAllDayLanes * 22 + (nbAllDayLanes > 0 ? 8 : 0);
 
-  const card   = darkMode ? "bg-[#0f111a] border-white/10" : "bg-white border-slate-200";
+  const card   = darkMode ? "bg-[var(--color-surface)] border-white/10" : "bg-white border-slate-200";
   const sep    = darkMode ? "border-white/5"               : "border-slate-100";
   const muted  = darkMode ? "text-white/35"                : "text-slate-400";
   const colSep = darkMode ? "border-white/5"               : "border-slate-100";
@@ -179,11 +179,11 @@ export function AgendaWeekView({
             >
               <span className="text-[8px] font-black uppercase">{DAYS_ABBR[i].charAt(0)}</span>
               <span className={`text-[13px] font-black w-7 h-7 flex items-center justify-center rounded-full ${
-                isToday ? "bg-emerald-500 text-white" : ""
+                isToday ? "bg-[var(--color-accent-green)] text-[var(--color-bg)]" : ""
               }`}>
                 {d.date.getDate()}
               </span>
-              {isWorked && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400/70" />}
+              {isWorked && <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]/70" />}
             </button>
           );
         })}
@@ -206,7 +206,7 @@ export function AgendaWeekView({
                   top:        `${bar.lane * 22 + 4}px`,
                   height:     "18px",
                   background: ALLDAY_COLORS[bar.type]?.bg || ALLDAY_COLORS.note.bg,
-                  color:      ALLDAY_COLORS[bar.type]?.text || "#fff",
+                  color:      ALLDAY_COLORS[bar.type]?.text || "var(--color-text)",
                 }}
               >
                 {bar.type === "conge" ? "🌴 " : bar.type === "note" ? "📝 " : "📅 "}
@@ -250,7 +250,7 @@ export function AgendaWeekView({
                   <div
                     key={colIdx}
                     className={`relative h-full border-l ${colSep} first:border-l-0 ${
-                      isToday ? (darkMode ? "bg-emerald-500/5" : "bg-emerald-50/40") : ""
+                      isToday ? (darkMode ? "bg-[var(--color-accent-green)]/5" : "bg-emerald-50/40") : ""
                     }`}
                   >
                     {rdvEvts.map((e) => {
@@ -291,8 +291,8 @@ export function AgendaWeekView({
                 style={{ top: `${currentTimePx}px` }}
               >
                 <div className="relative flex items-center">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0 -ml-[5px]" />
-                  <div className="flex-1 h-[2px] bg-red-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-accent-red)] flex-shrink-0 -ml-[5px]" />
+                  <div className="flex-1 h-[2px] bg-[var(--color-accent-red)]" />
                 </div>
               </div>
             )}
@@ -306,7 +306,7 @@ export function AgendaWeekView({
             const target = weekDays.find((d) => d.iso === todayIso) || weekDays[0];
             onOpenForDate?.(target.iso);
           }}
-          className="w-full py-3 rounded-2xl font-black uppercase text-[11px] tracking-wider bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg active:scale-95 transition-all"
+          className="w-full py-3 rounded-2xl font-black uppercase text-[11px] tracking-wider bg-gradient-to-r from-[var(--color-accent-green)] to-[color-mix(in_srgb,var(--color-accent-green)_60%,var(--color-accent-cyan))] text-white shadow-lg active:scale-95 transition-all"
         >
           + Nouvel événement
         </button>

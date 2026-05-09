@@ -116,8 +116,8 @@ export function PatronSelectorCompact({ patrons = [], selectedPatronId, onSelect
 
   return (
     <div className={`relative ${className}`}>
-      <label className="block text-[10px] font-black uppercase mb-2 text-indigo-300 tracking-wider opacity-80">
-        {L.patron} {required && <span className="text-red-400">*</span>}
+      <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-accent-violet)] tracking-wider opacity-80">
+        {L.patron} {required && <span className="text-[var(--color-accent-red)]">*</span>}
       </label>
 
       <div className="relative">

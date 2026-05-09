@@ -48,8 +48,8 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION }: P
               className={
                 "inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border " +
                 (darkMode
-                  ? "bg-yellow-500/15 border-yellow-500/40 text-yellow-400"
-                  : "bg-amber-50 border-amber-400/60 text-amber-600")
+                  ? "bg-[var(--color-primary)]/15 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+                  : "bg-[var(--color-primary)]/10 border-[var(--color-primary)]/60 text-[var(--color-primary)]")
               }
             >
               ✨ Pro
@@ -61,8 +61,8 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION }: P
             className={
               "text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border " +
               (darkMode
-                ? "border-yellow-600/40 text-yellow-500/70"
-                : "border-amber-500/50 text-amber-600/80")
+                ? "border-[var(--color-primary)]/40 text-[var(--color-primary)]/70"
+                : "border-[var(--color-primary)]/50 text-[var(--color-primary)]/80")
             }
           >
             v{APP_VERSION} ✓ OTA

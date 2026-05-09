@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 
 const TYPE_OPTIONS = [
-  { key: "rdv",   label: "RDV",    emoji: "📅", color: "from-blue-600 to-blue-700",   border: "border-blue-500/50",   bg: "bg-blue-500/10"   },
-  { key: "conge", label: "Congé",  emoji: "🌴", color: "from-orange-500 to-orange-600", border: "border-orange-500/50", bg: "bg-orange-500/10" },
-  { key: "note",  label: "Note",   emoji: "📝", color: "from-emerald-600 to-teal-600", border: "border-emerald-500/50", bg: "bg-emerald-500/10" },
+  { key: "rdv",   label: "RDV",    emoji: "📅", color: "from-[var(--color-event-rdv)] to-[color-mix(in_srgb,var(--color-event-rdv)_80%,black)]",     border: "border-[var(--color-event-rdv)]/50",   bg: "bg-[var(--color-event-rdv)]/10"   },
+  { key: "conge", label: "Congé",  emoji: "🌴", color: "from-[var(--color-event-conge)] to-[color-mix(in_srgb,var(--color-event-conge)_80%,black)]", border: "border-[var(--color-event-conge)]/50", bg: "bg-[var(--color-event-conge)]/10" },
+  { key: "note",  label: "Note",   emoji: "📝", color: "from-[var(--color-event-note)] to-[color-mix(in_srgb,var(--color-event-note)_80%,black)]",   border: "border-[var(--color-event-note)]/50",  bg: "bg-[var(--color-event-note)]/10"  },
 ];
 
 const RAPPEL_OPTIONS = [
@@ -93,7 +93,7 @@ export function AgendaModal({
   const inputCls = `w-full px-5 py-4 rounded-[20px] text-base font-semibold transition-all outline-none ${
     darkMode
       ? "bg-white/10 border-2 border-white/20 focus:border-emerald-400 focus:bg-white/15 text-white"
-      : "bg-slate-100 border-2 border-slate-300 focus:border-emerald-500 focus:bg-white text-slate-900"
+      : "bg-[var(--color-field)] border-2 border-[var(--color-border)] focus:border-[var(--color-accent-green)] focus:bg-[var(--color-field)] text-[var(--color-text)]"
   }`;
 
   const labelCls = `block text-[10px] font-black uppercase tracking-wider mb-2 ${darkMode ? "text-white/60" : "text-slate-500"}`;
@@ -111,7 +111,7 @@ export function AgendaModal({
         className={`relative w-full max-w-md rounded-[35px] p-7 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 max-h-[90vh] overflow-y-auto ${
           darkMode
             ? "bg-gradient-to-br from-[var(--color-bg)]/98 to-[var(--color-surface)]/98 text-white border border-white/10"
-            : "bg-white text-slate-900 border border-slate-200"
+            : "bg-[var(--color-bg)] text-[var(--color-text)] border border-[var(--color-border)]"
         }`}
       >
         {/* Header */}
@@ -152,7 +152,7 @@ export function AgendaModal({
 
           {/* Titre */}
           <div>
-            <label className={labelCls}>Titre <span className="text-red-400">*</span></label>
+            <label className={labelCls}>Titre <span className="text-[var(--color-accent-red)]">*</span></label>
             <input
               type="text"
               value={titre}
@@ -167,7 +167,7 @@ export function AgendaModal({
           {/* Dates */}
           {type === "conge" ? (
             <div>
-              <p className={labelCls}>Période <span className="text-red-400">*</span></p>
+              <p className={labelCls}>Période <span className="text-[var(--color-accent-red)]">*</span></p>
               <div className="flex gap-3 items-center">
                 <div className="flex-1">
                   <p className={`text-[9px] font-bold uppercase mb-1 ${darkMode ? "text-white/40" : "text-slate-400"}`}>Du</p>
@@ -198,7 +198,7 @@ export function AgendaModal({
             </div>
           ) : (
             <div>
-              <label className={labelCls}>Date <span className="text-red-400">*</span></label>
+              <label className={labelCls}>Date <span className="text-[var(--color-accent-red)]">*</span></label>
               <input
                 type="date"
                 value={dateIso}

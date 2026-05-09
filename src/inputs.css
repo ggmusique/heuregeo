@@ -21,7 +21,7 @@
 input[type="time"] {
   font-size: 16px !important;
   font-weight: 600 !important;
-  caret-color: #818cf8 !important;
+  caret-color: var(--color-accent-violet) !important;
   padding: 14px 16px !important;
   border-radius: 20px !important;
 }
@@ -40,7 +40,7 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
 }
 
 input[type="time"]::selection {
-  background-color: rgba(129, 140, 248, 0.3) !important;
+  background-color: color-mix(in srgb, var(--color-accent-violet) 30%, transparent) !important;
 }
 
 @media (max-width: 768px) {
@@ -78,32 +78,32 @@ select option {
 .dark input[type="time"],
 .dark input[type="number"],
 .dark input[type="text"][inputmode="numeric"] {
-  color: #ffffff !important;
-  -webkit-text-fill-color: #ffffff !important;
-  background-color: rgba(0, 0, 0, 0.3) !important;
-  border: 2px solid rgba(139, 92, 246, 0.5) !important;
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  background-color: color-mix(in srgb, var(--color-bg) 70%, transparent) !important;
+  border: 2px solid color-mix(in srgb, var(--color-accent-violet) 50%, transparent) !important;
 }
 
 .dark input[type="time"] {
-  color: #ffffff !important;
+  color: var(--color-text) !important;
   background-color: rgba(255, 255, 255, 0.08) !important;
-  border: 2px solid rgba(139, 92, 246, 0.3) !important;
+  border: 2px solid color-mix(in srgb, var(--color-accent-violet) 30%, transparent) !important;
 }
 
 .dark input[type="time"]:hover {
   background-color: rgba(255, 255, 255, 0.12) !important;
-  border-color: rgba(139, 92, 246, 0.5) !important;
+  border-color: color-mix(in srgb, var(--color-accent-violet) 50%, transparent) !important;
 }
 
 .dark input[type="time"]:focus {
   background-color: rgba(255, 255, 255, 0.15) !important;
-  border-color: #818cf8 !important;
+  border-color: var(--color-accent-violet) !important;
   outline: none !important;
-  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent-violet) 20%, transparent) !important;
 }
 
 .dark input[type="time"]::placeholder {
-  color: rgba(255, 255, 255, 0.4) !important;
+  color: var(--color-text-faint) !important;
   font-weight: 500 !important;
 }
 
@@ -113,18 +113,18 @@ select option {
 }
 
 .dark input[type="time"]::-webkit-datetime-edit-fields-wrapper {
-  color: #ffffff !important;
+  color: var(--color-text) !important;
 }
 
 .dark input[type="time"]::-webkit-datetime-edit-text {
-  color: rgba(255, 255, 255, 0.5) !important;
+  color: var(--color-text-muted) !important;
   padding: 0 4px !important;
 }
 
 .dark input[type="time"]::-webkit-datetime-edit-hour-field,
 .dark input[type="time"]::-webkit-datetime-edit-minute-field {
-  color: #ffffff !important;
-  background-color: rgba(129, 140, 248, 0.2) !important;
+  color: var(--color-text) !important;
+  background-color: color-mix(in srgb, var(--color-accent-violet) 20%, transparent) !important;
   padding: 4px 8px !important;
   border-radius: 6px !important;
   font-weight: 700 !important;
@@ -132,8 +132,8 @@ select option {
 
 .dark input[type="time"]::-webkit-datetime-edit-hour-field:focus,
 .dark input[type="time"]::-webkit-datetime-edit-minute-field:focus {
-  background-color: rgba(129, 140, 248, 0.4) !important;
-  outline: 2px solid #818cf8 !important;
+  background-color: color-mix(in srgb, var(--color-accent-violet) 40%, transparent) !important;
+  outline: 2px solid var(--color-accent-violet) !important;
   outline-offset: 2px !important;
 }
 
@@ -143,8 +143,8 @@ select option {
 .dark button[class*="time"],
 .dark button[class*="hour"],
 .dark button[class*="minute"] {
-  color: #ffffff !important;
-  background-color: rgba(0, 0, 0, 0.3) !important;
+  color: var(--color-text) !important;
+  background-color: color-mix(in srgb, var(--color-bg) 70%, transparent) !important;
 }
 
 .dark .react-datepicker,
@@ -153,9 +153,9 @@ select option {
 .dark ul[class*="time"],
 .dark ul[class*="hour"],
 .dark ul[class*="minute"] {
-  background-color: rgba(30, 27, 75, 0.95) !important;
-  color: #ffffff !important;
-  border: 2px solid rgba(139, 92, 246, 0.5) !important;
+  background-color: color-mix(in srgb, var(--color-surface) 95%, transparent) !important;
+  color: var(--color-text) !important;
+  border: 2px solid color-mix(in srgb, var(--color-accent-violet) 50%, transparent) !important;
 }
 
 .dark .react-datepicker__time-list-item,
@@ -163,7 +163,7 @@ select option {
 .dark li[class*="hour"],
 .dark li[class*="minute"],
 .dark div[role="option"] {
-  color: #ffffff !important;
+  color: var(--color-text) !important;
   background-color: transparent !important;
 }
 
@@ -172,57 +172,57 @@ select option {
 .dark li[class*="hour"]:hover,
 .dark li[class*="minute"]:hover,
 .dark div[role="option"]:hover {
-  background-color: rgba(139, 92, 246, 0.4) !important;
-  color: #ffffff !important;
+  background-color: color-mix(in srgb, var(--color-accent-violet) 40%, transparent) !important;
+  color: var(--color-text) !important;
 }
 
 .dark .react-datepicker__time-list-item--selected,
 .dark li[class*="selected"],
 .dark div[aria-selected="true"] {
-  background-color: rgba(139, 92, 246, 0.7) !important;
-  color: #ffffff !important;
+  background-color: color-mix(in srgb, var(--color-accent-violet) 70%, transparent) !important;
+  color: var(--color-text) !important;
   font-weight: bold !important;
 }
 
 .dark .react-datepicker__header {
-  background-color: rgba(139, 92, 246, 0.3) !important;
-  border-bottom: 2px solid rgba(139, 92, 246, 0.5) !important;
+  background-color: color-mix(in srgb, var(--color-accent-violet) 30%, transparent) !important;
+  border-bottom: 2px solid color-mix(in srgb, var(--color-accent-violet) 50%, transparent) !important;
 }
 
 .dark .react-datepicker__current-month,
 .dark .react-datepicker-time__header {
-  color: #ffffff !important;
+  color: var(--color-text) !important;
   font-weight: bold !important;
 }
 
 .dark div[role="dialog"] input[type="time"] {
-  background-color: rgba(0, 0, 0, 0.4) !important;
-  color: #ffffff !important;
-  border: 2px solid rgba(139, 92, 246, 0.5) !important;
+  background-color: color-mix(in srgb, var(--color-bg) 60%, transparent) !important;
+  color: var(--color-text) !important;
+  border: 2px solid color-mix(in srgb, var(--color-accent-violet) 50%, transparent) !important;
 }
 
 .dark .MuiPopover-paper,
 .dark .MuiPopper-root,
 .dark div[class*="popper"],
 .dark div[class*="popover"] {
-  background-color: rgba(30, 27, 75, 0.95) !important;
-  color: #ffffff !important;
-  border: 2px solid rgba(139, 92, 246, 0.5) !important;
+  background-color: color-mix(in srgb, var(--color-surface) 95%, transparent) !important;
+  color: var(--color-text) !important;
+  border: 2px solid color-mix(in srgb, var(--color-accent-violet) 50%, transparent) !important;
 }
 
 .dark .react-datepicker__time-list::-webkit-scrollbar { width: 8px !important; }
-.dark .react-datepicker__time-list::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2) !important; }
-.dark .react-datepicker__time-list::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.5) !important; border-radius: 4px !important; }
-.dark .react-datepicker__time-list::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.8) !important; }
+.dark .react-datepicker__time-list::-webkit-scrollbar-track { background: color-mix(in srgb, var(--color-bg) 80%, transparent) !important; }
+.dark .react-datepicker__time-list::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-accent-violet) 50%, transparent) !important; border-radius: 4px !important; }
+.dark .react-datepicker__time-list::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--color-accent-violet) 80%, transparent) !important; }
 
 .dark select {
-  color: white !important;
-  background-color: rgba(15, 23, 42, 0.95) !important;
+  color: var(--color-text) !important;
+  background-color: color-mix(in srgb, var(--color-bg) 95%, transparent) !important;
 }
 
 .dark select option {
-  background-color: rgb(15, 23, 42) !important;
-  color: white !important;
+  background-color: var(--color-bg) !important;
+  color: var(--color-text) !important;
   padding: 12px 16px !important;
   font-size: 16px !important;
   font-weight: 600 !important;
@@ -231,35 +231,35 @@ select option {
 .dark select option:hover,
 .dark select option:focus,
 .dark select option:checked {
-  background-color: rgb(79, 70, 229) !important;
-  color: white !important;
+  background-color: var(--color-accent-violet) !important;
+  color: var(--color-bg) !important;
 }
 
 .dark select:focus {
-  outline: 2px solid rgb(99, 102, 241) !important;
+  outline: 2px solid var(--color-accent-violet) !important;
   outline-offset: 2px !important;
 }
 
 .dark select.opacity-0,
 .dark select[class*="opacity-0"] {
-  background-color: rgba(15, 23, 42, 0.98) !important;
+  background-color: color-mix(in srgb, var(--color-bg) 98%, transparent) !important;
 }
 
 .dark select[class*="rounded-2xl"] option,
 .dark select[class*="opacity-0"] option {
-  background-color: rgb(15, 23, 42) !important;
-  color: white !important;
+  background-color: var(--color-bg) !important;
+  color: var(--color-text) !important;
   font-size: 16px !important;
 }
 
 @-moz-document url-prefix() {
   .dark select {
-    color: white !important;
-    background-color: rgb(15, 23, 42) !important;
+    color: var(--color-text) !important;
+    background-color: var(--color-bg) !important;
   }
   .dark select option {
-    background-color: rgb(15, 23, 42) !important;
-    color: white !important;
+    background-color: var(--color-bg) !important;
+    color: var(--color-text) !important;
   }
 }
 
@@ -268,32 +268,32 @@ select option {
 .light input[type="time"],
 .light input[type="number"],
 .light input[type="text"][inputmode="numeric"] {
-  color: #1e293b !important;
-  -webkit-text-fill-color: #1e293b !important;
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text) !important;
   background-color: rgba(255, 255, 255, 0.8) !important;
-  border: 2px solid rgba(99, 102, 241, 0.35) !important;
+  border: 2px solid color-mix(in srgb, var(--color-accent-violet) 35%, transparent) !important;
 }
 
 .light input[type="time"] {
-  color: #1e293b !important;
+  color: var(--color-text) !important;
   background-color: rgba(255, 255, 255, 0.8) !important;
-  border: 2px solid rgba(99, 102, 241, 0.3) !important;
+  border: 2px solid color-mix(in srgb, var(--color-accent-violet) 30%, transparent) !important;
 }
 
 .light input[type="time"]:hover {
   background-color: rgba(255, 255, 255, 0.95) !important;
-  border-color: rgba(99, 102, 241, 0.5) !important;
+  border-color: color-mix(in srgb, var(--color-accent-violet) 50%, transparent) !important;
 }
 
 .light input[type="time"]:focus {
   background-color: rgba(255, 255, 255, 1) !important;
-  border-color: #6366f1 !important;
+  border-color: var(--color-accent-violet) !important;
   outline: none !important;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent-violet) 15%, transparent) !important;
 }
 
 .light input[type="time"]::placeholder {
-  color: rgba(0, 0, 0, 0.4) !important;
+  color: var(--color-text-muted) !important;
   font-weight: 500 !important;
 }
 
@@ -303,18 +303,18 @@ select option {
 }
 
 .light input[type="time"]::-webkit-datetime-edit-fields-wrapper {
-  color: #1e293b !important;
+  color: var(--color-text) !important;
 }
 
 .light input[type="time"]::-webkit-datetime-edit-text {
-  color: rgba(15, 23, 42, 0.5) !important;
+  color: var(--color-text-muted) !important;
   padding: 0 4px !important;
 }
 
 .light input[type="time"]::-webkit-datetime-edit-hour-field,
 .light input[type="time"]::-webkit-datetime-edit-minute-field {
-  color: #1e293b !important;
-  background-color: rgba(99, 102, 241, 0.12) !important;
+  color: var(--color-text) !important;
+  background-color: color-mix(in srgb, var(--color-accent-violet) 12%, transparent) !important;
   padding: 4px 8px !important;
   border-radius: 6px !important;
   font-weight: 700 !important;
@@ -322,43 +322,43 @@ select option {
 
 .light input[type="time"]::-webkit-datetime-edit-hour-field:focus,
 .light input[type="time"]::-webkit-datetime-edit-minute-field:focus {
-  background-color: rgba(99, 102, 241, 0.22) !important;
-  outline: 2px solid #6366f1 !important;
+  background-color: color-mix(in srgb, var(--color-accent-violet) 22%, transparent) !important;
+  outline: 2px solid var(--color-accent-violet) !important;
   outline-offset: 2px !important;
 }
 
 .light div[role="option"] {
-  color: #1e293b !important;
+  color: var(--color-text) !important;
 }
 
 .light div[role="option"]:hover {
-  background-color: rgba(99, 102, 241, 0.15) !important;
-  color: #1e293b !important;
+  background-color: color-mix(in srgb, var(--color-accent-violet) 15%, transparent) !important;
+  color: var(--color-text) !important;
 }
 
 .light div[aria-selected="true"] {
-  background-color: rgba(99, 102, 241, 0.25) !important;
-  color: #1e293b !important;
+  background-color: color-mix(in srgb, var(--color-accent-violet) 25%, transparent) !important;
+  color: var(--color-text) !important;
   font-weight: bold !important;
 }
 
 .light select {
-  color: rgb(15, 23, 42) !important;
+  color: var(--color-text) !important;
   background-color: rgba(255, 255, 255, 0.95) !important;
 }
 
 .light select option {
-  background-color: white !important;
-  color: rgb(15, 23, 42) !important;
+  background-color: var(--color-field) !important;
+  color: var(--color-text) !important;
 }
 
 .light select option:hover,
 .light select option:checked {
-  background-color: rgb(99, 102, 241) !important;
-  color: white !important;
+  background-color: var(--color-accent-violet) !important;
+  color: var(--color-bg) !important;
 }
 
 .light select:focus {
-  outline: 2px solid rgb(99, 102, 241) !important;
+  outline: 2px solid var(--color-accent-violet) !important;
   outline-offset: 2px !important;
 }

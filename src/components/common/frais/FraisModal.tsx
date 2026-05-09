@@ -72,7 +72,7 @@ export const FraisModal = ({
         className={`w-full max-w-sm p-8 rounded-[40px] border-2 ${
           darkMode
             ? "bg-[var(--color-surface)] border-[var(--color-border)]"
-            : "bg-white border-slate-200"
+            : "bg-[var(--color-bg)] border-[var(--color-border)]"
         } backdrop-blur-xl`}
       >
         <h3 className="text-xl font-black uppercase mb-6 text-center italic">
@@ -156,7 +156,7 @@ export const FraisModal = ({
             className={`flex-1 py-4 rounded-2xl text-[10px] font-black text-white backdrop-blur-md transition-all ${
               canSubmit
                 ? "bg-amber-600 active:scale-95"
-                : "bg-gray-600/40 opacity-60 cursor-not-allowed"
+                : "bg-[var(--color-surface)]/40 opacity-60 cursor-not-allowed"
             }`}
             title={!canSubmit ? "Complète les champs requis" : ""}
           >

@@ -62,24 +62,24 @@ export const MODAL_TYPES = {
  */
 export const MODAL_STYLES: Record<string, { gradient: string; border: string; buttonBg: string; icon: string; iconBg: string }> = {
   danger: {
-    gradient: "from-red-600 to-red-800",
-    border: "border-red-500/50",
-    buttonBg: "bg-red-600 hover:bg-red-700",
+    gradient: "from-[var(--color-accent-red)] to-[color-mix(in_srgb,var(--color-accent-red)_80%,black)]",
+    border: "border-[var(--color-accent-red)]/50",
+    buttonBg: "bg-[var(--color-accent-red)] hover:bg-[color-mix(in_srgb,var(--color-accent-red)_80%,black)]",
     icon: "⚠️",
-    iconBg: "bg-red-500/20",
+    iconBg: "bg-[var(--color-accent-red)]/20",
   },
   warning: {
-    gradient: "from-amber-600 to-amber-800",
-    border: "border-amber-500/50",
-    buttonBg: "bg-amber-600 hover:bg-amber-700",
+    gradient: "from-[var(--color-accent-amber)] to-[color-mix(in_srgb,var(--color-accent-amber)_80%,black)]",
+    border: "border-[var(--color-accent-amber)]/50",
+    buttonBg: "bg-[var(--color-accent-amber)] hover:bg-[color-mix(in_srgb,var(--color-accent-amber)_80%,black)]",
     icon: "⚡",
-    iconBg: "bg-amber-500/20",
+    iconBg: "bg-[var(--color-accent-amber)]/20",
   },
   info: {
-    gradient: "from-indigo-600 to-indigo-800",
-    border: "border-indigo-500/50",
-    buttonBg: "bg-indigo-600 hover:bg-indigo-700",
+    gradient: "from-[var(--color-accent-violet)] to-[color-mix(in_srgb,var(--color-accent-violet)_80%,black)]",
+    border: "border-[var(--color-accent-violet)]/50",
+    buttonBg: "bg-[var(--color-accent-violet)] hover:bg-[color-mix(in_srgb,var(--color-accent-violet)_80%,black)]",
     icon: "ℹ️",
-    iconBg: "bg-indigo-500/20",
+    iconBg: "bg-[var(--color-accent-violet)]/20",
   },
 };

@@ -277,7 +277,7 @@ export const MissionForm = ({
   };
 
   return (
-    <section data-theme="neon" style={sectionStyle}>
+    <section data-theme={darkMode ? "neon" : "light"} style={sectionStyle}>
 
       {/* ── DatePicker modal ──────────────────────────────────────────── */}
       {showDatePicker && (

@@ -62,14 +62,14 @@ export function PatronsManager({
           <h2 className="text-2xl font-black uppercase tracking-tight">{`Mes ${L.patrons}`}</h2>
           <p className="text-[10px] opacity-60 uppercase tracking-wider mt-1">{patrons.length} patron{patrons.length > 1 ? "s" : ""} actif{patrons.length > 1 ? "s" : ""}</p>
         </div>
-        <button onClick={onAdd} className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-all shadow-lg">+ Nouveau</button>
+        <button onClick={onAdd} className="px-6 py-3 bg-gradient-to-r from-[var(--color-accent-violet)] to-[var(--color-accent-fuchsia)] text-white rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-all shadow-lg">+ Nouveau</button>
       </div>
 
       {patrons.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-4xl mb-4">👔</p>
           <p className="text-lg opacity-60 mb-6">Aucun patron créé</p>
-          <button onClick={onAdd} className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-3xl font-black uppercase text-[11px] active:scale-95 transition-all shadow-xl">Créer mon premier patron</button>
+          <button onClick={onAdd} className="px-8 py-4 bg-gradient-to-r from-[var(--color-accent-violet)] to-[var(--color-accent-fuchsia)] text-white rounded-3xl font-black uppercase text-[11px] active:scale-95 transition-all shadow-xl">Créer mon premier patron</button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -86,7 +86,7 @@ export function PatronsManager({
                     <div className="flex gap-4 mt-1 flex-wrap">
                       {patron.taux_horaire != null && <span className="text-[10px] opacity-60">{patron.taux_horaire}€/h</span>}
                       <span className="text-[10px] opacity-60">{stats.nbMissions} mission{stats.nbMissions > 1 ? "s" : ""}</span>
-                      <span className="text-[10px] font-bold text-green-400 amount-safe">{formatEuro(stats.caBrut)}</span>
+                      <span className="text-[10px] font-bold text-[var(--color-accent-green)] amount-safe">{formatEuro(stats.caBrut)}</span>
                     </div>
                   </div>
                   <div className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}>
@@ -98,10 +98,10 @@ export function PatronsManager({
                   <div className={`px-5 pb-5 animate-in slide-in-from-top-2 duration-200 ${darkMode ? "bg-black/20" : "bg-white/50"}`}>
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       {[
-                        { label: "Total heures", value: `${stats.totalHeures.toFixed(2)}h`, cls: "text-indigo-400" },
-                        { label: "Montant missions", value: formatEuro(stats.totalMontant), cls: "text-purple-400" },
-                        { label: "Frais", value: formatEuro(stats.totalFrais), cls: "text-amber-400" },
-                        { label: "Acomptes", value: formatEuro(stats.totalAcomptes), cls: "text-cyan-400" },
+                        { label: "Total heures", value: `${stats.totalHeures.toFixed(2)}h`, cls: "text-[var(--color-accent-violet)]" },
+                        { label: "Montant missions", value: formatEuro(stats.totalMontant), cls: "text-[var(--color-accent-fuchsia)]" },
+                        { label: "Frais", value: formatEuro(stats.totalFrais), cls: "text-[var(--color-accent-amber)]" },
+                        { label: "Acomptes", value: formatEuro(stats.totalAcomptes), cls: "text-[var(--color-accent-cyan)]" },
                       ].map(({ label, value, cls }) => (
                         <div key={label} className={`p-3 rounded-2xl ${darkMode ? "bg-white/5" : "bg-white"}`}>
                           <p className="text-[9px] font-black uppercase opacity-50">{label}</p>
@@ -110,9 +110,9 @@ export function PatronsManager({
                       ))}
                     </div>
 
-                    <div className="mb-4 p-4 bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-2xl border border-green-500/30">
+                    <div className="mb-4 p-4 bg-gradient-to-r from-[var(--color-accent-green)]/20 to-[var(--color-accent-green)]/20 rounded-2xl border border-[var(--color-accent-green)]/30">
                       <p className="text-[9px] font-black uppercase opacity-60 mb-1">Reste à percevoir</p>
-                      <p className="text-2xl font-black text-green-300 amount-safe">{formatEuro(stats.reste)}</p>
+                      <p className="text-2xl font-black text-[var(--color-accent-green)] amount-safe">{formatEuro(stats.reste)}</p>
                     </div>
 
                     {acomptes.filter((a) => a?.patron_id === patron.id).length > 0 && (
@@ -124,7 +124,7 @@ export function PatronsManager({
                             .map((acompte) => (
                               <div key={acompte.id} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/10">
                                 <div>
-                                  <span className="text-sm font-bold text-cyan-400 amount-safe">{formatEuro(acompte.montant)}</span>
+                                  <span className="text-sm font-bold text-[var(--color-accent-cyan)] amount-safe">{formatEuro(acompte.montant)}</span>
                                   <span className="text-[10px] opacity-60 ml-2">{formatDateFR(acompte.date_acompte)}</span>
                                 </div>
                                 {!isViewer && deleteAcompte && showConfirm && (
@@ -142,7 +142,7 @@ export function PatronsManager({
                                       } finally { setDeletingId(null); }
                                     }}
                                     disabled={deletingId === acompte.id}
-                                    className="w-8 h-8 bg-red-600/20 text-red-400 rounded-lg flex items-center justify-center border border-red-500/30 active:scale-90 transition-all disabled:opacity-50"
+                                    className="w-8 h-8 bg-[var(--color-accent-red)]/20 text-[var(--color-accent-red)] rounded-lg flex items-center justify-center border border-[var(--color-accent-red)]/30 active:scale-90 transition-all disabled:opacity-50"
                                   >
                                     {deletingId === acompte.id ? "⏳" : (
                                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -165,7 +165,7 @@ export function PatronsManager({
                         onClick={() => onEdit(patron)}
                         aria-label="Modifier ce patron"
                         title="Modifier"
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${darkMode ? "bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30" : "bg-blue-100 text-blue-600 border border-blue-300 hover:bg-blue-200"}`}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${darkMode ? "bg-[var(--color-accent-cyan)]/20 text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)]/30 hover:bg-[var(--color-accent-cyan)]/30" : "bg-[var(--color-accent-cyan)]/10 text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)]/30 hover:bg-[var(--color-accent-cyan)]/20"}`}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -176,7 +176,7 @@ export function PatronsManager({
                         onClick={() => onDelete(patron)}
                         aria-label="Supprimer ce patron"
                         title="Supprimer"
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${darkMode ? "bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30" : "bg-red-100 text-red-600 border border-red-300 hover:bg-red-200"}`}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${darkMode ? "bg-[var(--color-accent-red)]/20 text-[var(--color-accent-red)] border border-[var(--color-accent-red)]/30 hover:bg-[var(--color-accent-red)]/30" : "bg-[var(--color-accent-red)]/10 text-[var(--color-accent-red)] border border-[var(--color-accent-red)]/30 hover:bg-[var(--color-accent-red)]/20"}`}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <polyline points="3 6 5 6 21 6"/>

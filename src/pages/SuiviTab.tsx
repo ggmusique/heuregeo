@@ -44,7 +44,7 @@ export function SuiviTab({
 
   return (
     <section className="space-y-4">
-      <div className={"rounded-2xl border p-2 backdrop-blur-xl flex gap-2 " + (darkMode ? "border-white/10 bg-white/5" : "border-slate-200 bg-white shadow-sm")}>
+      <div className={"rounded-2xl border p-2 backdrop-blur-xl flex gap-2 " + (darkMode ? "border-white/10 bg-white/5" : "border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm")}>
         {onNavigateDashboard && (
           <button
             onClick={onNavigateDashboard}
@@ -61,7 +61,7 @@ export function SuiviTab({
               onClick={() => setView(tab.key)}
               className={
                 "flex-1 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all " +
-                (isActive ? "bg-indigo-600 text-white" : (darkMode ? "text-white/60 hover:text-white" : "text-slate-500 hover:text-slate-800"))
+                (isActive ? "bg-[var(--color-accent-violet)] text-[var(--color-bg)]" : (darkMode ? "text-white/60 hover:text-white" : "text-slate-500 hover:text-slate-800"))
               }
             >
               {tab.label}

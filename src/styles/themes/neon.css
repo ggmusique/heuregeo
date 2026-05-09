@@ -6,7 +6,13 @@
   --color-accent-green:  #34d399;
   --color-accent-red:    #f87171;
   --color-accent-orange:   #fb923c;
+  --color-accent-amber:    #F59E0B;
   --color-accent-fuchsia:  #d946ef;
+
+  /* Couleurs événements agenda */
+  --color-event-rdv:   #3b82f6;
+  --color-event-conge: #f97316;
+  --color-event-note:  #10b981;
 
   /* Surfaces */
   --color-surface:        rgba(13, 31, 60, 0.8);
