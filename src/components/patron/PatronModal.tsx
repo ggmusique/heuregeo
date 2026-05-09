@@ -70,12 +70,12 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
 
   if (!show) return null;
 
-  const inputCls = (extra = "") => `w-full px-5 py-4 rounded-[20px] text-base font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400 focus:bg-white/15" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"} ${extra}`;
+  const inputCls = (extra = "") => `w-full px-5 py-4 rounded-[20px] text-base font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)] ${extra}`;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className={`absolute inset-0 ${darkMode ? "bg-black/60" : "bg-black/30"} backdrop-blur-sm`} onClick={onCancel} />
-      <div className={`relative w-full max-w-md rounded-[35px] p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 max-h-[calc(100vh-8rem)] overflow-y-auto ${darkMode ? "bg-gradient-to-br from-indigo-900/95 to-purple-900/95 text-white" : "bg-white text-slate-900"}`}>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
+      <div className="relative w-full max-w-md rounded-[35px] p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 max-h-[calc(100vh-8rem)] overflow-y-auto bg-[var(--color-surface-2)] text-[var(--color-text)]">
         <h2 className="text-2xl font-black mb-6 uppercase tracking-tight">{editMode ? `Modifier ${L.patron}` : `Nouveau ${L.patron}`}</h2>
 
         <div className="space-y-5">
@@ -100,27 +100,27 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
             <input type="color" value={couleur} onChange={(e) => setCouleur(e.target.value)} className="w-full h-12 rounded-xl cursor-pointer" disabled={loading} />
           </div>
 
-          <div className={`rounded-2xl border overflow-hidden ${darkMode ? "border-white/10" : "border-slate-200"}`}>
+          <div className="rounded-2xl border overflow-hidden border-[var(--color-border-neutral)]">
             <button type="button" onClick={() => setShowBilling(v => !v)} className="w-full flex items-center justify-between px-4 py-3 text-left">
               <span className="text-[10px] font-black uppercase opacity-60 tracking-wider">Coordonnées de facturation <span className="ml-2 font-normal normal-case opacity-60">optionnel</span></span>
               <span style={{ display: 'inline-block', transition: 'transform .2s', transform: showBilling ? 'rotate(90deg)' : 'rotate(0deg)' }} className="text-white/30 text-lg shrink-0">›</span>
             </button>
             {showBilling && (
-              <div className={`px-4 pb-4 space-y-3 border-t ${darkMode ? "border-white/5" : "border-slate-100"}`}>
-                <div className="pt-3"><input type="text" value={adresse} onChange={e => setAdresse(e.target.value)} placeholder="Adresse" disabled={loading} className={`w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`} /></div>
+              <div className="px-4 pb-4 space-y-3 border-t border-[var(--color-divider)]">
+                <div className="pt-3"><input type="text" value={adresse} onChange={e => setAdresse(e.target.value)} placeholder="Adresse" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" /></div>
                 <div className="flex gap-2">
-                  <input type="text" value={codePostal} onChange={e => setCodePostal(e.target.value)} placeholder="Code postal" disabled={loading} className={`w-1/3 px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`} />
-                  <input type="text" value={ville} onChange={e => setVille(e.target.value)} placeholder="Ville" disabled={loading} className={`w-2/3 px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`} />
+                  <input type="text" value={codePostal} onChange={e => setCodePostal(e.target.value)} placeholder="Code postal" disabled={loading} className="w-1/3 px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
+                  <input type="text" value={ville} onChange={e => setVille(e.target.value)} placeholder="Ville" disabled={loading} className="w-2/3 px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
                 </div>
-                <input type="tel" value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="Téléphone" disabled={loading} className={`w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`} />
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" disabled={loading} className={`w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`} />
-                <input type="text" value={siret} onChange={e => setSiret(e.target.value)} placeholder="SIRET" disabled={loading} className={`w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none ${darkMode ? "bg-white/10 border-2 border-white/20 focus:border-indigo-400" : "bg-slate-100 border-2 border-slate-300 focus:border-indigo-500 focus:bg-white"}`} />
+                <input type="tel" value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="Téléphone" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
+                <input type="text" value={siret} onChange={e => setSiret(e.target.value)} placeholder="SIRET" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
               </div>
             )}
           </div>
         </div>
 
-        <div className={`mt-6 p-4 rounded-2xl ${darkMode ? "bg-black/20 border border-white/10" : "bg-slate-100 border border-slate-200"}`}>
+        <div className="mt-6 p-4 rounded-2xl bg-[var(--color-surface-2)] border border-[var(--color-border-neutral)]">
           <p className="text-[9px] font-black uppercase opacity-50 mb-2">Aperçu</p>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full shadow-lg" style={{ backgroundColor: couleur }} />
@@ -132,7 +132,7 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
         </div>
 
         <div className="flex gap-3 mt-8">
-          <button onClick={onCancel} disabled={loading} className={`flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] transition-all ${darkMode ? "bg-white/10 text-white hover:bg-white/20" : "bg-slate-200 text-slate-700 hover:bg-slate-300"} disabled:opacity-50 active:scale-95`}>Annuler</button>
+          <button onClick={onCancel} disabled={loading} className="flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] transition-all bg-[var(--color-surface-offset)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] disabled:opacity-50 active:scale-95">Annuler</button>
           <button onClick={handleSubmit} disabled={!canSubmit} className={`flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] active:scale-95 transition-all shadow-lg ${canSubmit ? "bg-gradient-to-r from-indigo-600 to-purple-700 text-white" : "bg-gray-600/30 text-white/40 cursor-not-allowed"}`}>
             {loading ? "⏳" : editMode ? "Modifier" : "Créer"}
           </button>

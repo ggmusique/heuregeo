@@ -140,20 +140,12 @@ export const LieuModal = ({
 
   if (!show) return null;
 
-  const inputCls = `w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all ${
-    darkMode
-      ? "bg-black/20 border-white/5 text-white focus:border-purple-500"
-      : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"
-  } backdrop-blur-md placeholder:text-white/40`;
+  const inputCls = `w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md placeholder:text-white/40`;
 
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
       <div
-        className={`w-full max-w-md p-6 rounded-[30px] max-h-[90vh] overflow-y-auto ${
-          darkMode
-            ? "bg-[var(--color-field)] border-2 border-purple-500/40"
-            : "bg-white border-2 border-slate-200"
-        } shadow-2xl`}
+        className={`w-full max-w-md p-6 rounded-[30px] max-h-[90vh] overflow-y-auto bg-[var(--color-field)] border-2 border-[var(--color-border-violet)] shadow-2xl`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-2xl font-black uppercase mb-6 text-center">
@@ -260,7 +252,7 @@ export const LieuModal = ({
                   else if (!e.target.value) setGeocodeStatus("idle");
                 }}
                 placeholder="Ex: 50.1234"
-                className={`w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm ${darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"} backdrop-blur-md placeholder:text-white/30`}
+                className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md placeholder:text-white/30"
               />
             </div>
             <div>
@@ -275,7 +267,7 @@ export const LieuModal = ({
                   else if (!e.target.value) setGeocodeStatus("idle");
                 }}
                 placeholder="Ex: 4.5678"
-                className={`w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm ${darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"} backdrop-blur-md placeholder:text-white/30`}
+                className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md placeholder:text-white/30"
               />
             </div>
           </div>
@@ -287,7 +279,7 @@ export const LieuModal = ({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Infos complémentaires..."
               rows={3}
-              className={`w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all resize-none ${darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"} backdrop-blur-md placeholder:text-white/40`}
+              className="w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all resize-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md placeholder:text-white/40"
             />
           </div>
 
