@@ -26,18 +26,19 @@ par des tokens CSS `var(--color-*)`.
 
 ## [BAS] Priorité basse — Refactoring pur (tabs complexes)
 
+- [x] `LieuxManager.tsx` — 09/05/2026 — cls.split supprimé, 4 cards stats directs, 6 ternaires → tokens CSS
 - [ ] `ParametresTab.tsx` — ~30 ternaires — chantier le plus important
 - [ ] `AgendaTab.tsx` — ~15 ternaires
 - [ ] `HistoriqueTab.tsx` — ~8 ternaires
 - [ ] `BilanTab.tsx` — ~7 ternaires
 - [ ] `SuiviTab.tsx` — ~3 ternaires
 - [ ] `DonneesTab.tsx` — ~1 ternaire
-- [ ] `LieuxManager.tsx` — ~6 ternaires (lignes 146, 179, 189, 194, 198, 220, 253, 264)
 
 ---
 
 ## Déjà corrigés
 
+- [x] `LieuxManager.tsx` — cls.split + 6 ternaires → tokens CSS (09/05/2026)
 - [x] `ImportMissionsModal.tsx` — 3 variables locales + 9 ternaires → tokens CSS (09/05/2026)
 - [x] `StatsCharts.tsx` — 6 ternaires → tokens CSS, darkMode supprimé des sous-composants (09/05/2026)
 - [x] `LieuSelector.tsx` — 4 ternaires → tokens CSS (09/05/2026)
