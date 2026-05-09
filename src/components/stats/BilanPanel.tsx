@@ -306,9 +306,9 @@ export function BilanPanel({
                         style={{
                           width: "32px",
                           height: "32px",
-                          background: "rgba(59,130,246,0.15)",
-                          color: "#60A5FA",
-                          border: "1px solid rgba(59,130,246,0.3)",
+                          background: "color-mix(in srgb, var(--color-accent-cyan) 15%, transparent)",
+                          color: "var(--color-accent-cyan)",
+                          border: "1px solid var(--color-border-cyan)",
                           borderRadius: "8px",
                           cursor: "pointer",
                           display: "flex",
@@ -327,9 +327,9 @@ export function BilanPanel({
                         style={{
                           width: "32px",
                           height: "32px",
-                          background: "rgba(239,68,68,0.15)",
-                          color: "#F87171",
-                          border: "1px solid rgba(239,68,68,0.3)",
+                          background: "color-mix(in srgb, var(--color-accent-red) 15%, transparent)",
+                          color: "var(--color-accent-red)",
+                          border: "1px solid color-mix(in srgb, var(--color-accent-red) 30%, transparent)",
                           borderRadius: "8px",
                           cursor: "pointer",
                           display: "flex",
@@ -477,7 +477,7 @@ export function BilanPanel({
               <Row
                 label="✂️ Consommé cette période"
                 value={`-${formatEuro(bilanContent.totalAcomptes)}`}
-                valueColor="#F87171"
+                valueColor="var(--color-accent-red)"
               />
             )}
             <div
@@ -553,7 +553,7 @@ export function BilanPanel({
             </div>
           </Card>
         ) : (
-          <Card style={{ borderColor: "rgba(239,68,68,0.4)" }}>
+          <Card style={{ borderColor: "color-mix(in srgb, var(--color-accent-red) 40%, transparent)" }}>
             <div
               style={{
                 display: "flex",
@@ -568,7 +568,7 @@ export function BilanPanel({
                   fontFamily: tokens.font.mono,
                   fontSize: "24px",
                   fontWeight: 700,
-                  color: "#FB923C",
+                  color: "var(--color-accent-orange)",
                 }}
               >
                 {formatEuro(resteAPercevoir)}
@@ -580,9 +580,9 @@ export function BilanPanel({
                 style={{
                   ...tokens.button.base,
                   width: "100%",
-                  background: "rgba(139,32,32,0.8)",
-                  color: "#ffffff",
-                  border: "1px solid rgba(239,68,68,0.5)",
+                  background: "color-mix(in srgb, var(--color-accent-red) 80%, #000)",
+                  color: "var(--color-text)",
+                  border: "1px solid color-mix(in srgb, var(--color-accent-red) 50%, transparent)",
                   textTransform: "uppercase",
                   letterSpacing: "0.1em",
                   padding: "12px",

@@ -5,7 +5,8 @@
   --color-accent-violet: #7c3aed;
   --color-accent-green:  #059669;
   --color-accent-red:    #dc2626;
-  --color-accent-orange: #ea580c;
+  --color-accent-orange:   #ea580c;
+  --color-accent-fuchsia:  #c026d3;
 
   /* Surfaces */
   --color-surface:        rgba(255, 255, 255, 0.88);
@@ -40,6 +41,10 @@
   --glow-cyan:    0 0 12px rgba(8,145,178,0.20),   0 0 24px rgba(8,145,178,0.08);
   --glow-violet:  0 0 12px rgba(124,58,237,0.20),  0 0 24px rgba(124,58,237,0.08);
   --glow-green:   0 0 12px rgba(5,150,105,0.20),   0 0 24px rgba(5,150,105,0.08);
+  --glow-fuchsia: 0 0 12px rgba(192,38,211,0.20),  0 0 24px rgba(192,38,211,0.08);
+
+  /* Ombres */
+  --shadow-modal: 0 10px 40px rgba(0,0,0,0.15);
 
   /* Radius */
   --radius-sm:   10px;

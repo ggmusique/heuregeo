@@ -263,7 +263,7 @@ export const MissionForm = ({
     backdropFilter: "var(--blur-card)",
     WebkitBackdropFilter: "var(--blur-card)",
     border: "1px solid var(--color-border)",
-    boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+    boxShadow: "var(--shadow-modal)",
   };
 
   const sectionTitleStyle: React.CSSProperties = {

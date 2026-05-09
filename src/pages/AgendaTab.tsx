@@ -44,7 +44,7 @@ const DAYS_FR = ["L","M","M","J","V","S","D"];
 
 // Couleurs barres multi-jours (congés)
 const TYPE_BAR = {
-  conge: { bg: "rgba(249,115,22,0.80)", text: "#fff" },
+  conge: { bg: "color-mix(in srgb, var(--color-accent-orange) 80%, transparent)", text: "var(--color-text)" },
 };
 
 // Couleurs pills dans les cellules
@@ -181,8 +181,8 @@ export function AgendaTab({
   const selectedEvents = selectedIso ? (eventsByDate[selectedIso] || []) : [];
 
   // ── Styles ───────────────────────────────────────────────────────────────
-  const bg    = darkMode ? "bg-[#050510]"                : "bg-slate-50";
-  const card  = darkMode ? "bg-[#0f111a] border-white/10" : "bg-white border-slate-200";
+  const bg    = darkMode ? "bg-[var(--color-bg)]"                        : "bg-slate-50";
+  const card  = darkMode ? "bg-[var(--color-surface)] border-white/10"   : "bg-white border-slate-200";
   const text  = darkMode ? "text-white"                  : "text-slate-900";
   const muted = darkMode ? "text-white/40"               : "text-slate-400";
 

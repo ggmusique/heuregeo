@@ -60,7 +60,7 @@ export const DateSelector = React.memo(
           className={`
             flex items-center justify-between
             bg-gradient-to-r from-indigo-700/80 to-purple-800/80
-            backdrop-blur-md rounded-xl shadow-[0_8px_25px_rgba(99,102,241,0.35)]
+            backdrop-blur-md rounded-xl shadow-[0_8px_25px_color-mix(in_srgb,var(--color-accent-violet)_35%,transparent)]
             border border-indigo-400/30 overflow-hidden
             h-20 px-8
           `}

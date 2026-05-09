@@ -110,7 +110,7 @@ export function AgendaModal({
       <div
         className={`relative w-full max-w-md rounded-[35px] p-7 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 max-h-[90vh] overflow-y-auto ${
           darkMode
-            ? "bg-gradient-to-br from-[#0a1628]/98 to-[#0f1f3d]/98 text-white border border-white/10"
+            ? "bg-gradient-to-br from-[var(--color-bg)]/98 to-[var(--color-surface)]/98 text-white border border-white/10"
             : "bg-white text-slate-900 border border-slate-200"
         }`}
       >

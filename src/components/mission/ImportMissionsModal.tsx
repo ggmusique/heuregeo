@@ -169,7 +169,7 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
 
   const handleClose = () => { setPreview(null); setCsvText(""); setResult(null); onClose(); };
 
-  const card   = darkMode ? "bg-[#0f111a] border-white/10" : "bg-white border-slate-200";
+  const card   = darkMode ? "bg-[var(--color-surface)] border-white/10" : "bg-white border-slate-200";
   const muted  = darkMode ? "text-white/50" : "text-slate-500";
   const input  = darkMode ? "bg-black/30 border-white/10 text-white placeholder-white/25" : "bg-slate-50 border-slate-200 text-slate-900";
 

@@ -14,18 +14,18 @@ interface NeonButtonProps {
 
 const variantStyles: Record<string, React.CSSProperties> = {
   primary: {
-    background: "linear-gradient(135deg, var(--color-primary), rgba(201,168,76,0.7))",
+    background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 70%, transparent))",
     border: "1px solid var(--color-border-primary)",
     color: "var(--color-bg)",
     fontWeight: 700,
   },
   cyan: {
-    background: "rgba(34,211,238,0.10)",
+    background: "color-mix(in srgb, var(--color-accent-cyan) 10%, transparent)",
     border: "1px solid var(--color-border-cyan)",
     color: "var(--color-accent-cyan)",
   },
   violet: {
-    background: "rgba(167,139,250,0.10)",
+    background: "color-mix(in srgb, var(--color-accent-violet) 10%, transparent)",
     border: "1px solid var(--color-border-violet)",
     color: "var(--color-accent-violet)",
   },
@@ -35,8 +35,8 @@ const variantStyles: Record<string, React.CSSProperties> = {
     color: "var(--color-text)",
   },
   danger: {
-    background: "rgba(248,113,113,0.10)",
-    border: "1px solid rgba(248,113,113,0.4)",
+    background: "color-mix(in srgb, var(--color-accent-red) 10%, transparent)",
+    border: "1px solid color-mix(in srgb, var(--color-accent-red) 40%, transparent)",
     color: "var(--color-accent-red)",
   },
 };

@@ -46,9 +46,9 @@ export const AcompteModal = ({
   if (!show) return null;
 
   return (
-    <div className={`fixed inset-0 z-[500] flex items-center justify-center p-6 ${darkMode ? "bg-[#050510]/90" : "bg-black/40"} backdrop-blur-md`}>
+    <div className={`fixed inset-0 z-[500] flex items-center justify-center p-6 ${darkMode ? "bg-[var(--color-bg)]/90" : "bg-black/40"} backdrop-blur-md`}>
       
-      <div className={`w-full max-w-sm p-8 rounded-[40px] border-2 ${darkMode ? "bg-[#121420] border-cyan-500/30" : "bg-white border-cyan-400/50"} backdrop-blur-xl shadow-2xl`}>
+      <div className={`w-full max-w-sm p-8 rounded-[40px] border-2 ${darkMode ? "bg-[var(--color-surface)] border-cyan-500/30" : "bg-white border-cyan-400/50"} backdrop-blur-xl shadow-2xl`}>
         
         <h3 className="text-xl font-black uppercase mb-6 text-center italic text-cyan-400">
           Nouvel Acompte

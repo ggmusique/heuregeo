@@ -172,7 +172,7 @@ export const LieuSelector = ({
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${darkMode ? "bg-[#1a1f2e] border-purple-500/40" : "bg-white border-slate-200"} backdrop-blur-xl`}
+          className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${darkMode ? "bg-[var(--color-field)] border-purple-500/40" : "bg-white border-slate-200"} backdrop-blur-xl`}
         >
           {filteredLieux.length > 0 ? (
             <div className="p-2">

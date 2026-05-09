@@ -68,7 +68,7 @@ export const CustomAlert = React.memo(({ show, message, onDismiss }: CustomAlert
     <div className="fixed top-12 left-5 right-5 z-[200] animate-in slide-in-from-top duration-500">
       <div
         onClick={onDismiss}
-        className="relative cursor-pointer bg-gradient-to-r from-red-600/40 to-rose-600/40 backdrop-blur-2xl border-2 border-red-500/60 p-5 rounded-[25px] shadow-[0_10px_40px_rgba(239,68,68,0.6)]"
+        className="relative cursor-pointer bg-gradient-to-r from-red-600/40 to-rose-600/40 backdrop-blur-2xl border-2 border-red-500/60 p-5 rounded-[25px] shadow-[0_10px_40px_color-mix(in_srgb,var(--color-accent-red)_60%,transparent)]"
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {

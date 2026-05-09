@@ -28,7 +28,7 @@ export function UpdatePrompt() {
 
   return (
     <div className="fixed bottom-24 left-4 right-4 z-[1200] animate-in slide-in-from-bottom duration-300">
-      <div className="rounded-2xl border border-yellow-400/40 bg-gradient-to-br from-[#0B1220]/98 to-[#1a2332]/98 p-4 shadow-2xl backdrop-blur-xl">
+      <div className="rounded-2xl border border-yellow-400/40 bg-gradient-to-br from-[var(--color-bg)]/98 to-[var(--color-surface)]/98 p-4 shadow-2xl backdrop-blur-xl">
         <div className="flex flex-col gap-3">
           {/* Header */}
           <div className="flex items-center gap-3">

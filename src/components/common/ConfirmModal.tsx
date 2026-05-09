@@ -58,7 +58,7 @@ export const ConfirmModal = ({
 
         {/* ✅ La boîte principale */}
         <div
-          className={`relative ${darkMode ? "bg-[#0f0b1a]/95" : "bg-white"} backdrop-blur-xl border-2 ${style.border} rounded-[40px] overflow-hidden shadow-2xl`}
+          className={`relative ${darkMode ? "bg-[var(--color-bg)]/95" : "bg-white"} backdrop-blur-xl border-2 ${style.border} rounded-[40px] overflow-hidden shadow-2xl`}
         >
           
           {/* ✅ Bandeau du haut (titre + icône) */}

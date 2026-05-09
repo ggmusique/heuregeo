@@ -15,9 +15,9 @@ const EVENT_COLORS: Record<string, { bg: string; text: string; border: string }>
 };
 
 const ALLDAY_COLORS: Record<string, { bg: string; text: string }> = {
-  conge: { bg: "rgba(249,115,22,0.75)",  text: "#fff" },
-  note:  { bg: "rgba(16,185,129,0.75)",  text: "#fff" },
-  rdv:   { bg: "rgba(59,130,246,0.75)",  text: "#fff" },
+  conge: { bg: "color-mix(in srgb, var(--color-accent-orange) 75%, transparent)",  text: "var(--color-text)" },
+  note:  { bg: "color-mix(in srgb, var(--color-accent-green)  75%, transparent)",  text: "var(--color-text)" },
+  rdv:   { bg: "color-mix(in srgb, var(--color-accent-cyan)   75%, transparent)",  text: "var(--color-text)" },
 };
 
 function addDaysToIso(iso: string, n: number): string {

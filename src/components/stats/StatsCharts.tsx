@@ -11,7 +11,7 @@ function VerticalBars({ data, color, darkMode }: { data: BarItem[]; color: strin
       {data.map((d, i) => (
         <div key={i} className="flex flex-col items-center flex-1 gap-[2px]">
           <div title={d.tooltip} className="w-full rounded-t-[3px] transition-all" style={{ height: `${Math.max(2, (d.value / max) * 52)}px`, background: color, opacity: 0.75 }} />
-          <span className="text-[6px] font-black" style={{ opacity: 0.4, color: darkMode ? "#fff" : "#334155" }}>{d.label}</span>
+          <span className="text-[6px] font-black" style={{ opacity: 0.4, color: darkMode ? "var(--color-text)" : "#334155" }}>{d.label}</span>
         </div>
       ))}
     </div>
@@ -24,11 +24,11 @@ function HorizontalBars({ items, color, formatVal, darkMode }: { items: { label:
     <div className="space-y-[6px]">
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="text-[9px] font-black truncate shrink-0 w-20 opacity-70" style={{ color: darkMode ? "#fff" : "#334155" }}>{item.label}</span>
-          <div className="flex-1 h-[6px] rounded-full overflow-hidden" style={{ background: darkMode ? "rgba(255,255,255,0.06)" : "#f1f5f9" }}>
+          <span className="text-[9px] font-black truncate shrink-0 w-20 opacity-70" style={{ color: darkMode ? "var(--color-text)" : "#334155" }}>{item.label}</span>
+          <div className="flex-1 h-[6px] rounded-full overflow-hidden" style={{ background: darkMode ? "var(--color-surface-offset)" : "#f1f5f9" }}>
             <div className="h-full rounded-full" style={{ width: `${(item.value / max) * 100}%`, background: color, opacity: 0.8 }} />
           </div>
-          <span className="text-[9px] font-black shrink-0 w-16 text-right opacity-70" style={{ color: darkMode ? "#fff" : "#334155" }}>{formatVal(item.value)}</span>
+          <span className="text-[9px] font-black shrink-0 w-16 text-right opacity-70" style={{ color: darkMode ? "var(--color-text)" : "#334155" }}>{formatVal(item.value)}</span>
         </div>
       ))}
     </div>
@@ -38,7 +38,7 @@ function HorizontalBars({ items, color, formatVal, darkMode }: { items: { label:
 function StatCard({ title, children, darkMode }: { title: string; children: React.ReactNode; darkMode: boolean }) {
   return (
     <div className={`p-3 rounded-[18px] border ${darkMode ? "bg-white/4 border-white/8" : "bg-slate-50 border-slate-200"}`}>
-      <p className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50" style={{ color: darkMode ? "#fff" : "#334155" }}>{title}</p>
+      <p className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50" style={{ color: darkMode ? "var(--color-text)" : "#334155" }}>{title}</p>
       {children}
     </div>
   );

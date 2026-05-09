@@ -137,7 +137,7 @@ export function PatronSelectorCompact({ patrons = [], selectedPatronId, onSelect
       </div>
 
       {showDropdown && !disabled && (
-        <div ref={dropdownRef} className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${darkMode ? "bg-[#1a1f2e] border-indigo-500/40" : "bg-white border-slate-300"} backdrop-blur-xl`}>
+        <div ref={dropdownRef} className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${darkMode ? "bg-[var(--color-field)] border-indigo-500/40" : "bg-white border-slate-300"} backdrop-blur-xl`}>
           {filteredPatrons.length > 0 ? (
             filteredPatrons.map((patron) => (
               <button key={patron.id} type="button" className={`w-full p-4 text-left transition-all border-b border-white/5 last:border-b-0 ${selectedPatronId === patron.id ? darkMode ? "bg-indigo-600/30" : "bg-indigo-100" : darkMode ? "hover:bg-white/10" : "hover:bg-slate-100"}`} onClick={() => handleSelect(patron)}>

@@ -104,7 +104,7 @@ export const BilanTab = ({
               bilan.setShowBilan(false);
               bilan.setShowPeriodModal(true);
             }}
-            className={"w-full py-6 bg-gradient-to-r from-[#C9A84C] to-[#A07830] rounded-3xl font-black text-[14px] uppercase shadow-xl active:scale-95 transition-all " +
+            className={"w-full py-6 bg-gradient-to-r from-[var(--color-primary)] to-[color-mix(in_srgb,var(--color-primary)_60%,#000)] rounded-3xl font-black text-[14px] uppercase shadow-xl active:scale-95 transition-all " +
               (darkMode ? "text-white" : "text-slate-800")}
           >
             Rapport bilan
@@ -139,7 +139,7 @@ export const BilanTab = ({
           {kmSettings?.km_enable === true && missionsThisWeek.length > 0 && (
             kmFraisThisWeek !== null && kmFraisThisWeek.items.length > 0 ? (
               <div className={"mt-2 p-4 rounded-[25px] border backdrop-blur-md " +
-                (darkMode ? "bg-[#0A1628]/60 border-blue-600/20" : "bg-white/80 border-blue-200")}>
+                (darkMode ? "bg-[var(--color-bg)]/60 border-blue-600/20" : "bg-white/80 border-blue-200")}>
                 <p className={"text-[10px] font-black uppercase mb-3 tracking-[0.2em] " +
                   (darkMode ? "text-blue-400/70" : "text-blue-600")}>
                   🚗 Frais kilométriques
@@ -172,7 +172,7 @@ export const BilanTab = ({
               </div>
             ) : (
               <div className={"mt-2 p-4 rounded-[25px] border text-sm italic " +
-                (darkMode ? "bg-[#0A1628]/40 border-blue-600/10 text-white/40" : "bg-blue-50/60 border-blue-100 text-slate-400")}>
+                (darkMode ? "bg-[var(--color-bg)]/40 border-blue-600/10 text-white/40" : "bg-blue-50/60 border-blue-100 text-slate-400")}>
                 🚗 Frais kilométriques —{" "}
                 {!domicileLatLng
                   ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"

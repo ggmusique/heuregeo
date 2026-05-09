@@ -62,7 +62,7 @@ export const PeriodModal = ({
   if (!show) return null;
 
   return (
-    <div className={`fixed inset-0 z-[400] flex items-center justify-center p-6 ${darkMode ? "bg-[#050510]/95" : "bg-black/40"} backdrop-blur-xl`}>
+    <div className={`fixed inset-0 z-[400] flex items-center justify-center p-6 ${darkMode ? "bg-[var(--color-bg)]/95" : "bg-black/40"} backdrop-blur-xl`}>
       <div
         className={`w-full max-w-sm p-8 rounded-[45px] border-2 ${
           darkMode
