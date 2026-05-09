@@ -2,7 +2,6 @@ import React, { useMemo, useState } from "react";
 import { formatEuro, formatDateFR } from "../utils/formatters";
 import { getWeekNumber } from "../utils/dateUtils";
 import { useLabels } from "../contexts/LabelsContext";
-import { useDarkMode } from "../contexts/DarkModeContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { StatsCharts } from "../components/stats/StatsCharts";
 import type { Patron, Mission, Acompte } from "../types/entities";
@@ -55,7 +54,6 @@ export const HistoriqueTab = ({
   isViewer: isViewerProp,
   viewerPatronId: viewerPatronIdProp,
 }: Props) => {
-  const { darkMode } = useDarkMode();
   const { isViewer: isViewerCtx, viewerPatronId: viewerPatronIdCtx } = usePermissions();
   const isViewer = isViewerProp !== undefined ? isViewerProp : isViewerCtx;
   const viewerPatronId = viewerPatronIdProp !== undefined ? viewerPatronIdProp : viewerPatronIdCtx;
@@ -148,9 +146,7 @@ export const HistoriqueTab = ({
       {/* ── SÉLECTEUR PATRON ── */}
       {!isViewer && (
         <div
-          className={`p-4 rounded-[25px] border ${
-            darkMode ? "bg-white/5 border-white/10" : "bg-white border-slate-200"
-          } backdrop-blur-md`}
+          className="p-4 rounded-[25px] border bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-md"
         >
           <p className="text-[10px] font-black uppercase opacity-50 tracking-widest mb-3">
             Filtre {L.patron}
@@ -158,11 +154,7 @@ export const HistoriqueTab = ({
           <select
             value={historiquePatronId || ""}
             onChange={(e) => onPatronFilterChange(e.target.value || null)}
-            className={`w-full p-3 rounded-2xl border text-sm font-bold ${
-              darkMode
-                ? "bg-black/30 border-white/10 text-white"
-                : "bg-slate-50 border-slate-200 text-slate-900"
-            }`}
+            className="w-full p-3 rounded-2xl border text-sm font-bold bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)]"
           >
             <option value="">Tous les {L.patrons}</option>
             {patrons.map((p) => (
@@ -181,9 +173,7 @@ export const HistoriqueTab = ({
           className={`px-4 py-2 rounded-2xl font-black uppercase text-[10px] tracking-wider transition-all ${
             showStats
               ? "bg-indigo-600/80 text-white"
-              : darkMode
-              ? "bg-white/5 text-white/50 border border-white/10"
-              : "bg-slate-100 text-slate-500 border border-slate-200"
+              : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
           }`}
         >
           📈 Statistiques
@@ -193,15 +183,12 @@ export const HistoriqueTab = ({
       {/* ── SECTION STATISTIQUES (collapsible) ── */}
       {showStats && (
         <div
-          className={`p-4 rounded-[25px] border ${
-            darkMode ? "bg-white/3 border-white/8" : "bg-slate-50 border-slate-200"
-          }`}
+          className="p-4 rounded-[25px] border bg-[var(--color-surface-offset)] border-[var(--color-border)]"
         >
           <StatsCharts
             missions={missions}
             patrons={patrons}
             effectivePatronId={effectivePatronId}
-            darkMode={darkMode}
           />
         </div>
       )}
@@ -248,11 +235,7 @@ export const HistoriqueTab = ({
               {/* CA Mois + Total */}
               <div className="grid grid-cols-2 gap-3">
                 <div
-                  className={`p-4 rounded-[20px] border ${
-                    darkMode
-                      ? "bg-indigo-900/30 border-indigo-500/20"
-                      : "bg-indigo-50 border-indigo-200"
-                  }`}
+                  className="p-4 rounded-[20px] border bg-indigo-900/30 border-indigo-500/20"
                 >
                   <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
                     CA ce mois
@@ -263,11 +246,7 @@ export const HistoriqueTab = ({
                 </div>
 
                 <div
-                  className={`p-4 rounded-[20px] border ${
-                    darkMode
-                      ? "bg-purple-900/30 border-purple-500/20"
-                      : "bg-purple-50 border-purple-200"
-                  }`}
+                  className="p-4 rounded-[20px] border bg-purple-900/30 border-purple-500/20"
                 >
                   <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
                     CA total
@@ -306,11 +285,7 @@ export const HistoriqueTab = ({
               {/* Semaines payées / impayées */}
               <div className="grid grid-cols-2 gap-3">
                 <div
-                  className={`p-4 rounded-[20px] border ${
-                    darkMode
-                      ? "bg-green-900/20 border-green-500/20"
-                      : "bg-green-50 border-green-200"
-                  }`}
+                  className="p-4 rounded-[20px] border bg-green-900/20 border-green-500/20"
                 >
                   <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
                     Semaines payées
@@ -321,11 +296,7 @@ export const HistoriqueTab = ({
                 </div>
 
                 <div
-                  className={`p-4 rounded-[20px] border ${
-                    darkMode
-                      ? "bg-orange-900/20 border-orange-500/20"
-                      : "bg-orange-50 border-orange-200"
-                  }`}
+                  className="p-4 rounded-[20px] border bg-orange-900/20 border-orange-500/20"
                 >
                   <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
                     Semaines impayées
@@ -339,11 +310,7 @@ export const HistoriqueTab = ({
               {/* Dernier acompte */}
               {dernierAcompte && (
                 <div
-                  className={`p-4 rounded-[20px] border flex items-center justify-between ${
-                    darkMode
-                      ? "bg-cyan-900/20 border-cyan-500/20"
-                      : "bg-cyan-50 border-cyan-200"
-                  }`}
+                  className="p-4 rounded-[20px] border flex items-center justify-between bg-cyan-900/20 border-cyan-500/20"
                 >
                   <div>
                     <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
@@ -382,9 +349,7 @@ export const HistoriqueTab = ({
               className={`flex-1 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${
                 historiqueTab === "impayes"
                   ? "bg-gradient-to-br from-orange-600 to-red-700 text-white shadow-lg"
-                  : darkMode
-                    ? "bg-white/5 text-white/40 border border-white/10"
-                    : "bg-slate-100 text-slate-400 border border-slate-200"
+                  : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
               }`}
             >
               🟠 Impayés ({filteredImpayes.length})
@@ -395,9 +360,7 @@ export const HistoriqueTab = ({
               className={`flex-1 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${
                 historiqueTab === "payes"
                   ? "bg-gradient-to-br from-green-600 to-emerald-700 text-white shadow-lg"
-                  : darkMode
-                    ? "bg-white/5 text-white/40 border border-white/10"
-                    : "bg-slate-100 text-slate-400 border border-slate-200"
+                  : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
               }`}
             >
               ✅ Payés ({filteredPayes.length})
@@ -408,9 +371,7 @@ export const HistoriqueTab = ({
               className={`flex-1 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${
                 historiqueTab === "missions"
                   ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-lg"
-                  : darkMode
-                    ? "bg-white/5 text-white/40 border border-white/10"
-                    : "bg-slate-100 text-slate-400 border border-slate-200"
+                  : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
               }`}
             >
               📋 Missions
@@ -420,11 +381,7 @@ export const HistoriqueTab = ({
           {/* Liste impayés */}
           {historiqueTab === "impayes" && (
             <div
-              className={`p-4 rounded-[25px] border ${
-                darkMode
-                  ? "border-orange-500/20 bg-orange-500/5"
-                  : "border-orange-200 bg-orange-50"
-              } backdrop-blur-md`}
+              className="p-4 rounded-[25px] border border-orange-500/20 bg-orange-500/5 backdrop-blur-md"
             >
               {filteredImpayes.length === 0 ? (
                 <div className="text-center py-6">
@@ -436,11 +393,7 @@ export const HistoriqueTab = ({
                   {filteredImpayes.map((row: HistoriqueRow) => (
                     <div
                       key={row.id}
-                      className={`flex items-center justify-between p-4 rounded-2xl ${
-                        darkMode
-                          ? "bg-black/30 border border-white/10"
-                          : "bg-white border border-orange-100"
-                      }`}
+                      className="flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]"
                     >
                       <div>
                         <p className="font-black uppercase text-sm">
@@ -482,11 +435,7 @@ export const HistoriqueTab = ({
           {/* Liste payés */}
           {historiqueTab === "payes" && (
             <div
-              className={`p-4 rounded-[25px] border ${
-                darkMode
-                  ? "border-green-500/20 bg-green-500/5"
-                  : "border-green-200 bg-green-50"
-              } backdrop-blur-md`}
+              className="p-4 rounded-[25px] border border-green-500/20 bg-green-500/5 backdrop-blur-md"
             >
               {filteredPayes.length === 0 ? (
                 <div className="text-center py-6">
@@ -500,11 +449,7 @@ export const HistoriqueTab = ({
                   {filteredPayes.map((row: HistoriqueRow) => (
                     <div
                       key={row.id}
-                      className={`flex items-center justify-between p-4 rounded-2xl ${
-                        darkMode
-                          ? "bg-black/30 border border-white/10"
-                          : "bg-white border border-green-100"
-                      }`}
+                      className="flex items-center justify-between p-4 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)]"
                     >
                       <div>
                         <p className="font-black uppercase text-sm">
@@ -536,9 +481,7 @@ export const HistoriqueTab = ({
             <div className="space-y-3">
               {/* Filtres */}
               <div
-                className={`p-3 rounded-[20px] border grid grid-cols-2 gap-2 ${
-                  darkMode ? "bg-white/4 border-white/8" : "bg-slate-50 border-slate-200"
-                }`}
+                className="p-3 rounded-[20px] border grid grid-cols-2 gap-2 bg-[var(--color-surface-offset)] border-[var(--color-border)]"
               >
                 {/* Date de */}
                 <div>
@@ -546,11 +489,7 @@ export const HistoriqueTab = ({
                   <select
                     value={mDateFrom}
                     onChange={(e) => setMDateFrom(e.target.value)}
-                    className={`w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none ${
-                      darkMode ? "bg-black/30 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"
-                    }`}
-                  >
-                    <option value="">Début</option>
+                    className="w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)]"
                     {availableMonths.map((m) => (
                       <option key={m} value={m}>{formatMonthLabel(m)}</option>
                     ))}
@@ -563,11 +502,7 @@ export const HistoriqueTab = ({
                   <select
                     value={mDateTo}
                     onChange={(e) => setMDateTo(e.target.value)}
-                    className={`w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none ${
-                      darkMode ? "bg-black/30 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"
-                    }`}
-                  >
-                    <option value="">Fin</option>
+                    className="w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)]"
                     {[...availableMonths].reverse().map((m) => (
                       <option key={m} value={m}>{formatMonthLabel(m)}</option>
                     ))}
@@ -580,12 +515,7 @@ export const HistoriqueTab = ({
                   <select
                     value={mClient}
                     onChange={(e) => setMClient(e.target.value)}
-                    className={`w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none ${
-                      darkMode ? "bg-black/30 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"
-                    }`}
-                  >
-                    <option value="">Tous</option>
-                    {clientsUniques.map((c) => (
+                    className="w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)]"
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
@@ -598,9 +528,7 @@ export const HistoriqueTab = ({
                     <select
                       value={mPatronId}
                       onChange={(e) => setMPatronId(e.target.value)}
-                      className={`w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none ${
-                        darkMode ? "bg-black/30 border-white/10 text-white" : "bg-white border-slate-200 text-slate-900"
-                      }`}
+                      className="w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)]"
                     >
                       <option value="">Tous</option>
                       {patrons.map((p) => (
@@ -615,7 +543,7 @@ export const HistoriqueTab = ({
                   <div className="col-span-2 flex justify-end">
                     <button
                       onClick={() => { setMDateFrom(""); setMDateTo(""); setMClient(""); setMPatronId(""); }}
-                      className={`text-[10px] font-black px-3 py-1 rounded-xl ${darkMode ? "text-white/50 hover:text-white/80" : "text-slate-400 hover:text-slate-700"}`}
+                      className="text-[10px] font-black px-3 py-1 rounded-xl text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
                     >
                       Réinitialiser les filtres
                     </button>
@@ -648,9 +576,7 @@ export const HistoriqueTab = ({
                   {missionsFiltrees.map((m) => (
                     <div
                       key={m.id}
-                      className={`p-3 rounded-2xl border flex items-center gap-3 ${
-                        darkMode ? "bg-black/20 border-white/8" : "bg-white border-slate-200"
-                      }`}
+                      className="p-3 rounded-2xl border flex items-center gap-3 bg-[var(--color-surface)] border-[var(--color-border)]"
                     >
                       {/* Date */}
                       <div className="shrink-0 text-center w-8">
