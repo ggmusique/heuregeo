@@ -365,3 +365,320 @@ describe("useMissions – validation createMission", () => {
     );
   });
 });
+
+// ───────────────────────────────────────────────────────────────────────────
+// Groupe D — couverture complémentaire (lacunes de la suite initiale)
+// ───────────────────────────────────────────────────────────────────────────
+
+// Semaine ISO 10 / 2025 : "2025-03-03" (lundi)
+// Semaine ISO 10 / 2026 : "2026-03-02" (lundi)
+// Utilisé pour tester le fix bug « même n° semaine, années différentes ».
+
+describe("useMissions – fetchMissions (compléments)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("ne lance pas un second appel API si un fetch est déjà en cours (isFetching lock)", async () => {
+    let resolve!: (v: Mission[]) => void;
+    vi.mocked(missionsApi.fetchMissions).mockImplementation(
+      () => new Promise<Mission[]>((r) => { resolve = r; })
+    );
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    act(() => { result.current.fetchMissions(); });
+    act(() => { result.current.fetchMissions(); }); // second call ignoré
+    resolve([]);
+    await act(async () => {});
+
+    expect(missionsApi.fetchMissions).toHaveBeenCalledTimes(1);
+  });
+
+  it("appelle onError et propage l'exception si l'API échoue", async () => {
+    vi.mocked(missionsApi.fetchMissions).mockRejectedValue(new Error("network"));
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await expect(
+      act(async () => { await result.current.fetchMissions(); })
+    ).rejects.toThrow("network");
+
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("Erreur connexion"));
+  });
+
+  it("traite une réponse null comme tableau vide", async () => {
+    vi.mocked(missionsApi.fetchMissions).mockResolvedValue(null as unknown as Mission[]);
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await act(async () => { await result.current.fetchMissions(); });
+
+    expect(result.current.missions).toEqual([]);
+  });
+});
+
+describe("useMissions – validation createMission (compléments)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejette si patron_id est absent", async () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await act(async () => {
+      await result.current
+        .createMission({ ...VALID_MISSION_DATA, patron_id: undefined })
+        .catch(() => {});
+    });
+
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("patron"));
+    expect(missionsApi.createMission).not.toHaveBeenCalled();
+  });
+
+  it("rejette si fin <= debut", async () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await act(async () => {
+      await result.current
+        .createMission({ ...VALID_MISSION_DATA, debut: "14:00", fin: "10:00" })
+        .catch(() => {});
+    });
+
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("fin doit être après"));
+  });
+
+  it("rejette si pause >= durée brute (60 min brut, pause 60)", async () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await act(async () => {
+      await result.current
+        .createMission({ ...VALID_MISSION_DATA, debut: "09:00", fin: "10:00", pause: 60 })
+        .catch(() => {});
+    });
+
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("pause dépasse"));
+  });
+
+  it("accepte une mission adjacente (fin existing = debut new — aucun overlap)", async () => {
+    // m1 dans MISSIONS : 08:00–12:00 le 2026-01-05
+    // nouvelle mission : 12:00–14:00 le même jour → adjacente, pas chevauchante
+    vi.mocked(missionsApi.fetchMissions).mockResolvedValue(MISSIONS);
+    const returnedMission: Mission = {
+      ...(VALID_MISSION_DATA as Mission),
+      id: "m-adj",
+      date_mission: "2026-01-05",
+      date_iso: "2026-01-05",
+      debut: "12:00",
+      fin: "14:00",
+    };
+    vi.mocked(missionsApi.createMission).mockResolvedValue(returnedMission);
+    const { result } = renderHook(() => useMissions(vi.fn()));
+
+    await act(async () => { await result.current.fetchMissions(); });
+    await act(async () => {
+      await result.current.createMission({
+        ...VALID_MISSION_DATA,
+        date_iso: "2026-01-05",
+        debut: "12:00",
+        fin: "14:00",
+      });
+    });
+
+    // newStart(720) < existEnd(720) → false → pas de conflit
+    expect(missionsApi.createMission).toHaveBeenCalledTimes(1);
+  });
+
+  it("appelle onError et propage si l'API échoue (erreur réseau)", async () => {
+    vi.mocked(missionsApi.createMission).mockRejectedValue(new Error("DB write error"));
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await expect(
+      act(async () => { await result.current.createMission(VALID_MISSION_DATA); })
+    ).rejects.toThrow("DB write error");
+
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("Erreur création"));
+  });
+});
+
+describe("useMissions – updateMission (compléments)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejette si id est vide", async () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await expect(
+      act(async () => result.current.updateMission("", VALID_MISSION_DATA))
+    ).rejects.toThrow("ID de la mission manquant");
+  });
+
+  it("valide les données avant l'appel API (client_id absent → rejet)", async () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await act(async () => {
+      await result.current
+        .updateMission("m1", { ...VALID_MISSION_DATA, client_id: undefined })
+        .catch(() => {});
+    });
+
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("client"));
+    expect(missionsApi.updateMission).not.toHaveBeenCalled();
+  });
+
+  it("l'overlap detection exclut la mission elle-même (pas de conflit avec soi-même)", async () => {
+    // Mission avec tous les champs requis par la validation (client_id, lieu_id, patron_id)
+    const m: Mission = {
+      id: "m-self",
+      user_id: "u1",
+      patron_id: "p1",
+      client_id: "c1",
+      lieu_id: "l1",
+      client: "Client",
+      lieu: "Bureau",
+      date_mission: "2026-01-05",
+      date_iso: "2026-01-05",
+      debut: "08:00",
+      fin: "12:00",
+      duree: 4,
+      pause: 0,
+      montant: 80,
+    };
+    vi.mocked(missionsApi.fetchMissions).mockResolvedValue([m]);
+    const extended: Mission = { ...m, fin: "13:00", duree: 5 };
+    vi.mocked(missionsApi.updateMission).mockResolvedValue(extended);
+    const { result } = renderHook(() => useMissions(vi.fn()));
+
+    await act(async () => { await result.current.fetchMissions(); });
+    // Étendre m-self de 08:00–13:00 chevaucherait m-self (08:00–12:00),
+    // mais m-self est exclu du check via excludeId → pas de conflit
+    await act(async () => {
+      await result.current.updateMission("m-self", { ...m, fin: "13:00" });
+    });
+
+    expect(missionsApi.updateMission).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useMissions – deleteMission (compléments)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejette si id est vide", async () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await expect(
+      act(async () => result.current.deleteMission(""))
+    ).rejects.toThrow("ID de la mission manquant");
+  });
+
+  it("appelle onError et propage si l'API échoue", async () => {
+    vi.mocked(missionsApi.deleteMission).mockRejectedValue(new Error("FK constraint"));
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await expect(
+      act(async () => result.current.deleteMission("m1"))
+    ).rejects.toThrow("FK constraint");
+
+    expect(onError).toHaveBeenCalledWith(expect.stringContaining("suppression"));
+  });
+});
+
+describe("useMissions – bulkCreateMissions (compléments)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("ne fait aucun appel API si le tableau est vide", async () => {
+    const onError = vi.fn();
+    const { result } = renderHook(() => useMissions(onError));
+
+    await act(async () => { await result.current.bulkCreateMissions([]); });
+
+    expect(missionsApi.bulkInsertMissions).not.toHaveBeenCalled();
+    expect(missionsApi.fetchMissions).not.toHaveBeenCalled();
+  });
+});
+
+describe("useMissions – getMissionsByWeek (compléments)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("retourne [] si weekNumber vaut 0 (sentinel)", async () => {
+    const { result } = await renderWithMissions();
+    expect(result.current.getMissionsByWeek(0)).toEqual([]);
+  });
+
+  it("n'inclut PAS une mission de la même semaine ISO mais d'une autre année (fix bug year)", async () => {
+    const w10_2025: Mission = {
+      ...MISSIONS[0],
+      id: "old",
+      date_mission: "2025-03-03",
+      date_iso: "2025-03-03",
+    };
+    const w10_2026: Mission = {
+      ...MISSIONS[0],
+      id: "new",
+      date_mission: "2026-03-02",
+      date_iso: "2026-03-02",
+    };
+    const { result } = await renderWithMissions([w10_2025, w10_2026]);
+
+    const res2026 = result.current.getMissionsByWeek(10, null, 2026);
+    expect(res2026).toHaveLength(1);
+    expect(res2026[0].id).toBe("new");
+
+    const res2025 = result.current.getMissionsByWeek(10, null, 2025);
+    expect(res2025).toHaveLength(1);
+    expect(res2025[0].id).toBe("old");
+  });
+
+  it("exclut les missions dont date_mission et date_iso sont toutes deux null", async () => {
+    const noDate: Mission = { ...MISSIONS[0], id: "no-date", date_mission: null, date_iso: null };
+    const { result } = await renderWithMissions([noDate]);
+
+    expect(result.current.getMissionsByWeek(2, null, 2026)).toEqual([]);
+  });
+});
+
+describe("useMissions – getMissionsByPeriod (compléments)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("retourne [] si periodType est vide", async () => {
+    const { result } = await renderWithMissions();
+    expect(result.current.getMissionsByPeriod("", 2, null, 2026)).toEqual([]);
+  });
+
+  it("retourne [] si periodValue est 0 (falsy)", async () => {
+    const { result } = await renderWithMissions();
+    expect(result.current.getMissionsByPeriod("semaine", 0, null, 2026)).toEqual([]);
+  });
+
+  it("filtre par patronId dans getMissionsByPeriod (type mois)", async () => {
+    // m1 = p1, m2 = p2, tous deux en janvier 2026
+    const { result } = await renderWithMissions();
+    const res = result.current.getMissionsByPeriod("mois", "2026-01", "p1");
+    expect(res).toHaveLength(1);
+    expect(res[0].id).toBe("m1");
+  });
+});
+
+describe("useMissions – getMissionsByPatron (compléments)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("retourne [] si le patronId est inconnu", async () => {
+    const { result } = await renderWithMissions();
+    expect(result.current.getMissionsByPatron("inexistant")).toEqual([]);
+  });
+});
+
+describe("useMissions – clientsUniques / lieuxUniques (compléments)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("exclut les valeurs null des listes dérivées", async () => {
+    const noNames: Mission = { ...MISSIONS[0], id: "no-names", client: null, lieu: null };
+    const { result } = await renderWithMissions([noNames]);
+
+    expect(result.current.clientsUniques).toEqual([]);
+    expect(result.current.lieuxUniques).toEqual([]);
+  });
+});
