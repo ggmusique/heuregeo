@@ -1,5 +1,4 @@
 import React from "react";
-import { useDarkMode } from "../../contexts/DarkModeContext";
 import { usePermissions } from "../../contexts/PermissionsContext";
 import { supabase } from "../../services/supabase";
 import type { NavItem } from "../../hooks/useNavigation";
@@ -12,7 +11,6 @@ interface Props {
 }
 
 export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
-  const { darkMode } = useDarkMode();
   const { isViewer, isPro, canDashboard, canAgenda } = usePermissions();
 
   const isProNavigationMode = isPro && !isViewer;
@@ -22,8 +20,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
       {isProNavigationMode ? (
         <div
           className={
-            "backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " +
-            (darkMode ? "bg-[var(--color-surface)] border-yellow-500/30" : "bg-[var(--color-surface)]/95 border-[var(--color-border)]")
+            "backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 bg-[var(--color-surface)] border-[var(--color-border-primary)]"
           }
         >
           {proNavItems.map((item: NavItem) => {
@@ -39,9 +36,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
                   "flex-1 rounded-[28px] font-black uppercase tracking-widest flex flex-col items-center justify-center py-2 text-[9px] gap-0.5 transition-all duration-200 " +
                   (isActive
                     ? `bg-gradient-to-br ${item.activeClass} text-white shadow-lg`
-                    : darkMode
-                    ? "text-white/35"
-                    : "text-slate-400")
+                    : "text-[var(--color-text-muted)]")
                 }
               >
                 <span className="text-[14px] leading-none">{item.icon}</span>
@@ -53,10 +48,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
       ) : (
         <div
           className={
-            "backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 " +
-            (darkMode
-              ? "bg-[var(--color-surface)] border-yellow-600/20"
-              : "bg-[var(--color-surface)]/95 border-[var(--color-border)]")
+            "backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 bg-[var(--color-surface)] border-[var(--color-border-primary)]"
           }
         >
           {!isViewer && (
@@ -66,9 +58,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
                 "flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " +
                 (activeTab === "saisie"
                   ? "bg-gradient-to-br from-[var(--color-accent-violet)] to-[color-mix(in_srgb,var(--color-accent-violet)_80%,black)] text-white"
-                  : darkMode
-                  ? "text-white/30"
-                  : "text-slate-400")
+                  : "text-[var(--color-text-muted)]")
               }
             >
               Saisie
@@ -81,9 +71,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
                 "flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " +
                 (activeTab === "dashboard"
                   ? "bg-gradient-to-br from-[var(--color-accent-fuchsia)] to-[var(--color-accent-violet)] text-white"
-                  : darkMode
-                  ? "text-white/30"
-                  : "text-slate-400")
+                  : "text-[var(--color-text-muted)]")
               }
             >
               Dashboard
@@ -95,9 +83,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
               "flex-1 py-4 rounded-[28px] font-black uppercase text-[10px] tracking-widest " +
               (activeTab === "suivi"
                   ? "bg-gradient-to-br from-[var(--color-accent-cyan)] to-[var(--color-accent-violet)] text-white"
-                : darkMode
-                ? "text-white/30"
-                : "text-slate-400")
+                : "text-[var(--color-text-muted)]")
             }
           >
             Suivi
@@ -109,9 +95,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
                 "flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " +
                 (activeTab === "parametres"
                   ? "bg-gradient-to-br from-[var(--color-accent-violet)] to-[var(--color-accent-fuchsia)] text-white"
-                  : darkMode
-                  ? "text-white/30"
-                  : "text-slate-400")
+                  : "text-[var(--color-text-muted)]")
               }
             >
               <span>Parametres</span>
@@ -121,7 +105,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
               onClick={() => supabase.auth.signOut()}
               className={
                 "flex-1 py-3 rounded-[28px] font-black uppercase text-[9px] tracking-widest flex flex-col items-center justify-center gap-0.5 " +
-                (darkMode ? "text-white/30" : "text-slate-400")
+                "text-[var(--color-text-muted)]"
               }
             >
               <span>🚪</span>
