@@ -4,41 +4,41 @@ import { useLabels } from "../../contexts/LabelsContext";
 
 interface BarItem { label: string; value: number; tooltip?: string; }
 
-function VerticalBars({ data, color, darkMode }: { data: BarItem[]; color: string; darkMode: boolean }) {
+function VerticalBars({ data, color }: { data: BarItem[]; color: string }) {
   const max = Math.max(...data.map((d) => d.value), 0.01);
   return (
     <div className="flex items-end gap-[2px] h-[56px]">
       {data.map((d, i) => (
         <div key={i} className="flex flex-col items-center flex-1 gap-[2px]">
           <div title={d.tooltip} className="w-full rounded-t-[3px] transition-all" style={{ height: `${Math.max(2, (d.value / max) * 52)}px`, background: color, opacity: 0.75 }} />
-          <span className="text-[6px] font-black" style={{ opacity: 0.4, color: darkMode ? "var(--color-text)" : "var(--color-text)" }}>{d.label}</span>
+          <span className="text-[6px] font-black" style={{ opacity: 0.4, color: "var(--color-text)" }}>{d.label}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function HorizontalBars({ items, color, formatVal, darkMode }: { items: { label: string; value: number }[]; color: string; formatVal: (v: number) => string; darkMode: boolean }) {
+function HorizontalBars({ items, color, formatVal }: { items: { label: string; value: number }[]; color: string; formatVal: (v: number) => string }) {
   const max = Math.max(...items.map((i) => i.value), 0.01);
   return (
     <div className="space-y-[6px]">
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-2">
-          <span className="text-[9px] font-black truncate shrink-0 w-20 opacity-70" style={{ color: darkMode ? "var(--color-text)" : "var(--color-text)" }}>{item.label}</span>
-          <div className="flex-1 h-[6px] rounded-full overflow-hidden" style={{ background: darkMode ? "var(--color-surface-offset)" : "var(--color-surface-offset)" }}>
+          <span className="text-[9px] font-black truncate shrink-0 w-20 opacity-70" style={{ color: "var(--color-text)" }}>{item.label}</span>
+          <div className="flex-1 h-[6px] rounded-full overflow-hidden" style={{ background: "var(--color-surface-offset)" }}>
             <div className="h-full rounded-full" style={{ width: `${(item.value / max) * 100}%`, background: color, opacity: 0.8 }} />
           </div>
-          <span className="text-[9px] font-black shrink-0 w-16 text-right opacity-70" style={{ color: darkMode ? "var(--color-text)" : "var(--color-text)" }}>{formatVal(item.value)}</span>
+          <span className="text-[9px] font-black shrink-0 w-16 text-right opacity-70" style={{ color: "var(--color-text)" }}>{formatVal(item.value)}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function StatCard({ title, children, darkMode }: { title: string; children: React.ReactNode; darkMode: boolean }) {
+function StatCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className={`p-3 rounded-[18px] border ${darkMode ? "bg-white/4 border-white/8" : "bg-slate-50 border-slate-200"}`}>
-      <p className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50" style={{ color: darkMode ? "var(--color-text)" : "var(--color-text)" }}>{title}</p>
+    <div className="p-3 rounded-[18px] border bg-[var(--color-surface-offset)] border-[var(--color-border)]">
+      <p className="text-[9px] font-black uppercase tracking-widest mb-2 opacity-50" style={{ color: "var(--color-text)" }}>{title}</p>
       {children}
     </div>
   );
@@ -95,17 +95,17 @@ export function StatsCharts({ missions, patrons, effectivePatronId, darkMode }: 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
-        <StatCard title="CA mensuel (€)" darkMode={darkMode}><VerticalBars data={monthlyCA} color="var(--color-accent-violet)" darkMode={darkMode} /></StatCard>
-        <StatCard title="Heures / mois" darkMode={darkMode}><VerticalBars data={monthlyHours} color="var(--color-accent-green)" darkMode={darkMode} /></StatCard>
+        <StatCard title="CA mensuel (€)"><VerticalBars data={monthlyCA} color="var(--color-accent-violet)" /></StatCard>
+        <StatCard title="Heures / mois"><VerticalBars data={monthlyHours} color="var(--color-accent-green)" /></StatCard>
       </div>
       {topClients.length > 0 && (
-        <StatCard title={`Top ${L.clients}`} darkMode={darkMode}>
-          <HorizontalBars items={topClients} color="var(--color-event-rdv)" formatVal={formatEuro} darkMode={darkMode} />
+        <StatCard title={`Top ${L.clients}`}>
+          <HorizontalBars items={topClients} color="var(--color-event-rdv)" formatVal={formatEuro} />
         </StatCard>
       )}
       {!effectivePatronId && topPatrons.length > 1 && (
-        <StatCard title={`Top ${L.patrons}`} darkMode={darkMode}>
-          <HorizontalBars items={topPatrons} color="var(--color-accent-amber)" formatVal={formatEuro} darkMode={darkMode} />
+        <StatCard title={`Top ${L.patrons}`}>
+          <HorizontalBars items={topPatrons} color="var(--color-accent-amber)" formatVal={formatEuro} />
         </StatCard>
       )}
     </div>

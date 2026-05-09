@@ -78,7 +78,7 @@ export function PatronsManager({
             const isExpanded = expandedPatronId === patron.id;
 
             return (
-              <div key={patron.id} className={`rounded-[25px] overflow-hidden transition-all ${darkMode ? "bg-white/5 border border-white/10" : "bg-slate-100 border border-slate-200"}`}>
+              <div key={patron.id} className="rounded-[25px] overflow-hidden transition-all bg-[var(--color-surface-offset)] border border-[var(--color-border)]">
                 <button onClick={() => toggleExpand(patron.id)} className="w-full p-5 flex items-center gap-4 hover:bg-white/5 transition-all">
                   <div className="w-10 h-10 rounded-full flex-shrink-0 shadow-lg" style={{ backgroundColor: patron.couleur || "#8b5cf6" }} />
                   <div className="flex-1 text-left">
@@ -95,7 +95,7 @@ export function PatronsManager({
                 </button>
 
                 {isExpanded && (
-                  <div className={`px-5 pb-5 animate-in slide-in-from-top-2 duration-200 ${darkMode ? "bg-black/20" : "bg-white/50"}`}>
+                  <div className="px-5 pb-5 animate-in slide-in-from-top-2 duration-200 bg-[var(--color-surface)]">
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       {[
                         { label: "Total heures", value: `${stats.totalHeures.toFixed(2)}h`, cls: "text-[var(--color-accent-violet)]" },
@@ -103,7 +103,7 @@ export function PatronsManager({
                         { label: "Frais", value: formatEuro(stats.totalFrais), cls: "text-[var(--color-accent-amber)]" },
                         { label: "Acomptes", value: formatEuro(stats.totalAcomptes), cls: "text-[var(--color-accent-cyan)]" },
                       ].map(({ label, value, cls }) => (
-                        <div key={label} className={`p-3 rounded-2xl ${darkMode ? "bg-white/5" : "bg-white"}`}>
+                        <div key={label} className="p-3 rounded-2xl bg-[var(--color-surface-2)]">
                           <p className="text-[9px] font-black uppercase opacity-50">{label}</p>
                           <p className={`text-lg font-black amount-safe ${cls}`}>{value}</p>
                         </div>
@@ -165,7 +165,7 @@ export function PatronsManager({
                         onClick={() => onEdit(patron)}
                         aria-label="Modifier ce patron"
                         title="Modifier"
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${darkMode ? "bg-[var(--color-accent-cyan)]/20 text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)]/30 hover:bg-[var(--color-accent-cyan)]/30" : "bg-[var(--color-accent-cyan)]/10 text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)]/30 hover:bg-[var(--color-accent-cyan)]/20"}`}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 bg-[var(--color-accent-cyan)]/15 text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)]/30 hover:bg-[var(--color-accent-cyan)]/25"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -176,7 +176,7 @@ export function PatronsManager({
                         onClick={() => onDelete(patron)}
                         aria-label="Supprimer ce patron"
                         title="Supprimer"
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${darkMode ? "bg-[var(--color-accent-red)]/20 text-[var(--color-accent-red)] border border-[var(--color-accent-red)]/30 hover:bg-[var(--color-accent-red)]/30" : "bg-[var(--color-accent-red)]/10 text-[var(--color-accent-red)] border border-[var(--color-accent-red)]/30 hover:bg-[var(--color-accent-red)]/20"}`}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 bg-[var(--color-accent-red)]/15 text-[var(--color-accent-red)] border border-[var(--color-accent-red)]/30 hover:bg-[var(--color-accent-red)]/25"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <polyline points="3 6 5 6 21 6"/>

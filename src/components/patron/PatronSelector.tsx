@@ -43,8 +43,8 @@ export function PatronSelector({ patrons = [], selectedPatronId, onSelect, requi
                 disabled={disabled}
                 className={`p-4 rounded-[20px] flex items-center gap-3 transition-all ${
                   selectedPatronId === patron.id
-                    ? darkMode ? "bg-white/20 border-2 border-white/40" : "bg-indigo-100 border-2 border-indigo-500"
-                    : darkMode ? "bg-white/5 border-2 border-white/10 hover:bg-white/10" : "bg-slate-100 border-2 border-slate-200 hover:bg-slate-200"
+                    ? "bg-indigo-500/20 border-2 border-indigo-500/60"
+                    : "bg-[var(--color-surface-offset)] border-2 border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]"
                 } disabled:opacity-50 active:scale-95`}
               >
                 <div className="w-6 h-6 rounded-full flex-shrink-0 shadow-lg" style={{ backgroundColor: patron.couleur || "#8b5cf6" }} />
@@ -61,7 +61,7 @@ export function PatronSelector({ patrons = [], selectedPatronId, onSelect, requi
             ))}
           </div>
           {onAddNew && (
-            <button type="button" onClick={onAddNew} disabled={disabled} className={`w-full py-3 rounded-[20px] font-black uppercase text-[10px] transition-all border-2 border-dashed ${darkMode ? "border-white/20 text-white/60 hover:border-white/40 hover:text-white" : "border-slate-300 text-slate-600 hover:border-slate-400 hover:text-slate-900"} disabled:opacity-50 active:scale-95`}>+ Nouveau patron</button>
+            <button type="button" onClick={onAddNew} disabled={disabled} className="w-full py-3 rounded-[20px] font-black uppercase text-[10px] transition-all border-2 border-dashed border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-primary)] hover:text-[var(--color-text)] disabled:opacity-50 active:scale-95">+ Nouveau patron</button>
           )}
         </>
       )}
@@ -125,7 +125,7 @@ export function PatronSelectorCompact({ patrons = [], selectedPatronId, onSelect
           ref={inputRef}
           type="text"
           placeholder="👔 Rechercher ou sélectionner..."
-          className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all ${darkMode ? "bg-black/20 border-white/5 text-white focus:border-indigo-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"} backdrop-blur-md placeholder:text-white/40 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-indigo-500 backdrop-blur-md placeholder:text-white/40 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
           value={search}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
@@ -137,10 +137,10 @@ export function PatronSelectorCompact({ patrons = [], selectedPatronId, onSelect
       </div>
 
       {showDropdown && !disabled && (
-        <div ref={dropdownRef} className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${darkMode ? "bg-[var(--color-field)] border-indigo-500/40" : "bg-white border-slate-300"} backdrop-blur-xl`}>
+        <div ref={dropdownRef} className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl bg-[var(--color-field)] border-[var(--color-border-violet)] backdrop-blur-xl">
           {filteredPatrons.length > 0 ? (
             filteredPatrons.map((patron) => (
-              <button key={patron.id} type="button" className={`w-full p-4 text-left transition-all border-b border-white/5 last:border-b-0 ${selectedPatronId === patron.id ? darkMode ? "bg-indigo-600/30" : "bg-indigo-100" : darkMode ? "hover:bg-white/10" : "hover:bg-slate-100"}`} onClick={() => handleSelect(patron)}>
+              <button key={patron.id} type="button" className={`w-full p-4 text-left transition-all border-b border-white/5 last:border-b-0 ${selectedPatronId === patron.id ? "bg-indigo-500/20" : "hover:bg-white/10"}`} onClick={() => handleSelect(patron)}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="font-black text-sm uppercase truncate">{patron.nom}</div>
@@ -157,7 +157,7 @@ export function PatronSelectorCompact({ patrons = [], selectedPatronId, onSelect
       )}
 
       {selectedPatron && !showDropdown && (
-        <div className={`mt-3 p-3 rounded-xl border ${darkMode ? "bg-indigo-900/20 border-indigo-500/20" : "bg-indigo-50 border-indigo-200"}`}>
+        <div className="mt-3 p-3 rounded-xl border bg-indigo-500/10 border-indigo-500/20">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedPatron.couleur || "#8b5cf6" }} />
             <span className="text-[10px] font-black uppercase opacity-60 tracking-wider">{L.patron} sélectionné</span>

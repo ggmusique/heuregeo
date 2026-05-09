@@ -169,10 +169,6 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
 
   const handleClose = () => { setPreview(null); setCsvText(""); setResult(null); onClose(); };
 
-  const card   = darkMode ? "bg-[var(--color-surface)] border-white/10" : "bg-white border-slate-200";
-  const muted  = darkMode ? "text-white/50" : "text-slate-500";
-  const input  = darkMode ? "bg-black/30 border-white/10 text-white placeholder-white/25" : "bg-slate-50 border-slate-200 text-slate-900";
-
   const validCount   = preview?.rows.filter((r) => r.valid).length  ?? 0;
   const invalidCount = preview?.rows.filter((r) => !r.valid).length ?? 0;
 
@@ -180,22 +176,22 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
 
   return (
     <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center p-3 bg-black/80 backdrop-blur-xl">
-      <div className={`w-full max-w-lg rounded-[32px] border-2 ${card} flex flex-col`} style={{ maxHeight: "90dvh" }}>
+      <div className="w-full max-w-lg rounded-[32px] border-2 bg-[var(--color-field)] border-[var(--color-border-violet)] flex flex-col" style={{ maxHeight: "90dvh" }}>
         <div className="p-5 border-b border-white/5 flex items-center justify-between shrink-0">
           <h2 className="font-black text-base uppercase tracking-tight">Import de missions</h2>
-          <button onClick={handleClose} className={`text-xl ${muted} hover:opacity-100`}>✕</button>
+          <button onClick={handleClose} className="text-xl text-[var(--color-text-muted)] hover:opacity-100">✕</button>
         </div>
 
         <div className="overflow-y-auto p-4 space-y-4">
           {result && (
             <div className={`p-4 rounded-2xl text-center ${result.created > 0 ? "bg-[var(--color-accent-green)]/15 border border-[var(--color-accent-green)]/30" : "bg-[var(--color-accent-red)]/15 border border-[var(--color-accent-red)]/30"}`}>
               {result.created > 0 ? <p className="font-black text-[var(--color-accent-green)]">✅ {result.created} mission(s) importée(s) !</p> : <p className="font-black text-[var(--color-accent-red)]">❌ Échec : {result.message}</p>}
-              {result.errors > 0 && <p className={`text-[10px] mt-1 ${muted}`}>{result.errors} ligne(s) ignorée(s) (erreurs).</p>}
+              {result.errors > 0 && <p className="text-[10px] mt-1 text-[var(--color-text-muted)]">{result.errors} ligne(s) ignorée(s) (erreurs).</p>}
             </div>
           )}
 
           {!preview && !result && (
-            <div className={`p-3 rounded-2xl text-[9px] font-mono leading-relaxed border ${darkMode ? "bg-white/3 border-white/8 text-white/50" : "bg-slate-50 border-slate-200 text-slate-500"}`}>
+            <div className="p-3 rounded-2xl text-[9px] font-mono leading-relaxed border bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text-muted)]">
               <p className="font-black mb-1 text-[10px] not-italic opacity-80">Format attendu (séparateur ; ou , ou tabulation) :</p>
               <p>Date;Début;Fin;Pause;Patron;Client;Lieu;Tarif</p>
               <p>2026-03-01;08:00;17:00;60;Pierre;Mairie;Paris;15</p>
@@ -203,15 +199,15 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
           )}
 
           {!preview && !result && (
-            <div className={`flex ${darkMode ? "bg-black/20" : "bg-slate-100"} rounded-2xl p-1`}>
-              <button onClick={() => setMode("paste")} className={`flex-1 py-2.5 text-[11px] font-black rounded-xl ${mode === "paste" ? "bg-[var(--color-accent-violet)] text-[var(--color-bg)]" : muted}`}>Coller texte</button>
-              <button onClick={() => setMode("upload")} className={`flex-1 py-2.5 text-[11px] font-black rounded-xl ${mode === "upload" ? "bg-[var(--color-accent-violet)] text-[var(--color-bg)]" : muted}`}>Fichier .xlsx/.csv</button>
+            <div className="flex bg-[var(--color-surface-offset)] rounded-2xl p-1">
+              <button onClick={() => setMode("paste")} className={`flex-1 py-2.5 text-[11px] font-black rounded-xl ${mode === "paste" ? "bg-[var(--color-accent-violet)] text-[var(--color-bg)]" : "text-[var(--color-text-muted)]"}`}>Coller texte</button>
+              <button onClick={() => setMode("upload")} className={`flex-1 py-2.5 text-[11px] font-black rounded-xl ${mode === "upload" ? "bg-[var(--color-accent-violet)] text-[var(--color-bg)]" : "text-[var(--color-text-muted)]"}`}>Fichier .xlsx/.csv</button>
             </div>
           )}
 
           {!preview && !result && mode === "paste" && (
             <>
-              <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} placeholder={"Date;Début;Fin;Pause;Patron;Client;Lieu;Tarif\n2026-03-01;08:00;17:00;60;Pierre;Mairie;Paris;15"} rows={6} className={`w-full p-3 rounded-2xl border text-[11px] font-mono resize-none focus:outline-none focus:border-indigo-400 ${input}`} />
+              <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} placeholder={"Date;Début;Fin;Pause;Patron;Client;Lieu;Tarif\n2026-03-01;08:00;17:00;60;Pierre;Mairie;Paris;15"} rows={6} className="w-full p-3 rounded-2xl border text-[11px] font-mono resize-none focus:outline-none focus:border-indigo-400 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]" />
               <button onClick={handleAnalysePaste} disabled={!csvText.trim()} className="w-full py-3 rounded-2xl font-black uppercase text-[11px] bg-[var(--color-accent-violet)] text-[var(--color-bg)] disabled:opacity-30">Analyser</button>
             </>
           )}
@@ -219,7 +215,7 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
           {!preview && !result && mode === "upload" && (
             <>
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
-              <button onClick={() => fileRef.current?.click()} className={`w-full py-8 rounded-2xl border-2 border-dashed font-black text-[11px] uppercase transition-colors ${darkMode ? "border-white/20 hover:border-indigo-400 text-white/40 hover:text-indigo-400" : "border-slate-300 hover:border-indigo-400 text-slate-400"}`}>📂 Choisir un fichier .xlsx ou .csv</button>
+              <button onClick={() => fileRef.current?.click()} className="w-full py-8 rounded-2xl border-2 border-dashed font-black text-[11px] uppercase transition-colors border-[var(--color-border)] hover:border-indigo-400 text-[var(--color-text-muted)] hover:text-indigo-400">📂 Choisir un fichier .xlsx ou .csv</button>
             </>
           )}
 
@@ -231,10 +227,10 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
               </div>
               <div className="overflow-x-auto rounded-2xl border border-white/8" style={{ maxHeight: "280px" }}>
                 <table className="w-full text-[9px]">
-                  <thead><tr className={darkMode ? "bg-white/5" : "bg-slate-100"}>{["Ligne","Date","Début","Fin","Patron","Client","Lieu","H","€","Statut"].map((h) => <th key={h} className="px-2 py-1.5 text-left font-black opacity-60 whitespace-nowrap">{h}</th>)}</tr></thead>
+                  <thead><tr className="bg-[var(--color-surface-offset)]">{["Ligne","Date","Début","Fin","Patron","Client","Lieu","H","€","Statut"].map((h) => <th key={h} className="px-2 py-1.5 text-left font-black opacity-60 whitespace-nowrap">{h}</th>)}</tr></thead>
                   <tbody>
                     {preview.rows.map((r, i) => (
-                      <tr key={i} className={`border-t ${darkMode ? "border-white/5" : "border-slate-100"} ${r.valid ? "" : (darkMode ? "bg-red-500/8" : "bg-red-50")}`}>
+                      <tr key={i} className={`border-t border-[var(--color-border)] ${r.valid ? "" : "bg-red-500/8"}`}>
                         <td className="px-2 py-1 font-black opacity-40">{r.line}</td>
                         <td className="px-2 py-1 whitespace-nowrap">{r.mission?.date_iso ?? r.raw.date ?? "—"}</td>
                         <td className="px-2 py-1">{r.mission?.debut ?? r.raw.debut ?? "—"}</td>
@@ -251,7 +247,7 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
                 </table>
               </div>
               {invalidCount > 0 && (
-                <div className={`p-3 rounded-2xl border text-[9px] space-y-0.5 ${darkMode ? "bg-red-500/8 border-red-500/20" : "bg-red-50 border-red-200"}`}>
+                <div className="p-3 rounded-2xl border text-[9px] space-y-0.5 bg-red-500/8 border-red-500/20">
                   {preview.rows.filter((r) => !r.valid).map((r, i) => (
                     <p key={i} className="text-[var(--color-accent-red)]"><span className="font-black">Ligne {r.line} :</span> {r.errors.join(" · ")}</p>
                   ))}
@@ -264,13 +260,13 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
         <div className="p-4 border-t border-white/5 flex gap-3 shrink-0">
           {preview ? (
             <>
-              <button onClick={() => { setPreview(null); setResult(null); }} className={`flex-1 py-3 font-black uppercase text-[10px] rounded-2xl ${darkMode ? "bg-white/5 text-white/50" : "bg-slate-100 text-slate-500"}`}>Retour</button>
+              <button onClick={() => { setPreview(null); setResult(null); }} className="flex-1 py-3 font-black uppercase text-[10px] rounded-2xl bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">Retour</button>
               <button onClick={handleImport} disabled={validCount === 0 || importing} className="flex-1 py-3 font-black uppercase text-[10px] rounded-2xl bg-gradient-to-r from-[var(--color-accent-violet)] to-[var(--color-accent-fuchsia)] text-white disabled:opacity-30">{importing ? "Import…" : `Importer ${validCount} mission(s)`}</button>
             </>
           ) : result ? (
             <button onClick={handleClose} className="w-full py-3 font-black uppercase text-[10px] rounded-2xl bg-gradient-to-r from-[var(--color-accent-green)] to-[color-mix(in_srgb,var(--color-accent-green)_60%,var(--color-accent-cyan))] text-white">Fermer</button>
           ) : (
-            <button onClick={handleClose} className={`w-full py-3 font-black uppercase text-[10px] rounded-2xl ${darkMode ? "bg-white/5 text-white/50" : "bg-slate-100 text-slate-500"}`}>Annuler</button>
+            <button onClick={handleClose} className="w-full py-3 font-black uppercase text-[10px] rounded-2xl bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">Annuler</button>
           )}
         </div>
       </div>

@@ -152,9 +152,7 @@ export const LieuSelector = ({
           ref={inputRef}
           type="text"
           placeholder="📍 Rechercher ou sélectionner..."
-          className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all ${
-            darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"
-          } backdrop-blur-md placeholder:text-white/40`}
+          className="w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md placeholder:text-white/40"
           value={search}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
@@ -172,7 +170,7 @@ export const LieuSelector = ({
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${darkMode ? "bg-[var(--color-field)] border-purple-500/40" : "bg-white border-slate-200"} backdrop-blur-xl`}
+          className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl bg-[var(--color-field)] border-[var(--color-border-violet)] backdrop-blur-xl"
         >
           {filteredLieux.length > 0 ? (
             <div className="p-2">
@@ -183,7 +181,7 @@ export const LieuSelector = ({
                     const idStr = String(lieu?.id);
                     return (
                       <button key={lieu.id} type="button" onClick={() => handleSelect(lieu)}
-                        className={`w-full text-left p-3 rounded-xl transition-all mb-1 ${idStr === selectedLieuIdStr ? "bg-purple-600 text-white" : darkMode ? "hover:bg-green-600/20 text-white border border-green-500/30" : "hover:bg-green-100 text-slate-900 border border-green-300"}`}
+                        className={`w-full text-left p-3 rounded-xl transition-all mb-1 ${idStr === selectedLieuIdStr ? "bg-purple-600 text-white" : "hover:bg-green-600/20 text-[var(--color-text)] border border-green-500/30"}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-bold">{lieu.nom}</div>
@@ -202,7 +200,7 @@ export const LieuSelector = ({
                     const idStr = String(lieu?.id);
                     return (
                       <button key={lieu.id} type="button" onClick={() => handleSelect(lieu)}
-                        className={`w-full text-left p-3 rounded-xl transition-all ${idStr === selectedLieuIdStr ? "bg-purple-600 text-white" : darkMode ? "hover:bg-white/10 text-white" : "hover:bg-slate-100 text-slate-900"}`}
+                        className={`w-full text-left p-3 rounded-xl transition-all ${idStr === selectedLieuIdStr ? "bg-purple-600 text-white" : "hover:bg-[var(--color-surface-offset)] text-[var(--color-text)]"}`}
                       >
                         <div className="font-bold">{lieu.nom}</div>
                         {lieu.adresse_complete && <div className="text-xs opacity-60 mt-1 line-clamp-1">📍 {lieu.adresse_complete}</div>}
