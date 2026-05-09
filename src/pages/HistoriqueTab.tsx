@@ -189,6 +189,7 @@ export const HistoriqueTab = ({
             missions={missions}
             patrons={patrons}
             effectivePatronId={effectivePatronId}
+            darkMode={false}
           />
         </div>
       )}
@@ -490,6 +491,8 @@ export const HistoriqueTab = ({
                     value={mDateFrom}
                     onChange={(e) => setMDateFrom(e.target.value)}
                     className="w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)]"
+                  >
+                    <option value="">Début</option>
                     {availableMonths.map((m) => (
                       <option key={m} value={m}>{formatMonthLabel(m)}</option>
                     ))}
@@ -503,6 +506,8 @@ export const HistoriqueTab = ({
                     value={mDateTo}
                     onChange={(e) => setMDateTo(e.target.value)}
                     className="w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)]"
+                  >
+                    <option value="">Fin</option>
                     {[...availableMonths].reverse().map((m) => (
                       <option key={m} value={m}>{formatMonthLabel(m)}</option>
                     ))}
@@ -516,6 +521,9 @@ export const HistoriqueTab = ({
                     value={mClient}
                     onChange={(e) => setMClient(e.target.value)}
                     className="w-full p-2 rounded-xl border text-[11px] font-bold focus:outline-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)]"
+                  >
+                    <option value="">Tous</option>
+                    {clientsUniques.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
