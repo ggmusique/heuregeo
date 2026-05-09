@@ -23,7 +23,6 @@ export const LieuxManager = ({
   onDelete = () => {},
   onAdd = () => {},
   onLieuEdit = () => {},
-  darkMode = true,
   missions = [],
   allowActions = true,
   kmSettings = null,
@@ -143,7 +142,7 @@ export const LieuxManager = ({
   return (
     <div className="space-y-6">
       {lieuxSansCoords.length > 0 && (
-        <div className={`p-4 rounded-2xl border ${darkMode ? "border-blue-500/30 bg-blue-500/5" : "border-blue-300 bg-blue-50"}`}>
+        <div className="p-4 rounded-2xl border border-blue-500/30 bg-blue-500/5">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
               <p className="text-[10px] font-black uppercase text-blue-300 tracking-wider mb-1">📍 Coordonnées GPS manquantes</p>
@@ -176,26 +175,25 @@ export const LieuxManager = ({
 
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="flex-1 w-full sm:w-auto">
-          <input type="text" placeholder="🔍 Rechercher un lieu..." className={`w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all ${darkMode ? "bg-black/20 border-white/5 text-white focus:border-purple-500" : "bg-slate-50 border-slate-200 text-slate-900 focus:border-purple-500"} backdrop-blur-md`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <input type="text" placeholder="🔍 Rechercher un lieu..." className="w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         <button onClick={onAdd} className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl font-black text-white text-[11px] uppercase tracking-wider shadow-lg hover:shadow-xl transition-all active:scale-95 backdrop-blur-md">+ Nouveau {L.lieu}</button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: `Total ${L.lieux}`, value: Array.isArray(lieux) ? lieux.length : 0, cls: "from-purple-600/20 to-pink-600/20 border-purple-500/30 from-purple-100 to-pink-100 border-purple-300" },
-          { label: "Total Missions", value: globalStats.totalMissions, cls: "from-green-600/20 to-emerald-600/20 border-green-500/30 from-green-100 to-emerald-100 border-green-300" },
-        ].map(({ label, value, cls }) => (
-          <div key={label} className={`p-4 rounded-2xl ${darkMode ? `bg-gradient-to-br ${cls.split(" ").slice(0,3).join(" ")}` : `bg-gradient-to-br ${cls.split(" ").slice(3).join(" ")}`} backdrop-blur-md`}>
-            <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">{label}</div>
-            <div className="text-2xl font-black text-white mt-1">{value}</div>
-          </div>
-        ))}
-        <div className={`p-4 rounded-2xl ${darkMode ? "bg-gradient-to-br from-cyan-600/20 to-blue-600/20 border border-cyan-500/30" : "bg-gradient-to-br from-cyan-100 to-blue-100 border border-cyan-300"} backdrop-blur-md`}>
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-600/20 to-pink-600/20 border border-purple-500/30 backdrop-blur-md">
+          <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">Total {L.lieux}</div>
+          <div className="text-2xl font-black text-white mt-1">{Array.isArray(lieux) ? lieux.length : 0}</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-green-600/20 to-emerald-600/20 border border-green-500/30 backdrop-blur-md">
+          <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">Total Missions</div>
+          <div className="text-2xl font-black text-white mt-1">{globalStats.totalMissions}</div>
+        </div>
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-600/20 to-blue-600/20 border border-cyan-500/30 backdrop-blur-md">
           <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">Total Heures</div>
           <div className="text-2xl font-black text-white mt-1">{formatHeures(globalStats.totalHeures)}</div>
         </div>
-        <div className={`p-4 rounded-2xl ${darkMode ? "bg-gradient-to-br from-amber-600/20 to-orange-600/20 border border-amber-500/30" : "bg-gradient-to-br from-amber-100 to-orange-100 border border-amber-300"} backdrop-blur-md`}>
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-600/20 to-orange-600/20 border border-amber-500/30 backdrop-blur-md">
           <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">CA Total</div>
           <div className="text-2xl font-black text-white mt-1">{formatEuro(globalStats.totalCA)}</div>
         </div>
@@ -217,7 +215,7 @@ export const LieuxManager = ({
             const regeoError = regeocodingErrors[lieu.id];
 
             return (
-              <div key={lieu.id} className={`p-5 rounded-[25px] backdrop-blur-md border-2 ${suspect ? darkMode ? "bg-amber-900/10 border-amber-500/40 hover:border-amber-400/60" : "bg-amber-50 border-amber-300 hover:border-amber-400" : darkMode ? "bg-white/5 border-white/10 hover:border-purple-500/40" : "bg-white border-slate-200 hover:border-purple-300"} transition-all`}>
+              <div key={lieu.id} className={`p-5 rounded-[25px] backdrop-blur-md border-2 ${suspect ? "bg-amber-900/10 border-amber-500/40 hover:border-amber-400/60" : "bg-[var(--color-surface-offset)] border-[var(--color-border)] hover:border-purple-500/40"} transition-all`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -238,9 +236,9 @@ export const LieuxManager = ({
                       )}
                     </div>
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-black/20 px-3 py-2 rounded-xl"><div className="text-[9px] font-black uppercase opacity-40">Missions</div><div className="text-base font-black text-purple-400">{Number(lieu?.nombreMissions) || 0}</div></div>
-                      <div className="bg-black/20 px-3 py-2 rounded-xl"><div className="text-[9px] font-black uppercase opacity-40">Heures</div><div className="text-base font-black text-cyan-400">{formatHeures(Number(lieu?.totalHeures) || 0)}</div></div>
-                      <div className="bg-black/20 px-3 py-2 rounded-xl"><div className="text-[9px] font-black uppercase opacity-40">CA</div><div className="text-base font-black text-green-400">{formatEuro(Number(lieu?.totalCA) || 0)}</div></div>
+                      <div className="bg-[var(--color-surface)] px-3 py-2 rounded-xl"><div className="text-[9px] font-black uppercase opacity-40">Missions</div><div className="text-base font-black text-purple-400">{Number(lieu?.nombreMissions) || 0}</div></div>
+                      <div className="bg-[var(--color-surface)] px-3 py-2 rounded-xl"><div className="text-[9px] font-black uppercase opacity-40">Heures</div><div className="text-base font-black text-cyan-400">{formatHeures(Number(lieu?.totalHeures) || 0)}</div></div>
+                      <div className="bg-[var(--color-surface)] px-3 py-2 rounded-xl"><div className="text-[9px] font-black uppercase opacity-40">CA</div><div className="text-base font-black text-green-400">{formatEuro(Number(lieu?.totalCA) || 0)}</div></div>
                     </div>
                     {lieu?.derniereMission && <div className="mt-2 text-[10px] text-white/40">Dernière mission : {new Date(lieu.derniereMission).toLocaleDateString("fr-FR")}</div>}
                   </div>
@@ -250,7 +248,7 @@ export const LieuxManager = ({
                         onClick={() => onEdit(lieu)}
                         aria-label="Modifier ce lieu"
                         title="Modifier"
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${darkMode ? "bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30" : "bg-blue-100 text-blue-600 border border-blue-300 hover:bg-blue-200"}`}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -261,7 +259,7 @@ export const LieuxManager = ({
                         onClick={() => onDelete(lieu)}
                         aria-label="Supprimer ce lieu"
                         title="Supprimer"
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${darkMode ? "bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30" : "bg-red-100 text-red-600 border border-red-300 hover:bg-red-200"}`}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <polyline points="3 6 5 6 21 6"/>
