@@ -35,7 +35,7 @@ export function useBilanPeriod({ missions }: { missions: Mission[] }): UseBilanP
       if (!mDate) return;
       const d = new Date(mDate);
       if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
-        periods.add(getWeekNumber(d));
+        periods.add(String(getWeekNumber(d)));
       } else if (bilanPeriodType === PERIOD_TYPES.MOIS) {
         periods.add(mDate.substring(0, 7));
       } else if (bilanPeriodType === PERIOD_TYPES.ANNEE) {

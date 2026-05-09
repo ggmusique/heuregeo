@@ -67,7 +67,7 @@ export function computeKmItems(
       amount: null,
     };
 
-    if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+    if (lieu?.latitude && lieu?.longitude && Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
       const kmOneWay: number = haversineKm(domicile.lat, domicile.lng, latLieu, lngLieu);
       const kmTotal = kmOneWay * multiplicateur;
       const amount = kmTotal * kmRateEffectif;

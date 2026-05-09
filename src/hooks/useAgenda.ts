@@ -85,7 +85,7 @@ export function useAgenda({ userId, triggerAlert }: UseAgendaParams): UseAgendaR
   // CRUD
   // ────────────────────────────────────────────────────────────────────────
   const createEvent = useCallback(async (data: Partial<AgendaEvent>): Promise<void> => {
-    if (!userId) return;
+    if (!userId) { triggerAlert("Utilisateur non connecté"); return; }
     await agendaApi.createAgendaEvent(userId, data);
     await fetchEvents();
   }, [userId, fetchEvents]);

@@ -86,7 +86,7 @@ export function AppModals({
         date={fraisModal.fraisDate}
         setDate={fraisModal.setFraisDate}
         onSubmit={fraisModal.handleFraisSubmit}
-        onCancel={() => { fraisModal.setShowFraisModal(false); fraisModal.resetFraisForm(); }}
+        onCancel={() => fraisModal.closeFraisModal()}
         loading={loading}
         darkMode={darkMode}
         isIOS={isIOS}
@@ -102,7 +102,7 @@ export function AppModals({
         date={acompteModal.acompteDate}
         setDate={acompteModal.setAcompteDate}
         onSubmit={acompteModal.handleAcompteSubmit}
-        onCancel={() => { acompteModal.setShowAcompteModal(false); acompteModal.resetAcompteForm(); }}
+        onCancel={() => acompteModal.closeAcompteModal()}
         loading={loading || acompteModal.isSavingAcompte}
         darkMode={darkMode}
         isIOS={isIOS}
@@ -116,7 +116,7 @@ export function AppModals({
         editMode={!!patronModal.editingPatronId}
         initialData={patronModal.editingPatronData}
         onSubmit={patronModal.handlePatronSubmit}
-        onCancel={() => { patronModal.setShowPatronModal(false); patronModal.resetPatronForm(); }}
+        onCancel={() => patronModal.closePatronModal()}
         loading={loading}
         darkMode={darkMode}
       />
@@ -126,7 +126,7 @@ export function AppModals({
         editMode={!!clientModal.editingClientId}
         initialData={clientModal.editingClientData}
         onSubmit={clientModal.handleClientSubmit}
-        onCancel={() => { clientModal.setShowClientModal(false); clientModal.resetClientForm(); }}
+        onCancel={() => clientModal.closeClientModal()}
         loading={loading}
         darkMode={darkMode}
       />
@@ -158,7 +158,7 @@ export function AppModals({
         editMode={!!lieuModal.editingLieuId}
         initialData={lieuModal.editingLieuData}
         onSubmit={lieuModal.handleLieuSubmit}
-        onCancel={() => { lieuModal.setShowLieuModal(false); lieuModal.resetLieuForm(); }}
+        onCancel={() => { lieuModal.closeLieuModal(); }}
         loading={loading}
         darkMode={darkMode}
       />
@@ -170,7 +170,7 @@ export function AppModals({
           initialData={agendaModal.editingEventData}
           selectedDate={agendaModal.selectedDate}
           onSubmit={agendaModal.handleEventSubmit}
-          onCancel={() => { agendaModal.setShowAgendaModal(false); agendaModal.resetEventForm(); }}
+          onCancel={() => agendaModal.closeAgendaModal()}
           onDelete={() => agendaModal.handleEventDelete(agendaModal.editingEventId)}
           loading={loading}
           darkMode={darkMode}

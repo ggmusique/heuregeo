@@ -55,7 +55,7 @@ export const useProfile = (user: AuthUser | null | undefined): UseProfileReturn 
         .eq("id", user.id)
         .single();
 
-      if (error && error.code !== "PGRST116") throw error;
+      if (error && error.code !== "PGRST116") throw error; // PGRST116 = profil non encore créé, comportement normal pour un nouvel utilisateur
       setProfile(data || null);
     } catch (err) {
       setError((err as Error).message);

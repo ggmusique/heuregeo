@@ -127,11 +127,11 @@ export function useAppProps({
         missionForm.setEditingMissionData((prev: Partial<Mission> | null) => ({ ...(prev || {}), client_id: clientId, client: selected?.nom || prev?.client || "" }));
       }
     },
-    onShowLieuModal: () => { lieuModal.resetLieuForm(); lieuModal.setShowLieuModal(true); },
-    onShowClientModal: () => { clientModal.resetClientForm(); clientModal.setShowClientModal(true); },
-    onShowPatronModal: () => { patronModal.resetPatronForm(); patronModal.setShowPatronModal(true); },
-    onShowFraisModal: () => fraisModal.setShowFraisModal(true),
-    onShowAcompteModal: () => acompteModal.setShowAcompteModal(true),
+    onShowLieuModal: () => { lieuModal.openLieuModal(); },
+    onShowClientModal: () => clientModal.openClientModal(),
+    onShowPatronModal: () => patronModal.openPatronModal(),
+    onShowFraisModal: () => fraisModal.openFraisModal(),
+    onShowAcompteModal: () => acompteModal.openAcompteModal(),
     onShowImportModal: () => setShowImportModal(true),
     showMissionRateEditor,
   };

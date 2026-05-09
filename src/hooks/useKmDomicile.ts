@@ -183,7 +183,7 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
       const lieu = lieuById || lieuByName;
       const latLieu = Number(lieu?.latitude);
       const lngLieu = Number(lieu?.longitude);
-      if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+      if (lieu?.latitude && lieu?.longitude && Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
         const kmOneWay: number = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
         const kmTot = kmOneWay * multiplicateur;
         const amount = kmTot * kmRateEffectif;
@@ -233,7 +233,7 @@ export function useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek }
       const lieu = lieuById || lieuByName;
       const latLieu = Number(lieu?.latitude);
       const lngLieu = Number(lieu?.longitude);
-      if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
+      if (lieu?.latitude && lieu?.longitude && Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
         const kmOneWay: number = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
         const distanceKm = kmOneWay * multiplicateur;
         const amount = distanceKm * kmRateEffectif;

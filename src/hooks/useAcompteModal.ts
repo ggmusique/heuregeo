@@ -22,7 +22,8 @@ interface UseAcompteModalArgs {
 
 export interface UseAcompteModalReturn {
   showAcompteModal: boolean;
-  setShowAcompteModal: (v: boolean) => void;
+  closeAcompteModal: () => void;
+  openAcompteModal: () => void;
   acompteMontant: string;
   setAcompteMontant: (v: string) => void;
   acompteDate: string;
@@ -49,6 +50,9 @@ export function useAcompteModal({ createAcompte, fetchAcomptes, setLoading, trig
     setAcomptePatronId(null);
   };
 
+  const closeAcompteModal = (): void => { setShowAcompteModal(false); resetAcompteForm(); };
+  const openAcompteModal  = (): void => { resetAcompteForm(); setShowAcompteModal(true); };
+
   const handleAcompteSubmit = async (): Promise<void> => {
     if (isSavingAcompte) return;
     const montantNet = parseFloat(acompteMontant?.toString().replace(",", "."));
@@ -59,8 +63,7 @@ export function useAcompteModal({ createAcompte, fetchAcomptes, setLoading, trig
       setLoading(true);
       await createAcompte({ montant: montantNet, date_acompte: acompteDate, patron_id: acomptePatronId });
       triggerAlert("Acompte enregistre !");
-      resetAcompteForm();
-      setShowAcompteModal(false);
+      closeAcompteModal();
       await fetchAcomptes();
       if (typeof bilan.fetchHistoriqueBilans === "function") {
         await bilan.fetchHistoriqueBilans(acomptePatronId);
@@ -76,7 +79,8 @@ export function useAcompteModal({ createAcompte, fetchAcomptes, setLoading, trig
 
   return {
     showAcompteModal,
-    setShowAcompteModal,
+    closeAcompteModal,
+    openAcompteModal,
     acompteMontant,
     setAcompteMontant,
     acompteDate,

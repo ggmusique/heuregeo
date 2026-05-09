@@ -278,13 +278,13 @@ function AppInner({
             triggerAlert={triggerAlert}
             onPatronEdit={patronModal.handlePatronEdit}
             onPatronDelete={patronModal.handlePatronDelete}
-            onPatronAdd={() => { patronModal.resetPatronForm(); patronModal.setShowPatronModal(true); }}
+            onPatronAdd={() => patronModal.openPatronModal()}
             onClientEdit={clientModal.handleClientEdit}
             onClientDelete={clientModal.handleClientDelete}
-            onClientAdd={() => { clientModal.resetClientForm(); clientModal.setShowClientModal(true); }}
+            onClientAdd={() => clientModal.openClientModal()}
             onLieuEdit={lieuModal.handleLieuEdit}
             onLieuDelete={lieuModal.handleLieuDelete}
-            onLieuAdd={() => { lieuModal.resetLieuForm(); lieuModal.setShowLieuModal(true); }}
+            onLieuAdd={() => { lieuModal.openLieuModal(); }}
             showMissionRateEditor={showMissionRateEditor}
             onToggleMissionRateEditor={setShowMissionRateEditor}
             kmSettings={kmSettings}

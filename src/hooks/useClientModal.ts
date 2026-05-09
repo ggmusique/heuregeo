@@ -16,7 +16,9 @@ interface UseClientModalArgs {
 
 export interface UseClientModalReturn {
   showClientModal: boolean;
-  setShowClientModal: (v: boolean) => void;
+  closeClientModal: () => void;
+  openClientModal: () => void;
+  isSaving: boolean;
   editingClientId: string | null;
   editingClientData: Client | null;
   handleClientSubmit: (clientData: Partial<Client>) => Promise<void>;
@@ -32,21 +34,26 @@ export function useClientModal({ createClient, updateClient, deleteClient, setLo
   const [showClientModal, setShowClientModal] = useState<boolean>(false);
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [editingClientData, setEditingClientData] = useState<Client | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const resetClientForm = (): void => {
     setEditingClientId(null);
     setEditingClientData(null);
   };
 
+  const closeClientModal = (): void => { setShowClientModal(false); resetClientForm(); };
+  const openClientModal  = (): void => { resetClientForm(); setShowClientModal(true); };
+
   const handleClientSubmit = async (clientData: Partial<Client>): Promise<void> => {
+    if (isSaving) return;
     try {
+      setIsSaving(true);
       setLoading(true);
-      if (editingClientId) { await updateClient(editingClientId, clientData); triggerAlert(`${L.client} modifié !`); }
-      else { await createClient(clientData); triggerAlert(`${L.client} créé !`); }
-      resetClientForm();
-      setShowClientModal(false);
+      if (editingClientId) { await updateClient(editingClientId, clientData); triggerAlert(`${L.client} modifi\u00e9 !`); }
+      else { await createClient(clientData); triggerAlert(`${L.client} cr\u00e9\u00e9 !`); }
+      closeClientModal();
     } catch (err) { triggerAlert("Erreur : " + ((err as Error)?.message || "Operation echouee")); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setIsSaving(false); }
   };
 
   const handleClientEdit = (client: Client): void => {
@@ -56,16 +63,19 @@ export function useClientModal({ createClient, updateClient, deleteClient, setLo
   };
 
   const handleClientDelete = async (client: Client): Promise<void> => {
+    if (isSaving) return;
     const confirmed = await showConfirm({ title: "Supprimer ce client", message: "Supprimer ce client ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
     if (!confirmed) return;
-    try { setLoading(true); await deleteClient(client.id); triggerAlert(`${L.client} supprimé !`); }
+    try { setIsSaving(true); setLoading(true); await deleteClient(client.id); triggerAlert(`${L.client} supprim\u00e9 !`); }
     catch { triggerAlert("Erreur suppression"); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setIsSaving(false); }
   };
 
   return {
     showClientModal,
-    setShowClientModal,
+    closeClientModal,
+    openClientModal,
+    isSaving,
     editingClientId,
     editingClientData,
     handleClientSubmit,

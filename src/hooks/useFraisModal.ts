@@ -15,7 +15,9 @@ interface UseFraisModalArgs {
 
 export interface UseFraisModalReturn {
   showFraisModal: boolean;
-  setShowFraisModal: (v: boolean) => void;
+  closeFraisModal: () => void;
+  openFraisModal: () => void;
+  isSaving: boolean;
   fraisDescription: string;
   setFraisDescription: (v: string) => void;
   fraisMontant: string;
@@ -40,6 +42,7 @@ export function useFraisModal({ createFrais, updateFrais, deleteFrais, setLoadin
   const [fraisDate, setFraisDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [editingFraisId, setEditingFraisId] = useState<string | null>(null);
   const [fraisPatronId, setFraisPatronId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   const resetFraisForm = (): void => {
     setFraisDescription("");
@@ -49,18 +52,22 @@ export function useFraisModal({ createFrais, updateFrais, deleteFrais, setLoadin
     setFraisPatronId(null);
   };
 
+  const closeFraisModal = (): void => { setShowFraisModal(false); resetFraisForm(); };
+  const openFraisModal  = (): void => { resetFraisForm(); setShowFraisModal(true); };
+
   const handleFraisSubmit = async (): Promise<void> => {
+    if (isSaving) return;
     const montant = parseFloat(fraisMontant);
     if (!fraisDescription.trim() || isNaN(montant) || montant <= 0) return triggerAlert("Remplis correctement les champs");
     if (!fraisPatronId) return triggerAlert("Selectionne un patron pour ce frais");
     try {
+      setIsSaving(true);
       setLoading(true);
       if (editingFraisId) { await updateFrais(editingFraisId, { description: fraisDescription.trim(), montant, date_frais: fraisDate, patron_id: fraisPatronId }); triggerAlert("Frais modifie !"); }
       else { await createFrais({ description: fraisDescription.trim(), montant, date_frais: fraisDate, patron_id: fraisPatronId }); triggerAlert("Frais ajoute !"); }
-      resetFraisForm();
-      setShowFraisModal(false);
+      closeFraisModal();
     } catch { triggerAlert("Erreur operation frais"); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setIsSaving(false); }
   };
 
   const handleFraisEdit = (frais: FraisDivers): void => {
@@ -73,16 +80,19 @@ export function useFraisModal({ createFrais, updateFrais, deleteFrais, setLoadin
   };
 
   const handleFraisDelete = async (frais: FraisDivers): Promise<void> => {
+    if (isSaving) return;
     const confirmed = await showConfirm({ title: "Supprimer ce frais", message: "Supprimer ce frais ?", confirmText: "Supprimer", cancelText: "Annuler", type: "danger" });
     if (!confirmed) return;
-    try { setLoading(true); await deleteFrais(frais.id); triggerAlert("Frais supprime !"); }
+    try { setIsSaving(true); setLoading(true); await deleteFrais(frais.id); triggerAlert("Frais supprime !"); }
     catch { triggerAlert("Erreur suppression"); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setIsSaving(false); }
   };
 
   return {
     showFraisModal,
-    setShowFraisModal,
+    closeFraisModal,
+    openFraisModal,
+    isSaving,
     fraisDescription,
     setFraisDescription,
     fraisMontant,

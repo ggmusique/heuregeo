@@ -18,7 +18,8 @@ interface UseAgendaModalArgs {
 
 export interface UseAgendaModalReturn {
   showAgendaModal: boolean;
-  setShowAgendaModal: (v: boolean) => void;
+  closeAgendaModal: () => void;
+  isSaving: boolean;
   editingEventId: string | null;
   editingEventData: AgendaEvent | null;
   selectedDate: string | null;
@@ -36,6 +37,7 @@ export function useAgendaModal({ createEvent, updateEvent, deleteEvent, triggerA
   const [editingEventId,  setEditingEventId]  = useState<string | null>(null);
   const [editingEventData,setEditingEventData]= useState<AgendaEvent | null>(null);
   const [selectedDate,    setSelectedDate]    = useState<string | null>(null);
+  const [isSaving,        setIsSaving]        = useState<boolean>(false);
 
   const openForDate = useCallback((dateIso: string): void => {
     setSelectedDate(dateIso);
@@ -57,8 +59,12 @@ export function useAgendaModal({ createEvent, updateEvent, deleteEvent, triggerA
     setSelectedDate(null);
   }, []);
 
+  const closeAgendaModal = useCallback((): void => { setShowAgendaModal(false); resetEventForm(); }, [resetEventForm]);
+
   const handleEventSubmit = useCallback(async (formData: Record<string, unknown>): Promise<void> => {
+    if (isSaving) return;
     try {
+      setIsSaving(true);
       if (editingEventId) {
         await updateEvent(editingEventId, formData);
         triggerAlert("Événement modifié !");
@@ -66,27 +72,32 @@ export function useAgendaModal({ createEvent, updateEvent, deleteEvent, triggerA
         await createEvent(formData);
         triggerAlert("Événement créé !");
       }
-      resetEventForm();
-      setShowAgendaModal(false);
+      closeAgendaModal();
     } catch (err) {
       triggerAlert("Erreur : " + ((err as Error)?.message || "Opération échouée"));
+    } finally {
+      setIsSaving(false);
     }
-  }, [editingEventId, createEvent, updateEvent, triggerAlert, resetEventForm]);
+  }, [isSaving, editingEventId, createEvent, updateEvent, triggerAlert, closeAgendaModal]);
 
   const handleEventDelete = useCallback(async (id: string): Promise<void> => {
+    if (isSaving) return;
     try {
+      setIsSaving(true);
       await deleteEvent(id);
-      triggerAlert("Événement supprimé");
-      resetEventForm();
-      setShowAgendaModal(false);
+      triggerAlert("\u00c9v\u00e9nement supprim\u00e9");
+      closeAgendaModal();
     } catch {
       triggerAlert("Erreur suppression");
+    } finally {
+      setIsSaving(false);
     }
-  }, [deleteEvent, triggerAlert, resetEventForm]);
+  }, [isSaving, deleteEvent, triggerAlert, closeAgendaModal]);
 
   return {
     showAgendaModal,
-    setShowAgendaModal,
+    closeAgendaModal,
+    isSaving,
     editingEventId,
     editingEventData,
     selectedDate,

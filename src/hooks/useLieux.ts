@@ -57,7 +57,10 @@ export const useLieux = (onError?: (msg: string) => void): UseLieuxReturn => {
       try {
         setLoading(true);
 
-        const newLieu = await lieuxApi.createLieu(lieuData);
+        const cleanData = { ...lieuData };
+        if (cleanData.latitude == null) delete cleanData.latitude;
+        if (cleanData.longitude == null) delete cleanData.longitude;
+        const newLieu = await lieuxApi.createLieu(cleanData);
 
         if (newLieu) {
           setLieux((prev) => [newLieu, ...prev]);
@@ -85,7 +88,10 @@ export const useLieux = (onError?: (msg: string) => void): UseLieuxReturn => {
       try {
         setLoading(true);
 
-        const updated = await lieuxApi.updateLieu(id, lieuData);
+        const cleanData = { ...lieuData };
+        if (cleanData.latitude == null) delete cleanData.latitude;
+        if (cleanData.longitude == null) delete cleanData.longitude;
+        const updated = await lieuxApi.updateLieu(id, cleanData);
 
         if (updated) {
           setLieux((prev) => prev.map((l) => (l.id === id ? updated : l)));
