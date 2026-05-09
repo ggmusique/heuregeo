@@ -598,7 +598,7 @@ export function ParametresTab({
                     onLieuDelete={onLieuDelete}
                     onLieuAdd={onLieuAdd}
                     defaultOpenPatrons={false}
-                    allowClientActions={false}
+                    allowClientActions={true}
                     allowLieuActions={true}
                     kmSettings={kmSettings}
                     onRegeocoderLieu={onRegeocoderLieu}

@@ -361,25 +361,35 @@ export const ClientsManager = ({
                 <div className="flex gap-2">
                   <button
                     onClick={() => onEdit(client)}
+                    aria-label="Modifier ce client"
+                    title="Modifier"
                     className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
                       darkMode
                         ? "bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600/30"
                         : "bg-blue-100 text-blue-600 border border-blue-300 hover:bg-blue-200"
                     }`}
-                    title="Modifier"
                   >
-                    ✏️
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
                   </button>
                   <button
                     onClick={() => onDelete(client)}
+                    aria-label="Supprimer ce client"
+                    title="Supprimer"
                     className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
                       darkMode
                         ? "bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30"
                         : "bg-red-100 text-red-600 border border-red-300 hover:bg-red-200"
                     }`}
-                    title="Supprimer"
                   >
-                    🗑️
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                      <line x1="10" y1="11" x2="10" y2="17"/>
+                      <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
                   </button>
                 </div>
                 )}
