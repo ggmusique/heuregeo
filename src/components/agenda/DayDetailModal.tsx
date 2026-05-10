@@ -74,23 +74,20 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end sm:justify-center sm:items-center sm:p-6"
       onClick={onClose}
     >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-
       {/* Panel */}
       <div
-        className="relative w-full max-w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-gray-900/95 sm:bg-gray-900/90 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden max-h-[90dvh] flex flex-col"
+        className="w-full sm:max-w-lg bg-gray-900/95 backdrop-blur border border-cyan-400/20 rounded-t-3xl sm:rounded-2xl max-h-[85dvh] sm:max-h-[80dvh] flex flex-col overflow-hidden shadow-[0_0_40px_rgba(34,211,238,0.1)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle — mobile only */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
           <div className="w-10 h-1 rounded-full bg-white/20" />
         </div>
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b border-white/8">
+        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b border-cyan-400/10 flex-shrink-0">
           <div className="flex flex-col gap-1.5 min-w-0">
             {/* Type badge */}
             <span
@@ -159,7 +156,7 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
 
         {/* Footer — only for editable agenda events */}
         {!isTravail && (
-          <div className="px-5 pb-5">
+          <div className="flex-shrink-0 px-5 py-4 border-t border-cyan-400/10">
             {confirmingDelete ? (
               <div className="rounded-xl border border-orange-400/30 bg-orange-500/10 p-3 flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-orange-300">
