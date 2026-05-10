@@ -74,12 +74,12 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end sm:justify-center sm:items-center sm:p-6 mb-[80px] sm:mb-0"
+      className="fixed inset-x-0 top-0 bottom-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end sm:justify-center sm:items-center sm:p-6"
       onClick={onClose}
     >
       {/* Panel */}
       <div
-        className="w-full sm:max-w-lg bg-gray-900/95 backdrop-blur border border-cyan-400/20 rounded-t-3xl sm:rounded-2xl max-h-[85dvh] sm:max-h-[80dvh] flex flex-col overflow-hidden shadow-[0_0_40px_rgba(34,211,238,0.1)]"
+        className="w-full sm:max-w-lg bg-gray-900/95 backdrop-blur border border-cyan-400/20 rounded-t-3xl sm:rounded-2xl max-h-[calc(85dvh-80px)] sm:max-h-[80dvh] flex flex-col overflow-hidden shadow-[0_0_40px_rgba(34,211,238,0.1)] mb-[80px] sm:mb-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle — mobile only */}
