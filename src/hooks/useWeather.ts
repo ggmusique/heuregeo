@@ -19,6 +19,8 @@ export function useWeather(dateMission: string): {
   useEffect(() => {
     if (!dateMission) return;
     let alive = true;
+    const controller = new AbortController();
+    const signal = controller.signal;
     setLoading(true);
 
     const loadWeatherAndCity = async () => {
@@ -34,7 +36,8 @@ export function useWeather(dateMission: string): {
           const lon = pos.coords.longitude;
           try {
             const weatherRes = await fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`
+              `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`,
+              { signal }
             );
             if (!weatherRes.ok) throw new Error("Météo HTTP error");
             const weatherData = await weatherRes.json() as {
@@ -48,13 +51,15 @@ export function useWeather(dateMission: string): {
             } else {
               setWeather(null);
             }
-          } catch {
+          } catch (err: unknown) {
+            if (err instanceof Error && err.name === "AbortError") return;
             if (!alive) return;
             setWeather(null);
           }
           try {
             const cityRes = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`,
+              { signal }
             );
             if (!cityRes.ok) throw new Error("Ville HTTP error");
             const cityData = await cityRes.json() as {
@@ -73,7 +78,8 @@ export function useWeather(dateMission: string): {
               cityData?.address?.municipality ||
               "Position actuelle";
             setWeatherCity(city);
-          } catch {
+          } catch (err: unknown) {
+            if (err instanceof Error && err.name === "AbortError") return;
             if (!alive) return;
             setWeatherCity("Position actuelle");
           }
@@ -89,7 +95,7 @@ export function useWeather(dateMission: string): {
     };
 
     loadWeatherAndCity();
-    return () => { alive = false; };
+    return () => { alive = false; controller.abort(); };
   }, [dateMission]);
 
   return { weather, weatherCity, loading };

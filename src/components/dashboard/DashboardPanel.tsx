@@ -367,13 +367,21 @@ export function DashboardPanel({
 
     const initChart = async () => {
       if (!window.Chart) {
-        await new Promise((resolve, reject) => {
-          const s = document.createElement("script");
-          s.src = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js";
-          s.onload = resolve;
-          s.onerror = reject;
-          document.head.appendChild(s);
-        });
+        const existing = document.querySelector('script[src*="chart.js"]');
+        if (!existing) {
+          await new Promise((resolve, reject) => {
+            const s = document.createElement("script");
+            s.src = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js";
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        } else {
+          await new Promise<void>((resolve) => {
+            if (window.Chart) { resolve(); return; }
+            existing.addEventListener("load", () => resolve(), { once: true });
+          });
+        }
       }
 
       if (chartInstance.current) {
