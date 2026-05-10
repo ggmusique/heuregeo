@@ -1,6 +1,6 @@
 declare const __APP_VERSION__: string;
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 
 import { ParametresTab } from "./pages/ParametresTab";
@@ -36,7 +36,7 @@ import { OnboardingForm } from "./components/auth/OnboardingForm";
 import { AppHeader } from "./components/layout/AppHeader";
 import { AppNavBar } from "./components/layout/AppNavBar";
 import { AppModals } from "./components/AppModals";
-import { VueAgenda } from "./components/views/VueAgenda";
+import { AgendaPage } from "./components/agenda/AgendaPage";
 import { VueSuivi } from "./components/views/VueSuivi";
 import { VueDashboard } from "./components/views/VueDashboard";
 import { VueSaisie } from "./components/views/VueSaisie";
@@ -184,6 +184,16 @@ function AppInner({
   const agendaHook  = useAgenda({ userId: user?.id ?? null, triggerAlert });
   const agendaModal = useAgendaModal({ createEvent: agendaHook.createEvent, updateEvent: agendaHook.updateEvent, deleteEvent: agendaHook.deleteEvent, triggerAlert });
 
+  // Refresh AgendaPage data when the agenda modal closes (after CRUD operations)
+  const [agendaRefreshKey, setAgendaRefreshKey] = useState<number>(0);
+  const prevShowAgendaModal = useRef<boolean>(false);
+  useEffect(() => {
+    if (prevShowAgendaModal.current && !agendaModal.showAgendaModal) {
+      setAgendaRefreshKey((k) => k + 1);
+    }
+    prevShowAgendaModal.current = agendaModal.showAgendaModal;
+  }, [agendaModal.showAgendaModal]);
+
   useEffect(() => {
     document.title = "Heures de Geo";
     fetchMissions();
@@ -220,7 +230,7 @@ function AppInner({
 
   const isLoading = loading || missionsLoading || fraisLoading || acomptesLoading || patronsLoading || clientsLoading || lieuxLoading || gpsLoading || historiqueHook.loadingHistorique || agendaHook.loading;
 
-  const { saisieProps, dashboardProps, suiviProps, agendaProps, modalsProps } = useAppProps({
+  const { saisieProps, dashboardProps, suiviProps, modalsProps } = useAppProps({
     missionForm, lieuModal, fraisModal, acompteModal, patronModal, clientModal,
     bilan, bilanPatronId, setBilanPatronId, bilanClientId, setBilanClientId,
     historiqueHook, agendaHook, agendaModal,
@@ -258,7 +268,16 @@ function AppInner({
 
         {activeTab === "suivi" && <VueSuivi {...suiviProps} />}
 
-        {activeTab === "agenda" && <VueAgenda {...agendaProps} />}
+        {activeTab === "agenda" && (
+          <AgendaPage
+            userId={user?.id ?? null}
+            triggerAlert={triggerAlert}
+            onOpenForDate={agendaModal.openForDate}
+            onEventEdit={agendaModal.handleEventEdit}
+            onEventDelete={agendaModal.handleEventDelete}
+            refreshKey={agendaRefreshKey}
+          />
+        )}
 
         {activeTab === "parametres" && !isViewer && (
           <ParametresTab
