@@ -9,6 +9,27 @@
 
 const MS_PER_DAY = 86400000;
 
+// ─── WeekYear ────────────────────────────────────────────────────────────────
+
+export interface WeekYear {
+  week: number;
+  year: number;
+}
+
+/**
+ * Retourne { week, year } ISO d'une date.
+ * Compare semaine ET année pour éviter le bug sur plusieurs ans.
+ */
+export const getWeekAndYear = (date: Date): WeekYear => {
+  if (!date || isNaN(date.getTime())) return { week: 0, year: 0 };
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const isoYear = d.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(isoYear, 0, 1));
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / MS_PER_DAY + 1) / 7);
+  return { week, year: isoYear };
+};
+
 /**
  * ==========================================================
  * 1) getDateParts(iso)

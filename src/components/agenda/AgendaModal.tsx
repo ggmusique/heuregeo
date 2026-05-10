@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { AGENDA_EVENT_TYPES } from "../../constants/enums";
+import type { AgendaEventType } from "../../constants/enums";
 
-const TYPE_OPTIONS = [
-  { key: "rdv",   label: "RDV",    emoji: "📅", color: "from-[var(--color-event-rdv)] to-[color-mix(in_srgb,var(--color-event-rdv)_80%,black)]",     border: "border-[var(--color-event-rdv)]/50",   bg: "bg-[var(--color-event-rdv)]/10"   },
-  { key: "conge", label: "Congé",  emoji: "🌴", color: "from-[var(--color-event-conge)] to-[color-mix(in_srgb,var(--color-event-conge)_80%,black)]", border: "border-[var(--color-event-conge)]/50", bg: "bg-[var(--color-event-conge)]/10" },
-  { key: "note",  label: "Note",   emoji: "📝", color: "from-[var(--color-event-note)] to-[color-mix(in_srgb,var(--color-event-note)_80%,black)]",   border: "border-[var(--color-event-note)]/50",  bg: "bg-[var(--color-event-note)]/10"  },
+const TYPE_OPTIONS: { key: AgendaEventType; label: string; emoji: string; color: string; border: string; bg: string }[] = [
+  { key: AGENDA_EVENT_TYPES.RDV,   label: "RDV",    emoji: "📅", color: "from-[var(--color-event-rdv)] to-[color-mix(in_srgb,var(--color-event-rdv)_80%,black)]",     border: "border-[var(--color-event-rdv)]/50",   bg: "bg-[var(--color-event-rdv)]/10"   },
+  { key: AGENDA_EVENT_TYPES.CONGE, label: "Congé",  emoji: "🌴", color: "from-[var(--color-event-conge)] to-[color-mix(in_srgb,var(--color-event-conge)_80%,black)]", border: "border-[var(--color-event-conge)]/50", bg: "bg-[var(--color-event-conge)]/10" },
+  { key: AGENDA_EVENT_TYPES.NOTE,  label: "Note",   emoji: "📝", color: "from-[var(--color-event-note)] to-[color-mix(in_srgb,var(--color-event-note)_80%,black)]",   border: "border-[var(--color-event-note)]/50",  bg: "bg-[var(--color-event-note)]/10"  },
 ];
 
 const RAPPEL_OPTIONS = [
@@ -39,7 +41,7 @@ export function AgendaModal({
   loading       = false,
   darkMode      = true,
 }: Props) {
-  const [type,        setType]       = useState("rdv");
+  const [type,        setType]       = useState<AgendaEventType>(AGENDA_EVENT_TYPES.RDV);
   const [titre,       setTitre]      = useState("");
   const [dateIso,     setDateIso]    = useState("");
   const [dateFin,     setDateFin]    = useState("");
@@ -51,7 +53,7 @@ export function AgendaModal({
   useEffect(() => {
     if (!show) return;
     if (editMode && initialData) {
-      setType(initialData.type || "rdv");
+      setType(initialData.type || AGENDA_EVENT_TYPES.RDV);
       setTitre(initialData.titre || "");
       setDateIso(initialData.date_iso || selectedDate || "");
       setDateFin(initialData.date_fin || "");
@@ -60,7 +62,7 @@ export function AgendaModal({
       setRappel(initialData.rappel_minutes ?? null);
       setDescription(initialData.description || "");
     } else {
-      setType("rdv");
+      setType(AGENDA_EVENT_TYPES.RDV);
       setTitre("");
       setDateIso(selectedDate || "");
       setDateFin("");
@@ -72,7 +74,7 @@ export function AgendaModal({
   }, [show, editMode, initialData, selectedDate]);
 
   const canSubmit = !loading && titre.trim().length > 0 && dateIso.length > 0 &&
-    (type !== "conge" || dateFin.length > 0);
+    (type !== AGENDA_EVENT_TYPES.CONGE || dateFin.length > 0);
 
   const handleSubmit = () => {
     if (!canSubmit) return;
@@ -80,10 +82,10 @@ export function AgendaModal({
       type,
       titre: titre.trim(),
       date_iso: dateIso,
-      date_fin: type === "conge" ? dateFin : null,
-      heure_debut: type === "rdv" && heureDebut ? heureDebut : null,
-      heure_fin:   type === "rdv" && heureFin   ? heureFin   : null,
-      rappel_minutes: type === "rdv" ? rappel : null,
+      date_fin: type === AGENDA_EVENT_TYPES.CONGE ? dateFin : null,
+      heure_debut: type === AGENDA_EVENT_TYPES.RDV && heureDebut ? heureDebut : null,
+      heure_fin:   type === AGENDA_EVENT_TYPES.RDV && heureFin   ? heureFin   : null,
+      rappel_minutes: type === AGENDA_EVENT_TYPES.RDV ? rappel : null,
       description: description.trim() || null,
     });
   };
@@ -157,7 +159,7 @@ export function AgendaModal({
               type="text"
               value={titre}
               onChange={(e) => setTitre(e.target.value)}
-              placeholder={type === "rdv" ? "Ex : Réunion client" : type === "conge" ? "Ex : Vacances été" : "Ex : Pense à..."}
+              placeholder={type === AGENDA_EVENT_TYPES.RDV ? "Ex : Réunion client" : type === AGENDA_EVENT_TYPES.CONGE ? "Ex : Vacances été" : "Ex : Pense à..."}
               className={inputCls}
               disabled={loading}
               autoFocus
@@ -165,7 +167,7 @@ export function AgendaModal({
           </div>
 
           {/* Dates */}
-          {type === "conge" ? (
+          {type === AGENDA_EVENT_TYPES.CONGE ? (
             <div>
               <p className={labelCls}>Période <span className="text-[var(--color-accent-red)]">*</span></p>
               <div className="flex gap-3 items-center">
@@ -210,7 +212,7 @@ export function AgendaModal({
           )}
 
           {/* Horaires (rdv seulement) */}
-          {type === "rdv" && (
+          {type === AGENDA_EVENT_TYPES.RDV && (
             <div>
               <p className={labelCls}>Horaires</p>
               <div className="flex gap-3">
@@ -239,7 +241,7 @@ export function AgendaModal({
           )}
 
           {/* Rappel (rdv seulement) */}
-          {type === "rdv" && (
+          {type === AGENDA_EVENT_TYPES.RDV && (
             <div>
               <label className={labelCls}>Rappel</label>
               <select

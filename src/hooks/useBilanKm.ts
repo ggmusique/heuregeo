@@ -3,6 +3,7 @@ import { KM_RATES } from "../utils/kmRatesByCountry";
 import { haversineKm, getLieuLabel } from "../utils/calculators";
 import { getCurrentUserOrNull } from "../services/authService";
 import { upsertFraisKmRows } from "../services/bilanRepository";
+import { LIEU_TYPES } from "../constants/enums";
 import type { Mission, Lieu } from "../types/entities";
 import type { FraisKmRow, BilanKmResult, BilanKmItem, MissionWithWeather } from "../types/bilan";
 import type { KmSettings } from "./useKmDomicile";
@@ -56,7 +57,7 @@ export function computeKmItems(
     const latLieu = Number(lieu?.latitude);
     const lngLieu = Number(lieu?.longitude);
     const typeLabel =
-      lieu?.type && lieu.type !== "client" ? ` (${lieu.type.toUpperCase()})` : "";
+      lieu?.type && lieu.type !== LIEU_TYPES.CLIENT ? ` (${lieu.type.toUpperCase()})` : "";
 
     const item: BilanKmItem = {
       missionId: m.id,

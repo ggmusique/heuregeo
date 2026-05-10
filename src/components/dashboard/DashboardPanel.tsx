@@ -4,8 +4,7 @@ import { formatEuro, formatHeures } from "../../utils/formatters";
 import { chartColors, chartOptions } from "../../utils/chartConfig";
 import { tokens } from "../../utils/designTokens";
 import { KPICard } from "./KPICard";
-import { KM_RATES } from "../../utils/kmRatesByCountry";
-import { haversineKm } from "../../utils/calculators";
+import { computeKmForMissions as computeKmForMissionsUtil } from "../../utils/kmUtils";
 import { supabase } from "../../services/supabase";
 import { useDarkMode } from "../../contexts/DarkModeContext";
 import type { Mission, FraisDivers, Acompte, Patron, Client, Lieu } from "../../types/entities";
@@ -115,57 +114,8 @@ export function DashboardPanel({
   const missionsLastWeek = useMemo(() => getMissionsForWeek(-1), [getMissionsForWeek]);
 
   const computeKmForMissions = useCallback(
-    (missionsList: typeof missions) => {
-      if (!kmEnabled || !missionsList?.length) {
-        return { totalKm: 0, totalAmount: 0 };
-      }
-
-      const effectiveDomicile =
-        domicileLatLng ??
-        (Number.isFinite(kmSettings?.km_domicile_lat) && Number.isFinite(kmSettings?.km_domicile_lng)
-          ? {
-              lat: kmSettings!.km_domicile_lat as number,
-              lng: kmSettings!.km_domicile_lng as number,
-            }
-          : null);
-
-      if (!Number.isFinite(effectiveDomicile?.lat) || !Number.isFinite(effectiveDomicile?.lng)) {
-        return { totalKm: 0, totalAmount: 0 };
-      }
-
-      if (!effectiveDomicile) return { totalKm: 0, totalAmount: 0 };
-
-      const kmRateEffectif =
-        kmSettings?.km_rate_mode === "CUSTOM"
-          ? kmSettings?.km_rate || 0
-          : KM_RATES[kmSettings?.km_country_code || "FR"] || 0.42;
-
-      const multiplicateur = kmSettings?.km_include_retour ? 2 : 1;
-
-      let totalKm = 0;
-      let totalAmount = 0;
-
-      missionsList.forEach((m) => {
-        const lieuById = lieux.find((l) => l.id === m.lieu_id);
-        const lieuByName =
-          !lieuById && m.lieu
-            ? lieux.find((l) => l.nom?.toLowerCase().trim() === m.lieu?.toLowerCase().trim())
-            : null;
-
-        const lieu = lieuById || lieuByName;
-        const latLieu = Number(lieu?.latitude);
-        const lngLieu = Number(lieu?.longitude);
-
-        if (Number.isFinite(latLieu) && Number.isFinite(lngLieu)) {
-          const kmOneWay = haversineKm(effectiveDomicile.lat, effectiveDomicile.lng, latLieu, lngLieu);
-          const kmTotal = kmOneWay * multiplicateur;
-          totalKm += kmTotal;
-          totalAmount += kmTotal * kmRateEffectif;
-        }
-      });
-
-      return { totalKm, totalAmount };
-    },
+    (missionsList: Mission[]) =>
+      computeKmForMissionsUtil(missionsList, { kmEnabled, kmSettings, domicileLatLng, lieux }),
     [kmEnabled, kmSettings, domicileLatLng, lieux]
   );
 

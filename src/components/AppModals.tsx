@@ -12,28 +12,38 @@ import { LieuModal } from "./lieu/LieuModal";
 import { AgendaModal } from "./agenda/AgendaModal";
 import { ImportMissionsModal } from "./mission/ImportMissionsModal";
 
+import type { ConfirmState } from "../hooks/useConfirm";
+import type { UseFraisModalReturn } from "../hooks/useFraisModal";
+import type { UseAcompteModalReturn } from "../hooks/useAcompteModal";
+import type { UsePatronModalReturn } from "../hooks/usePatronModal";
+import type { UseClientModalReturn } from "../hooks/useClientModal";
+import type { UseBilanReturn } from "../hooks/useBilanTypes";
+import type { UseLieuModalReturn } from "../hooks/useLieuModal";
+import type { UseAgendaModalReturn } from "../hooks/useAgendaModal";
+import type { Mission, Patron, Client, Lieu } from "../types/entities";
+
 interface Props {
-  confirmState: any;
-  hideConfirm: any;
-  fraisModal: any;
-  loading: any;
-  isIOS: any;
-  patrons: any;
-  clients: any;
-  lieux: any;
-  acompteModal: any;
-  patronModal: any;
-  clientModal: any;
-  bilan: any;
-  bilanPatronId: any;
-  setBilanPatronId: any;
-  bilanClientId: any;
-  setBilanClientId: any;
-  lieuModal: any;
-  agendaModal: any;
-  showImportModal: any;
-  setShowImportModal: any;
-  bulkCreateMissions: any;
+  confirmState: ConfirmState;
+  hideConfirm: () => void;
+  fraisModal: UseFraisModalReturn;
+  loading: boolean;
+  isIOS: boolean;
+  patrons: Patron[];
+  clients: Client[];
+  lieux: Lieu[];
+  acompteModal: UseAcompteModalReturn;
+  patronModal: UsePatronModalReturn;
+  clientModal: UseClientModalReturn;
+  bilan: UseBilanReturn;
+  bilanPatronId: string | null;
+  setBilanPatronId: (id: string | null) => void;
+  bilanClientId: string | null;
+  setBilanClientId: (id: string | null) => void;
+  lieuModal: UseLieuModalReturn;
+  agendaModal: UseAgendaModalReturn;
+  showImportModal: boolean;
+  setShowImportModal: (show: boolean) => void;
+  bulkCreateMissions: (validMissions: Partial<Mission>[]) => Promise<void>;
 }
 
 export function AppModals({
@@ -73,7 +83,6 @@ export function AppModals({
         type={confirmState.type}
         onConfirm={confirmState.onConfirm}
         onCancel={hideConfirm}
-        darkMode={darkMode}
       />
 
       <FraisModal
@@ -133,7 +142,7 @@ export function AppModals({
 
       <PeriodModal
         show={bilan.showPeriodModal}
-        periodType={bilan.bilanPeriodType}
+        periodType={bilan.bilanPeriodType as "semaine" | "mois" | "annee"}
         setPeriodType={bilan.setBilanPeriodType}
         periodValue={bilan.bilanPeriodValue}
         setPeriodValue={bilan.setBilanPeriodValue}
@@ -171,7 +180,7 @@ export function AppModals({
           selectedDate={agendaModal.selectedDate}
           onSubmit={agendaModal.handleEventSubmit}
           onCancel={() => agendaModal.closeAgendaModal()}
-          onDelete={() => agendaModal.handleEventDelete(agendaModal.editingEventId)}
+          onDelete={() => agendaModal.editingEventId && agendaModal.handleEventDelete(agendaModal.editingEventId)}
           loading={loading}
           darkMode={darkMode}
         />

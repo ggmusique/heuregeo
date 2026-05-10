@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { AGENDA_EVENT_TYPES } from "../../constants/enums";
 
 const HOUR_START   = 7;
 const HOUR_END     = 22;
@@ -9,15 +10,15 @@ const TOTAL_HEIGHT = (HOUR_END - HOUR_START) * PX_PER_HOUR;
 const DAYS_ABBR  = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
 const EVENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  rdv:   { bg: "bg-[var(--color-event-rdv)]/80",   text: "text-white", border: "border-[var(--color-event-rdv)]/50"   },
-  conge: { bg: "bg-[var(--color-event-conge)]/80", text: "text-white", border: "border-[var(--color-event-conge)]/50" },
-  note:  { bg: "bg-[var(--color-event-note)]/80",  text: "text-white", border: "border-[var(--color-event-note)]/50"  },
+  [AGENDA_EVENT_TYPES.RDV]:   { bg: "bg-[var(--color-event-rdv)]/80",   text: "text-white", border: "border-[var(--color-event-rdv)]/50"   },
+  [AGENDA_EVENT_TYPES.CONGE]: { bg: "bg-[var(--color-event-conge)]/80", text: "text-white", border: "border-[var(--color-event-conge)]/50" },
+  [AGENDA_EVENT_TYPES.NOTE]:  { bg: "bg-[var(--color-event-note)]/80",  text: "text-white", border: "border-[var(--color-event-note)]/50"  },
 };
 
 const ALLDAY_COLORS: Record<string, { bg: string; text: string }> = {
-  conge: { bg: "color-mix(in srgb, var(--color-accent-orange) 75%, transparent)",  text: "var(--color-text)" },
-  note:  { bg: "color-mix(in srgb, var(--color-accent-green)  75%, transparent)",  text: "var(--color-text)" },
-  rdv:   { bg: "color-mix(in srgb, var(--color-accent-cyan)   75%, transparent)",  text: "var(--color-text)" },
+  [AGENDA_EVENT_TYPES.CONGE]: { bg: "color-mix(in srgb, var(--color-accent-orange) 75%, transparent)",  text: "var(--color-text)" },
+  [AGENDA_EVENT_TYPES.NOTE]:  { bg: "color-mix(in srgb, var(--color-accent-green)  75%, transparent)",  text: "var(--color-text)" },
+  [AGENDA_EVENT_TYPES.RDV]:   { bg: "color-mix(in srgb, var(--color-accent-cyan)   75%, transparent)",  text: "var(--color-text)" },
 };
 
 function addDaysToIso(iso: string, n: number): string {
@@ -134,7 +135,7 @@ export function AgendaWeekView({
       const startIso = e.date_iso;
       const endIso   = e.date_fin || e.date_iso;
 
-      if (e.type === "rdv" && e.heure_debut && weekIsoSet.has(startIso)) {
+      if (e.type === AGENDA_EVENT_TYPES.RDV && e.heure_debut && weekIsoSet.has(startIso)) {
         timed.push(e);
       } else {
         const overlaps = weekDays.some((d) => d.iso >= startIso && d.iso <= endIso);
@@ -205,11 +206,11 @@ export function AgendaWeekView({
                   width:      `calc(${(bar.spanCols  / 7) * 100}% - 2px)`,
                   top:        `${bar.lane * 22 + 4}px`,
                   height:     "18px",
-                  background: ALLDAY_COLORS[bar.type]?.bg || ALLDAY_COLORS.note.bg,
+                  background: ALLDAY_COLORS[bar.type]?.bg || ALLDAY_COLORS[AGENDA_EVENT_TYPES.NOTE].bg,
                   color:      ALLDAY_COLORS[bar.type]?.text || "var(--color-text)",
                 }}
               >
-                {bar.type === "conge" ? "🌴 " : bar.type === "note" ? "📝 " : "📅 "}
+                {bar.type === AGENDA_EVENT_TYPES.CONGE ? "🌴 " : bar.type === AGENDA_EVENT_TYPES.NOTE ? "📝 " : "📅 "}
                 {bar.titre}
               </button>
             ))}
@@ -256,7 +257,7 @@ export function AgendaWeekView({
                     {rdvEvts.map((e) => {
                       const top  = eventTopPx(e.heure_debut);
                       const h    = eventHeightPx(e.heure_debut, e.heure_fin);
-                      const clr  = EVENT_COLORS[e.type] || EVENT_COLORS.rdv;
+                      const clr  = EVENT_COLORS[e.type] || EVENT_COLORS[AGENDA_EVENT_TYPES.RDV];
                       const tall = h >= 48;
 
                       return (

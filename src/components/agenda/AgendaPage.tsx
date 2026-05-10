@@ -13,6 +13,7 @@ import { DayDetailModal } from "./DayDetailModal";
 import type { ClickedEvent } from "./DayDetailModal";
 import { useAgendaEvents } from "../../hooks/useAgendaEvents";
 import type { AgendaEvent } from "../../types/entities";
+import { AGENDA_EVENT_TYPES } from "../../constants/enums";
 import "../../styles/fullcalendar-neon.css";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -173,7 +174,7 @@ export function AgendaPage({
       id: info.event.id,
       title: info.event.title,
       startStr: info.event.startStr,
-      type: typeof ep.type === "string" ? ep.type : "rdv",
+      type: typeof ep.type === "string" ? ep.type : AGENDA_EVENT_TYPES.RDV,
       debut: typeof ep.debut === "string" ? ep.debut : null,
       fin: typeof ep.fin === "string" ? ep.fin : null,
       client: typeof ep.client === "string" ? ep.client : null,

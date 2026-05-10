@@ -1,14 +1,8 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import * as missionsApi from "../services/api/missionsApi";
 import { useLabels } from "../contexts/LabelsContext";
+import { getWeekAndYear } from "../utils/dateUtils";
 import type { Mission } from "../types/entities";
-
-// ─── Types internes ───────────────────────────────────────────────────────────
-
-interface WeekYear {
-  week: number;
-  year: number;
-}
 
 // ─── Types publics ────────────────────────────────────────────────────────────
 
@@ -30,21 +24,7 @@ export interface UseMissionsReturn {
 // ─── Helpers internes ─────────────────────────────────────────────────────────
 
 /**
- * Retourne { week, year } ISO d'une date.
- * Utilisé en interne pour comparer semaine ET année (éviter le bug semaine sur plusieurs ans).
- * Fix Perplexity : l'ancienne version ne comparait que le n° de semaine sans l'année.
- */
-const getWeekAndYear = (date: Date): WeekYear => {
-  if (!date || isNaN(date.getTime())) return { week: 0, year: 0 };
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const isoYear = d.getUTCFullYear();
-  const yearStart = new Date(Date.UTC(isoYear, 0, 1));
-  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-  return { week, year: isoYear };
-};
 
-/**
  * Vérifie si une mission en chevauchement existe déjà sur le même jour.
  * Retourne la mission en conflit ou null.
  * excludeId : ignorer cette mission (mode édition).

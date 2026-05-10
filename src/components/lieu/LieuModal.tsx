@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { geocodeAddress } from "../../utils/geocode";
 import { useLabels } from "../../contexts/LabelsContext";
+import { LIEU_TYPES } from "../../constants/enums";
 
 interface Props {
   show?: boolean;
@@ -28,7 +29,7 @@ export const LieuModal = ({
     latitude: "",
     longitude: "",
     notes: "",
-    type: "client",
+    type: LIEU_TYPES.CLIENT as string,
   });
   const [geocodeStatus, setGeocodeStatus] = useState<"idle" | "searching" | "ok" | "error">("idle");
   const [geocodeError, setGeocodeError] = useState("");
@@ -42,7 +43,7 @@ export const LieuModal = ({
         latitude: initialData.latitude || "",
         longitude: initialData.longitude || "",
         notes: initialData.notes || "",
-        type: initialData.type || "client",
+        type: initialData.type || LIEU_TYPES.CLIENT as string,
       });
       setGeocodeStatus(initialData.latitude && initialData.longitude ? "ok" : "idle");
       setGeocodeError("");
@@ -54,7 +55,7 @@ export const LieuModal = ({
         latitude: "",
         longitude: "",
         notes: initialData?.notes || "",
-        type: "client",
+        type: LIEU_TYPES.CLIENT as string,
       });
       setGeocodeStatus("idle");
       setGeocodeError("");
@@ -102,7 +103,7 @@ export const LieuModal = ({
       latitude: lat ? parseFloat(lat) : null,
       longitude: lng ? parseFloat(lng) : null,
       notes: formData.notes.trim() || null,
-      type: formData.type || "client",
+      type: formData.type || LIEU_TYPES.CLIENT,
     };
     onSubmit(dataToSubmit);
   };
@@ -176,11 +177,11 @@ export const LieuModal = ({
               onChange={(e) => setFormData({ ...formData, type: e.target.value })}
               className={inputCls}
             >
-              <option value="client">{`📍 ${L.client}`}</option>
-              <option value="atelier">🏭 Atelier</option>
-              <option value="bureau">🏢 Bureau</option>
-              <option value="domicile">🏠 Domicile</option>
-              <option value="autre">📌 Autre</option>
+              <option value={LIEU_TYPES.CLIENT}>{`📍 ${L.client}`}</option>
+              <option value={LIEU_TYPES.ATELIER}>🏗️ Atelier</option>
+              <option value={LIEU_TYPES.BUREAU}>🏢 Bureau</option>
+              <option value={LIEU_TYPES.DOMICILE}>🏠 Domicile</option>
+              <option value={LIEU_TYPES.AUTRE}>📌 Autre</option>
             </select>
           </div>
 
