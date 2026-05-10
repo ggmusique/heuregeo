@@ -29,15 +29,36 @@ interface AgendaPageProps {
   refreshKey?: number;
 }
 
+// ─── Breakpoint hook ──────────────────────────────────────────────────────────
+
+function useBreakpoint() {
+  const getWidth = () =>
+    typeof window !== "undefined" ? window.innerWidth : 1280;
+  const [width, setWidth] = useState<number>(getWidth);
+
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize, { passive: true });
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  return {
+    isMobile: width < 640,
+    isTablet: width >= 640 && width < 1024,
+    isDesktop: width >= 1024,
+  };
+}
+
 // ─── View configs ─────────────────────────────────────────────────────────────
 
-const VIEW_LABELS: Record<FCView, string> = {
-  timeGridDay: "Jour",
-  timeGridWeek: "Semaine",
-  dayGridMonth: "Mois",
+const VIEW_LABELS: Record<FCView, { full: string; short: string }> = {
+  timeGridDay: { full: "Jour", short: "J" },
+  timeGridWeek: { full: "Semaine", short: "S" },
+  dayGridMonth: { full: "Mois", short: "M" },
 };
 
-const VIEWS: FCView[] = ["timeGridDay", "timeGridWeek", "dayGridMonth"];
+const VIEWS_DESKTOP: FCView[] = ["timeGridDay", "timeGridWeek", "dayGridMonth"];
+const VIEWS_MOBILE: FCView[] = ["timeGridDay", "dayGridMonth"];
 
 // ─── Locale helpers ───────────────────────────────────────────────────────────
 
@@ -80,8 +101,13 @@ export function AgendaPage({
   onEventDelete,
   refreshKey = 0,
 }: AgendaPageProps) {
+  const { isMobile } = useBreakpoint();
+  const visibleViews = isMobile ? VIEWS_MOBILE : VIEWS_DESKTOP;
+
   const calendarRef = useRef<FullCalendar | null>(null);
-  const [currentView, setCurrentView] = useState<FCView>("timeGridWeek");
+  const [currentView, setCurrentView] = useState<FCView>(
+    isMobile ? "dayGridMonth" : "timeGridWeek"
+  );
   const [calendarTitle, setCalendarTitle] = useState<string>("");
   const [detailEvent, setDetailEvent] = useState<ClickedEvent | null>(null);
 
@@ -184,7 +210,7 @@ export function AgendaPage({
       )}
 
       {/* ── KPI Cards ────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-3 sm:gap-4">
         <KPICard
           title="Heures / semaine"
           value={kpis.hoursThisWeek}
@@ -210,21 +236,21 @@ export function AgendaPage({
       <div className="rounded-2xl border border-white/8 bg-gray-900/60 backdrop-blur overflow-hidden shadow-[0_0_30px_rgba(34,211,238,0.07)]">
 
         {/* ── Custom Toolbar ──────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-white/6">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 pt-3 sm:pt-4 pb-2 sm:pb-3 border-b border-white/6">
 
           {/* Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={handlePrev}
               aria-label="Précédent"
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-300 hover:border-cyan-400/40 hover:bg-cyan-400/10 transition-all duration-200"
+              className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-300 hover:border-cyan-400/40 hover:bg-cyan-400/10 transition-all duration-200"
             >
               <ChevronLeft size={16} />
             </button>
 
             <button
               onClick={handleToday}
-              className="px-3 h-8 text-xs font-semibold rounded-lg bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/30 hover:border-cyan-400/60 hover:shadow-[0_0_12px_rgba(34,211,238,0.35)] transition-all duration-200"
+              className="px-3 h-11 sm:h-8 text-xs font-semibold rounded-lg bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/30 hover:border-cyan-400/60 hover:shadow-[0_0_12px_rgba(34,211,238,0.35)] transition-all duration-200"
             >
               Aujourd&apos;hui
             </button>
@@ -232,31 +258,32 @@ export function AgendaPage({
             <button
               onClick={handleNext}
               aria-label="Suivant"
-              className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-300 hover:border-cyan-400/40 hover:bg-cyan-400/10 transition-all duration-200"
+              className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-300 hover:border-cyan-400/40 hover:bg-cyan-400/10 transition-all duration-200"
             >
               <ChevronRight size={16} />
             </button>
           </div>
 
           {/* Title */}
-          <span className="text-sm font-bold text-white/80 tracking-wide min-w-0 truncate">
+          <span className="text-sm font-bold text-white/80 tracking-wide min-w-0 truncate flex-1 text-center sm:flex-none">
             {calendarTitle}
           </span>
 
           {/* View switcher */}
           <div className="flex items-center gap-1 rounded-xl bg-white/5 border border-white/8 p-1">
-            {VIEWS.map((view) => (
+            {visibleViews.map((view) => (
               <button
                 key={view}
                 onClick={() => handleViewChange(view)}
                 className={[
-                  "px-3 py-1 text-xs font-semibold rounded-lg transition-all duration-200",
+                  "px-2 sm:px-3 h-9 sm:h-auto sm:py-1 text-xs font-semibold rounded-lg transition-all duration-200",
                   currentView === view
                     ? "bg-cyan-500/30 border border-cyan-400/50 text-cyan-200 shadow-[0_0_10px_rgba(34,211,238,0.3)]"
                     : "text-white/50 hover:text-white/80 hover:bg-white/8",
                 ].join(" ")}
               >
-                {VIEW_LABELS[view]}
+                <span className="hidden sm:inline">{VIEW_LABELS[view].full}</span>
+                <span className="sm:hidden">{VIEW_LABELS[view].short}</span>
               </button>
             ))}
           </div>
@@ -274,7 +301,7 @@ export function AgendaPage({
           <FullCalendar
             ref={calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-            initialView="timeGridWeek"
+            initialView={isMobile ? "dayGridMonth" : "timeGridWeek"}
             headerToolbar={false}
             locale="fr"
             firstDay={1}

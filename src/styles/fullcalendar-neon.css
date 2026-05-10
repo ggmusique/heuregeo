@@ -240,3 +240,67 @@
 .fc-timegrid .fc-daygrid-body {
   background: rgba(255, 255, 255, 0.02) !important;
 }
+
+/* ── Responsive — Tablet (< 1024px) ──────────────────────── */
+
+@media (max-width: 1023px) {
+  .fc-event {
+    font-size: 0.72rem !important;
+  }
+
+  .fc-timegrid-slot {
+    height: 2.5rem !important;
+  }
+}
+
+/* ── Responsive — Mobile (< 640px) ──────────────────────── */
+
+@media (max-width: 639px) {
+  /* Prevent horizontal overflow */
+  .fc {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  /* Shrink column headers */
+  .fc-col-header-cell-cushion {
+    font-size: 0.65rem !important;
+    letter-spacing: 0.02em !important;
+    padding: 2px !important;
+  }
+
+  /* Day number */
+  .fc-daygrid-day-number {
+    font-size: 0.7rem !important;
+    padding: 2px 4px !important;
+  }
+
+  /* Event chips */
+  .fc-event {
+    font-size: 0.65rem !important;
+    border-radius: 4px !important;
+  }
+
+  .fc-event-main {
+    padding: 1px 3px !important;
+  }
+
+  /* Tighter time slot height */
+  .fc-timegrid-slot {
+    height: 2rem !important;
+  }
+
+  .fc-timegrid-slot-label {
+    font-size: 0.6rem !important;
+  }
+
+  /* Month view: compact cell height */
+  .fc-daygrid-day-frame {
+    min-height: 2.5rem !important;
+  }
+
+  /* "more" link */
+  .fc-daygrid-more-link {
+    font-size: 0.6rem !important;
+  }
+}

@@ -74,7 +74,7 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
       onClick={onClose}
     >
       {/* Backdrop */}
@@ -82,9 +82,13 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
 
       {/* Panel */}
       <div
-        className="relative w-full max-w-sm rounded-2xl bg-gray-900/90 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden"
+        className="relative w-full max-w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl bg-gray-900/95 sm:bg-gray-900/90 border border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.6)] backdrop-blur-xl overflow-hidden max-h-[90dvh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Drag handle — mobile only */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
         {/* Header */}
         <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b border-white/8">
           <div className="flex flex-col gap-1.5 min-w-0">
@@ -116,7 +120,7 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
         </div>
 
         {/* Body */}
-        <div className="px-5 py-4 flex flex-col gap-3">
+        <div className="px-5 py-4 flex flex-col gap-3 overflow-y-auto flex-1">
           {isTravail ? (
             /* ── Mission view ──────────────────────────────────────────── */
             <>
@@ -165,14 +169,14 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
                 <div className="flex gap-2">
                   <button
                     onClick={() => setConfirmingDelete(false)}
-                    className="flex-1 py-2 text-xs font-semibold rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    className="flex-1 py-3 text-xs font-semibold rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
                   >
                     Annuler
                   </button>
                   <button
                     onClick={handleDelete}
                     disabled={deleting}
-                    className="flex-1 py-2 text-xs font-semibold rounded-lg bg-orange-500/30 border border-orange-400/50 text-orange-200 hover:bg-orange-500/50 transition-colors disabled:opacity-50"
+                    className="flex-1 py-3 text-xs font-semibold rounded-lg bg-orange-500/30 border border-orange-400/50 text-orange-200 hover:bg-orange-500/50 transition-colors disabled:opacity-50"
                   >
                     {deleting ? "Suppression…" : "Confirmer"}
                   </button>
@@ -184,14 +188,14 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
                   onClick={() => {
                     if (event.originalAgendaEvent) onEdit(event.originalAgendaEvent);
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold rounded-xl bg-violet-500/20 border border-violet-400/40 text-violet-300 hover:bg-violet-500/35 hover:border-violet-400/70 transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-3 min-h-[44px] text-xs font-semibold rounded-xl bg-violet-500/20 border border-violet-400/40 text-violet-300 hover:bg-violet-500/35 hover:border-violet-400/70 transition-all"
                 >
                   <Pencil size={13} />
                   Modifier
                 </button>
                 <button
                   onClick={() => setConfirmingDelete(true)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-semibold rounded-xl bg-red-500/15 border border-red-400/30 text-red-300 hover:bg-red-500/30 hover:border-red-400/60 transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-3 min-h-[44px] text-xs font-semibold rounded-xl bg-red-500/15 border border-red-400/30 text-red-300 hover:bg-red-500/30 hover:border-red-400/60 transition-all"
                 >
                   <Trash2 size={13} />
                   Supprimer
