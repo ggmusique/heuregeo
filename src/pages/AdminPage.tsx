@@ -1,14 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { supabase } from "../services/supabase";
-
-interface AdminUser {
-  id: string;
-  prenom: string | null;
-  nom: string | null;
-  created_at: string | null;
-  features: Record<string, unknown> | null;
-  is_admin: boolean | null;
-}
+import {
+  fetchUsers,
+  updateUserFeatures,
+  type AdminUser,
+  type AdminFeatures,
+} from "../services/api/adminApi";
 
 /**
  * AdminPage — Page d'administration des utilisateurs
@@ -42,41 +38,46 @@ interface AdminUser {
  *   "gps": false
  * }
  */
-export const AdminPage = ({ darkMode = true }) => {
+export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boolean; isAdmin?: boolean }) => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null); // id de l'user en cours de mise à jour
   const [updateError, setUpdateError] = useState<string | null>(null);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsersData = useCallback(async () => {
+    if (!isAdmin) {
+      setError("Accès refusé");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      // Nécessite une politique RLS autorisant l'admin à lire tous les profils
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, prenom, nom, created_at, features, is_admin")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setUsers(data || []);
+      const { data, error } = await fetchUsers();
+      if (error) throw new Error(error);
+      setUsers(data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    fetchUsersData();
+  }, [fetchUsersData]);
 
   const togglePlan = async (user: AdminUser) => {
+    if (!isAdmin) {
+      setUpdateError("Accès refusé");
+      return;
+    }
+
     const currentPlan = user.features?.plan || "free";
     const newPlan = currentPlan === "pro" ? "free" : "pro";
 
-    const newFeatures =
+    const newFeatures: AdminFeatures =
       newPlan === "pro"
         ? {
             plan: "pro",
@@ -105,12 +106,8 @@ export const AdminPage = ({ darkMode = true }) => {
 
     setUpdating(user.id);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ features: newFeatures })
-        .eq("id", user.id);
-
-      if (error) throw error;
+      const { error } = await updateUserFeatures(user.id, newFeatures);
+      if (error) throw new Error(error);
 
       setUsers((prev) =>
         prev.map((u) =>

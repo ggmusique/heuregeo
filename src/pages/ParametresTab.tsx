@@ -620,7 +620,7 @@ export function ParametresTab({
                       </div>
                     }
                   >
-                    <AdminPage darkMode={false} />
+                    <AdminPage darkMode={false} isAdmin={isAdmin} />
                   </Suspense>
                 )}
 
