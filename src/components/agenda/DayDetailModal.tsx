@@ -74,7 +74,7 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end sm:justify-center sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end sm:justify-center sm:items-center sm:p-6 mb-[80px] sm:mb-0"
       onClick={onClose}
     >
       {/* Panel */}
