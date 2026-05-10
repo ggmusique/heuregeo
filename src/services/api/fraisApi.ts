@@ -1,6 +1,7 @@
 import { supabase } from "../supabase";
 import type { FraisDivers } from "../../types/entities";
 import type { FraisKmRow } from "../../types/bilan";
+import { sanitizeText } from "../../utils/sanitize";
 
 export const fetchFrais = async (): Promise<FraisDivers[]> => {
   const { data, error } = await supabase
@@ -15,7 +16,10 @@ export const fetchFrais = async (): Promise<FraisDivers[]> => {
 export const createFrais = async (fraisData: Partial<FraisDivers>): Promise<FraisDivers> => {
   const { data, error } = await supabase
     .from("frais_divers")
-    .insert([fraisData])
+    .insert([{
+      ...fraisData,
+      ...(fraisData.description != null && { description: sanitizeText(fraisData.description) }),
+    }])
     .select();
 
   if (error) throw error;
@@ -25,7 +29,10 @@ export const createFrais = async (fraisData: Partial<FraisDivers>): Promise<Frai
 export const updateFrais = async (id: string, fraisData: Partial<FraisDivers>): Promise<FraisDivers> => {
   const { data, error } = await supabase
     .from("frais_divers")
-    .update(fraisData)
+    .update({
+      ...fraisData,
+      ...(fraisData.description != null && { description: sanitizeText(fraisData.description) }),
+    })
     .eq("id", id)
     .select();
 

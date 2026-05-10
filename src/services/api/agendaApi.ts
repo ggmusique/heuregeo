@@ -1,5 +1,6 @@
 import { supabase } from "../supabase";
 import type { AgendaEvent } from "../../types/entities";
+import { sanitizeText } from "../../utils/sanitize";
 
 export const fetchAgendaEvents = async (
   userId: string,
@@ -45,7 +46,12 @@ export const createAgendaEvent = async (
 ): Promise<void> => {
   const { error } = await supabase
     .from("agenda_events")
-    .insert({ ...data, user_id: userId });
+    .insert({
+      ...data,
+      user_id: userId,
+      ...(data.titre != null && { titre: sanitizeText(data.titre) }),
+      ...(data.description != null && { description: sanitizeText(data.description) }),
+    });
   if (error) throw error;
 };
 
@@ -55,7 +61,12 @@ export const updateAgendaEvent = async (
 ): Promise<void> => {
   const { error } = await supabase
     .from("agenda_events")
-    .update({ ...data, updated_at: new Date().toISOString() })
+    .update({
+      ...data,
+      updated_at: new Date().toISOString(),
+      ...(data.titre != null && { titre: sanitizeText(data.titre) }),
+      ...(data.description != null && { description: sanitizeText(data.description) }),
+    })
     .eq("id", id);
   if (error) throw error;
 };

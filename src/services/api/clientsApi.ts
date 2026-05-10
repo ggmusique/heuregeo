@@ -1,5 +1,6 @@
 import { supabase } from "../supabase";
 import type { Client } from "../../types/entities";
+import { sanitizeName } from "../../utils/sanitize";
 
 export interface ClientStats {
   nombreMissions: number;
@@ -25,7 +26,7 @@ export const fetchClients = async (userId: string): Promise<Client[]> => {
 export const createClient = async (clientData: ClientInsert): Promise<Client> => {
   const { data, error } = await supabase
     .from("clients")
-    .insert([clientData])
+    .insert([{ ...clientData, nom: sanitizeName(clientData.nom) }])
     .select()
     .single();
 
@@ -34,9 +35,13 @@ export const createClient = async (clientData: ClientInsert): Promise<Client> =>
 };
 
 export const updateClient = async (clientId: string, updates: ClientUpdate): Promise<Client> => {
+  const sanitized: ClientUpdate = {
+    ...updates,
+    ...(updates.nom != null && { nom: sanitizeName(updates.nom) }),
+  };
   const { data, error } = await supabase
     .from("clients")
-    .update(updates)
+    .update(sanitized)
     .eq("id", clientId)
     .select()
     .single();

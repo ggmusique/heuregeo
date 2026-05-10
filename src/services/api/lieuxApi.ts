@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import { sanitizeName } from "../../utils/sanitize";
 
 const LIEUX_COLUMNS = ["nom", "adresse_complete", "latitude", "longitude", "notes", "user_id", "type"];
 
@@ -28,7 +29,10 @@ export const createLieu = async (lieuData: any) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Utilisateur non connecté");
 
-  const payload = sanitizeLieu({ ...lieuData, user_id: user.id });
+  const raw: Record<string, unknown> = { ...lieuData, user_id: user.id };
+  if (typeof raw.nom === "string") raw.nom = sanitizeName(raw.nom);
+  if (typeof raw.adresse_complete === "string") raw.adresse_complete = sanitizeName(raw.adresse_complete);
+  const payload = sanitizeLieu(raw);
 
   const { data, error } = await supabase
     .from("lieux")
@@ -44,9 +48,12 @@ export const createLieu = async (lieuData: any) => {
 };
 
 export const updateLieu = async (id: any, lieuData: any) => {
+  const raw: Record<string, unknown> = { ...lieuData };
+  if (typeof raw.nom === "string") raw.nom = sanitizeName(raw.nom);
+  if (typeof raw.adresse_complete === "string") raw.adresse_complete = sanitizeName(raw.adresse_complete);
   const { data, error } = await supabase
     .from("lieux")
-    .update(sanitizeLieu(lieuData))
+    .update(sanitizeLieu(raw))
     .eq("id", id)
     .select();
 
