@@ -1,7 +1,13 @@
 import React, { useState } from "react";
 import { isSuspectLieu } from "../utils/suspectCoords";
 import { getKmEnabled } from "../utils/kmSettings";
-import { supabase } from "../services/supabase";
+import {
+  fetchBilanStatus,
+  fetchBilansPrecedents,
+  fetchAcomptesDiag,
+  fetchAcompteAllocationsDiag,
+  fetchFraisKmDiag,
+} from "../services/api/diagnosticsApi";
 import { DIAGNOSTICS_MESSAGES } from "../constants/messages";
 import { runAsyncAction } from "../utils/asyncAction";
 import type { UserProfile } from "../types/profile";
@@ -263,52 +269,32 @@ setRebuildLoading(true);
     try {
       const [bilanRes, precedentsRes, acomptesRes, allocRes, fraisRes] =
         await Promise.all([
-          supabase.from("bilans_status_v2")
-            .select("ca_brut_periode, acompte_consomme, reste_a_percevoir, paye, date_paiement, periode_index, id")
-            .eq("patron_id", diagPatronId).eq("periode_type", "semaine").eq("periode_index", wk)
-            .maybeSingle(),
-
-          supabase.from("bilans_status_v2")
-            .select("periode_index, reste_a_percevoir, paye")
-            .eq("patron_id", diagPatronId).eq("periode_type", "semaine").lt("periode_index", wk)
-            .or("paye.eq.false,reste_a_percevoir.gt.0"),
-
-          supabase.from("acomptes")
-            .select("id, montant, date_acompte")
-            .eq("patron_id", diagPatronId).order("date_acompte"),
-
-          supabase.from("acompte_allocations")
-            .select("acompte_id, amount, periode_index")
-            .eq("patron_id", diagPatronId).order("periode_index"),
-
-          supabase.from("frais_km")
-            .select("date_frais, distance_km, rate_per_km, amount, mission_id")
-            .eq("patron_id", diagPatronId)
-            .gte("date_frais", isoWeekStart(wk))
-            .lte("date_frais", isoWeekEnd(wk))
-            .order("date_frais"),
+          fetchBilanStatus(diagPatronId, wk),
+          fetchBilansPrecedents(diagPatronId, wk),
+          fetchAcomptesDiag(diagPatronId),
+          fetchAcompteAllocationsDiag(diagPatronId),
+          fetchFraisKmDiag(diagPatronId, wk),
         ]);
 
-      // Capturer les erreurs individuelles (Supabase ne throw pas)
       const queryErrors = [
-        bilanRes.error && `Bilan: ${bilanRes.error.message}`,
-        precedentsRes.error && `Précédents: ${precedentsRes.error.message}`,
-        acomptesRes.error && `Acomptes: ${acomptesRes.error.message}`,
-        allocRes.error && `Allocations: ${allocRes.error.message}`,
-        fraisRes.error && `Frais KM: ${fraisRes.error.message}`,
-      ].filter(Boolean);
+        bilanRes.error,
+        precedentsRes.error,
+        acomptesRes.error,
+        allocRes.error,
+        fraisRes.error,
+      ].filter((e): e is string => e !== null);
 
-      const impayePrecedent = (precedentsRes.data || []).reduce(
+      const impayePrecedent = precedentsRes.data.reduce(
         (sum, r) => sum + Math.max(0, parseFloat(String(r.reste_a_percevoir)) || 0), 0
       );
 
       setDiagData({
-        bilan: bilanRes.data ?? null,
+        bilan: bilanRes.data,
         impayePrecedent,
-        acomptes: (acomptesRes.data || []) as DiagData["acomptes"],
-        allocations: (allocRes.data || []) as DiagData["allocations"],
-        fraisKm: (fraisRes.data || []) as DiagData["fraisKm"],
-        queryErrors: queryErrors as string[],
+        acomptes: acomptesRes.data,
+        allocations: allocRes.data,
+        fraisKm: fraisRes.data,
+        queryErrors,
       });
     } catch (err) {
       setDiagError(err instanceof Error ? err.message : String(err));
@@ -983,20 +969,4 @@ function buildDiagnosticClipboardText(diagData: DiagData, diagWeek: number | str
 /** Returns singular suffix when count === 1, plural suffix otherwise. */
 function pluralFr(count: number, singular: string, plural: string): string {
   return count !== 1 ? plural : singular;
-}
-
-/** ISO week number → Monday date string (YYYY-MM-DD). */
-function isoWeekStart(wk: number, year: number = new Date().getFullYear()): string {
-  const jan4 = new Date(year, 0, 4);
-  const dow = jan4.getDay() || 7;
-  const d = new Date(jan4);
-  d.setDate(jan4.getDate() - (dow - 1) + (wk - 1) * 7);
-  return d.toISOString().slice(0, 10);
-}
-
-/** ISO week number → Sunday date string (YYYY-MM-DD). */
-function isoWeekEnd(wk: number, year: number = new Date().getFullYear()): string {
-  const d = new Date(isoWeekStart(wk, year));
-  d.setDate(d.getDate() + 6);
-  return d.toISOString().slice(0, 10);
 }
