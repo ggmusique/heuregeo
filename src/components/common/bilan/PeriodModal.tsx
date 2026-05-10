@@ -62,9 +62,9 @@ export const PeriodModal = ({
   if (!show) return null;
 
   return (
-    <div className={`fixed inset-0 z-[400] flex items-center justify-center p-6 ${darkMode ? "bg-[var(--color-bg)]/95" : "bg-black/40"} backdrop-blur-xl`}>
+    <div className={`fixed inset-0 z-[400] flex items-end sm:items-center justify-center sm:p-6 ${darkMode ? "bg-[var(--color-bg)]/95" : "bg-black/40"} backdrop-blur-xl`}>
       <div
-        className={`w-full max-w-sm p-8 rounded-[45px] border-2 ${
+        className={`w-full max-w-full sm:max-w-sm p-5 sm:p-8 rounded-t-[32px] sm:rounded-[45px] max-h-[90dvh] overflow-y-auto border-2 ${
           darkMode
             ? "bg-[var(--color-surface)] border-[var(--color-border)]"
             : "bg-white border-slate-200"
@@ -80,7 +80,7 @@ export const PeriodModal = ({
         <div className={`flex ${darkMode ? "bg-black/20" : "bg-slate-100"} rounded-2xl p-1 mb-6 backdrop-blur-md`}>
           <button
             onClick={() => setPeriodType("semaine")}
-            className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${
+            className={`flex-1 py-3 min-h-[44px] text-[11px] font-black rounded-xl transition-all ${
               periodType === "semaine"
                 ? "bg-indigo-600 text-white shadow-md"
                 : `${darkMode ? "text-white/50" : "text-slate-500"} hover:bg-white/10`
@@ -93,7 +93,7 @@ export const PeriodModal = ({
             onClick={() => canBilanMois && setPeriodType("mois")}
             disabled={!canBilanMois}
             title={!canBilanMois ? "Fonctionnalité Pro" : undefined}
-            className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${
+            className={`flex-1 py-3 min-h-[44px] text-[11px] font-black rounded-xl transition-all ${
               !canBilanMois
                 ? `${darkMode ? "text-white/20" : "text-slate-300"} cursor-not-allowed`
                 : periodType === "mois"
@@ -108,7 +108,7 @@ export const PeriodModal = ({
             onClick={() => canBilanAnnee && setPeriodType("annee")}
             disabled={!canBilanAnnee}
             title={!canBilanAnnee ? "Fonctionnalité Pro" : undefined}
-            className={`flex-1 py-3 text-[11px] font-black rounded-xl transition-all ${
+            className={`flex-1 py-3 min-h-[44px] text-[11px] font-black rounded-xl transition-all ${
               !canBilanAnnee
                 ? `${darkMode ? "text-white/20" : "text-slate-300"} cursor-not-allowed`
                 : periodType === "annee"
@@ -136,7 +136,7 @@ export const PeriodModal = ({
             <select
               value={periodValue || ""}
               onChange={(e) => setPeriodValue(e.target.value)}
-              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-indigo-500/40 appearance-none cursor-pointer focus:outline-none focus:border-indigo-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-base uppercase border-2 border-indigo-500/40 appearance-none cursor-pointer focus:outline-none focus:border-indigo-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
             >
               <option value="" disabled>
                 Sélectionner une période...
@@ -183,7 +183,7 @@ export const PeriodModal = ({
                 const value = e.target.value;
                 onPatronChange(value === "" ? null : value);
               }}
-              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-green-500/40 appearance-none cursor-pointer focus:outline-none focus:border-green-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-base uppercase border-2 border-green-500/40 appearance-none cursor-pointer focus:outline-none focus:border-green-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
             >
               <option value="">📊 Tous les {L.patrons} (Global)</option>
 
@@ -233,7 +233,7 @@ export const PeriodModal = ({
                 const value = e.target.value;
                 onClientChange(value === "" ? null : value);
               }}
-              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-[13px] uppercase border-2 border-amber-500/40 appearance-none cursor-pointer focus:outline-none focus:border-amber-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-base uppercase border-2 border-amber-500/40 appearance-none cursor-pointer focus:outline-none focus:border-amber-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
             >
               <option value="">👥 Tous les {L.clients}</option>
 

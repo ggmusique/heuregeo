@@ -67,9 +67,9 @@ export const FraisModal = ({
     : "";
 
   return (
-    <div className={`fixed inset-0 z-[500] flex items-center justify-center p-6 ${darkMode ? "bg-[var(--color-bg)]/90" : "bg-black/40"} backdrop-blur-md`}>
+    <div className={`fixed inset-0 z-[500] flex items-end sm:items-center justify-center sm:p-6 ${darkMode ? "bg-[var(--color-bg)]/90" : "bg-black/40"} backdrop-blur-md`}>
       <div
-        className={`w-full max-w-sm p-8 rounded-[40px] border-2 ${
+        className={`w-full max-w-full sm:max-w-sm p-6 sm:p-8 rounded-t-[32px] sm:rounded-[40px] border-2 max-h-[90dvh] overflow-y-auto ${
           darkMode
             ? "bg-[var(--color-surface)] border-[var(--color-border)]"
             : "bg-[var(--color-bg)] border-[var(--color-border)]"
@@ -93,7 +93,7 @@ export const FraisModal = ({
         {/* ✅ Description */}
         <input
           placeholder="Description"
-          className={`w-full p-5 rounded-2xl mb-2 font-bold outline-none border backdrop-blur-md transition-all ${
+          className={`w-full p-5 rounded-2xl mb-2 font-bold outline-none border backdrop-blur-md transition-all text-base ${
             darkMode
               ? "bg-black/20 text-white border-white/5"
               : "bg-slate-50 text-slate-900 border-slate-200"
@@ -110,7 +110,7 @@ export const FraisModal = ({
           type="text"
           inputMode="decimal"
           placeholder="Montant (€)"
-          className={`w-full p-5 rounded-2xl mb-2 font-bold outline-none border backdrop-blur-md transition-all ${
+          className={`w-full p-5 rounded-2xl mb-2 font-bold outline-none border backdrop-blur-md transition-all text-base ${
             darkMode
               ? "bg-black/20 text-white border-white/5"
               : "bg-slate-50 text-slate-900 border-slate-200"

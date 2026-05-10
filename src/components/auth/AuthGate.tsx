@@ -98,7 +98,7 @@ export default function AuthGate({ children }: Props) {
 
           <form onSubmit={handleAuth}>
             <input
-              className="w-full mb-3 p-3 rounded-xl bg-[var(--color-field)] border border-[var(--color-border)] text-[var(--color-text)]"
+              className="w-full mb-3 p-3 rounded-xl bg-[var(--color-field)] border border-[var(--color-border)] text-[var(--color-text)] text-base"
               placeholder="Email"
               type="email"
               name="email"
@@ -110,7 +110,7 @@ export default function AuthGate({ children }: Props) {
             />
             
             <input
-              className="w-full mb-4 p-3 rounded-xl bg-[var(--color-field)] border border-[var(--color-border)] text-[var(--color-text)]"
+              className="w-full mb-4 p-3 rounded-xl bg-[var(--color-field)] border border-[var(--color-border)] text-[var(--color-text)] text-base"
               placeholder="Mot de passe"
               type="password"
               name="password"

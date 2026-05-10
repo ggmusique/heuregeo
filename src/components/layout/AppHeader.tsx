@@ -16,7 +16,7 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION }: P
   return (
     <header
       className={
-        "relative p-6 pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-[var(--color-border-primary)]"
+        "relative px-4 pt-4 pb-10 sm:p-6 sm:pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-[var(--color-border-primary)]"
       }
     >
       <div
@@ -28,7 +28,7 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION }: P
         <button
           onClick={() => setDarkMode(!darkMode)}
           className={
-            "absolute right-6 top-6 w-12 h-12 backdrop-blur-xl rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all border bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text)]"
+            "absolute right-4 top-4 sm:right-6 sm:top-6 w-11 h-11 backdrop-blur-xl rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all border bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text)]"
           }
         >
           {darkMode ? (
@@ -44,7 +44,7 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION }: P
             </svg>
           )}
         </button>
-        <h1 className="relative text-[30px] font-black italic tracking-[0.1em] text-[var(--color-primary)] mb-2 drop-shadow-2xl font-['Playfair_Display']">
+        <h1 className="relative text-[22px] sm:text-[30px] font-black italic tracking-[0.08em] sm:tracking-[0.1em] text-[var(--color-primary)] mb-2 drop-shadow-2xl font-['Playfair_Display'] pr-12 sm:pr-0">
           {"HEURES DE " + (profile?.prenom?.trim()?.toUpperCase() || "GEO")}
         </h1>
         {isViewer && <ViewerBadge patronNom={profile?.nom || ""} />}

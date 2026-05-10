@@ -72,7 +72,7 @@ export const AcompteModal = ({
             <input
               type="number"
               placeholder="0.00 €"
-              className={`w-full p-6 rounded-2xl font-black outline-none border text-center text-3xl focus:border-cyan-400 transition-colors ${darkMode ? "bg-black/40 text-white border-cyan-500/30" : "bg-white text-slate-900 border-slate-200"}`}
+              className={`w-full p-6 rounded-2xl font-black outline-none border text-center text-3xl focus:border-cyan-400 transition-colors text-base ${darkMode ? "bg-black/40 text-white border-cyan-500/30" : "bg-white text-slate-900 border-slate-200"}`}
               value={montant}
               onChange={(e) => setMontant(e.target.value)}
             />

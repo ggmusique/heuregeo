@@ -44,7 +44,7 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
             placeholder="Prénom *"
             value={form.prenom}
             onChange={e => setForm(f => ({ ...f, prenom: e.target.value }))}
-            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-indigo-500/40 text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all"
+            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-indigo-500/40 text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
           />
 
           <input
@@ -52,7 +52,7 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
             placeholder="Nom *"
             value={form.nom}
             onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
-            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-indigo-500/40 text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all"
+            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-indigo-500/40 text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
           />
 
           {/* Section Coordonnées */}
@@ -65,7 +65,7 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
             placeholder="Adresse"
             value={form.adresse}
             onChange={e => setForm(f => ({ ...f, adresse: e.target.value }))}
-            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all"
+            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
           />
 
           <div className="flex gap-3">
@@ -74,14 +74,14 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
               placeholder="Code postal"
               value={form.code_postal}
               onChange={e => setForm(f => ({ ...f, code_postal: e.target.value }))}
-              className="w-1/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all"
+              className="w-1/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
             />
             <input
               type="text"
               placeholder="Ville"
               value={form.ville}
               onChange={e => setForm(f => ({ ...f, ville: e.target.value }))}
-              className="w-2/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all"
+              className="w-2/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
             />
           </div>
 
@@ -90,7 +90,7 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
             placeholder="Téléphone"
             value={form.telephone}
             onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))}
-            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all"
+            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
           />
 
           <p className="text-[9px] text-[var(--color-text-dim)] px-1">* champs obligatoires</p>
