@@ -77,10 +77,17 @@ describe("fetchPatrons", () => {
   });
 
   it("utilisateur non connecté → triggerAlert + throw", async () => {
-    vi.mocked(authService.getCurrentUserOrNull).mockResolvedValue(null);
-
+    // Le beforeEach a mocké getCurrentUserOrNull → { id: "uid" }
+    // Le montage initial réussit donc sans rejection non capturée dans le useEffect.
     const { result } = renderHook(() => usePatrons(triggerAlert));
     await act(async () => {});
+
+    // Changer le mock APRÈS le montage, puis appeler fetchPatrons() explicitement :
+    // la rejection est capturée par rejects.toThrow() → pas d'unhandled rejection.
+    vi.mocked(authService.getCurrentUserOrNull).mockResolvedValue(null);
+    await act(async () => {
+      await expect(result.current.fetchPatrons()).rejects.toThrow();
+    });
 
     expect(triggerAlert).toHaveBeenCalledWith(
       expect.stringContaining("non connecté")
@@ -88,10 +95,17 @@ describe("fetchPatrons", () => {
   });
 
   it("erreur API → triggerAlert + throw (re-throw)", async () => {
-    vi.mocked(patronsApi.fetchPatrons).mockRejectedValue(new Error("DB fail"));
-
+    // Le beforeEach a mocké patronsApi.fetchPatrons → []
+    // Le montage initial réussit donc sans rejection non capturée dans le useEffect.
     const { result } = renderHook(() => usePatrons(triggerAlert));
     await act(async () => {});
+
+    // Changer le mock APRÈS le montage, puis appeler fetchPatrons() explicitement :
+    // la rejection est capturée par rejects.toThrow() → pas d'unhandled rejection.
+    vi.mocked(patronsApi.fetchPatrons).mockRejectedValue(new Error("DB fail"));
+    await act(async () => {
+      await expect(result.current.fetchPatrons()).rejects.toThrow();
+    });
 
     expect(triggerAlert).toHaveBeenCalledWith(
       expect.stringContaining("chargement patrons")

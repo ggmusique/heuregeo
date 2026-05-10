@@ -124,7 +124,7 @@ describe("handleLieuSubmit — verrou isSaving", () => {
     // 2e appel : isSaving=true → ignoré
     await act(async () => { await result.current.handleLieuSubmit({ nom: "B" }); });
     // Résoudre le 1er
-    await act(async () => { resolveFirst(); await p1; });
+    await act(async () => { resolveFirst(makeLieu()); await p1; });
 
     expect(createLieu).toHaveBeenCalledTimes(1);
   });

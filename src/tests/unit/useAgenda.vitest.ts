@@ -213,7 +213,7 @@ describe("navigation mois", () => {
     const monthBefore = result.current.currentMonth;
     const yearBefore = result.current.currentYear;
 
-    act(() => { result.current.goToPrevMonth(); });
+    await act(async () => { result.current.goToPrevMonth(); });
 
     if (monthBefore === 1) {
       expect(result.current.currentMonth).toBe(12);
@@ -233,7 +233,7 @@ describe("navigation mois", () => {
     const monthBefore = result.current.currentMonth;
     const yearBefore = result.current.currentYear;
 
-    act(() => { result.current.goToNextMonth(); });
+    await act(async () => { result.current.goToNextMonth(); });
 
     if (monthBefore === 12) {
       expect(result.current.currentMonth).toBe(1);
@@ -261,11 +261,11 @@ describe("navigation mois", () => {
     // Naviguer jusqu'à janvier (au plus 11 fois)
     const stepsToJan = result.current.currentMonth - 1; // 0 si déjà janvier
     for (let i = 0; i < stepsToJan; i++) {
-      act(() => { result.current.goToPrevMonth(); });
+      await act(async () => { result.current.goToPrevMonth(); });
     }
     // Maintenant on est en janvier
     const yearAtJan = result.current.currentYear;
-    act(() => { result.current.goToPrevMonth(); });
+    await act(async () => { result.current.goToPrevMonth(); });
 
     expect(result.current.currentMonth).toBe(12);
     expect(result.current.currentYear).toBe(yearAtJan - 1);
@@ -279,10 +279,10 @@ describe("navigation mois", () => {
 
     const stepsToDecember = 12 - result.current.currentMonth;
     for (let i = 0; i < stepsToDecember; i++) {
-      act(() => { result.current.goToNextMonth(); });
+      await act(async () => { result.current.goToNextMonth(); });
     }
     const yearAtDec = result.current.currentYear;
-    act(() => { result.current.goToNextMonth(); });
+    await act(async () => { result.current.goToNextMonth(); });
 
     expect(result.current.currentMonth).toBe(1);
     expect(result.current.currentYear).toBe(yearAtDec + 1);
@@ -294,9 +294,9 @@ describe("navigation mois", () => {
     );
     await act(async () => {});
 
-    act(() => { result.current.goToNextMonth(); });
-    act(() => { result.current.goToNextMonth(); });
-    act(() => { result.current.goToToday(); });
+    await act(async () => { result.current.goToNextMonth(); });
+    await act(async () => { result.current.goToNextMonth(); });
+    await act(async () => { result.current.goToToday(); });
 
     const now = new Date();
     expect(result.current.currentYear).toBe(now.getFullYear());
@@ -315,7 +315,7 @@ describe("navigation semaine", () => {
     await act(async () => {});
 
     const wsBefore = result.current.currentWeekStart;
-    act(() => { result.current.goToPrevWeek(); });
+    await act(async () => { result.current.goToPrevWeek(); });
 
     const dBefore = new Date(wsBefore + "T12:00:00");
     const dAfter = new Date(result.current.currentWeekStart + "T12:00:00");
@@ -330,7 +330,7 @@ describe("navigation semaine", () => {
     await act(async () => {});
 
     const wsBefore = result.current.currentWeekStart;
-    act(() => { result.current.goToNextWeek(); });
+    await act(async () => { result.current.goToNextWeek(); });
 
     const dBefore = new Date(wsBefore + "T12:00:00");
     const dAfter = new Date(result.current.currentWeekStart + "T12:00:00");
@@ -344,7 +344,7 @@ describe("navigation semaine", () => {
     );
     await act(async () => {});
 
-    act(() => { result.current.goToNextWeek(); });
+    await act(async () => { result.current.goToNextWeek(); });
 
     // currentYear/currentMonth doit correspondre à la nouvelle semaine
     const d = new Date(result.current.currentWeekStart + "T12:00:00");
@@ -358,7 +358,7 @@ describe("navigation semaine", () => {
     );
     await act(async () => {});
 
-    act(() => { result.current.goToPrevWeek(); });
+    await act(async () => { result.current.goToPrevWeek(); });
 
     const d = new Date(result.current.currentWeekStart + "T12:00:00");
     expect(result.current.currentYear).toBe(d.getFullYear());
