@@ -5,7 +5,27 @@
 // ─── Rôle ───────────────────────────────────────────────────────────────────
 
 /** Rôles possibles dans la table `profiles`. */
-export type UserRole = "viewer" | "pro" | "admin";
+export type UserRole = "viewer" | "pro" | "admin" | "patron";
+
+/** Statut d'un profil patron (invitation). */
+export type PatronAccessStatus = "pending" | "active" | "revoked";
+
+/** Features du profil patron (stockées dans profiles.features). */
+export interface PatronAccessFeatures {
+  invite_token?: string;
+  invite_expires?: string; // ISO date
+  access_agenda: boolean;
+  access_dashboard: boolean;
+}
+
+/** Profil d'accès patron (enregistrement profiles pour role='patron'). */
+export interface PatronAccessProfile {
+  id: string;          // profiles.id = auth.users.id du patron
+  status: PatronAccessStatus;
+  owner_id: string;    // profiles.id de l'ouvrier
+  patron_id: string;   // patrons.id (entrée dans la table patrons)
+  features: PatronAccessFeatures;
+}
 
 // ─── Features (JSONB) ────────────────────────────────────────────────────────
 
@@ -89,10 +109,18 @@ export interface UserProfile {
   /** true si l'utilisateur est administrateur (colonne is_admin). */
   is_admin: boolean;
   /**
-   * ID du patron auquel ce compte viewer est rattaché.
-   * Non-null uniquement pour role === "viewer".
+   * ID du patron auquel ce compte viewer/patron est rattaché.
+   * Non-null uniquement pour role === "viewer" | "patron".
    */
   patron_id: string | null;
+  /**
+   * Pour role === 'patron' : pointe vers le profiles.id de l'ouvrier qui a invité.
+   */
+  owner_id?: string | null;
+  /**
+   * Statut d'invitation pour role === 'patron'.
+   */
+  status?: "pending" | "active" | "revoked" | null;
   prenom: string | null;
   nom: string | null;
   /** Adresse postale (utilisée pour le géocodage domicile). */

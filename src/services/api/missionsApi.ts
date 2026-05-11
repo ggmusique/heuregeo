@@ -19,6 +19,7 @@ export const fetchMissions = async (): Promise<Mission[]> => {
     .single();
 
   const isViewer = profileData?.role === "viewer";
+  const isPatron = profileData?.role === "patron";
 
   let query = supabase
     .from("missions")
@@ -26,7 +27,8 @@ export const fetchMissions = async (): Promise<Mission[]> => {
     .order("date_mission", { ascending: false, nullsFirst: false })
     .order("date_iso", { ascending: false });
 
-  if (!isViewer) {
+  // Pour viewer et patron : pas de filtre user_id, RLS gère la sécurité
+  if (!isViewer && !isPatron) {
     query = query.eq("user_id", user.id);
   }
 

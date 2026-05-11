@@ -5,6 +5,7 @@ import { LieuxManager } from "../components/lieu/LieuxManager";
 import { useLabels } from "../contexts/LabelsContext";
 import type { Patron, Client, Lieu, Mission, FraisDivers, Acompte } from "../types/entities";
 import type { KmSettings } from "../hooks/useKmDomicile";
+import type { UserProfile } from "../types/profile";
 
 interface AccordionSectionProps {
   title: string;
@@ -42,6 +43,8 @@ interface DonneesTabProps {
   showConfirm?: ((options?: any) => Promise<boolean>) | null;
   triggerAlert?: ((message: string) => void) | null;
   isViewer?: boolean;
+  /** Profil de l'ouvrier — transmis à PatronsManager pour les invitations. */
+  ownerProfile?: UserProfile | null;
 }
 
 export const DonneesTab = ({
@@ -71,6 +74,7 @@ export const DonneesTab = ({
   showConfirm = null,
   triggerAlert = null,
   isViewer = false,
+  ownerProfile = null,
 }: DonneesTabProps) => {
   const L = useLabels();
   const AccordionSection = React.memo(({
@@ -147,6 +151,7 @@ export const DonneesTab = ({
           showConfirm={showConfirm}
           triggerAlert={triggerAlert}
           isViewer={isViewer}
+          ownerProfile={ownerProfile}
         />
       </AccordionSection>
 

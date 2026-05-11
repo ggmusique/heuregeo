@@ -40,6 +40,7 @@ import { AgendaPage } from "./components/agenda/AgendaPage";
 import { VueSuivi } from "./components/views/VueSuivi";
 import { VueDashboard } from "./components/views/VueDashboard";
 import { VueSaisie } from "./components/views/VueSaisie";
+import { PatronView } from "./components/views/PatronView";
 
 import { DarkModeProvider } from "./contexts/DarkModeContext";
 import { useAppUI } from "./hooks/useAppUI";
@@ -82,6 +83,11 @@ function AppContent({ user }: AppProps) {
 
   if (user && !profileLoading && !isViewer && !isProfileComplete) {
     return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
+  }
+
+  // Rôle "patron" : vue dédiée en lecture seule (RLS filtre les données)
+  if (user && !profileLoading && profile?.role === "patron") {
+    return <PatronView user={user} />;
   }
 
   return (
@@ -315,6 +321,7 @@ function AppInner({
             onRecalculerKmSemaine={handleRecalculerKmSemaine}
             onRebuildBilans={bilan.rebuildBilans}
             onRepairBilans={repairBilansDB}
+            ownerProfile={profile}
           />
         )}
       </main>

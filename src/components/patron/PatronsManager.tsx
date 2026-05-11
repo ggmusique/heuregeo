@@ -1,6 +1,9 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { formatEuro, formatDateFR } from "../../utils/formatters";
 import { useLabels } from "../../contexts/LabelsContext";
+import { usePatronAccess } from "../../hooks/usePatronAccess";
+import type { UserProfile } from "../../types/profile";
+import type { PatronAccessProfile } from "../../types/profile";
 
 interface Props {
   patrons?: any[];
@@ -16,6 +19,8 @@ interface Props {
   showConfirm?: ((opts: any) => Promise<boolean>) | null;
   triggerAlert?: ((msg: string) => void) | null;
   isViewer?: boolean;
+  /** Profil de l'ouvrier (pour les invitations). */
+  ownerProfile?: UserProfile | null;
 }
 
 export function PatronsManager({
@@ -32,10 +37,18 @@ export function PatronsManager({
   showConfirm = null,
   triggerAlert = null,
   isViewer = false,
+  ownerProfile = null,
 }: Props) {
   const L = useLabels();
   const [expandedPatronId, setExpandedPatronId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // ── Accès patron (invitations) ────────────────────────────────────────────
+  const patronAccessHook = usePatronAccess(
+    ownerProfile?.id ?? null,
+    triggerAlert ?? undefined
+  );
+  const [togglingFeature, setTogglingFeature] = useState<string | null>(null);
 
   const getPatronStats = useCallback((patronId: string) => {
     const patronMissions = missions.filter((m) => m?.patron_id === patronId);
@@ -161,6 +174,50 @@ export function PatronsManager({
                     )}
 
                     <div className="flex gap-2">
+                      {/* ── Bouton Inviter ── */}
+                      {!isViewer && ownerProfile && patron.email && (
+                        <button
+                          onClick={async () => {
+                            const access = patronAccessHook.getAccessForPatron(patron.id);
+                            const isReinvite = access && (access.status === "revoked" || access.status === "pending");
+                            const confirmMsg = isReinvite
+                              ? `Renvoyer l'invitation à ${patron.email} ?`
+                              : `Inviter ${patron.nom} (${patron.email}) à consulter ses heures sur HeurGeo ?`;
+                            const confirmed = await showConfirm?.({
+                              title: "Invitation patron",
+                              message: confirmMsg,
+                              confirmText: "Envoyer",
+                              cancelText: "Annuler",
+                            });
+                            if (!confirmed) return;
+                            try {
+                              await patronAccessHook.invitePatron(patron, ownerProfile);
+                            } catch (err) {
+                              triggerAlert?.("❌ " + (err as Error).message);
+                            }
+                          }}
+                          disabled={patronAccessHook.inviting === patron.id}
+                          aria-label="Inviter ce patron"
+                          title="Inviter ce patron à consulter ses heures"
+                          className="px-3 h-10 rounded-xl flex items-center gap-1.5 transition-all active:scale-90 bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 hover:bg-indigo-500/25 text-[10px] font-black uppercase tracking-wider disabled:opacity-50"
+                        >
+                          {patronAccessHook.inviting === patron.id ? (
+                            <div className="w-3 h-3 rounded-full border border-indigo-400 border-t-transparent animate-spin" />
+                          ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.1a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                            </svg>
+                          )}
+                          {(() => {
+                            const access = patronAccessHook.getAccessForPatron(patron.id);
+                            if (!access) return "Inviter";
+                            if (access.status === "pending") return "Ré-inviter";
+                            if (access.status === "revoked") return "Ré-activer";
+                            return "Ré-inviter";
+                          })()}
+                        </button>
+                      )}
+
                       <button
                         onClick={() => onEdit(patron)}
                         aria-label="Modifier ce patron"
@@ -186,11 +243,164 @@ export function PatronsManager({
                         </svg>
                       </button>
                     </div>
+
+                    {/* ── Panel accès patron (hors ligne de boutons) ── */}
+                    {!isViewer && ownerProfile && (() => {
+                      const access = patronAccessHook.getAccessForPatron(patron.id);
+                      if (!access) return null;
+                      return (
+                        <PatronAccessPanel
+                          access={access}
+                          togglingFeature={togglingFeature}
+                          onRevoke={async () => {
+                            const confirmed = await showConfirm?.({
+                              title: "Révoquer l'accès",
+                              message: `Révoquer l'accès de ${patron.nom} ?`,
+                              confirmText: "Révoquer",
+                              cancelText: "Annuler",
+                              type: "danger",
+                            });
+                            if (!confirmed) return;
+                            try {
+                              await patronAccessHook.revokeAccess(access.id);
+                              triggerAlert?.("✅ Accès révoqué");
+                            } catch (err) {
+                              triggerAlert?.("❌ " + (err as Error).message);
+                            }
+                          }}
+                          onReinstate={async () => {
+                            try {
+                              await patronAccessHook.reinstateAccess(access.id);
+                              triggerAlert?.("✅ Accès rétabli");
+                            } catch (err) {
+                              triggerAlert?.("❌ " + (err as Error).message);
+                            }
+                          }}
+                          onToggleFeature={async (feature, value) => {
+                            setTogglingFeature(feature);
+                            try {
+                              await patronAccessHook.toggleFeature(access.id, feature, value);
+                            } catch (err) {
+                              triggerAlert?.("❌ " + (err as Error).message);
+                            } finally {
+                              setTogglingFeature(null);
+                            }
+                          }}
+                        />
+                      );
+                    })()}
+
                   </div>
                 )}
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Sous-composant : panneau de gestion d'accès ─────────────────────────────
+
+interface PatronAccessPanelProps {
+  access: PatronAccessProfile;
+  togglingFeature: string | null;
+  onRevoke: () => Promise<void>;
+  onReinstate: () => Promise<void>;
+  onToggleFeature: (
+    feature: "access_agenda" | "access_dashboard",
+    value: boolean
+  ) => Promise<void>;
+}
+
+function PatronAccessPanel({
+  access,
+  togglingFeature,
+  onRevoke,
+  onReinstate,
+  onToggleFeature,
+}: PatronAccessPanelProps) {
+  const statusColors: Record<string, string> = {
+    pending: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    revoked: "bg-red-500/15 text-red-400 border-red-500/30",
+  };
+  const statusLabels: Record<string, string> = {
+    pending: "En attente",
+    active: "Actif",
+    revoked: "Révoqué",
+  };
+
+  const cls = statusColors[access.status] ?? statusColors.pending;
+  const label = statusLabels[access.status] ?? access.status;
+
+  return (
+    <div className="w-full mt-3 pt-3 border-t border-[var(--color-border)] space-y-3">
+      {/* Statut */}
+      <div className="flex items-center gap-2">
+        <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+          Accès patron
+        </span>
+        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${cls}`}>
+          {label}
+        </span>
+      </div>
+
+      {/* Toggles features (seulement si actif) */}
+      {access.status === "active" && (
+        <div className="grid grid-cols-2 gap-2">
+          {(["access_agenda", "access_dashboard"] as const).map((feat) => {
+            const featureLabels = { access_agenda: "Agenda", access_dashboard: "Dashboard" };
+            const isOn = access.features?.[feat] ?? false;
+            const isLoading = togglingFeature === feat;
+            return (
+              <button
+                key={feat}
+                type="button"
+                disabled={isLoading}
+                onClick={() => onToggleFeature(feat, !isOn)}
+                className={
+                  "flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50 " +
+                  (isOn
+                    ? "bg-indigo-500/15 text-indigo-400 border-indigo-500/30"
+                    : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border-[var(--color-border)]")
+                }
+              >
+                {featureLabels[feat]}
+                {isLoading ? (
+                  <div className="w-3 h-3 rounded-full border border-current border-t-transparent animate-spin" />
+                ) : (
+                  <div className={`w-7 h-4 rounded-full transition-all relative ${isOn ? "bg-indigo-500" : "bg-slate-600"}`}>
+                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all shadow ${isOn ? "left-3.5" : "left-0.5"}`} />
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Actions révoquer / rétablir */}
+      {access.status !== "pending" && (
+        <div>
+          {access.status === "active" ? (
+            <button
+              type="button"
+              onClick={onRevoke}
+              className="px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-[9px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all"
+            >
+              Révoquer l&apos;accès
+            </button>
+          ) : access.status === "revoked" ? (
+            <button
+              type="button"
+              onClick={onReinstate}
+              className="px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all"
+            >
+              Rétablir l&apos;accès
+            </button>
+          ) : null}
         </div>
       )}
     </div>

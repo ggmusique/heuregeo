@@ -9,6 +9,7 @@ import { useLabels } from "../contexts/LabelsContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import type { Mission, Patron, Client, Lieu } from "../types/entities";
 import type { KmSettings, KmFraisResult } from "../hooks/useKmDomicile";
+import type { UserProfile } from "../types/profile";
 
 const AdminPage = lazy(() =>
   import("./AdminPage").then((m) => ({ default: m.AdminPage }))
@@ -217,6 +218,7 @@ interface ParametresTabProps {
   fetchAcomptes?: (() => Promise<any>) | null;
   showConfirm?: ((options?: any) => Promise<boolean>) | null;
   triggerAlert?: ((message: string) => void) | null;
+  ownerProfile?: UserProfile | null;
 }
 
 export function ParametresTab({
@@ -254,6 +256,7 @@ export function ParametresTab({
   fetchAcomptes = null,
   showConfirm = null,
   triggerAlert = null,
+  ownerProfile = null,
 }: ParametresTabProps) {
   const { isAdmin, isPro, isViewer } = usePermissions();
   const [activePanel, setActivePanel] = useState<string | null>(null);
@@ -601,6 +604,7 @@ export function ParametresTab({
                     showConfirm={showConfirm}
                     triggerAlert={triggerAlert}
                     isViewer={isViewer}
+                    ownerProfile={ownerProfile}
                   />
                 )}
 
