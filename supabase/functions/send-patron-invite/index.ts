@@ -36,12 +36,12 @@ serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // Vérifier que l'appelant est authentifié
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    // getUser() doit recevoir le JWT explicitement (client serveur sans session interne)
+    const jwt = authHeader.replace(/^Bearer\s+/i, "");
+    const { data: { user }, error: userError } = await supabase.auth.getUser(jwt);
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Non authentifié" }), {
         status: 401,

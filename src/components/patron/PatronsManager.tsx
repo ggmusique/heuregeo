@@ -2,8 +2,7 @@ import React, { useState, useCallback, useMemo } from "react";
 import { formatEuro, formatDateFR } from "../../utils/formatters";
 import { useLabels } from "../../contexts/LabelsContext";
 import { usePatronAccess } from "../../hooks/usePatronAccess";
-import type { UserProfile } from "../../types/profile";
-import type { PatronAccessProfile } from "../../types/profile";
+import type { UserProfile, PatronAccessProfile, PatronInvitation } from "../../types/profile";
 
 interface Props {
   patrons?: any[];
@@ -178,11 +177,12 @@ export function PatronsManager({
                       {!isViewer && ownerProfile && patron.email && (
                         <button
                           onClick={async () => {
-                            const access = patronAccessHook.getAccessForPatron(patron.id);
-                            const isReinvite = access && (access.status === "revoked" || access.status === "pending");
+                            const hasPending = Boolean(patronAccessHook.getInvitationForPatron(patron.id));
+                            const hasAccess = Boolean(patronAccessHook.getAccessForPatron(patron.id));
+                            const isReinvite = hasPending || hasAccess;
                             const confirmMsg = isReinvite
-                              ? `Renvoyer l'invitation à ${patron.email} ?`
-                              : `Inviter ${patron.nom} (${patron.email}) à consulter ses heures sur HeurGeo ?`;
+                              ? `Renvoyer l'invitation a ${patron.email} ?`
+                              : `Inviter ${patron.nom} (${patron.email}) a consulter ses heures sur HeurGeo ?`;
                             const confirmed = await showConfirm?.({
                               title: "Invitation patron",
                               message: confirmMsg,
@@ -191,9 +191,16 @@ export function PatronsManager({
                             });
                             if (!confirmed) return;
                             try {
-                              await patronAccessHook.invitePatron(patron, ownerProfile);
+                              const inviteUrl = await patronAccessHook.invitePatron(patron, ownerProfile);
+                              // Copier l'URL dans le presse-papier et afficher un message
+                              try {
+                                await navigator.clipboard.writeText(inviteUrl);
+                                triggerAlert?.(`Lien copie ! Envoyez-le a ${patron.email} :\n${inviteUrl}`);
+                              } catch {
+                                triggerAlert?.(`Lien cree. Copiez-le et envoyez-le a ${patron.email} :\n${inviteUrl}`);
+                              }
                             } catch (err) {
-                              triggerAlert?.("❌ " + (err as Error).message);
+                              triggerAlert?.("Erreur : " + (err as Error).message);
                             }
                           }}
                           disabled={patronAccessHook.inviting === patron.id}
@@ -209,11 +216,9 @@ export function PatronsManager({
                             </svg>
                           )}
                           {(() => {
-                            const access = patronAccessHook.getAccessForPatron(patron.id);
-                            if (!access) return "Inviter";
-                            if (access.status === "pending") return "Ré-inviter";
-                            if (access.status === "revoked") return "Ré-activer";
-                            return "Ré-inviter";
+                            if (patronAccessHook.getInvitationForPatron(patron.id)) return "Re-inviter";
+                            if (patronAccessHook.getAccessForPatron(patron.id)) return "Re-inviter";
+                            return "Inviter";
                           })()}
                         </button>
                       )}
@@ -244,44 +249,49 @@ export function PatronsManager({
                       </button>
                     </div>
 
-                    {/* ── Panel accès patron (hors ligne de boutons) ── */}
+                    {/* ── Panel acces patron ── */}
                     {!isViewer && ownerProfile && (() => {
                       const access = patronAccessHook.getAccessForPatron(patron.id);
-                      if (!access) return null;
+                      const invitation = patronAccessHook.getInvitationForPatron(patron.id);
+                      if (!access && !invitation) return null;
                       return (
                         <PatronAccessPanel
                           access={access}
+                          invitation={invitation}
                           togglingFeature={togglingFeature}
                           onRevoke={async () => {
+                            if (!access) return;
                             const confirmed = await showConfirm?.({
-                              title: "Révoquer l'accès",
-                              message: `Révoquer l'accès de ${patron.nom} ?`,
-                              confirmText: "Révoquer",
+                              title: "Revoquer l'acces",
+                              message: `Revoquer l'acces de ${patron.nom} ?`,
+                              confirmText: "Revoquer",
                               cancelText: "Annuler",
                               type: "danger",
                             });
                             if (!confirmed) return;
                             try {
                               await patronAccessHook.revokeAccess(access.id);
-                              triggerAlert?.("✅ Accès révoqué");
+                              triggerAlert?.("Acces revoque");
                             } catch (err) {
-                              triggerAlert?.("❌ " + (err as Error).message);
+                              triggerAlert?.("Erreur : " + (err as Error).message);
                             }
                           }}
                           onReinstate={async () => {
+                            if (!access) return;
                             try {
                               await patronAccessHook.reinstateAccess(access.id);
-                              triggerAlert?.("✅ Accès rétabli");
+                              triggerAlert?.("Acces retabli");
                             } catch (err) {
-                              triggerAlert?.("❌ " + (err as Error).message);
+                              triggerAlert?.("Erreur : " + (err as Error).message);
                             }
                           }}
                           onToggleFeature={async (feature, value) => {
+                            if (!access) return;
                             setTogglingFeature(feature);
                             try {
                               await patronAccessHook.toggleFeature(access.id, feature, value);
                             } catch (err) {
-                              triggerAlert?.("❌ " + (err as Error).message);
+                              triggerAlert?.("Erreur : " + (err as Error).message);
                             } finally {
                               setTogglingFeature(null);
                             }
@@ -301,10 +311,11 @@ export function PatronsManager({
   );
 }
 
-// ─── Sous-composant : panneau de gestion d'accès ─────────────────────────────
+// ─── Sous-composant : panneau de gestion d'acces ─────────────────────────────
 
 interface PatronAccessPanelProps {
-  access: PatronAccessProfile;
+  access: PatronAccessProfile | undefined;
+  invitation: PatronInvitation | undefined;
   togglingFeature: string | null;
   onRevoke: () => Promise<void>;
   onReinstate: () => Promise<void>;
@@ -316,11 +327,16 @@ interface PatronAccessPanelProps {
 
 function PatronAccessPanel({
   access,
+  invitation,
   togglingFeature,
   onRevoke,
   onReinstate,
   onToggleFeature,
 }: PatronAccessPanelProps) {
+  // Determiner le statut affiche
+  const displayStatus: string = access?.status ?? (invitation ? "pending" : "");
+  if (!displayStatus) return null;
+
   const statusColors: Record<string, string> = {
     pending: "bg-amber-500/15 text-amber-400 border-amber-500/30",
     active: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -329,18 +345,18 @@ function PatronAccessPanel({
   const statusLabels: Record<string, string> = {
     pending: "En attente",
     active: "Actif",
-    revoked: "Révoqué",
+    revoked: "Revoque",
   };
 
-  const cls = statusColors[access.status] ?? statusColors.pending;
-  const label = statusLabels[access.status] ?? access.status;
+  const cls = statusColors[displayStatus] ?? statusColors.pending;
+  const label = statusLabels[displayStatus] ?? displayStatus;
 
   return (
     <div className="w-full mt-3 pt-3 border-t border-[var(--color-border)] space-y-3">
       {/* Statut */}
       <div className="flex items-center gap-2">
         <span className="text-[9px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-          Accès patron
+          Acces patron
         </span>
         <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${cls}`}>
           {label}
@@ -348,7 +364,7 @@ function PatronAccessPanel({
       </div>
 
       {/* Toggles features (seulement si actif) */}
-      {access.status === "active" && (
+      {access?.status === "active" && (
         <div className="grid grid-cols-2 gap-2">
           {(["access_agenda", "access_dashboard"] as const).map((feat) => {
             const featureLabels = { access_agenda: "Agenda", access_dashboard: "Dashboard" };
@@ -381,8 +397,8 @@ function PatronAccessPanel({
         </div>
       )}
 
-      {/* Actions révoquer / rétablir */}
-      {access.status !== "pending" && (
+      {/* Actions revoquer / retablir (seulement si profil actif/revoque) */}
+      {access && (
         <div>
           {access.status === "active" ? (
             <button
@@ -390,7 +406,7 @@ function PatronAccessPanel({
               onClick={onRevoke}
               className="px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-[9px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all"
             >
-              Révoquer l&apos;accès
+              Revoquer l&apos;acces
             </button>
           ) : access.status === "revoked" ? (
             <button
@@ -398,7 +414,7 @@ function PatronAccessPanel({
               onClick={onReinstate}
               className="px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all"
             >
-              Rétablir l&apos;accès
+              Retablir l&apos;acces
             </button>
           ) : null}
         </div>

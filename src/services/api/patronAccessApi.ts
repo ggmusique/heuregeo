@@ -1,16 +1,18 @@
-// src/services/api/patronAccessApi.ts
-// API pour la gestion des accès patrons (invitations, statut, features).
-// Utilisé côté ouvrier pour inviter ses patrons et gérer leurs accès.
+﻿// src/services/api/patronAccessApi.ts
+// API pour la gestion des acces patrons.
+//
+// Architecture :
+//   - patron_invitations : cycle de vie des invitations (pending -> accepted)
+//   - profiles           : profils actifs/revoques une fois l'invitation acceptee
+//
+// La table profiles ne contient JAMAIS de lignes pending -- la FK vers
+// auth.users est ainsi toujours respectee.
 
 import { supabase } from "../supabase";
-import type { PatronAccessProfile, PatronAccessFeatures } from "../../types/profile";
+import type { PatronAccessProfile, PatronAccessFeatures, PatronInvitation } from "../../types/profile";
 
-// ─── Lecture ──────────────────────────────────────────────────────────────────
+// --- Lecture des acces actifs/revoques (cote ouvrier) ---
 
-/**
- * Récupère tous les profils d'accès patron créés par cet ouvrier.
- * (profiles WHERE owner_id = ownerId AND role = 'patron')
- */
 export const fetchPatronAccesses = async (
   ownerId: string
 ): Promise<PatronAccessProfile[]> => {
@@ -18,214 +20,135 @@ export const fetchPatronAccesses = async (
     .from("profiles")
     .select("id, status, owner_id, patron_id, features")
     .eq("owner_id", ownerId)
-    .eq("role", "patron");
+    .eq("role", "patron")
+    .in("status", ["active", "revoked"]);
 
   if (error) throw error;
   return (data ?? []) as PatronAccessProfile[];
 };
 
-/**
- * Vérifie si un token d'invitation est valide (existe + non expiré + status pending).
- * Retourne le profil si valide, null sinon.
- */
-export const verifyInviteToken = async (
-  token: string
-): Promise<PatronAccessProfile | null> => {
+// --- Lecture des invitations (cote ouvrier) ---
+
+export const fetchPatronInvitations = async (
+  ownerId: string
+): Promise<PatronInvitation[]> => {
   const { data, error } = await supabase
-    .from("profiles")
-    .select("id, status, owner_id, patron_id, features")
-    .eq("role", "patron")
-    .eq("status", "pending")
-    .filter("features->>'invite_token'", "eq", token)
-    .maybeSingle();
+    .from("patron_invitations")
+    .select("*")
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: false });
 
   if (error) throw error;
-  if (!data) return null;
-
-  const profile = data as PatronAccessProfile;
-  const expires = profile.features?.invite_expires;
-  if (expires && new Date(expires) < new Date()) return null; // expiré
-
-  return profile;
+  return (data ?? []) as PatronInvitation[];
 };
 
-// ─── Création / mise à jour ───────────────────────────────────────────────────
+// --- Verification du token (RPC SECURITY DEFINER) ---
 
-/**
- * Crée ou met à jour (ré-invite) l'entrée profiles pour un accès patron.
- * - S'il n'existe pas encore → INSERT
- * - S'il existe déjà → UPDATE token + expiry + status pending
- * Retourne le profil créé/mis à jour.
- */
-export const upsertPatronAccess = async ({
+export const verifyInviteToken = async (
+  token: string
+): Promise<{
+  invitation_id: string;
+  owner_id: string;
+  patron_id: string;
+  patron_email: string;
+  invite_expires: string;
+} | null> => {
+  const { data, error } = await supabase.rpc("verify_patron_invite_token", {
+    p_token: token,
+  });
+
+  if (error) throw error;
+  if (!data || (Array.isArray(data) && data.length === 0)) return null;
+
+  const row = Array.isArray(data) ? data[0] : data;
+  return row as {
+    invitation_id: string;
+    owner_id: string;
+    patron_id: string;
+    patron_email: string;
+    invite_expires: string;
+  };
+};
+
+// --- Creation / mise a jour d'une invitation ---
+
+export const upsertPatronInvitation = async ({
   patronId,
   ownerId,
+  patronEmail,
   token,
   expiresAt,
 }: {
   patronId: string;
   ownerId: string;
+  patronEmail: string;
   token: string;
-  expiresAt: string; // ISO date
-}): Promise<PatronAccessProfile> => {
-  // Chercher si un profil existe déjà pour ce patron+owner
+  expiresAt: string;
+}): Promise<PatronInvitation> => {
   const { data: existing } = await supabase
-    .from("profiles")
-    .select("id, features")
+    .from("patron_invitations")
+    .select("id")
     .eq("owner_id", ownerId)
     .eq("patron_id", patronId)
-    .eq("role", "patron")
+    .eq("status", "pending")
     .maybeSingle();
-
-  const newFeatures: PatronAccessFeatures = {
-    invite_token: token,
-    invite_expires: expiresAt,
-    access_agenda: (existing?.features as PatronAccessFeatures | null)?.access_agenda ?? false,
-    access_dashboard: (existing?.features as PatronAccessFeatures | null)?.access_dashboard ?? false,
-  };
 
   if (existing?.id) {
-    // Mise à jour du token
     const { data, error } = await supabase
-      .from("profiles")
-      .update({ status: "pending", features: newFeatures })
-      .eq("id", existing.id)
-      .select("id, status, owner_id, patron_id, features")
-      .single();
-
-    if (error) throw error;
-    return data as PatronAccessProfile;
-  } else {
-    // Création d'un nouveau profil patron (sans auth user lié pour l'instant)
-    // Le profil sera activé lors de l'acceptation de l'invitation
-    const { data, error } = await supabase
-      .from("profiles")
-      .insert({
-        // id sera généré automatiquement OU lié au user lors de l'activation
-        // On utilise gen_random_uuid() via default côté DB
-        role: "patron",
-        status: "pending",
-        owner_id: ownerId,
-        patron_id: patronId,
-        features: newFeatures,
-        prenom: null,
-        nom: null,
-        is_admin: false,
+      .from("patron_invitations")
+      .update({
+        invite_token: token,
+        invite_expires: expiresAt,
+        patron_email: patronEmail,
+        updated_at: new Date().toISOString(),
       })
-      .select("id, status, owner_id, patron_id, features")
+      .eq("id", existing.id)
+      .select("*")
       .single();
 
     if (error) throw error;
-    return data as PatronAccessProfile;
+    return data as PatronInvitation;
   }
-};
 
-// ─── Activation (côté patron acceptant l'invitation) ─────────────────────────
-
-/**
- * Active le profil patron en le liant au compte auth de l'utilisateur connecté.
- * Met à jour : status='active', supprime invite_token + invite_expires.
- */
-export const activatePatronAccess = async (
-  profileId: string
-): Promise<void> => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Non authentifié");
-
-  // Récupérer les features existantes pour garder access_agenda / access_dashboard
-  const { data: existing, error: fetchErr } = await supabase
-    .from("profiles")
-    .select("features")
-    .eq("id", profileId)
+  const { data, error } = await supabase
+    .from("patron_invitations")
+    .insert({
+      owner_id: ownerId,
+      patron_id: patronId,
+      patron_email: patronEmail,
+      invite_token: token,
+      invite_expires: expiresAt,
+      status: "pending",
+    })
+    .select("*")
     .single();
 
-  if (fetchErr) throw fetchErr;
-
-  const currentFeatures = (existing?.features ?? {}) as PatronAccessFeatures;
-  const { invite_token: _t, invite_expires: _e, ...cleanFeatures } = (currentFeatures as unknown) as Record<string, unknown>;
-
-  // Le profil pending avait un id temporaire — on doit créer/fusionner avec l'auth user
-  // Si l'id du profil pending est différent de auth.uid(), on met à jour l'id ou on crée un nouveau profil
-  const { data: myProfile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (myProfile) {
-    // L'utilisateur a déjà un profil : mettre à jour si c'est le même profil
-    // ou créer un second profil patron pour cet utilisateur
-    if (myProfile.id === profileId) {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ status: "active", features: cleanFeatures })
-        .eq("id", profileId);
-      if (error) throw error;
-    } else {
-      // L'invitation avait un id temporaire mais l'utilisateur a déjà un compte
-      // On crée/upsert un profil patron lié à son user.id
-      const { data: pendingProfile, error: pErr } = await supabase
-        .from("profiles")
-        .select("owner_id, patron_id")
-        .eq("id", profileId)
-        .single();
-      if (pErr) throw pErr;
-
-      const { error } = await supabase
-        .from("profiles")
-        .upsert({
-          id: user.id,
-          role: "patron",
-          status: "active",
-          owner_id: pendingProfile.owner_id,
-          patron_id: pendingProfile.patron_id,
-          features: cleanFeatures,
-          is_admin: false,
-        });
-      if (error) throw error;
-
-      // Supprimer l'ancien profil pending si différent
-      if (profileId !== user.id) {
-        await supabase.from("profiles").delete().eq("id", profileId);
-      }
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("Une invitation a deja ete envoyee a cet email.");
     }
-  } else {
-    // Pas de profil existant : utiliser le profileId ou créer pour user.id
-    const { error } = await supabase
-      .from("profiles")
-      .upsert({
-        id: user.id,
-        role: "patron",
-        status: "active",
-        features: cleanFeatures,
-      });
-    if (error) throw error;
-
-    if (profileId !== user.id) {
-      // Récupérer les champs du profil pending
-      const { data: pending } = await supabase
-        .from("profiles")
-        .select("owner_id, patron_id")
-        .eq("id", profileId)
-        .maybeSingle();
-
-      if (pending) {
-        const { error: upErr } = await supabase
-          .from("profiles")
-          .update({ owner_id: pending.owner_id, patron_id: pending.patron_id })
-          .eq("id", user.id);
-        if (upErr) throw upErr;
-        await supabase.from("profiles").delete().eq("id", profileId);
-      }
-    }
+    throw error;
   }
+  return data as PatronInvitation;
 };
 
-// ─── Gestion des accès (côté ouvrier) ────────────────────────────────────────
+// --- Activation via RPC (cote patron acceptant l'invitation) ---
 
-/**
- * Révoque l'accès d'un profil patron.
- */
+export const activatePatronAccess = async (token: string): Promise<void> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Non authentifie");
+
+  const { error } = await supabase.rpc("activate_patron_invite", {
+    p_token: token,
+  });
+
+  if (error) throw error;
+};
+
+// --- Gestion des acces actifs (cote ouvrier) ---
+
 export const revokePatronAccess = async (profileId: string): Promise<void> => {
   const { error } = await supabase
     .from("profiles")
@@ -234,10 +157,9 @@ export const revokePatronAccess = async (profileId: string): Promise<void> => {
   if (error) throw error;
 };
 
-/**
- * Rétablit l'accès d'un profil patron révoqué.
- */
-export const reinstatePatronAccess = async (profileId: string): Promise<void> => {
+export const reinstatePatronAccess = async (
+  profileId: string
+): Promise<void> => {
   const { error } = await supabase
     .from("profiles")
     .update({ status: "active" })
@@ -245,15 +167,11 @@ export const reinstatePatronAccess = async (profileId: string): Promise<void> =>
   if (error) throw error;
 };
 
-/**
- * Met à jour un feature flag (access_agenda | access_dashboard) d'un profil patron.
- */
 export const updatePatronFeature = async (
   profileId: string,
   feature: keyof Pick<PatronAccessFeatures, "access_agenda" | "access_dashboard">,
   value: boolean
 ): Promise<void> => {
-  // Récupérer les features existantes pour patch partiel
   const { data, error: fetchErr } = await supabase
     .from("profiles")
     .select("features")
@@ -261,8 +179,10 @@ export const updatePatronFeature = async (
     .single();
   if (fetchErr) throw fetchErr;
 
-  const updated = {
-    ...(data?.features ?? {}),
+  const existing = data?.features as PatronAccessFeatures | null;
+  const updated: PatronAccessFeatures = {
+    access_agenda: existing?.access_agenda ?? false,
+    access_dashboard: existing?.access_dashboard ?? false,
     [feature]: value,
   };
 
@@ -273,11 +193,8 @@ export const updatePatronFeature = async (
   if (error) throw error;
 };
 
-// ─── Appel Edge Function ──────────────────────────────────────────────────────
+// --- Appel Edge Function ---
 
-/**
- * Appelle la Edge Function pour envoyer l'email d'invitation.
- */
 export const sendPatronInviteEmail = async ({
   patronEmail,
   patronNom,

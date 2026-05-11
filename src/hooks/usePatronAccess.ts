@@ -1,56 +1,50 @@
-// src/hooks/usePatronAccess.ts
-// Gestion des invitations et accès patrons — côté OUVRIER.
-// Charge les profils d'accès patron de l'ouvrier, expose les actions CRUD.
+﻿// src/hooks/usePatronAccess.ts
+// Gestion des invitations et acces patrons - cote OUVRIER.
+// invitePatron() cree l'invitation dans patron_invitations et retourne
+// l'URL d'invite que l'ouvrier peut copier/partager manuellement.
+// L'envoi d'email (Edge Function Resend) est optionnel et desactive par defaut.
 
 import { useState, useEffect, useCallback } from "react";
 import {
   fetchPatronAccesses,
-  upsertPatronAccess,
+  fetchPatronInvitations,
+  upsertPatronInvitation,
   revokePatronAccess,
   reinstatePatronAccess,
   updatePatronFeature,
-  sendPatronInviteEmail,
 } from "../services/api/patronAccessApi";
-import type { PatronAccessProfile, PatronAccessFeatures } from "../types/profile";
+import type { PatronAccessProfile, PatronAccessFeatures, PatronInvitation } from "../types/profile";
 import type { Patron } from "../types/entities";
 import type { UserProfile } from "../types/profile";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// --- Types -------------------------------------------------------------------
 
 export interface UsePatronAccessReturn {
-  /** Profils d'accès patron créés par cet ouvrier. */
   patronAccesses: PatronAccessProfile[];
+  patronInvitations: PatronInvitation[];
   loading: boolean;
-  /** ID de patron en cours d'invitation. */
   inviting: string | null;
-  /** Recharge les accès depuis la base. */
   refreshAccesses: () => Promise<void>;
-  /**
-   * Invite un patron (crée le profil d'accès + envoie l'email).
-   * Ré-invite si un accès existe déjà (token régénéré).
-   */
-  invitePatron: (patron: Patron, ownerProfile: UserProfile) => Promise<void>;
-  /** Révoque l'accès d'un profil patron. */
+  invitePatron: (patron: Patron, ownerProfile: UserProfile) => Promise<string>;
   revokeAccess: (profileId: string) => Promise<void>;
-  /** Rétablit l'accès d'un profil patron révoqué. */
   reinstateAccess: (profileId: string) => Promise<void>;
-  /** Active ou désactive un feature flag (access_agenda | access_dashboard). */
   toggleFeature: (
     profileId: string,
     feature: keyof Pick<PatronAccessFeatures, "access_agenda" | "access_dashboard">,
     value: boolean
   ) => Promise<void>;
-  /** Retourne l'accès pour un patron_id donné, ou undefined. */
   getAccessForPatron: (patronId: string) => PatronAccessProfile | undefined;
+  getInvitationForPatron: (patronId: string) => PatronInvitation | undefined;
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+// --- Hook --------------------------------------------------------------------
 
 export function usePatronAccess(
   ownerId: string | null | undefined,
   triggerAlert?: (msg: string) => void
 ): UsePatronAccessReturn {
   const [patronAccesses, setPatronAccesses] = useState<PatronAccessProfile[]>([]);
+  const [patronInvitations, setPatronInvitations] = useState<PatronInvitation[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [inviting, setInviting] = useState<string | null>(null);
 
@@ -58,10 +52,14 @@ export function usePatronAccess(
     if (!ownerId) return;
     setLoading(true);
     try {
-      const data = await fetchPatronAccesses(ownerId);
-      setPatronAccesses(data);
+      const [accesses, invitations] = await Promise.all([
+        fetchPatronAccesses(ownerId),
+        fetchPatronInvitations(ownerId),
+      ]);
+      setPatronAccesses(accesses);
+      setPatronInvitations(invitations);
     } catch (err) {
-      triggerAlert?.("Erreur chargement accès patrons : " + (err as Error).message);
+      triggerAlert?.("Erreur chargement acces patrons : " + (err as Error).message);
     } finally {
       setLoading(false);
     }
@@ -72,43 +70,31 @@ export function usePatronAccess(
   }, [refreshAccesses]);
 
   const invitePatron = useCallback(
-    async (patron: Patron, ownerProfile: UserProfile): Promise<void> => {
-      if (!ownerId) throw new Error("Owner non connecté");
-      if (!patron.email) throw new Error("Ce patron n'a pas d'email renseigné");
+    async (patron: Patron, _ownerProfile: UserProfile): Promise<string> => {
+      if (!ownerId) throw new Error("Owner non connecte");
+      if (!patron.email) throw new Error("Ce patron n a pas d email renseigne");
 
       setInviting(patron.id);
       try {
-        // Générer un token (uuid v4 côté client — suffisamment entropique)
         const token = crypto.randomUUID();
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        // Créer / mettre à jour le profil d'accès
-        await upsertPatronAccess({
+        await upsertPatronInvitation({
           patronId: patron.id,
           ownerId,
+          patronEmail: patron.email,
           token,
           expiresAt,
         });
 
-        // Envoyer l'email
-        const ownerNom = [ownerProfile.prenom, ownerProfile.nom].filter(Boolean).join(" ")
-          || ownerProfile.nom
-          || "Votre employé";
-
-        await sendPatronInviteEmail({
-          patronEmail: patron.email,
-          patronNom: patron.nom,
-          ownerNom,
-          token,
-        });
-
-        triggerAlert?.(`✅ Invitation envoyée à ${patron.email}`);
         await refreshAccesses();
+
+        return window.location.origin + "/accept-invite?token=" + encodeURIComponent(token);
       } finally {
         setInviting(null);
       }
     },
-    [ownerId, triggerAlert, refreshAccesses]
+    [ownerId, refreshAccesses]
   );
 
   const revokeAccess = useCallback(
@@ -155,8 +141,17 @@ export function usePatronAccess(
     [patronAccesses]
   );
 
+  const getInvitationForPatron = useCallback(
+    (patronId: string): PatronInvitation | undefined =>
+      patronInvitations.find(
+        (inv) => inv.patron_id === patronId && inv.status === "pending"
+      ),
+    [patronInvitations]
+  );
+
   return {
     patronAccesses,
+    patronInvitations,
     loading,
     inviting,
     refreshAccesses,
@@ -165,5 +160,6 @@ export function usePatronAccess(
     reinstateAccess,
     toggleFeature,
     getAccessForPatron,
+    getInvitationForPatron,
   };
 }

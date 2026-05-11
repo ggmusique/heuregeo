@@ -5,7 +5,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../services/supabase";
 import { verifyInviteToken, activatePatronAccess } from "../services/api/patronAccessApi";
-import type { PatronAccessProfile } from "../types/profile";
+
+type InviteInfo = {
+  invitation_id: string;
+  owner_id: string;
+  patron_id: string;
+  patron_email: string;
+  invite_expires: string;
+};
 
 type PageState = "loading" | "auth" | "activating" | "success" | "expired" | "error";
 
@@ -16,7 +23,7 @@ interface AcceptInvitePageProps {
 export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
   const [state, setState] = useState<PageState>("loading");
   const [errorMsg, setErrorMsg] = useState<string>("");
-  const [profile, setProfile] = useState<PatronAccessProfile | null>(null);
+  const [invite, setInvite] = useState<InviteInfo | null>(null);
 
   // Formulaire auth
   const [email, setEmail] = useState<string>("");
@@ -37,13 +44,13 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
           setState("expired");
           return;
         }
-        setProfile(p);
+        setInvite(p);
 
-        // Vérifier si l'utilisateur est déjà connecté
+        // Verifier si l'utilisateur est deja connecte
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setState("activating");
-          await activatePatronAccess(p.id);
+          await activatePatronAccess(token);
           setState("success");
         } else {
           setState("auth");
@@ -60,28 +67,26 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
   // ── Étape 2 : auth puis activation ──────────────────────────────────────
   const handleAuth = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
+    if (!invite) return;
     setAuthMsg("");
     setAuthLoading(true);
     try {
       if (authMode === "signup") {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        // Après signup, Supabase envoie un email de confirmation.
-        // On tente l'activation immédiatement (si confirmation désactivée)
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setState("activating");
-          await activatePatronAccess(profile.id);
+          await activatePatronAccess(token);
           setState("success");
         } else {
-          setAuthMsg("✅ Compte créé — vérifiez vos emails pour confirmer, puis reconnectez-vous via ce lien.");
+          setAuthMsg("✅ Compte cree — verifiez vos emails pour confirmer, puis reconnectez-vous via ce lien.");
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         setState("activating");
-        await activatePatronAccess(profile.id);
+        await activatePatronAccess(token);
         setState("success");
       }
     } catch (err) {
@@ -89,7 +94,7 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
     } finally {
       setAuthLoading(false);
     }
-  }, [email, password, authMode, profile]);
+  }, [email, password, authMode, invite, token]);
 
   const handleGoToApp = useCallback(() => {
     window.location.href = window.location.origin;

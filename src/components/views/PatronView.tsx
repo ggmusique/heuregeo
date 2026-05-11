@@ -138,8 +138,7 @@ function PatronViewInner({
   ];
 
   return (
-    <LabelsContext.Provider value={labels}>
-      <PermissionsContext.Provider value={permissions}>
+    <>
         <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
           <CustomAlert show={customAlert.show} message={customAlert.message || ""} onDismiss={dismissAlert} />
 
@@ -261,8 +260,7 @@ function PatronViewInner({
             </div>
           </nav>
         </div>
-      </PermissionsContext.Provider>
-    </LabelsContext.Provider>
+    </>
   );
 }
 
@@ -354,12 +352,30 @@ export function PatronView({ user }: PatronViewProps) {
   // Vue principale
   return (
     <DarkModeProvider>
-      <PatronViewInner
-        access={selectedAccess}
-        user={user}
-        onSwitchOwner={handleSwitchOwner}
-        hasMultipleOwners={accesses.length > 1}
-      />
+      <LabelsContext.Provider value={getLabels(null)}>
+        <PermissionsContext.Provider value={{
+          isViewer: false,
+          viewerPatronId: selectedAccess.patronId,
+          isAdmin: false,
+          isPro: false,
+          canBilanMois: true,
+          canBilanAnnee: true,
+          canExportPDF: false,
+          canExportExcel: false,
+          canExportCSV: false,
+          canKilometrage: false,
+          canAgenda: selectedAccess.access_agenda,
+          canFacture: false,
+          canDashboard: selectedAccess.access_dashboard,
+        }}>
+          <PatronViewInner
+            access={selectedAccess}
+            user={user}
+            onSwitchOwner={handleSwitchOwner}
+            hasMultipleOwners={accesses.length > 1}
+          />
+        </PermissionsContext.Provider>
+      </LabelsContext.Provider>
     </DarkModeProvider>
   );
 }

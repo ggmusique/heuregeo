@@ -7,24 +7,38 @@
 /** Rôles possibles dans la table `profiles`. */
 export type UserRole = "viewer" | "pro" | "admin" | "patron";
 
-/** Statut d'un profil patron (invitation). */
-export type PatronAccessStatus = "pending" | "active" | "revoked";
+/** Statut d'un profil patron actif/révoqué dans `profiles`. */
+export type PatronAccessStatus = "active" | "revoked";
 
-/** Features du profil patron (stockées dans profiles.features). */
+/** Features du profil patron actif (stockées dans profiles.features). */
 export interface PatronAccessFeatures {
-  invite_token?: string;
-  invite_expires?: string; // ISO date
   access_agenda: boolean;
   access_dashboard: boolean;
 }
 
-/** Profil d'accès patron (enregistrement profiles pour role='patron'). */
+/** Profil d'accès patron (enregistrement profiles pour role='patron', status active|revoked). */
 export interface PatronAccessProfile {
   id: string;          // profiles.id = auth.users.id du patron
   status: PatronAccessStatus;
   owner_id: string;    // profiles.id de l'ouvrier
   patron_id: string;   // patrons.id (entrée dans la table patrons)
   features: PatronAccessFeatures;
+}
+
+/** Statut d'une invitation (table patron_invitations). */
+export type PatronInvitationStatus = "pending" | "accepted" | "expired";
+
+/** Ligne de la table patron_invitations. */
+export interface PatronInvitation {
+  id: string;
+  owner_id: string;
+  patron_id: string;
+  patron_email: string;
+  invite_token: string;
+  invite_expires: string; // ISO date
+  status: PatronInvitationStatus;
+  created_at: string;
+  updated_at: string;
 }
 
 // ─── Features (JSONB) ────────────────────────────────────────────────────────
@@ -120,7 +134,7 @@ export interface UserProfile {
   /**
    * Statut d'invitation pour role === 'patron'.
    */
-  status?: "pending" | "active" | "revoked" | null;
+  status?: "active" | "revoked" | null;
   prenom: string | null;
   nom: string | null;
   /** Adresse postale (utilisée pour le géocodage domicile). */
