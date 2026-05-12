@@ -1,8 +1,5 @@
-﻿// src/hooks/usePatronAccess.ts
+// src/hooks/usePatronAccess.ts
 // Gestion des invitations et acces patrons - cote OUVRIER.
-// invitePatron() cree l'invitation dans patron_invitations et retourne
-// l'URL d'invite que l'ouvrier peut copier/partager manuellement.
-// L'envoi d'email (Edge Function Resend) est optionnel et desactive par defaut.
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -12,10 +9,19 @@ import {
   revokePatronAccess,
   reinstatePatronAccess,
   updatePatronFeature,
+  sendPatronInviteEmail,
 } from "../services/api/patronAccessApi";
 import type { PatronAccessProfile, PatronAccessFeatures, PatronInvitation } from "../types/profile";
 import type { Patron } from "../types/entities";
 import type { UserProfile } from "../types/profile";
+
+// --- Helpers -----------------------------------------------------------------
+
+function generateToken(): string {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 // --- Types -------------------------------------------------------------------
 
@@ -70,13 +76,13 @@ export function usePatronAccess(
   }, [refreshAccesses]);
 
   const invitePatron = useCallback(
-    async (patron: Patron, _ownerProfile: UserProfile): Promise<string> => {
+    async (patron: Patron, ownerProfile: UserProfile): Promise<string> => {
       if (!ownerId) throw new Error("Owner non connecte");
       if (!patron.email) throw new Error("Ce patron n a pas d email renseigne");
 
       setInviting(patron.id);
       try {
-        const token = crypto.randomUUID();
+        const token = generateToken();
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
         await upsertPatronInvitation({
@@ -86,6 +92,18 @@ export function usePatronAccess(
           token,
           expiresAt,
         });
+
+        // Envoi email — echec silencieux (l'URL reste copiable manuellement)
+        try {
+          await sendPatronInviteEmail({
+            patronEmail: patron.email,
+            patronNom: patron.nom ?? patron.email,
+            ownerNom: ownerProfile.nom ?? ownerProfile.email ?? "Votre employeur",
+            token,
+          });
+        } catch (emailErr) {
+          console.warn("Email non envoye (non bloquant) :", emailErr);
+        }
 
         await refreshAccesses();
 
