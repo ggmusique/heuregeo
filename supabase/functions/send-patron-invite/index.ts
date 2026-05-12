@@ -35,8 +35,8 @@ serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
 
     // Vérifier que l'appelant est authentifié
     // getUser() doit recevoir le JWT explicitement (client serveur sans session interne)
