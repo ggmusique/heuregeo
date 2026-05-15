@@ -10,6 +10,7 @@ import {
   fetchPatronInvitations,
   upsertPatronInvitation,
   sendPatronInviteEmail,
+  cancelPatronInvitation,
   revokePatronAccess,
   reinstatePatronAccess,
   updatePatronFeature,
@@ -25,8 +26,10 @@ export interface UsePatronAccessReturn {
   patronInvitations: PatronInvitation[];
   loading: boolean;
   inviting: string | null;
+  cancellingInvite: string | null;
   refreshAccesses: () => Promise<void>;
   invitePatron: (patron: Patron, ownerProfile: UserProfile) => Promise<string>;
+  cancelInvitation: (invitationId: string, patronId: string) => Promise<void>;
   revokeAccess: (profileId: string) => Promise<void>;
   reinstateAccess: (profileId: string) => Promise<void>;
   toggleFeature: (
@@ -54,6 +57,7 @@ export function usePatronAccess(
   const [patronInvitations, setPatronInvitations] = useState<PatronInvitation[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [inviting, setInviting] = useState<string | null>(null);
+  const [cancellingInvite, setCancellingInvite] = useState<string | null>(null);
 
   const refreshAccesses = useCallback(async (): Promise<void> => {
     if (!ownerId) return;
@@ -118,6 +122,19 @@ export function usePatronAccess(
     [ownerId, refreshAccesses, triggerAlert]
   );
 
+  const cancelInvitation = useCallback(
+    async (invitationId: string, patronId: string): Promise<void> => {
+      setCancellingInvite(patronId);
+      try {
+        await cancelPatronInvitation(invitationId);
+        setPatronInvitations((prev) => prev.filter((inv) => inv.id !== invitationId));
+      } finally {
+        setCancellingInvite(null);
+      }
+    },
+    []
+  );
+
   const revokeAccess = useCallback(
     async (profileId: string): Promise<void> => {
       await revokePatronAccess(profileId);
@@ -165,7 +182,7 @@ export function usePatronAccess(
   const getInvitationForPatron = useCallback(
     (patronId: string): PatronInvitation | undefined =>
       patronInvitations.find(
-        (inv) => inv.patron_id === patronId && inv.status === "pending"
+        (inv) => inv.patron_id === patronId && (inv.status === "pending" || inv.status === "accepted")
       ),
     [patronInvitations]
   );
@@ -175,8 +192,10 @@ export function usePatronAccess(
     patronInvitations,
     loading,
     inviting,
+    cancellingInvite,
     refreshAccesses,
     invitePatron,
+    cancelInvitation,
     revokeAccess,
     reinstateAccess,
     toggleFeature,

@@ -268,7 +268,7 @@ function AppInner({
       <AppHeader profile={profile} isViewer={isViewer} isPro={isPro} liveTime={liveTime} APP_VERSION={APP_VERSION} />
 
       <main className="relative px-5 -mt-10 pb-32 z-10">
-        {activeTab === "saisie" && <VueSaisie {...saisieProps} />}
+        {activeTab === "saisie" && !isViewer && <VueSaisie {...saisieProps} />}
 
         {activeTab === "dashboard" && canDashboard && <VueDashboard {...dashboardProps} />}
 

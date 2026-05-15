@@ -11,12 +11,11 @@ export interface ClientStats {
 export type ClientInsert = Omit<Client, "id" | "created_at">;
 export type ClientUpdate = Partial<Omit<Client, "id" | "user_id" | "created_at">>;
 
-export const fetchClients = async (userId: string): Promise<Client[]> => {
+export const fetchClients = async (_userId?: string): Promise<Client[]> => {
   const { data, error } = await supabase
     .from("clients")
     .select("*")
     .eq("actif", true)
-    .eq("user_id", userId)
     .order("nom", { ascending: true });
 
   if (error) throw error;

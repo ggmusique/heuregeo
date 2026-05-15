@@ -14,7 +14,7 @@ type InviteInfo = {
   invite_expires: string;
 };
 
-type PageState = "loading" | "auth" | "activating" | "success" | "expired" | "error";
+type PageState = "loading" | "auth" | "confirm" | "activating" | "success" | "expired" | "error";
 
 interface AcceptInvitePageProps {
   token: string;
@@ -29,6 +29,8 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+  // null = les deux modes disponibles ; sinon le mode est verrouillé
+  const [forcedAuthMode, setForcedAuthMode] = useState<"login" | "signup" | null>(null);
   const [authMsg, setAuthMsg] = useState<string>("");
   const [authLoading, setAuthLoading] = useState<boolean>(false);
 
@@ -45,14 +47,34 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
           return;
         }
         setInvite(p);
+        // Pré-remplir l'email avec celui de l'invitation
+        setEmail(p.patron_email);
 
         // Verifier si l'utilisateur est deja connecte
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          setState("activating");
-          await activatePatronAccess(token);
-          setState("success");
+          // ── Bug 1 : vérifier le rôle du compte connecté ────────────────
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .maybeSingle();
+          const role = profileData?.role as string | null | undefined;
+          if (role && role !== "viewer") {
+            setErrorMsg("Ce lien d'invitation ne peut pas être utilisé avec ce compte.");
+            setState("error");
+            return;
+          }
+          setState("confirm");
         } else {
+          // ── Bug 2 : détecter si un compte existe pour cet email ────────
+          const { data: hasAccount, error: probeErr } = await supabase
+            .rpc("patron_email_has_account", { p_email: p.patron_email });
+          if (!probeErr) {
+            const mode = hasAccount ? "login" : "signup";
+            setForcedAuthMode(mode);
+            setAuthMode(mode);
+          }
           setState("auth");
         }
       } catch (err) {
@@ -64,7 +86,19 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
     return () => { alive = false; };
   }, [token]);
 
-  // ── Étape 2 : auth puis activation ──────────────────────────────────────
+  // ── Étape 2 (bis) : confirmation explicite si déjà connecté ─────────────────
+  const handleConfirmActivate = useCallback(async () => {
+    setState("activating");
+    try {
+      await activatePatronAccess(token);
+      setState("success");
+    } catch (err) {
+      setErrorMsg((err as Error).message || "Erreur lors de l'activation");
+      setState("error");
+    }
+  }, [token]);
+
+  // ── Étape 2 : auth puis activation ─────────────────────────────────────
   const handleAuth = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!invite) return;
@@ -158,8 +192,30 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
     );
   }
 
-  if (state === "success") {
+  if (state === "confirm") {
     return (
+      <div className={containerCls}>
+        <div className={cardCls}>
+          <div className="text-center space-y-5">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto shadow-xl">
+              <span className="text-2xl">⏱</span>
+            </div>
+            <h1 className="text-xl font-black tracking-tight">Activer votre accès</h1>
+            {invite && (
+              <p className="text-slate-400 text-sm">
+                Vous êtes connecté. Cliquez sur le bouton ci-dessous pour activer votre accès patron.
+              </p>
+            )}
+            <button onClick={handleConfirmActivate} className={btnPrimaryCls}>
+              Activer mon accès &rarr;
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (state === "success") {    return (
       <div className={containerCls}>
         <div className={cardCls}>
           <div className="text-center space-y-5">
@@ -193,10 +249,15 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
         </div>
 
         <div className="mb-5 p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-sm text-indigo-200">
-          Vous avez reçu une invitation. Connectez-vous ou créez un compte pour activer votre accès.
+          {forcedAuthMode === "signup"
+            ? "Aucun compte n'existe pour cette adresse. Créez un compte pour activer votre accès."
+            : forcedAuthMode === "login"
+            ? "Un compte existe déjà pour cette adresse. Connectez-vous pour activer votre accès."
+            : "Vous avez reçu une invitation. Connectez-vous ou créez un compte pour activer votre accès."}
         </div>
 
-        {/* Sélecteur mode */}
+        {/* Sélecteur mode — masqué si le mode est verrouillé */}
+        {!forcedAuthMode && (
         <div className="flex gap-1 mb-5 bg-slate-800 rounded-xl p-1">
           {(["signup", "login"] as const).map((m) => (
             <button
@@ -214,6 +275,7 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
             </button>
           ))}
         </div>
+        )}
 
         <form onSubmit={handleAuth} className="space-y-4">
           <div>
@@ -226,7 +288,8 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="votre@email.com"
               required
-              disabled={authLoading}
+              disabled={authLoading || Boolean(invite?.patron_email)}
+              readOnly={Boolean(invite?.patron_email)}
               autoComplete="email"
               className={inputCls}
             />

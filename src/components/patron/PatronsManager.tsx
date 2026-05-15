@@ -41,6 +41,7 @@ export function PatronsManager({
   const L = useLabels();
   const [expandedPatronId, setExpandedPatronId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [cancellingInvite, setCancellingInvite] = useState<string | null>(null);
 
   // ── Accès patron (invitations) ────────────────────────────────────────────
   const patronAccessHook = usePatronAccess(
@@ -222,6 +223,50 @@ export function PatronsManager({
                           })()}
                         </button>
                       )}
+
+                      {/* ── Bouton Annuler l'invitation (pending ou accepted) ── */}
+                      {!isViewer && ownerProfile && (() => {
+                        const invitation = patronAccessHook.getInvitationForPatron(patron.id);
+                        if (!invitation) return null;
+                        const isCancelling = cancellingInvite === patron.id;
+                        return (
+                          <button
+                            onClick={async () => {
+                              const confirmed = await showConfirm?.({
+                                title: "Annuler l'invitation",
+                                message: `Annuler l'invitation de ${patron.nom} ? Cette action est irréversible.`,
+                                confirmText: "Annuler l'invitation",
+                                cancelText: "Garder",
+                                type: "danger",
+                              });
+                              if (!confirmed) return;
+                              setCancellingInvite(patron.id);
+                              try {
+                                await patronAccessHook.cancelInvitation(invitation.id, patron.id);
+                                triggerAlert?.("Invitation annulée.");
+                              } catch (err) {
+                                triggerAlert?.("Erreur : " + (err as Error).message);
+                              } finally {
+                                setCancellingInvite(null);
+                              }
+                            }}
+                            disabled={isCancelling || patronAccessHook.cancellingInvite === patron.id}
+                            aria-label="Annuler l'invitation"
+                            title="Annuler l'invitation en attente"
+                            className="px-3 h-10 rounded-xl flex items-center gap-1.5 transition-all active:scale-90 bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 text-[10px] font-black uppercase tracking-wider disabled:opacity-50"
+                          >
+                            {isCancelling || patronAccessHook.cancellingInvite === patron.id ? (
+                              <div className="w-3 h-3 rounded-full border border-red-400 border-t-transparent animate-spin" />
+                            ) : (
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            )}
+                            Annuler
+                          </button>
+                        );
+                      })()}
 
                       <button
                         onClick={() => onEdit(patron)}

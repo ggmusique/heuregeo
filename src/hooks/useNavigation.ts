@@ -46,7 +46,9 @@ export function useNavigation(profile: UserProfile | null): UseNavigationReturn 
 
   const proNavItems = useMemo<NavItem[]>(
     () => [
-      { key: "saisie", label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" },
+      ...(!isViewer
+        ? [{ key: "saisie" as TabId, label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" }]
+        : []),
       ...(canDashboard && !isViewer
         ? [{ key: "dashboard" as TabId, label: "Dashboard", icon: "📊", activeClass: "from-violet-600 to-indigo-700" }]
         : []),

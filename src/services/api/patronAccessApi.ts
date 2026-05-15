@@ -193,6 +193,15 @@ export const updatePatronFeature = async (
   if (error) throw error;
 };
 
+// --- Annulation d'une invitation ---
+
+export const cancelPatronInvitation = async (invitationId: string): Promise<void> => {
+  const { error } = await supabase.functions.invoke("cancel-patron-invite", {
+    body: { invitation_id: invitationId },
+  });
+  if (error) throw error;
+};
+
 // --- Appel Edge Function ---
 
 export const sendPatronInviteEmail = async ({

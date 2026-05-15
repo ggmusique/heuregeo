@@ -4,6 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import nodemailer from "npm:nodemailer";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -50,7 +51,15 @@ serve(async (req: Request) => {
     }
 
     // ── Lire le corps ───────────────────────────────────────────────────────
-    const body: InvitePayload = await req.json();
+    let body: InvitePayload;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Body JSON invalide ou vide" }), {
+        status: 400,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      });
+    }
     const { patron_email, patron_nom, owner_nom, token, invite_url } = body;
 
     if (!patron_email || !token || !invite_url) {
@@ -60,51 +69,53 @@ serve(async (req: Request) => {
       });
     }
 
-    // ── Envoi via Resend (ou Supabase SMTP intégré) ─────────────────────────
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    // ── Envoi via Brevo SMTP ─────────────────────────────────────────────
+    const brevoLogin = Deno.env.get("BREVO_LOGIN");
+    const brevoPassword = Deno.env.get("BREVO_PASSWORD");
 
-    if (resendApiKey) {
-      // Envoi via Resend
-      const emailRes = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "HeurGeo <noreply@heuregeo.app>",
-          to: [patron_email],
-          subject: `${owner_nom} vous invite à consulter vos heures sur HeurGeo`,
-          html: buildEmailHtml({ patron_nom, owner_nom, invite_url }),
-        }),
+    if (!brevoLogin || !brevoPassword) {
+      console.error("BREVO_LOGIN ou BREVO_PASSWORD manquant dans les secrets Supabase");
+      return new Response(JSON.stringify({ error: "Configuration SMTP manquante" }), {
+        status: 500,
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       });
+    }
 
-      if (!emailRes.ok) {
-        const errData = await emailRes.text();
-        console.error("Resend error:", errData);
-        return new Response(JSON.stringify({ error: "Échec envoi email" }), {
-          status: 500,
-          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-        });
-      }
-    } else {
-      // Fallback : Supabase Auth invite (crée un compte si nécessaire)
-      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-      const adminClient = createClient(supabaseUrl, serviceRoleKey);
-      const { error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
-        patron_email,
-        {
-          redirectTo: invite_url,
-          data: { invite_token: token, patron_nom, owner_nom },
-        }
+    const transporter = nodemailer.createTransport({
+      host: "smtp-relay.brevo.com",
+      port: 587,
+      secure: false,
+      auth: {
+        user: brevoLogin,
+        pass: brevoPassword,
+      },
+    });
+
+    // Vérification de la connexion SMTP avant envoi
+    try {
+      await transporter.verify();
+    } catch (verifyErr) {
+      console.error("Erreur connexion SMTP Brevo:", verifyErr);
+      return new Response(
+        JSON.stringify({ error: "Connexion SMTP échouée", detail: (verifyErr as Error).message }),
+        { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
       );
-      if (inviteErr) {
-        console.error("Supabase invite error:", inviteErr);
-        return new Response(JSON.stringify({ error: inviteErr.message }), {
-          status: 500,
-          headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-        });
-      }
+    }
+
+    try {
+      await transporter.sendMail({
+  from: "Geoffrey <geohelene@msn.com>",
+  to: patron_email,
+  subject: `${owner_nom} vous invite à consulter vos heures sur HeurGeo`,
+  html: buildEmailHtml({ patron_nom, owner_nom, invite_url }),
+});
+      console.log(`Email envoyé à ${patron_email} via Brevo`);
+    } catch (smtpErr) {
+      console.error("Erreur envoi SMTP Brevo:", smtpErr);
+      return new Response(
+        JSON.stringify({ error: "Échec envoi email", detail: (smtpErr as Error).message }),
+        { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(JSON.stringify({ success: true }), {
