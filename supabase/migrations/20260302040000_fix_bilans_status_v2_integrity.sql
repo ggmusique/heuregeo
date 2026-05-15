@@ -154,7 +154,7 @@ CREATE POLICY "bilans_status_v2_delete"
 CREATE TABLE IF NOT EXISTS public.acompte_allocations (
   id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   acompte_id       uuid        NOT NULL REFERENCES public.acomptes(id) ON DELETE CASCADE,
-  bilan_id         uuid        REFERENCES public.bilans_status_v2(id) ON DELETE SET NULL,
+  bilan_id bigint REFERENCES public.bilans_status_v2(id) ON DELETE SET NULL,
   montant_applique numeric(12, 2) NOT NULL DEFAULT 0,
   applied_at       timestamptz NOT NULL DEFAULT now()
 );

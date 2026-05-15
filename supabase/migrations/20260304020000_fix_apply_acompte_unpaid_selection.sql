@@ -75,18 +75,20 @@ BEGIN
 END $$;
 
 -- 2) Backfill denormalized fields for old rows
-UPDATE public.acompte_allocations aa
+-- 2) Backfill denormalized fields for old rows
+UPDATE public.acompte_allocations
 SET
-  patron_id     = COALESCE(aa.patron_id, ac.patron_id),
-  user_id       = COALESCE(aa.user_id, ac.user_id),
-  periode_index = COALESCE(aa.periode_index, b.periode_index)
-FROM public.acomptes ac
-JOIN public.bilans_status_v2 b ON b.id = aa.bilan_id
-WHERE aa.acompte_id = ac.id
+  patron_id     = COALESCE(acompte_allocations.patron_id, ac.patron_id),
+  user_id       = COALESCE(acompte_allocations.user_id, ac.user_id),
+  periode_index = COALESCE(acompte_allocations.periode_index, b.periode_index)
+FROM public.acomptes ac,
+     public.bilans_status_v2 b
+WHERE acompte_allocations.acompte_id = ac.id
+  AND b.id = acompte_allocations.bilan_id
   AND (
-    aa.patron_id IS NULL
-    OR aa.user_id IS NULL
-    OR aa.periode_index IS NULL
+    acompte_allocations.patron_id IS NULL
+    OR acompte_allocations.user_id IS NULL
+    OR acompte_allocations.periode_index IS NULL
   );
 
 CREATE INDEX IF NOT EXISTS acompte_allocations_patron_periode_idx

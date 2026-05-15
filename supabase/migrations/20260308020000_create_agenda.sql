@@ -15,15 +15,19 @@ create table if not exists agenda_events (
 
 alter table agenda_events enable row level security;
 
+drop policy if exists "agenda_select_own" on agenda_events;
 create policy "agenda_select_own" on agenda_events
   for select using (auth.uid() = user_id);
 
+drop policy if exists "agenda_insert_own" on agenda_events;
 create policy "agenda_insert_own" on agenda_events
   for insert with check (auth.uid() = user_id);
 
+drop policy if exists "agenda_update_own" on agenda_events;
 create policy "agenda_update_own" on agenda_events
   for update using (auth.uid() = user_id);
 
+drop policy if exists "agenda_delete_own" on agenda_events;
 create policy "agenda_delete_own" on agenda_events
   for delete using (auth.uid() = user_id);
 
