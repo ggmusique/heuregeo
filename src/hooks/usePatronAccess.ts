@@ -28,7 +28,7 @@ export interface UsePatronAccessReturn {
   inviting: string | null;
   cancellingInvite: string | null;
   refreshAccesses: () => Promise<void>;
-  invitePatron: (patron: Patron, ownerProfile: UserProfile) => Promise<string>;
+  invitePatron: (patron: Patron, ownerProfile: UserProfile, inviteRole?: 'patron' | 'viewer') => Promise<string>;
   cancelInvitation: (invitationId: string, patronId: string) => Promise<void>;
   revokeAccess: (profileId: string) => Promise<void>;
   reinstateAccess: (profileId: string) => Promise<void>;
@@ -81,7 +81,7 @@ export function usePatronAccess(
   }, [refreshAccesses]);
 
   const invitePatron = useCallback(
-    async (patron: Patron, ownerProfile: UserProfile): Promise<string> => {
+    async (patron: Patron, ownerProfile: UserProfile, inviteRole: 'patron' | 'viewer' = 'patron'): Promise<string> => {
       if (!ownerId) throw new Error("Owner non connecte");
       if (!patron.email) throw new Error("Ce patron n a pas d email renseigne");
 
@@ -96,6 +96,7 @@ export function usePatronAccess(
           patronEmail: patron.email,
           token,
           expiresAt,
+          inviteRole,
         });
 
         const ownerNom = [ownerProfile.prenom, ownerProfile.nom].filter(Boolean).join(" ") || "Un ouvrier";

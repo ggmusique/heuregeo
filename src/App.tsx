@@ -81,7 +81,7 @@ function AppContent({ user }: AppProps) {
     canKilometrage, canAgenda, canFacture, canDashboard,
   };
 
-  if (user && !profileLoading && !isViewer && !isProfileComplete) {
+  if (user && !profileLoading && !isViewer && profile?.role !== "patron" && profile?.role !== "viewer" && !isProfileComplete) {
     return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
   }
 

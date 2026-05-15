@@ -64,7 +64,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
               Saisie
             </button>
           )}
-          {canDashboard && !isViewer && (
+          {canDashboard && (
             <button
               onClick={() => setActiveTab("dashboard")}
               className={

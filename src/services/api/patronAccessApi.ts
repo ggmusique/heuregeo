@@ -18,9 +18,9 @@ export const fetchPatronAccesses = async (
 ): Promise<PatronAccessProfile[]> => {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, status, owner_id, patron_id, features")
+    .select("id, status, owner_id, patron_id, features, role")
     .eq("owner_id", ownerId)
-    .eq("role", "patron")
+    .in("role", ["patron", "viewer"])
     .in("status", ["active", "revoked"]);
 
   if (error) throw error;
@@ -52,6 +52,7 @@ export const verifyInviteToken = async (
   patron_id: string;
   patron_email: string;
   invite_expires: string;
+  invite_role: 'patron' | 'viewer';
 } | null> => {
   const { data, error } = await supabase.rpc("verify_patron_invite_token", {
     p_token: token,
@@ -67,6 +68,7 @@ export const verifyInviteToken = async (
     patron_id: string;
     patron_email: string;
     invite_expires: string;
+    invite_role: 'patron' | 'viewer';
   };
 };
 
@@ -78,12 +80,14 @@ export const upsertPatronInvitation = async ({
   patronEmail,
   token,
   expiresAt,
+  inviteRole = 'patron',
 }: {
   patronId: string;
   ownerId: string;
   patronEmail: string;
   token: string;
   expiresAt: string;
+  inviteRole?: 'patron' | 'viewer';
 }): Promise<PatronInvitation> => {
   const { data: existing } = await supabase
     .from("patron_invitations")
@@ -100,6 +104,7 @@ export const upsertPatronInvitation = async ({
         invite_token: token,
         invite_expires: expiresAt,
         patron_email: patronEmail,
+        invite_role: inviteRole,
         updated_at: new Date().toISOString(),
       })
       .eq("id", existing.id)
@@ -118,6 +123,7 @@ export const upsertPatronInvitation = async ({
       patron_email: patronEmail,
       invite_token: token,
       invite_expires: expiresAt,
+      invite_role: inviteRole,
       status: "pending",
     })
     .select("*")

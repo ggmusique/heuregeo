@@ -16,6 +16,7 @@ import { useAgenda } from "../../hooks/useAgenda";
 
 import { BilanTab } from "../../pages/BilanTab";
 import { AgendaPage } from "../agenda/AgendaPage";
+import { VueDashboard } from "./VueDashboard";
 import { PeriodModal } from "../common/bilan/PeriodModal";
 import { CustomAlert } from "../common/CustomAlert";
 import { PatronSelectorModal, useEnrichedPatronAccesses } from "../patron/PatronSelectorModal";
@@ -30,7 +31,7 @@ import type { EnrichedAccess } from "../patron/PatronSelectorModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PatronTab = "bilan" | "agenda";
+type PatronTab = "bilan" | "agenda" | "dashboard";
 
 interface PatronViewInnerProps {
   access: EnrichedAccess;
@@ -56,9 +57,10 @@ function PatronViewInner({
     missions,
     getMissionsByWeek,
     getMissionsByPeriod,
+    fetchMissions,
   } = useMissions(triggerAlert);
 
-  const { fraisDivers, getFraisByWeek, getTotalFrais } = useFrais(triggerAlert);
+  const { fraisDivers, getFraisByWeek, getTotalFrais, fetchFrais } = useFrais(triggerAlert);
 
   const {
     listeAcomptes,
@@ -67,6 +69,14 @@ function PatronViewInner({
     getTotalAcomptesJusqua,
     fetchAcomptes,
   } = useAcomptes(missions, fraisDivers, triggerAlert);
+
+  // Chargement initial des données
+  useEffect(() => {
+    fetchMissions();
+    fetchFrais();
+    fetchAcomptes();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Patron courant (pour l'affichage dans useBilan)
   const [patronNom, setPatronNom] = useState<string>(access.patronNom || "Patron");
@@ -106,6 +116,11 @@ function PatronViewInner({
     bilan.setShowBilan(false);
   }, [access.patronId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Calcul des périodes disponibles quand le modal s'ouvre
+  useEffect(() => {
+    if (bilan.showPeriodModal) bilan.calculerPeriodesDisponibles();
+  }, [bilan.showPeriodModal, bilan.bilanPeriodType, missions]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Agenda (si access_agenda) ─────────────────────────────────────────────
   // On passe ownerUserId pour que useAgenda charge les events de l'ouvrier
   const agendaHook = useAgenda({
@@ -133,7 +148,8 @@ function PatronViewInner({
 
   // ── Rendu ─────────────────────────────────────────────────────────────────
   const navItems: { id: PatronTab; label: string; icon: string }[] = [
-    { id: "bilan", label: "Bilan", icon: "📊" },
+    { id: "bilan", label: "Bilan", icon: "�" },
+    ...(access.access_dashboard ? [{ id: "dashboard" as PatronTab, label: "Dashboard", icon: "📊" }] : []),
     ...(access.access_agenda ? [{ id: "agenda" as PatronTab, label: "Agenda", icon: "📅" }] : []),
   ];
 
@@ -225,6 +241,20 @@ function PatronViewInner({
                   canBilanAnnee={true}
                 />
               </>
+            )}
+
+            {activeTab === "dashboard" && access.access_dashboard && (
+              <VueDashboard
+                missions={missions}
+                fraisDivers={fraisDivers}
+                listeAcomptes={listeAcomptes}
+                patrons={patrons}
+                clients={[]}
+                lieux={[]}
+                profile={null}
+                kmSettings={null}
+                domicileLatLng={null}
+              />
             )}
 
             {activeTab === "agenda" && access.access_agenda && (

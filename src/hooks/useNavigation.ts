@@ -27,8 +27,8 @@ export function useNavigation(profile: UserProfile | null): UseNavigationReturn 
   const features = profile?.features || {};
   const isPro = features?.plan === "pro";
   const isViewer = profile?.role === "viewer";
-  const canAgenda = features?.agenda === true;
-  const canDashboard = features?.dashboard === true;
+  const canAgenda = features?.agenda === true || features?.access_agenda === true;
+  const canDashboard = features?.dashboard === true || features?.access_dashboard === true;
 
   const [activeTab, setActiveTab] = useState<TabId>("saisie");
 
@@ -56,7 +56,9 @@ export function useNavigation(profile: UserProfile | null): UseNavigationReturn 
       ...(canAgenda
         ? [{ key: "agenda" as TabId, label: "Agenda", icon: "📅", activeClass: "from-emerald-600 to-teal-700" }]
         : []),
-      { key: "parametres", label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" },
+      ...(!isViewer
+        ? [{ key: "parametres" as TabId, label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" }]
+        : []),
     ],
     [isPro, isViewer, canAgenda, canDashboard]
   );

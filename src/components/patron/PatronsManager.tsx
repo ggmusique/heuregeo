@@ -192,7 +192,8 @@ export function PatronsManager({
                             });
                             if (!confirmed) return;
                             try {
-                              const inviteUrl = await patronAccessHook.invitePatron(patron, ownerProfile);
+                              const inviteRole: 'patron' | 'viewer' = patron.invite_role === 'viewer' ? 'viewer' : 'patron';
+                              const inviteUrl = await patronAccessHook.invitePatron(patron, ownerProfile, inviteRole);
                               // Copier l'URL dans le presse-papier et afficher un message
                               try {
                                 await navigator.clipboard.writeText(inviteUrl);

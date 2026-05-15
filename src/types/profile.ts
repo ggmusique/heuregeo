@@ -16,9 +16,10 @@ export interface PatronAccessFeatures {
   access_dashboard: boolean;
 }
 
-/** Profil d'accès patron (enregistrement profiles pour role='patron', status active|revoked). */
+/** Profil d'accès patron (enregistrement profiles pour role='patron'|'viewer', status active|revoked). */
 export interface PatronAccessProfile {
-  id: string;          // profiles.id = auth.users.id du patron
+  id: string;          // profiles.id = auth.users.id du patron/viewer
+  role: 'patron' | 'viewer';
   status: PatronAccessStatus;
   owner_id: string;    // profiles.id de l'ouvrier
   patron_id: string;   // patrons.id (entrée dans la table patrons)
@@ -37,6 +38,7 @@ export interface PatronInvitation {
   invite_token: string;
   invite_expires: string; // ISO date
   status: PatronInvitationStatus;
+  invite_role: 'patron' | 'viewer';
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +57,10 @@ export interface UserFeatures {
   agenda?: boolean;
   /** Accès au tableau de bord. */
   dashboard?: boolean;
+  /** Accès agenda (viewers/patrons — clé stockée dans PatronAccessFeatures). */
+  access_agenda?: boolean;
+  /** Accès dashboard (viewers/patrons — clé stockée dans PatronAccessFeatures). */
+  access_dashboard?: boolean;
   /** Bilan mensuel. */
   bilan_mois?: boolean;
   /** Bilan annuel. */

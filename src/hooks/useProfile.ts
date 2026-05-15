@@ -115,9 +115,9 @@ export const useProfile = (user: AuthUser | null | undefined): UseProfileReturn 
   const canViewerMode = isPro || features?.viewer_enabled === true;
   const canHistoriqueComplet = isPro || features?.historique_complet === true;
   const canKilometrage = isPro || features?.kilometrage === true;
-  const canAgenda = features?.agenda === true;
+  const canAgenda = features?.agenda === true || features?.access_agenda === true;
   const canFacture = features?.facture === true;
-  const canDashboard = features?.dashboard === true;
+  const canDashboard = features?.dashboard === true || features?.access_dashboard === true;
 
   return {
     profile, loading, saving, error, saveProfile, fetchProfile,
