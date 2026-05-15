@@ -956,7 +956,12 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
         setGeoLoading(false);
       },
       (err) => {
-        setSaveError("Impossible d'obtenir votre position : " + err.message);
+        const geoMessages: Record<number, string> = {
+          1: "Accès à la position refusé. Autorisez la géolocalisation dans les paramètres du navigateur.",
+          2: "Position indisponible.",
+          3: "Délai dépassé, réessayez.",
+        };
+        setSaveError("Impossible d'obtenir votre position : " + (geoMessages[err.code] || err.message));
         setGeoLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
