@@ -1,6 +1,6 @@
 {
-    "name": "Heures de Geo",
-    "short_name": "Heures Geo",
+    "name": "Tracko",
+    "short_name": "Tracko",
     "description": "Gestion des heures et bilans professionnels",
     "start_url": "/",
     "display": "standalone",

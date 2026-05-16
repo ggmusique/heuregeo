@@ -2,6 +2,7 @@
 import React, { Component, Dispatch, SetStateAction, Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
+import { InviteSection } from "../components/invitations/InviteSection";
 import { EUROPE_COUNTRIES, KM_RATES, detectCountryFromLatLng } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
@@ -136,6 +137,14 @@ const colorMap: Record<string, ColorTokens> = {
     header: "from-cyan-500/15 to-transparent border-cyan-500/20",
     headerText: "text-cyan-300",
     badge: "bg-cyan-500/20 text-cyan-300 border-cyan-400/30",
+  },
+  green: {
+    active: "bg-emerald-500/15 border-emerald-400/40",
+    icon: "text-emerald-400 bg-emerald-500/15",
+    dot: "bg-emerald-400",
+    header: "from-emerald-500/15 to-transparent border-emerald-500/20",
+    headerText: "text-emerald-300",
+    badge: "bg-emerald-500/20 text-emerald-300 border-emerald-400/30",
   },
 };
 
@@ -291,6 +300,18 @@ export function ParametresTab({
         color: "teal",
         title: "Libellés",
         subtitle: "Personnaliser le vocabulaire",
+      },
+      {
+        key: "invitations",
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <polyline points="2,4 12,13 22,4" />
+          </svg>
+        ),
+        color: "green",
+        title: "Invitations",
+        subtitle: "Gérer les accès patrons in-app",
       },
       ...(isAdmin
         ? [
@@ -615,6 +636,10 @@ export function ParametresTab({
                     saveProfile={saveProfile}
                     profileSaving={profileSaving}
                   />
+                )}
+
+                {activePanel === "invitations" && (
+                  <InviteSection />
                 )}
 
                 {activePanel === "admin" && isAdmin && (

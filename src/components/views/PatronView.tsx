@@ -25,19 +25,22 @@ import { DarkModeProvider } from "../../contexts/DarkModeContext";
 import { LabelsContext } from "../../contexts/LabelsContext";
 import { PermissionsContext } from "../../contexts/PermissionsContext";
 import { getLabels } from "../../utils/labels";
+import { PatronInviteSection } from "../invitations/PatronInviteSection";
+import { useInvitations } from "../../hooks/useInvitations";
 
 import type { User } from "@supabase/supabase-js";
 import type { EnrichedAccess } from "../patron/PatronSelectorModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PatronTab = "bilan" | "agenda" | "dashboard";
+type PatronTab = "bilan" | "agenda" | "dashboard" | "equipe";
 
 interface PatronViewInnerProps {
   access: EnrichedAccess;
   user: User;
   onSwitchOwner: () => void;
   hasMultipleOwners: boolean;
+  onAccessChange: () => void;
 }
 
 // ─── Sous-composant : vue après sélection de l'ouvrier ───────────────────────
@@ -47,6 +50,7 @@ function PatronViewInner({
   user,
   onSwitchOwner,
   hasMultipleOwners,
+  onAccessChange,
 }: PatronViewInnerProps) {
   const [activeTab, setActiveTab] = useState<PatronTab>("bilan");
   const { triggerAlert, customAlert, dismissAlert } = useAppUI();
@@ -84,6 +88,10 @@ function PatronViewInner({
   useEffect(() => {
     // Charger le nom du patron depuis la table patrons si pas encore connu
     if (access.patronNom) { setPatronNom(access.patronNom); return; }
+    if (!access.patronId) {
+      console.error('[PatronViewInner] patronId null, impossible de charger le nom du patron');
+      return;
+    }
     supabase
       .from("patrons")
       .select("nom")
@@ -150,8 +158,7 @@ function PatronViewInner({
   const navItems: { id: PatronTab; label: string; icon: string }[] = [
     { id: "bilan", label: "Bilan", icon: "�" },
     ...(access.access_dashboard ? [{ id: "dashboard" as PatronTab, label: "Dashboard", icon: "📊" }] : []),
-    ...(access.access_agenda ? [{ id: "agenda" as PatronTab, label: "Agenda", icon: "📅" }] : []),
-  ];
+    ...(access.access_agenda ? [{ id: "agenda" as PatronTab, label: "Agenda", icon: "📅" }] : []),    { id: "equipe", label: "Équipe", icon: "🔗" },  ];
 
   return (
     <>
@@ -162,12 +169,12 @@ function PatronViewInner({
           <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl px-4 py-3">
             <div className="flex items-center justify-between gap-3 max-w-2xl mx-auto">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md">
-                  <span className="text-base">⏱</span>
+                <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md flex-shrink-0">
+                  <img src="/icons/icon.svg" alt="Tracko" className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-                    HeurGeo
+                    Tracko
                   </p>
                   <p className="text-[10px] text-[var(--color-text-muted)] truncate max-w-[160px]">
                     {access.ownerName}
@@ -179,10 +186,15 @@ function PatronViewInner({
                 {hasMultipleOwners && (
                   <button
                     onClick={onSwitchOwner}
-                    title="Changer d'employeur"
-                    className="p-2 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors text-xs"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/40 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/25 transition-all text-xs font-bold"
                   >
-                    👥
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    Changer
                   </button>
                 )}
                 <button
@@ -267,10 +279,14 @@ function PatronViewInner({
                 refreshKey={0}
               />
             )}
+
+            {activeTab === "equipe" && (
+              <PatronInviteSection onAccessChange={onAccessChange} />
+            )}
           </main>
 
           {/* Barre de navigation */}
-          <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl">
+          <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="flex max-w-2xl mx-auto">
               {navItems.map((item) => (
                 <button
@@ -279,7 +295,7 @@ function PatronViewInner({
                   className={
                     "flex-1 py-3 flex flex-col items-center gap-1 text-[10px] font-black uppercase tracking-widest transition-all " +
                     (activeTab === item.id
-                      ? "text-indigo-400"
+                      ? "text-[var(--color-primary)]"
                       : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]")
                   }
                 >
@@ -296,26 +312,316 @@ function PatronViewInner({
 
 // ─── Composant racine PatronView ──────────────────────────────────────────────
 
+// ─── Écran d'onboarding Patron (aucun accès actif) ───────────────────────────
+
+function PatronOnboarding() {
+  const {
+    myInviteCode,
+    generateMyCode,
+    searchResult,
+    searching,
+    searchError,
+    searchByInviteCode,
+    clearSearch,
+    sendInvitation,
+    pendingReceived,
+    pendingSent,
+    acceptInvitation,
+    refuseInvitation,
+    cancelInvitation,
+    refresh,
+  } = useInvitations();
+
+  const [codeInput, setCodeInput] = useState("");
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const handleCopy = () => {
+    if (!myInviteCode) return;
+    navigator.clipboard.writeText(myInviteCode).then(() => {
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    });
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (codeInput.trim().length < 4) return;
+    searchByInviteCode(codeInput.trim());
+  };
+
+  const handleSend = async () => {
+    if (!searchResult) return;
+    setSendError(null);
+    setSendLoading(true);
+    const { error } = await sendInvitation(codeInput.trim(), "patron");
+    setSendLoading(false);
+    if (error) {
+      setSendError(error);
+    } else {
+      setSent(true);
+      setCodeInput("");
+      clearSearch();
+      refresh();
+    }
+  };
+
+  const handleAccept = async (id: string) => {
+    setActionLoading(id);
+    await acceptInvitation(id);
+    setActionLoading(null);
+    refresh();
+  };
+
+  const handleRefuse = async (id: string) => {
+    setActionLoading(id);
+    await refuseInvitation(id);
+    setActionLoading(null);
+  };
+
+  const handleCancel = async (id: string) => {
+    setActionLoading(id);
+    await cancelInvitation(id);
+    setActionLoading(null);
+  };
+
+  return (
+    <DarkModeProvider>
+      <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
+        {/* Header */}
+        <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl px-4 py-3">
+          <div className="flex items-center justify-between max-w-sm mx-auto">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md flex-shrink-0">
+                <img src="/icons/icon.svg" alt="Tracko" className="w-full h-full object-cover" />
+              </div>
+              <p className="text-xs font-black uppercase tracking-widest text-[var(--color-text-muted)]">Tracko</p>
+            </div>
+            <button
+              onClick={() => supabase.auth.signOut()}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-red-400 hover:border-red-500/40 transition-colors text-xs"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Déconnexion
+            </button>
+          </div>
+        </header>
+
+        {/* Corps */}
+        <div className="px-4 pt-8 pb-16 max-w-sm mx-auto space-y-5">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">Bienvenue 👋</h1>
+            <p className="text-sm text-[var(--color-text-muted)] mt-1.5">
+              Vous n&apos;avez encore aucun accès actif. Entrez le code d&apos;un ouvrier pour lui envoyer une demande, ou partagez votre propre code.
+            </p>
+          </div>
+
+          {sent && (
+            <div className="rounded-xl border border-[var(--color-success)]/30 bg-[var(--color-success)]/10 px-4 py-3 text-sm text-[var(--color-success)]">
+              Demande envoyée ! L’ouvrier doit maintenant l’accepter dans ses paramètres.
+            </div>
+          )}
+
+          {/* Mon code */}
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+              Mon code unique
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Partagez ce code à vos ouvriers pour qu’ils puissent vous inviter.
+            </p>
+            <div className="flex items-center gap-3 pt-1">
+              {myInviteCode ? (
+                <>
+                  <span className="font-mono font-black text-2xl tracking-[0.3em] text-[var(--color-primary)] select-all">
+                    {myInviteCode}
+                  </span>
+                  <button
+                    onClick={handleCopy}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                      copiedCode
+                        ? "border-[var(--color-success)]/40 text-[var(--color-success)] bg-[var(--color-success)]/10"
+                        : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)]/40"
+                    }`}
+                  >
+                    {copiedCode ? "✓ Copié" : "Copier"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={async () => { setGenerating(true); await generateMyCode(); setGenerating(false); }}
+                  disabled={generating}
+                  className="px-4 py-2 rounded-lg bg-[var(--color-primary)] text-black font-bold text-xs hover:opacity-90 disabled:opacity-50 transition-all"
+                >
+                  {generating ? "Génération…" : "Générer mon code"}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Chercher un ouvrier */}
+          <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+              Se connecter à un ouvrier
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Entrez le code de l’ouvrier pour lui envoyer une demande de connexion.
+            </p>
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Code (ex. A1B2C3D4)"
+                value={codeInput}
+                onChange={(e) => {
+                  setCodeInput(e.target.value.toUpperCase());
+                  clearSearch();
+                  setSendError(null);
+                }}
+                maxLength={8}
+                className="flex-1 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] rounded-lg px-3 py-2 text-sm font-mono font-bold focus:border-[var(--color-primary)]/60 focus:outline-none transition-all placeholder:text-[var(--color-text-muted)] placeholder:font-sans"
+              />
+              <button
+                type="submit"
+                disabled={codeInput.trim().length < 4 || searching}
+                className="px-4 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm font-bold hover:text-[var(--color-text)] hover:border-[var(--color-primary)]/40 disabled:opacity-40 transition-all"
+              >
+                {searching ? "…" : "Chercher"}
+              </button>
+            </form>
+            {searchError && (
+              <p className="text-xs text-[var(--color-error)]">{searchError}</p>
+            )}
+            {searchResult && (
+              <div className="rounded-xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-3 space-y-2">
+                <p className="font-bold text-sm text-[var(--color-text)]">
+                  {[searchResult.prenom, searchResult.nom].filter(Boolean).join(" ") || "Ouvrier"}
+                </p>
+                {sendError && <p className="text-xs text-[var(--color-error)]">{sendError}</p>}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSend}
+                    disabled={sendLoading}
+                    className="flex-1 py-2 rounded-lg bg-[var(--color-primary)] text-black font-bold text-xs hover:opacity-90 disabled:opacity-50 transition-all"
+                  >
+                    {sendLoading ? "Envoi…" : "Envoyer la demande"}
+                  </button>
+                  <button
+                    onClick={() => { clearSearch(); setCodeInput(""); }}
+                    className="px-3 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs hover:text-[var(--color-text)] transition-all"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Invitations reçues (ouvrier → patron) */}
+          {pendingReceived.filter(inv => inv.initiated_by === 'owner').length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+                Demandes reçues ({pendingReceived.filter(inv => inv.initiated_by === 'owner').length})
+              </p>
+              {pendingReceived.filter(inv => inv.initiated_by === 'owner').map((inv) => (
+                <div key={inv.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-[var(--color-text)] truncate">
+                      {inv.other_name ?? "Ouvrier"}
+                    </p>
+                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                      Demande reçue · {new Date(inv.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                    </p>
+                  </div>
+                  <div className="flex gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => handleAccept(inv.id)}
+                      disabled={actionLoading === inv.id}
+                      className="px-3 py-1.5 rounded-lg bg-[var(--color-success)]/20 border border-[var(--color-success)]/30 text-[var(--color-success)] text-xs font-bold hover:bg-[var(--color-success)]/30 disabled:opacity-50 transition-all"
+                    >
+                      Accepter
+                    </button>
+                    <button
+                      onClick={() => handleRefuse(inv.id)}
+                      disabled={actionLoading === inv.id}
+                      className="px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30 disabled:opacity-50 transition-all"
+                    >
+                      Refuser
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Invitations envoyées (patron → ouvrier) en attente */}
+          {[...pendingSent, ...pendingReceived.filter(inv => inv.initiated_by === 'patron')].length > 0 && (
+            <div className="space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
+                En attente de réponse ({[...pendingSent, ...pendingReceived.filter(inv => inv.initiated_by === 'patron')].length})
+              </p>
+              {[...pendingSent, ...pendingReceived.filter(inv => inv.initiated_by === 'patron')].map((inv) => (
+                <div key={inv.id} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-[var(--color-text)] truncate">
+                      {inv.other_name ?? "Ouvrier"}
+                    </p>
+                    <p className="text-[10px] text-[var(--color-text-muted)]">
+                      Demande envoyée · {new Date(inv.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleCancel(inv.id)}
+                    disabled={actionLoading === inv.id}
+                    className="flex-shrink-0 px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30 disabled:opacity-50 transition-all"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </DarkModeProvider>
+  );
+}
+
 interface PatronViewProps {
   user: User;
 }
 
 export function PatronView({ user }: PatronViewProps) {
-  const { accesses, loading } = useEnrichedPatronAccesses();
+  const { accesses, loading, refresh: refreshAccesses } = useEnrichedPatronAccesses();
   const [selectedAccessId, setSelectedAccessId] = useState<string | null>(null);
   const [showSelector, setShowSelector] = useState<boolean>(false);
 
-  // Sélection automatique si un seul accès
+  // Sélection automatique si un seul accès (met à jour le contexte RLS)
   useEffect(() => {
     if (loading) return;
     if (accesses.length === 1) {
+      // Toujours synchroniser le contexte RLS même pour un seul accès
+      supabase.rpc("switch_patron_context", { p_invitation_id: accesses[0].profileId })
+        .then(({ error }) => {
+          if (error) console.error("[PatronView] switch_patron_context (auto):", error);
+        });
       setSelectedAccessId(accesses[0].profileId);
     } else if (accesses.length > 1) {
       setShowSelector(true);
     }
   }, [accesses, loading]);
 
-  const handleSelect = useCallback((profileId: string) => {
+  const handleSelect = useCallback(async (profileId: string) => {
+    // Met à jour profiles.owner_id / patron_id → le RLS lit ces colonnes
+    const { error } = await supabase.rpc("switch_patron_context", { p_invitation_id: profileId });
+    if (error) console.error("[PatronView] switch_patron_context:", error);
     setSelectedAccessId(profileId);
     setShowSelector(false);
   }, []);
@@ -330,37 +636,20 @@ export function PatronView({ user }: PatronViewProps) {
   // Chargement
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl">
+          <div className="w-12 h-12 rounded-2xl bg-[var(--color-primary)] flex items-center justify-center shadow-xl">
             <span className="text-xl">⏱</span>
           </div>
-          <div className="animate-spin rounded-full h-7 w-7 border-2 border-indigo-400 border-t-transparent" />
+          <div className="animate-spin rounded-full h-7 w-7 border-2 border-[var(--color-primary)] border-t-transparent" />
         </div>
       </div>
     );
   }
 
-  // Aucun accès actif
+  // Aucun accès actif → écran d'onboarding
   if (!loading && accesses.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0f172a] text-slate-100 px-4">
-        <div className="text-center space-y-4 max-w-sm">
-          <div className="text-5xl">🔒</div>
-          <h1 className="text-xl font-black tracking-tight">Aucun accès actif</h1>
-          <p className="text-slate-400 text-sm">
-            Votre accès est en attente de validation ou a été révoqué.<br />
-            Contactez votre employeur.
-          </p>
-          <button
-            onClick={() => supabase.auth.signOut()}
-            className="mt-4 px-6 py-2 rounded-xl border border-slate-600 text-slate-400 hover:text-white hover:border-red-500/60 transition-colors text-sm"
-          >
-            Se déconnecter
-          </button>
-        </div>
-      </div>
-    );
+    return <PatronOnboarding />;
   }
 
   // Sélecteur d'ouvrier
@@ -403,6 +692,7 @@ export function PatronView({ user }: PatronViewProps) {
             user={user}
             onSwitchOwner={handleSwitchOwner}
             hasMultipleOwners={accesses.length > 1}
+            onAccessChange={refreshAccesses}
           />
         </PermissionsContext.Provider>
       </LabelsContext.Provider>

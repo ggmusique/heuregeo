@@ -27,20 +27,30 @@ export interface PatronAccessProfile {
 }
 
 /** Statut d'une invitation (table patron_invitations). */
-export type PatronInvitationStatus = "pending" | "accepted" | "expired";
+export type PatronInvitationStatus = "pending" | "accepted" | "expired" | "refused" | "cancelled";
 
 /** Ligne de la table patron_invitations. */
 export interface PatronInvitation {
   id: string;
   owner_id: string;
   patron_id: string;
-  patron_email: string;
+  patron_email: string | null;
   invite_token: string;
   invite_expires: string; // ISO date
   status: PatronInvitationStatus;
   invite_role: 'patron' | 'viewer';
   created_at: string;
   updated_at: string;
+  access_agenda: boolean;
+  access_dashboard: boolean;
+  // ── Champs in-app ──
+  initiated_by?: 'owner' | 'patron';
+  method?: 'email' | 'in_app';
+  patron_user_id?: string | null;
+  /** Nom de l'invitant (stocké à la création pour éviter une requête profil bloquée par RLS). */
+  inviter_name?: string | null;
+  /** Nom de la cible (ouvrier si patron initie, patron si ouvrier initie). */
+  target_name?: string | null;
 }
 
 // ─── Features (JSONB) ────────────────────────────────────────────────────────
@@ -148,4 +158,8 @@ export interface UserProfile {
   code_postal: string | null;
   ville: string | null;
   updated_at: string | null;
+  /** Code unique 8 caractères pour les invitations in-app. */
+  invite_code?: string | null;
+  /** true quand le profil a été complété (prenom + nom renseignés et sauvegardés). */
+  profile_complete?: boolean;
 }

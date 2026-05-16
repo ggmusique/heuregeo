@@ -32,7 +32,7 @@ import { useBilanFilters } from "./hooks/useBilanFilters";
 
 import { CustomAlert } from "./components/common/CustomAlert";
 import { UpdatePrompt } from "./components/common/UpdatePrompt";
-import { OnboardingForm } from "./components/auth/OnboardingForm";
+import { ProfileCompletionGate } from "./components/auth/ProfileCompletionGate";
 import { AppHeader } from "./components/layout/AppHeader";
 import { AppNavBar } from "./components/layout/AppNavBar";
 import { AppModals } from "./components/AppModals";
@@ -82,7 +82,7 @@ function AppContent({ user }: AppProps) {
   };
 
   if (user && !profileLoading && !isViewer && profile?.role !== "patron" && profile?.role !== "viewer" && !isProfileComplete) {
-    return <OnboardingForm onSave={saveProfile} saving={profileSaving} />;
+    return <ProfileCompletionGate profile={profile} saving={profileSaving} onSave={saveProfile}><></></ProfileCompletionGate>;
   }
 
   // Rôle "patron" : vue dédiée en lecture seule (RLS filtre les données)
@@ -201,7 +201,7 @@ function AppInner({
   }, [agendaModal.showAgendaModal]);
 
   useEffect(() => {
-    document.title = "Heures de Geo";
+    document.title = "Tracko";
     fetchMissions();
     fetchFrais();
     fetchAcomptes();

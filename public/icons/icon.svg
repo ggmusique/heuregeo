@@ -7,10 +7,10 @@
   <circle cx="256" cy="256" r="195" fill="none" stroke="#D4AF37" stroke-width="2" opacity="0.3"/>
   <!-- Fond intérieur légèrement plus clair -->
   <circle cx="256" cy="256" r="190" fill="#0A1628"/>
-  <!-- Lettre H -->
-  <text x="155" y="300" font-family="Georgia, serif" font-style="italic" font-weight="900" font-size="160" fill="#D4AF37">H</text>
-  <!-- Lettre G -->
-  <text x="268" y="300" font-family="Georgia, serif" font-style="italic" font-weight="900" font-size="160" fill="#C9A84C">G</text>
+  <!-- Lettre T -->
+  <text x="148" y="300" font-family="Georgia, serif" font-style="italic" font-weight="900" font-size="160" fill="#D4AF37">T</text>
+  <!-- Lettre R -->
+  <text x="262" y="300" font-family="Georgia, serif" font-style="italic" font-weight="900" font-size="160" fill="#C9A84C">R</text>
   <!-- Ligne décorative dorée sous les lettres -->
-  <line x1="156" y1="320" x2="356" y2="320" stroke="#D4AF37" stroke-width="3" opacity="0.7"/>
+  <line x1="148" y1="320" x2="356" y2="320" stroke="#D4AF37" stroke-width="3" opacity="0.7"/>
 </svg>

@@ -244,7 +244,7 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
             <span className="text-xl">⏱</span>
           </div>
-          <h1 className="text-xl font-black tracking-tight">HeurGeo</h1>
+          <h1 className="text-xl font-black tracking-tight">Tracko</h1>
           <p className="text-slate-400 text-xs mt-1">Activer mon accès patron</p>
         </div>
 

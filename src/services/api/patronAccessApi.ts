@@ -16,15 +16,40 @@ import type { PatronAccessProfile, PatronAccessFeatures, PatronInvitation } from
 export const fetchPatronAccesses = async (
   ownerId: string
 ): Promise<PatronAccessProfile[]> => {
-  const { data, error } = await supabase
+  // Acces email-based : profils enregistrés dans la table profiles
+  const { data: profileData, error } = await supabase
     .from("profiles")
     .select("id, status, owner_id, patron_id, features, role")
     .eq("owner_id", ownerId)
     .in("role", ["patron", "viewer"])
     .in("status", ["active", "revoked"]);
-
   if (error) throw error;
-  return (data ?? []) as PatronAccessProfile[];
+
+  // Acces in_app : lire directement depuis patron_invitations (multi-ouvrier)
+  const { data: invData } = await supabase
+    .from("patron_invitations")
+    .select("id, owner_id, patron_id, access_agenda, access_dashboard")
+    .eq("owner_id", ownerId)
+    .eq("method", "in_app")
+    .eq("status", "accepted");
+
+  // Convertir les invitations in_app en PatronAccessProfile
+  const profilePatronIds = new Set((profileData ?? []).map((p: any) => p.patron_id));
+  const inAppAccesses: PatronAccessProfile[] = (invData ?? [])
+    .filter((inv: any) => !profilePatronIds.has(inv.patron_id))
+    .map((inv: any) => ({
+      id: inv.id,
+      status: "active" as const,
+      owner_id: inv.owner_id,
+      patron_id: inv.patron_id,
+      features: {
+        access_agenda: inv.access_agenda ?? false,
+        access_dashboard: inv.access_dashboard ?? false,
+      },
+      role: "patron" as const,
+    }));
+
+  return [...(profileData ?? []) as PatronAccessProfile[], ...inAppAccesses];
 };
 
 // --- Lecture des invitations (cote ouvrier) ---
@@ -178,25 +203,45 @@ export const updatePatronFeature = async (
   feature: keyof Pick<PatronAccessFeatures, "access_agenda" | "access_dashboard">,
   value: boolean
 ): Promise<void> => {
+  // Tenter d'abord une mise à jour via profiles (invitations email-based)
   const { data, error: fetchErr } = await supabase
     .from("profiles")
-    .select("features")
+    .select("features, owner_id, patron_id")
     .eq("id", profileId)
-    .single();
-  if (fetchErr) throw fetchErr;
+    .maybeSingle();
 
-  const existing = data?.features as PatronAccessFeatures | null;
-  const updated: PatronAccessFeatures = {
-    access_agenda: existing?.access_agenda ?? false,
-    access_dashboard: existing?.access_dashboard ?? false,
-    [feature]: value,
-  };
+  if (!fetchErr && data) {
+    // Email-based : mettre à jour profiles.features
+    const existing = data?.features as PatronAccessFeatures | null;
+    const updated: PatronAccessFeatures = {
+      access_agenda: existing?.access_agenda ?? false,
+      access_dashboard: existing?.access_dashboard ?? false,
+      [feature]: value,
+    };
+    const { error } = await supabase
+      .from("profiles")
+      .update({ features: updated })
+      .eq("id", profileId);
+    if (error) throw error;
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({ features: updated })
-    .eq("id", profileId);
-  if (error) throw error;
+    // Synchroniser aussi patron_invitations in_app si la paire ouvrier/patron existe
+    if (data.owner_id && data.patron_id) {
+      await supabase
+        .from("patron_invitations")
+        .update({ [feature]: value })
+        .eq("owner_id", data.owner_id)
+        .eq("patron_id", data.patron_id)
+        .eq("method", "in_app")
+        .eq("status", "accepted");
+    }
+  } else {
+    // In-app : profileId est l'ID de l'invitation
+    const { error } = await supabase
+      .from("patron_invitations")
+      .update({ [feature]: value })
+      .eq("id", profileId);
+    if (error) throw error;
+  }
 };
 
 // --- Annulation d'une invitation ---

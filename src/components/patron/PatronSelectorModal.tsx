@@ -74,7 +74,7 @@ export function PatronSelectorModal({ owners, onSelect }: PatronSelectorModalPro
 // ─── Hook utilitaire : charger les infos de l'ouvrier ────────────────────────
 // Utilisé dans PatronView pour enrichir les PatronAccessProfile avec les noms.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../services/supabase";
 
 export interface EnrichedAccess {
@@ -90,9 +90,13 @@ export interface EnrichedAccess {
 export function useEnrichedPatronAccesses(): {
   accesses: EnrichedAccess[];
   loading: boolean;
+  refresh: () => void;
 } {
   const [accesses, setAccesses] = useState<EnrichedAccess[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [tick, setTick] = useState(0);
+
+  const refresh = useCallback(() => setTick((t) => t + 1), []);
 
   useEffect(() => {
     let alive = true;
@@ -101,42 +105,39 @@ export function useEnrichedPatronAccesses(): {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Charger les profils d'accès actifs pour cet utilisateur patron
-        const { data: profiles, error: pErr } = await supabase
-          .from("profiles")
-          .select("id, owner_id, patron_id, features")
-          .eq("id", user.id)
-          .eq("role", "patron")
-          .eq("status", "active");
+        // Source de vérité pour les accès multi-ouvriers : patron_invitations
+        // (profiles ne peut stocker qu'une paire owner_id/patron_id à la fois)
+        const { data: invitations, error: invErr } = await supabase
+          .from("patron_invitations")
+          .select("id, owner_id, patron_id, access_agenda, access_dashboard, target_name, inviter_name")
+          .eq("patron_user_id", user.id)
+          .eq("status", "accepted")
+          .eq("method", "in_app");
 
-        if (pErr || !profiles?.length) return;
+        if (invErr || !invitations?.length) return;
 
         const enriched: EnrichedAccess[] = [];
 
-        for (const p of profiles) {
-          // Charger nom de l'ouvrier depuis profiles
-          const { data: ownerProfile } = await supabase
-            .from("profiles")
-            .select("prenom, nom")
-            .eq("id", p.owner_id)
-            .maybeSingle();
+        for (const inv of invitations) {
+          // Nom de l'ouvrier : target_name stocké à la création sinon requête profil
+          let ownerName: string = inv.target_name || "";
+          if (!ownerName && inv.owner_id) {
+            const { data: ownerProfile } = await supabase
+              .from("profiles")
+              .select("prenom, nom")
+              .eq("id", inv.owner_id)
+              .maybeSingle();
+            ownerName = [ownerProfile?.prenom, ownerProfile?.nom].filter(Boolean).join(" ") || "Ouvrier";
+          }
 
-          // Charger nom du patron depuis patrons
-          const { data: patronEntry } = await supabase
-            .from("patrons")
-            .select("nom")
-            .eq("id", p.patron_id)
-            .maybeSingle();
-
-          const features = (p.features ?? {}) as Record<string, unknown>;
           enriched.push({
-            profileId: p.id,
-            ownerUserId: p.owner_id as string,
-            patronId: p.patron_id as string,
-            ownerName: [ownerProfile?.prenom, ownerProfile?.nom].filter(Boolean).join(" ") || "Employeur",
-            patronNom: (patronEntry?.nom as string) || "",
-            access_agenda: (features["access_agenda"] as boolean) ?? false,
-            access_dashboard: (features["access_dashboard"] as boolean) ?? false,
+            profileId: inv.id,            // ID de l'invitation = identifiant unique d'accès
+            ownerUserId: inv.owner_id as string,
+            patronId: inv.patron_id as string,
+            ownerName,
+            patronNom: inv.inviter_name || "",  // nom du patron tel qu'enregistré
+            access_agenda: (inv.access_agenda as boolean) ?? false,
+            access_dashboard: (inv.access_dashboard as boolean) ?? false,
           });
         }
 
@@ -146,7 +147,7 @@ export function useEnrichedPatronAccesses(): {
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [tick]);
 
-  return { accesses, loading };
+  return { accesses, loading, refresh };
 }
