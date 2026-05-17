@@ -349,6 +349,18 @@ export function ParametresTab({
 
         {/* ── Sidebar ── */}
         <aside className="rounded-2xl border backdrop-blur-xl p-3 space-y-1.5 lg:sticky lg:top-4 border-[var(--color-border)] bg-[var(--color-surface)]">
+          {/* ── Titre du compte ── */}
+          {profile && (
+            <div className="px-3 pt-2 pb-3 mb-1 border-b border-[var(--color-border)]">
+              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[var(--color-text-muted)] mb-1.5">Compte</p>
+              <p className="text-xl font-black text-[var(--color-text)] leading-tight">
+                {[profile.prenom, profile.nom].filter(Boolean).join(" ") || "—"}
+              </p>
+              {userEmail && (
+                <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 truncate">{userEmail}</p>
+              )}
+            </div>
+          )}
           <p className="text-[9px] font-black uppercase tracking-[0.25em] px-2 pb-1 text-[var(--color-text-muted)]">
             Navigation
           </p>

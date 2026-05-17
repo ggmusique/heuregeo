@@ -18,7 +18,7 @@ interface PatronSelectorModalProps {
 export function PatronSelectorModal({ owners, onSelect }: PatronSelectorModalProps) {
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-sm bg-[#1e293b] rounded-2xl border border-slate-700 p-6 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+      <div className="w-full max-w-md bg-[#1e293b] rounded-2xl border border-slate-700 p-6 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
         {/* En-tête */}
         <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-3 shadow-lg">

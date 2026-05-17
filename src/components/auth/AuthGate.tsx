@@ -16,8 +16,24 @@ export default function AuthGate({ children }: Props) {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
+    supabase.auth.getSession().then(async ({ data }) => {
+      const activeSession = data.session;
+      if (activeSession?.user) {
+        // Vérifier que le profil existe encore (compte non supprimé)
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", activeSession.user.id)
+          .maybeSingle();
+        if (!profile) {
+          // Profil supprimé → déconnexion forcée
+          await supabase.auth.signOut();
+          setSession(null);
+          setLoading(false);
+          return;
+        }
+      }
+      setSession(activeSession);
       setLoading(false);
     });
 
@@ -38,11 +54,24 @@ export default function AuthGate({ children }: Props) {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg("");
+
+    if (mode === "signup") {
+      const trimmedEmail = email.trim();
+      if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        setMsg("❌ Adresse email invalide. Saisissez un email complet (ex : nom@domaine.fr).");
+        return;
+      }
+      if (password.length < 6) {
+        setMsg("❌ Le mot de passe doit contenir au moins 6 caractères.");
+        return;
+      }
+    }
+
     try {
       setLoading(true);
 
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { error } = await supabase.auth.signUp({ email: email.trim(), password });
         if (error) throw error;
         setMsg("✅ Compte créé. Vérifie tes emails si confirmation activée.");
       } else {

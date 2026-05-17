@@ -42,14 +42,17 @@ export const updateUserFeatures = async (
   return { error: error ? error.message : null };
 };
 
-/** Supprime un profil utilisateur par son id. */
+/**
+ * Supprime un compte utilisateur en totalité (auth.users + profiles en cascade).
+ * Passe par la Edge Function `delete-user` qui utilise le client admin
+ * (service_role key) — la clé n'est jamais exposée côté client.
+ */
 export const deleteUserProfile = async (
   userId: string
 ): Promise<{ error: string | null }> => {
-  const { error } = await supabase
-    .from("profiles")
-    .delete()
-    .eq("id", userId);
+  const { error } = await supabase.functions.invoke("delete-user", {
+    body: { user_id: userId },
+  });
 
   return { error: error ? error.message : null };
 };

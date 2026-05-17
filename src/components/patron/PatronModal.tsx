@@ -41,10 +41,11 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
       setTelephone(initialData.telephone || "");
       setEmail(initialData.email || "");
       setSiret(initialData.siret || "");
-      setShowBilling(!!(initialData.adresse || initialData.ville || initialData.telephone || initialData.email || initialData.siret));
+      setEmailTouched(false);
+      setShowBilling(!!(initialData.adresse || initialData.ville || initialData.telephone || initialData.siret));
     } else {
       setNom(""); setTauxHoraire(""); setCouleur("#8b5cf6");
-      setAdresse(""); setCodePostal(""); setVille(""); setTelephone(""); setEmail(""); setSiret(""); setShowBilling(false);
+      setAdresse(""); setCodePostal(""); setVille(""); setTelephone(""); setEmail(""); setSiret(""); setEmailTouched(false); setShowBilling(false);
     }
   }, [show, editMode, initialData]);
 
@@ -57,9 +58,12 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
 
   const tauxIsValid = useMemo(() => { if (tauxParsed === null) return true; if (Number.isNaN(tauxParsed)) return false; return tauxParsed >= 0; }, [tauxParsed]);
   const nomIsValid = useMemo(() => nom.trim().length > 0, [nom]);
-  const canSubmit = useMemo(() => !loading && nomIsValid && tauxIsValid, [loading, nomIsValid, tauxIsValid]);
+  const emailIsValid = useMemo(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()), [email]);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const canSubmit = useMemo(() => !loading && nomIsValid && tauxIsValid && emailIsValid, [loading, nomIsValid, tauxIsValid, emailIsValid]);
 
   const handleSubmit = () => {
+    setEmailTouched(true);
     if (!canSubmit) return;
     onSubmit?.({
       nom: nom.trim(), taux_horaire: tauxParsed === null ? null : tauxParsed, couleur,
@@ -82,6 +86,23 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
           <div>
             <label className="block text-[10px] font-black uppercase opacity-60 mb-2 tracking-wider">Nom du patron <span className="text-red-400">*</span></label>
             <input type="text" value={nom} onChange={(e) => setNom(e.target.value)} placeholder="Ex: Entreprise ABC" className={inputCls()} disabled={loading} autoFocus />
+          </div>
+          <div>
+            <label className="block text-[10px] font-black uppercase opacity-60 mb-2 tracking-wider">Email du patron <span className="text-red-400">*</span></label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => setEmailTouched(true)}
+              placeholder="Ex: patron@entreprise.fr"
+              className={inputCls(emailTouched && !emailIsValid ? "border-red-500/60" : "")}
+              disabled={loading}
+            />
+            {emailTouched && !emailIsValid && (
+              <p className="text-[9px] text-red-400 mt-1 px-1 font-bold uppercase tracking-wider">
+                L'email du patron est obligatoire et doit être valide
+              </p>
+            )}
           </div>
           <div>
             <label className="block text-[10px] font-black uppercase opacity-60 mb-2 tracking-wider">Taux horaire (€/h) - optionnel</label>
@@ -113,7 +134,6 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
                   <input type="text" value={ville} onChange={e => setVille(e.target.value)} placeholder="Ville" disabled={loading} className="w-2/3 px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
                 </div>
                 <input type="tel" value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="Téléphone" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
                 <input type="text" value={siret} onChange={e => setSiret(e.target.value)} placeholder="SIRET" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
               </div>
             )}

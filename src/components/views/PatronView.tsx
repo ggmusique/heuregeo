@@ -145,9 +145,9 @@ function PatronViewInner({
     isPro: false,
     canBilanMois: true,
     canBilanAnnee: true,
-    canExportPDF: false,
-    canExportExcel: false,
-    canExportCSV: false,
+    canExportPDF: true,
+    canExportExcel: true,
+    canExportCSV: true,
     canKilometrage: false,
     canAgenda: access.access_agenda,
     canFacture: false,
@@ -166,54 +166,52 @@ function PatronViewInner({
           <CustomAlert show={customAlert.show} message={customAlert.message || ""} onDismiss={dismissAlert} />
 
           {/* En-tête patron */}
-          <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl px-4 py-3">
-            <div className="flex items-center justify-between gap-3 max-w-2xl mx-auto">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md flex-shrink-0">
-                  <img src="/icons/icon.svg" alt="Tracko" className="w-full h-full object-cover" />
+          <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl">
+            <div className="px-4">
+              <div className="flex items-center justify-between gap-3 py-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg overflow-hidden shadow-md flex-shrink-0">
+                    <img src="/icons/icon.svg" alt="Tracko" className="w-full h-full object-cover" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Tracko</span>
                 </div>
-                <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-[var(--color-text-muted)]">
-                    Tracko
-                  </p>
-                  <p className="text-[10px] text-[var(--color-text-muted)] truncate max-w-[160px]">
-                    {access.ownerName}
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                {hasMultipleOwners && (
+                <div className="flex items-center gap-2">
+                  {hasMultipleOwners && (
+                    <button
+                      onClick={onSwitchOwner}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/40 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/25 transition-all text-xs font-bold"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                      </svg>
+                      Changer
+                    </button>
+                  )}
                   <button
-                    onClick={onSwitchOwner}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/40 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/25 transition-all text-xs font-bold"
+                    onClick={() => supabase.auth.signOut()}
+                    title="Se déconnecter"
+                    className="p-2 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-red-400 transition-colors text-xs"
                   >
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                      <circle cx="9" cy="7" r="4"/>
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                      <polyline points="16 17 21 12 16 7"/>
+                      <line x1="21" y1="12" x2="9" y2="12"/>
                     </svg>
-                    Changer
                   </button>
-                )}
-                <button
-                  onClick={() => supabase.auth.signOut()}
-                  title="Se déconnecter"
-                  className="p-2 rounded-xl border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-red-400 transition-colors text-xs"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                    <polyline points="16 17 21 12 16 7"/>
-                    <line x1="21" y1="12" x2="9" y2="12"/>
-                  </svg>
-                </button>
+                </div>
               </div>
+              <h1 className="text-[22px] sm:text-[30px] font-black italic tracking-[0.08em] sm:tracking-[0.1em] text-[var(--color-primary)] drop-shadow-2xl font-['Playfair_Display'] pb-3">
+                {"HEURES DE " + (access.ownerName?.trim()?.toUpperCase() || "—")}
+              </h1>
             </div>
           </header>
 
           {/* Contenu principal */}
-          <main className="relative px-4 pt-4 pb-28 max-w-2xl mx-auto">
+          <main className="relative px-4 pt-4 pb-28">
             {activeTab === "bilan" && (
               <>
                 <BilanTab
@@ -228,9 +226,9 @@ function PatronViewInner({
                   isViewer={true}
                   canBilanMois={true}
                   canBilanAnnee={true}
-                  canExportPDF={false}
-                  canExportExcel={false}
-                  canExportCSV={false}
+                  canExportPDF={true}
+                  canExportExcel={true}
+                  canExportCSV={true}
                   canFacture={false}
                 />
 
@@ -287,7 +285,7 @@ function PatronViewInner({
 
           {/* Barre de navigation */}
           <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-            <div className="flex max-w-2xl mx-auto">
+            <div className="flex">
               {navItems.map((item) => (
                 <button
                   key={item.id}
@@ -394,7 +392,7 @@ function PatronOnboarding() {
       <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
         {/* Header */}
         <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl px-4 py-3">
-          <div className="flex items-center justify-between max-w-sm mx-auto">
+          <div className="flex items-center justify-between max-w-xl mx-auto">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md flex-shrink-0">
                 <img src="/icons/icon.svg" alt="Tracko" className="w-full h-full object-cover" />
@@ -416,7 +414,7 @@ function PatronOnboarding() {
         </header>
 
         {/* Corps */}
-        <div className="px-4 pt-8 pb-16 max-w-sm mx-auto space-y-5">
+        <div className="px-4 pt-8 pb-16 max-w-xl mx-auto space-y-5">
           <div>
             <h1 className="text-2xl font-black tracking-tight">Bienvenue 👋</h1>
             <p className="text-sm text-[var(--color-text-muted)] mt-1.5">

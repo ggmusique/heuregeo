@@ -96,7 +96,7 @@ export const SaisieTab = ({
       />
 
       {/* Boutons rapides */}
-      <div className="grid grid-cols-2 gap-4 mt-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
         <button
           onClick={() => onShowFraisModal?.()}
           className="py-4 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all"
