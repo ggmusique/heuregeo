@@ -552,6 +552,27 @@ export function ParametresTab({
                           {profile?.features?.agenda ? "Activé" : "Désactivé"}
                         </button>
                       </div>
+                      {profile?.features?.agenda && (
+                        <div className="mt-3 pt-3 border-t border-emerald-500/20 flex items-center gap-3">
+                          <p className="text-sm text-[var(--color-text-muted)] flex-1">
+                            Jours de congé annuels
+                          </p>
+                          <input
+                            key={String(profile?.conges_annuels ?? "")}
+                            type="number"
+                            min={0}
+                            max={365}
+                            placeholder="Ex : 20"
+                            defaultValue={profile?.conges_annuels ?? ""}
+                            onBlur={async (e) => {
+                              const val = e.target.value.trim();
+                              await saveProfile({ conges_annuels: val === "" ? null : Number(val) });
+                            }}
+                            className="w-24 px-2 py-1.5 rounded-lg text-sm text-right border border-emerald-400/30 bg-emerald-500/10 text-emerald-200 placeholder-[var(--color-text-dim)] focus:outline-none focus:border-emerald-400/60 disabled:opacity-40"
+                            disabled={profileSaving}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="rounded-2xl border p-4 border-indigo-500/25 bg-indigo-500/5">
                       <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-indigo-200/80">

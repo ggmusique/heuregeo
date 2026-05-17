@@ -7,7 +7,7 @@ import { KPICard } from "./KPICard";
 import { computeKmForMissions as computeKmForMissionsUtil } from "../../utils/kmUtils";
 import { supabase } from "../../services/supabase";
 import { useDarkMode } from "../../contexts/DarkModeContext";
-import type { Mission, FraisDivers, Acompte, Patron, Client, Lieu } from "../../types/entities";
+import type { Mission, FraisDivers, Acompte, Patron, Client, Lieu, AgendaEvent } from "../../types/entities";
 import type { UserProfile } from "../../types/profile";
 import type { KmSettings } from "../../hooks/useKmDomicile";
 
@@ -64,6 +64,7 @@ interface DashboardPanelProps {
   profile?: UserProfile | null;
   kmSettings?: KmSettings | null;
   domicileLatLng?: { lat: number; lng: number } | null;
+  agendaEvents?: AgendaEvent[];
 }
 
 export function DashboardPanel({
@@ -76,6 +77,7 @@ export function DashboardPanel({
   profile,
   kmSettings = null,
   domicileLatLng = null,
+  agendaEvents = [],
 }: DashboardPanelProps) {
   const { darkMode } = useDarkMode();
   const chartRef = useRef<HTMLCanvasElement | null>(null);
@@ -92,6 +94,60 @@ export function DashboardPanel({
   const currentYear = useMemo(() => now.getFullYear(), [now]);
 
   const kmEnabled = kmSettings?.km_enable === true;
+
+  const todayIso = useMemo(() => now.toISOString().split("T")[0], [now]);
+
+  const prochainShift = useMemo(() => {
+    const future = (missions || [])
+      .filter((m) => {
+        const d = m.date_mission ?? m.date_iso;
+        return d != null && d >= todayIso;
+      })
+      .sort((a, b) => {
+        const da = a.date_mission ?? a.date_iso ?? "";
+        const db = b.date_mission ?? b.date_iso ?? "";
+        return da.localeCompare(db);
+      });
+    return future[0] ?? null;
+  }, [missions, todayIso]);
+
+  const congesFuturs = useMemo(() => {
+    const TYPES_CONGE = ["conge", "congé", "vacances", "vacation", "cp"];
+    return (agendaEvents || [])
+      .filter((e) => {
+        const t = (e.type ?? "").toLowerCase().trim();
+        return TYPES_CONGE.includes(t) && e.date_iso >= todayIso;
+      })
+      .reduce((sum, e) => {
+        if (e.date_fin && e.date_fin > e.date_iso) {
+          const start = new Date(e.date_iso + "T12:00:00");
+          const end = new Date(e.date_fin + "T12:00:00");
+          return sum + Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+        }
+        return sum + 1;
+      }, 0);
+  }, [agendaEvents, todayIso]);
+
+  const congesPassesAnnee = useMemo(() => {
+    const TYPES_CONGE = ["conge", "congé", "vacances", "vacation", "cp"];
+    const yearStr = now.getFullYear().toString();
+    return (agendaEvents || [])
+      .filter((e) => {
+        const t = (e.type ?? "").toLowerCase().trim();
+        return TYPES_CONGE.includes(t) && e.date_iso < todayIso && e.date_iso.startsWith(yearStr);
+      })
+      .reduce((sum, e) => {
+        if (e.date_fin && e.date_fin > e.date_iso) {
+          const start = new Date(e.date_iso + "T12:00:00");
+          const end = new Date(e.date_fin + "T12:00:00");
+          return sum + Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+        }
+        return sum + 1;
+      }, 0);
+  }, [agendaEvents, todayIso, now]);
+
+  const agendaEnabled = profile?.features?.agenda === true;
+  const congesAnnuels = profile?.conges_annuels ?? null;
 
   const filteredMissions = useMemo(() => {
     if (!selectedPatronId) return missions;
@@ -573,9 +629,10 @@ export function DashboardPanel({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(200px, 420px) 260px",
+          gridTemplateColumns: "minmax(200px, 1fr) repeat(3, minmax(150px, 220px))",
           gap: "16px",
           marginBottom: "24px",
+          alignItems: "stretch",
         }}
         className="dashboard-grid"
       >
@@ -624,106 +681,309 @@ export function DashboardPanel({
           </div>
         </div>
 
+        {/* ── Frais kilométriques ── */}
         <div
           style={{
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: "20px",
-            padding: "20px",
-            backdropFilter: "blur(12px)",
+            background: "linear-gradient(135deg, color-mix(in srgb,var(--color-accent-green) 12%,transparent), color-mix(in srgb,var(--color-accent-green) 4%,transparent))",
+            border: "1px solid var(--color-border-green)",
+            borderRadius: "18px",
+            padding: "16px 18px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            position: "relative",
+            overflow: "hidden",
           }}
         >
           <div
             style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              fontSize: "8px",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.15em",
+              color: "var(--color-accent-green)",
+              background: "color-mix(in srgb,var(--color-accent-green) 10%,transparent)",
+              border: "1px solid var(--color-border-green)",
+              borderRadius: "6px",
+              padding: "2px 6px",
+            }}
+          >
+            KM
+          </div>
+
+          <span style={{ fontSize: "18px", lineHeight: 1 }}>🚗</span>
+
+          <span
+            style={{
               fontSize: "10px",
               fontWeight: 700,
               textTransform: "uppercase",
-              letterSpacing: "0.2em",
+              letterSpacing: "0.18em",
               color: "var(--color-text-muted)",
-              marginBottom: "16px",
+              marginTop: "2px",
             }}
           >
-            Frais <span style={{ color: "var(--color-primary)" }}>kilométriques</span>
-          </div>
+            Frais km
+          </span>
+
+          <span
+            style={{
+              fontFamily: "'DM Mono', monospace",
+              fontSize: "22px",
+              fontWeight: 600,
+              color: kmThisWeek.totalAmount > 0 ? "var(--color-accent-green)" : "var(--color-text-dim)",
+              lineHeight: 1.1,
+            }}
+          >
+            {kmThisWeek.totalAmount > 0 ? formatEuro(kmThisWeek.totalAmount) : "—"}
+          </span>
+
+          {kmThisWeek.totalKm > 0 && (
+            <span style={{ fontSize: "10px", color: "var(--color-accent-green)", fontFamily: "'DM Mono', monospace" }}>
+              {Math.round(kmThisWeek.totalKm)} km
+            </span>
+          )}
 
           <div
             style={{
-              background: "linear-gradient(135deg, color-mix(in srgb,var(--color-accent-green) 12%,transparent), color-mix(in srgb,var(--color-accent-green) 4%,transparent))",
-              border: "1px solid var(--color-border-green)",
-              borderRadius: "18px",
-              padding: "16px 18px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-              position: "relative",
-              overflow: "hidden",
+              marginTop: "auto",
+              paddingTop: "10px",
+              borderTop: "1px solid var(--color-divider)",
+              fontSize: "10px",
+              color: "var(--color-text-muted)",
+              lineHeight: 1.5,
             }}
           >
-            <div
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                fontSize: "8px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.15em",
-                color: "var(--color-accent-green)",
-                background: "color-mix(in srgb,var(--color-accent-green) 10%,transparent)",
-                border: "1px solid var(--color-border-green)",
-                borderRadius: "6px",
-                padding: "2px 6px",
-              }}
-            >
-              KM
-            </div>
-
-            <span style={{ fontSize: "18px", lineHeight: 1 }}>🚗</span>
-
-            <span
-              style={{
-                fontSize: "10px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.18em",
-                color: "var(--color-text-muted)",
-                marginTop: "2px",
-              }}
-            >
-              Frais km
-            </span>
-
-            <span
-              style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: "22px",
-                fontWeight: 600,
-                color: kmThisWeek.totalAmount > 0 ? "var(--color-accent-green)" : "var(--color-text-dim)",
-                lineHeight: 1.1,
-              }}
-            >
-              {kmThisWeek.totalAmount > 0 ? formatEuro(kmThisWeek.totalAmount) : "—"}
-            </span>
-
-            {kmThisWeek.totalKm > 0 && (
-              <span style={{ fontSize: "10px", color: "var(--color-accent-green)", fontFamily: "'DM Mono', monospace" }}>
-                {Math.round(kmThisWeek.totalKm)} km
-              </span>
-            )}
-
-            <div
-              style={{
-                marginTop: "8px",
-                paddingTop: "10px",
-                borderTop: "1px solid var(--color-divider)",
-                fontSize: "11px",
-                color: "var(--color-text-muted)",
-                lineHeight: 1.6,
-              }}
-            >
-              {kmEnabled ? "Calcul basé sur les missions de la semaine en cours." : "Le kilométrage n'est pas activé dans les paramètres."}
-            </div>
+            {kmEnabled ? "Semaine en cours." : "Kilométrage désactivé."}
           </div>
+        </div>
+
+        {/* ── Prochain shift ── */}
+        <div
+          style={{
+            background: agendaEnabled
+              ? `linear-gradient(135deg, color-mix(in srgb,${chartColors.indigo.primary} 12%,transparent), color-mix(in srgb,${chartColors.indigo.primary} 4%,transparent))`
+              : "var(--color-surface)",
+            border: agendaEnabled
+              ? `1px solid color-mix(in srgb,${chartColors.indigo.primary} 30%,transparent)`
+              : "1px solid var(--color-border)",
+            borderRadius: "18px",
+            padding: "16px 18px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              fontSize: "8px",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.15em",
+              color: agendaEnabled ? chartColors.indigo.primary : "var(--color-text-dim)",
+              background: agendaEnabled
+                ? `color-mix(in srgb,${chartColors.indigo.primary} 10%,transparent)`
+                : "var(--color-surface-2)",
+              border: agendaEnabled
+                ? `1px solid color-mix(in srgb,${chartColors.indigo.primary} 30%,transparent)`
+                : "1px solid var(--color-border)",
+              borderRadius: "6px",
+              padding: "2px 6px",
+            }}
+          >
+            SHIFT
+          </div>
+
+          <span style={{ fontSize: "16px", lineHeight: 1 }}>📅</span>
+
+          <span
+            style={{
+              fontSize: "10px",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.18em",
+              color: "var(--color-text-muted)",
+              marginTop: "2px",
+            }}
+          >
+            Prochain shift
+          </span>
+
+          {!agendaEnabled ? (
+            <div
+              style={{
+                marginTop: "auto",
+                paddingTop: "8px",
+                borderTop: "1px solid var(--color-divider)",
+                fontSize: "10px",
+                color: "var(--color-text-muted)",
+                lineHeight: 1.5,
+              }}
+            >
+              L'agenda n'est pas activé dans les paramètres.
+            </div>
+          ) : prochainShift ? (
+            <>
+              <span
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  color: chartColors.indigo.primary,
+                  lineHeight: 1.2,
+                }}
+              >
+                {new Date(`${prochainShift.date_mission ?? prochainShift.date_iso}T12:00:00`).toLocaleDateString("fr-FR", {
+                  weekday: "short",
+                  day: "numeric",
+                  month: "short",
+                })}
+              </span>
+              <span style={{ fontSize: "11px", color: "var(--color-text-muted)", fontFamily: "'DM Mono', monospace" }}>
+                {prochainShift.debut} – {prochainShift.fin}
+              </span>
+              {prochainShift.client && (
+                <span
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--color-text-muted)",
+                    marginTop: "2px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {prochainShift.client}
+                </span>
+              )}
+            </>
+          ) : (
+            <span style={{ fontSize: "12px", color: "var(--color-text-dim)", fontStyle: "italic", marginTop: "4px" }}>
+              Aucun shift prévu
+            </span>
+          )}
+        </div>
+
+        {/* ── Congés planifiés / restants ── */}
+        <div
+          style={{
+            background: agendaEnabled
+              ? `linear-gradient(135deg, color-mix(in srgb,${chartColors.amber.primary} 12%,transparent), color-mix(in srgb,${chartColors.amber.primary} 4%,transparent))`
+              : "var(--color-surface)",
+            border: agendaEnabled
+              ? `1px solid color-mix(in srgb,${chartColors.amber.primary} 30%,transparent)`
+              : "1px solid var(--color-border)",
+            borderRadius: "18px",
+            padding: "16px 18px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            position: "relative",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              fontSize: "8px",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.15em",
+              color: agendaEnabled ? chartColors.amber.primary : "var(--color-text-dim)",
+              background: agendaEnabled
+                ? `color-mix(in srgb,${chartColors.amber.primary} 10%,transparent)`
+                : "var(--color-surface-2)",
+              border: agendaEnabled
+                ? `1px solid color-mix(in srgb,${chartColors.amber.primary} 30%,transparent)`
+                : "1px solid var(--color-border)",
+              borderRadius: "6px",
+              padding: "2px 6px",
+            }}
+          >
+            CP
+          </div>
+
+          <span style={{ fontSize: "16px", lineHeight: 1 }}>🏖️</span>
+
+          <span
+            style={{
+              fontSize: "10px",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.18em",
+              color: "var(--color-text-muted)",
+              marginTop: "2px",
+            }}
+          >
+            {agendaEnabled && congesAnnuels != null ? "Congés restants" : "Congés planifiés"}
+          </span>
+
+          {!agendaEnabled ? (
+            <div
+              style={{
+                marginTop: "auto",
+                paddingTop: "8px",
+                borderTop: "1px solid var(--color-divider)",
+                fontSize: "10px",
+                color: "var(--color-text-muted)",
+                lineHeight: 1.5,
+              }}
+            >
+              L'agenda n'est pas activé dans les paramètres.
+            </div>
+          ) : congesAnnuels != null ? (
+            (() => {
+              const restants = Math.max(0, congesAnnuels - congesPassesAnnee);
+              return (
+                <>
+                  <span
+                    style={{
+                      fontFamily: "'DM Mono', monospace",
+                      fontSize: "26px",
+                      fontWeight: 600,
+                      color: restants > 0 ? chartColors.amber.primary : "var(--color-text-dim)",
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {restants}
+                  </span>
+                  <span style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>
+                    {restants === 1 ? "jour restant" : "jours restants"} sur {congesAnnuels}
+                  </span>
+                </>
+              );
+            })()
+          ) : congesFuturs > 0 ? (
+            <>
+              <span
+                style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: "26px",
+                  fontWeight: 600,
+                  color: chartColors.amber.primary,
+                  lineHeight: 1.1,
+                }}
+              >
+                {congesFuturs}
+              </span>
+              <span style={{ fontSize: "11px", color: "var(--color-text-muted)" }}>
+                {congesFuturs === 1 ? "jour de congé planifié" : "jours de congé planifiés"}
+              </span>
+            </>
+          ) : (
+            <span style={{ fontSize: "12px", color: "var(--color-text-dim)", fontStyle: "italic", marginTop: "4px" }}>
+              Aucun congé planifié
+            </span>
+          )}
         </div>
       </div>
 

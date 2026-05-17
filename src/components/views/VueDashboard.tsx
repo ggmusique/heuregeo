@@ -1,5 +1,6 @@
 import React from "react";
 import { DashboardPanel } from "../dashboard/DashboardPanel";
+import type { AgendaEvent } from "../../types/entities";
 
 interface Props {
   missions?: any[];
@@ -11,6 +12,7 @@ interface Props {
   profile?: any;
   kmSettings?: any;
   domicileLatLng?: { lat: number; lng: number } | null;
+  agendaEvents?: AgendaEvent[];
 }
 
 export function VueDashboard({
@@ -23,6 +25,7 @@ export function VueDashboard({
   profile,
   kmSettings,
   domicileLatLng,
+  agendaEvents,
 }: Props) {
   return (
     <DashboardPanel
@@ -35,6 +38,7 @@ export function VueDashboard({
       profile={profile}
       kmSettings={kmSettings}
       domicileLatLng={domicileLatLng}
+      agendaEvents={agendaEvents}
     />
   );
 }

@@ -146,6 +146,7 @@ export function useAppProps({
     profile,
     kmSettings,
     domicileLatLng,
+    agendaEvents: agendaHook.events,
   };
 
   const suiviProps = {

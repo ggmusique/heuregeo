@@ -246,10 +246,34 @@ export const MissionForm = ({
     (Array.isArray(clients) ? clients : []).map((c) => ({ value: String(c.id), label: String(c.nom) })),
     [clients]
   );
-  const lieuOptions = useMemo(() =>
-    (Array.isArray(lieux) ? lieux : []).map((l) => ({ value: String(l.id), label: String(l.nom) })),
-    [lieux]
-  );
+  const lieuOptions = useMemo(() => {
+    const lieuxArr = Array.isArray(lieux) ? lieux : [];
+    const missionsArr = Array.isArray(missions) ? missions : [];
+    const clientIdStr = selectedClientId != null ? String(selectedClientId) : null;
+    // Compte missions par lieu pour ce client
+    const countByLieu: Record<string, number> = {};
+    if (clientIdStr) {
+      missionsArr.forEach((m) => {
+        if (m?.client_id != null && String(m.client_id) === clientIdStr && m?.lieu_id != null) {
+          const lid = String(m.lieu_id);
+          countByLieu[lid] = (countByLieu[lid] || 0) + 1;
+        }
+      });
+    }
+    return [...lieuxArr]
+      .sort((a, b) => {
+        const ca = countByLieu[String(a.id)] || 0;
+        const cb = countByLieu[String(b.id)] || 0;
+        if (cb !== ca) return cb - ca;
+        return (a.nom || "").localeCompare(b.nom || "");
+      })
+      .map((l) => {
+        const count = countByLieu[String(l.id)] || 0;
+        const label = count > 0 ? `${l.nom} (${count})` : String(l.nom);
+        return { value: String(l.id), label };
+      });
+  }, [lieux, missions, selectedClientId]);
+
   const tarifSelectOptions = useMemo(() =>
     TARIF_OPTIONS.map((val) => ({ value: val.toString(), label: `${val.toFixed(2)} €/h` })),
     []

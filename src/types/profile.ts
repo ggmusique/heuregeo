@@ -162,4 +162,6 @@ export interface UserProfile {
   invite_code?: string | null;
   /** true quand le profil a été complété (prenom + nom renseignés et sauvegardés). */
   profile_complete?: boolean;
+  /** Nombre de jours de congé annuels (optionnel, utilisé pour la carte KPI Congés restants). */
+  conges_annuels?: number | null;
 }
