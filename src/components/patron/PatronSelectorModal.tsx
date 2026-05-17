@@ -109,7 +109,7 @@ export function useEnrichedPatronAccesses(): {
         // (profiles ne peut stocker qu'une paire owner_id/patron_id à la fois)
         const { data: invitations, error: invErr } = await supabase
           .from("patron_invitations")
-          .select("id, owner_id, patron_id, access_agenda, access_dashboard, target_name, inviter_name")
+          .select("id, owner_id, patron_id, access_agenda, access_dashboard, target_name, inviter_name, initiated_by")
           .eq("patron_user_id", user.id)
           .eq("status", "accepted")
           .eq("method", "in_app");
@@ -119,16 +119,13 @@ export function useEnrichedPatronAccesses(): {
         const enriched: EnrichedAccess[] = [];
 
         for (const inv of invitations) {
-          // Nom de l'ouvrier : target_name stocké à la création sinon requête profil
-          let ownerName: string = inv.target_name || "";
-          if (!ownerName && inv.owner_id) {
-            const { data: ownerProfile } = await supabase
-              .from("profiles")
-              .select("prenom, nom")
-              .eq("id", inv.owner_id)
-              .maybeSingle();
-            ownerName = [ownerProfile?.prenom, ownerProfile?.nom].filter(Boolean).join(" ") || "Ouvrier";
-          }
+          // Nom de l'ouvrier : lire le champ dénormalisé correct selon qui a initié.
+          // - initiated_by='patron' → l'ouvrier est la cible → target_name = nom ouvrier
+          // - initiated_by='owner'  → l'ouvrier est l'initiateur → inviter_name = nom ouvrier
+          // On ne peut pas requêter profiles directement (RLS bloque la lecture inter-user).
+          const ownerName = inv.initiated_by === "owner"
+            ? (inv.inviter_name || "Ouvrier")
+            : (inv.target_name  || "Ouvrier");
 
           enriched.push({
             profileId: inv.id,            // ID de l'invitation = identifiant unique d'accès

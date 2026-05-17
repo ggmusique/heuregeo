@@ -42,6 +42,7 @@ export function useBilan({
   kmSettings = null,
   domicileLatLng = null,
   lieux = [],
+  readOnly = false,
 }: import("./useBilanTypes").UseBilanParams): import("./useBilanTypes").UseBilanReturn {
   const [showBilan, setShowBilan] = useState<boolean>(false);
   const [showPeriodModal, setShowPeriodModal] = useState<boolean>(false);
@@ -113,7 +114,7 @@ export function useBilan({
           ? getAcomptesDansPeriode(debutPeriode, finPeriode, runPatronId) : 0;
         let acomptesDansPeriodeCalc = acomptesDansPeriode;
 
-        if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
+        if (bilanPeriodType === PERIOD_TYPES.SEMAINE && !readOnly) {
           const weekNum = parseInt(bilanPeriodValue, 10);
           const metrics = await fetchWeeklyAcompteMetrics({ patronId: pId, weekNum, debutPeriode, finPeriode });
           const { allocCetteSemaine, totalAlloueJusqua, totalAlloueAvant,
@@ -128,6 +129,8 @@ export function useBilan({
           soldeApresPeriode = ws.soldeApresPeriode; resteCettePeriode = ws.resteCettePeriode;
           resteAPercevoir = ws.resteAPercevoir;
         } else {
+          // Chemin standard : calcul local via getSoldeAvant (pas de lecture acompte_allocations).
+          // Obligatoire pour readOnly=true (ex: PatronView) où la RLS bloque la lecture cross-user.
           soldeAvantPeriode = getSoldeAvant(debutPeriode, runPatronId);
           const ss = computeStandardAcompteState({ soldeAvantPeriode, acomptesDansPeriode, caBrutPeriode });
           acompteConsomme = ss.acompteConsomme; resteCettePeriode = ss.resteCettePeriode;
@@ -182,7 +185,7 @@ export function useBilan({
 
         setBilanContent(content); setBilanPaye(isPaid); setShowPeriodModal(false); setShowBilan(true);
 
-        if (!isGlobalPatronId(patronId)) {
+        if (!readOnly && !isGlobalPatronId(patronId)) {
           const existing = await fetchBilanByPeriodAndPatron({
             periodeType: bilanPeriodType, periodeValue: bilanPeriodValue, patronId: pId, columns: "id",
           });

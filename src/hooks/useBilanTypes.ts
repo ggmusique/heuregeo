@@ -22,6 +22,9 @@ export interface UseBilanParams {
   kmSettings?: KmSettings | null;
   domicileLatLng?: { lat: number; lng: number } | null;
   lieux?: Lieu[];
+  /** Quand true, force le calcul local (getSoldeAvant) sans lire acompte_allocations.
+   *  Utilisé dans PatronView où la RLS bloque la lecture cross-user de cette table. */
+  readOnly?: boolean;
 }
 
 // ─── Valeur de retour de useBilan ─────────────────────────────────────────────

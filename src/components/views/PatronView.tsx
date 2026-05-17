@@ -116,6 +116,7 @@ function PatronViewInner({
     getAcomptesDansPeriode,
     getTotalAcomptesJusqua,
     triggerAlert,
+    readOnly: true,
   });
 
   // Forcer le filtrage sur ce patron (RLS garantit déjà le scope mais le bilan
