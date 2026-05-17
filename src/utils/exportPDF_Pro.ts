@@ -749,31 +749,100 @@ const drawMonthlySummary = (doc: any, bilanContent: any, startY: number): number
 
 // ─────────────────────────────────────────────
 // TAMPON PAYÉ
+// Se positionne automatiquement dans la zone vide
+// de la dernière page, se dimensionne seul, rouge.
 // ─────────────────────────────────────────────
-const drawPayeStamp = (doc: any): void => {
+const drawPayeStamp = (doc: any, lastY: number = 150): void => {
   try {
     const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      const cx = 210 / 2;
-      const cy = 297 / 2;
+    doc.setPage(pageCount);
 
-      doc.setDrawColor(0, 120, 60);
-      doc.setLineWidth(3);
-      doc.roundedRect(cx - 55, cy - 16, 110, 32, 5, 5, "S");
+    const pageW   = 210;
+    const footerY = 287; // le pied de page commence ici
+    const freeH   = footerY - lastY - 8; // espace libre sous le contenu
 
-      doc.setTextColor(0, 120, 60);
-      doc.setFontSize(44);
-      doc.setFont(undefined, "bold");
-      doc.text("PAYÉ", cx, cy + 8, { align: "center" });
+    // — Placement : dans la zone libre (dernière page) ou nouvelle page —
+    let stampCX: number, stampCY: number;
+    let effectiveFreeH: number;
 
-      doc.setFontSize(9);
-      doc.setFont(undefined, "italic");
-      const dateStr = new Date().toLocaleDateString("fr-FR", {
-        day: "numeric", month: "long", year: "numeric",
-      });
-      doc.text(`Réglé le ${dateStr}`, cx, cy + 18, { align: "center" });
+    if (freeH >= 30) {
+      // Assez de place : tiers droit de la zone libre
+      stampCX = 15 + (pageW - 30) * 0.62;
+      stampCY = lastY + freeH / 2 + 4;
+      effectiveFreeH = freeH;
+    } else {
+      // Pas assez de place → nouvelle page centrée
+      doc.addPage();
+      stampCX = pageW / 2;
+      stampCY = (footerY - 40) / 2 + 20;
+      effectiveFreeH = footerY - 40;
     }
+
+    // — Auto-dimensionnement —
+    const stampH       = Math.min(45, Math.max(24, effectiveFreeH * 0.65));
+    const stampW       = Math.min(135, Math.max(80, stampH * 3.2));
+    const mainFontSize = Math.round(stampH * 0.58);
+    const hw = stampW / 2;
+    const hh = stampH / 2;
+
+    // — Rotation 15° (effet tampon physique) —
+    const ANGLE_DEG = 15;
+    const rad = (ANGLE_DEG * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    // Rotation CCW dans le repère écran (y vers le bas)
+    const rot = (dx: number, dy: number): [number, number] => [
+      stampCX + dx * cos - dy * sin,
+      stampCY + dx * sin + dy * cos,
+    ];
+
+    // — Couleur rouge —
+    const red: [number, number, number] = [185, 15, 15];
+    doc.setDrawColor(...red);
+
+    // Bordure extérieure (4 segments rotatés)
+    doc.setLineWidth(2.5);
+    const [TLx, TLy] = rot(-hw,  -hh);
+    const [TRx, TRy] = rot(+hw,  -hh);
+    const [BRx, BRy] = rot(+hw,  +hh);
+    const [BLx, BLy] = rot(-hw,  +hh);
+    doc.line(TLx, TLy, TRx, TRy);
+    doc.line(TRx, TRy, BRx, BRy);
+    doc.line(BRx, BRy, BLx, BLy);
+    doc.line(BLx, BLy, TLx, TLy);
+
+    // Bordure intérieure (inset 2.5 mm)
+    const ins = 2.5;
+    const [TL2x, TL2y] = rot(-hw + ins, -hh + ins);
+    const [TR2x, TR2y] = rot(+hw - ins, -hh + ins);
+    const [BR2x, BR2y] = rot(+hw - ins, +hh - ins);
+    const [BL2x, BL2y] = rot(-hw + ins, +hh - ins);
+    doc.setLineWidth(0.8);
+    doc.line(TL2x, TL2y, TR2x, TR2y);
+    doc.line(TR2x, TR2y, BR2x, BR2y);
+    doc.line(BR2x, BR2y, BL2x, BL2y);
+    doc.line(BL2x, BL2y, TL2x, TL2y);
+
+    // Texte « PAYÉ » rotaté
+    doc.setTextColor(...red);
+    doc.setFontSize(mainFontSize);
+    doc.setFont(undefined, "bold");
+    doc.text("PAYÉ", stampCX, stampCY + mainFontSize * 0.12, {
+      align: "center",
+      angle: ANGLE_DEG,
+    });
+
+    // Date sous le texte principal (dans le repère du tampon)
+    const [dateScrX, dateScrY] = rot(0, hh - 5);
+    doc.setFontSize(7);
+    doc.setFont(undefined, "italic");
+    const dateStr = new Date().toLocaleDateString("fr-FR", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+    doc.text(`Réglé le ${dateStr}`, dateScrX, dateScrY, {
+      align: "center",
+      angle: ANGLE_DEG,
+    });
   } catch (e) {
     console.error("Erreur drawPayeStamp:", e);
   }
@@ -843,7 +912,7 @@ export const exportToPDFPro = (
       y = drawMonthlySummary(doc, bilanContent, y);
     }
 
-    if (estPaye) drawPayeStamp(doc);
+    if (estPaye) drawPayeStamp(doc, y);
     drawFooter(doc);
 
     const fileName = `GeoBilan_${(bilanContent.titre || "export")
