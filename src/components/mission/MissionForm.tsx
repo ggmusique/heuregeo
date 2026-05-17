@@ -535,8 +535,8 @@ export const MissionForm = ({
         </div>
       </GlassCard>
 
-      {/* Duration summary */}
-      {dureeCalculee && (
+      {/* Duration summary — masqué si patron/client/lieu manquants */}
+      {dureeCalculee && selectedPatronId && selectedClientId && selectedLieuId && (
         <GlassCard color="green" padding="sm" className="mb-3" glow>
           <p style={{ textAlign: "center", color: "var(--color-text)", fontSize: "14px", fontWeight: 700 }}>
             ⏱&nbsp; {dureeCalculee.dureeStr}

@@ -96,7 +96,7 @@ export const SaisieTab = ({
       />
 
       {/* Boutons rapides */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+      <div className="grid grid-cols-3 gap-2 mt-6">
         <button
           onClick={() => onShowFraisModal?.()}
           className="py-4 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all"
@@ -109,21 +109,19 @@ export const SaisieTab = ({
         >
           + Acompte
         </button>
+        {onShowImportModal ? (
+          <button
+            onClick={onShowImportModal}
+            className={`py-4 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all border ${
+              darkMode
+                ? "bg-violet-600/15 text-violet-400 border-violet-500/30"
+                : "bg-violet-50 text-violet-600 border-violet-200"
+            }`}
+          >
+            📥 Importer
+          </button>
+        ) : <span />}
       </div>
-
-      {/* Import CSV/Excel */}
-      {onShowImportModal && (
-        <button
-          onClick={onShowImportModal}
-          className={`mt-3 w-full py-3 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all border ${
-            darkMode
-              ? "bg-violet-600/15 text-violet-400 border-violet-500/30"
-              : "bg-violet-50 text-violet-600 border-violet-200"
-          }`}
-        >
-          📥 Importer CSV / Excel
-        </button>
-      )}
     </div>
   );
 };
