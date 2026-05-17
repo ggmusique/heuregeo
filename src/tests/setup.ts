@@ -15,6 +15,7 @@ vi.mock("../services/supabase", () => ({
       order: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
       insert: vi.fn().mockResolvedValue({ data: [], error: null }),
       update: vi.fn().mockReturnThis(),
       upsert: vi.fn().mockResolvedValue({ data: [], error: null }),

@@ -219,6 +219,87 @@ describe("MissionForm – soumission valide", () => {
 });
 
 // ───────────────────────────────────────────────────────────────────────────
+// Groupe C-bis — Barre récapitulative (Point 4 des tests prioritaires)
+// Condition : {dureeCalculee && selectedPatronId && selectedClientId && selectedLieuId}
+// ───────────────────────────────────────────────────────────────────────────
+
+describe("MissionForm – barre récap (résumé durée/montant)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  // Helpers pour identifier la barre récap dans le DOM.
+  // Avec les valeurs par défaut (08:00 → 17:00, pause 30 min), dureeStr = "8h30".
+  const queryRecap = () =>
+    screen.queryByText((_, el) =>
+      el?.tagName === "P" && (el.textContent ?? "").includes("8h30")
+    );
+
+  it("masquée quand patron, client ET lieu sont absents", () => {
+    render(
+      <MissionForm
+        {...makeFormProps({
+          selectedPatronId: null,
+          selectedClientId: null,
+          selectedLieuId: null,
+        })}
+      />
+    );
+    expect(queryRecap()).not.toBeInTheDocument();
+  });
+
+  it("masquée quand le patron est absent (client + lieu remplis)", () => {
+    render(
+      <MissionForm
+        {...makeFormProps({
+          selectedPatronId: null,
+          selectedClientId: "c1",
+          selectedLieuId: "l1",
+        })}
+      />
+    );
+    expect(queryRecap()).not.toBeInTheDocument();
+  });
+
+  it("masquée quand le client est absent (patron + lieu remplis)", () => {
+    render(
+      <MissionForm
+        {...makeFormProps({
+          selectedPatronId: "p1",
+          selectedClientId: null,
+          selectedLieuId: "l1",
+        })}
+      />
+    );
+    expect(queryRecap()).not.toBeInTheDocument();
+  });
+
+  it("masquée quand le lieu est absent (patron + client remplis)", () => {
+    render(
+      <MissionForm
+        {...makeFormProps({
+          selectedPatronId: "p1",
+          selectedClientId: "c1",
+          selectedLieuId: null,
+        })}
+      />
+    );
+    expect(queryRecap()).not.toBeInTheDocument();
+  });
+
+  it("visible quand patron, client ET lieu sont tous les trois remplis", () => {
+    render(
+      <MissionForm
+        {...makeFormProps({
+          selectedPatronId: "p1",
+          selectedClientId: "c1",
+          selectedLieuId: "l1",
+        })}
+      />
+    );
+    expect(queryRecap()).toBeInTheDocument();
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
 // Groupe D — boutons rapides de SaisieTab
 // ───────────────────────────────────────────────────────────────────────────
 
