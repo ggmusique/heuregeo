@@ -4,6 +4,20 @@
 
 Heures de Geo est une Progressive Web App (PWA) construite en React, pensee pour les travailleurs independants et prestataires de services. Elle permet de saisir des missions, suivre les heures travaillees, generer des bilans hebdomadaires/mensuels/annuels, gerer les acomptes, les frais divers, les frais kilometriques, et exporter des rapports professionnels en PDF, Excel ou CSV.
 
+## Important
+
+Avant toute modification du projet, lire obligatoirement :
+
+- `AGENTS.md`
+- `docs/design-system.md`
+
+Ces fichiers définissent :
+- les règles architecture,
+- les règles multi-thème,
+- les conventions UI,
+- les règles sécurité,
+- les règles cleanup repository,
+- les standards qualité du projet.
 ---
 
 ## Table des matieres

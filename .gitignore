@@ -12,3 +12,8 @@ dev-dist
 *.backup
 *.backup-*
 *.OLD-*
+
+# Artefacts debug TypeScript
+tsc_errors.txt
+tsc_errors_full.txt
+tsc_output.txt
