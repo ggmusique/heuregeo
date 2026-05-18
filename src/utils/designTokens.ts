@@ -1,73 +1,61 @@
 /**
  * ==========================================================
- * DESIGN TOKENS — HeureGeo
+ * DESIGN TOKENS — HeureGeo (version CSS vars)
  * ==========================================================
- * Système de design unifié pour l'application HeureGeo.
- * Source de vérité visuelle : le DashboardPanel.jsx (design premium sombre).
+ * Toutes les valeurs pointent vers des CSS custom properties.
+ * Le thème est contrôlé par DarkModeContext via data-theme sur <html>.
  *
- * Règle d'or : aucun composant ne doit définir ces valeurs en dur.
- * Tout passe par `tokens` ou les composants `Card` / `SectionLabel`.
+ * Compatible neon | oled | emerald | arctic (light).
+ * Aucune couleur hardcodée — tout adapte automatiquement au thème actif.
  */
 
 export const tokens = {
   // ─── Palette de couleurs ───────────────────────────────────────────────
   colors: {
-    // Fonds
     bg: {
-      /** Surface de base : verre dépoli sur fond sombre */
-      surface: "rgba(10, 22, 40, 0.7)",
-      /** Surface surélevée : légèrement plus claire, pour les éléments en relief */
-      surfaceElevated: "rgba(15, 31, 61, 0.8)",
-      /** Fond de page global */
-      page: "#0A1628",
-      /** Gradient de page */
-      pageGradient: "linear-gradient(135deg, #0A1628 0%, #0D1F3C 100%)",
+      surface: "var(--color-surface)",
+      surfaceElevated: "var(--color-surface-2)",
+      page: "var(--color-bg)",
+      pageGradient: "var(--color-bg)",
     },
 
-    // Textes
     text: {
-      /** Labels, sous-titres : blanc à 35% */
-      muted: "rgba(255, 255, 255, 0.35)",
-      /** Texte secondaire : blanc à 60% */
-      secondary: "rgba(255, 255, 255, 0.6)",
-      /** Texte principal : blanc pur */
-      primary: "#FFFFFF",
-      /** Texte tertiaire / désactivé */
-      disabled: "rgba(255, 255, 255, 0.25)",
+      muted: "var(--color-text-muted)",
+      secondary: "var(--color-text-dim)",
+      primary: "var(--color-text)",
+      disabled: "var(--color-text-faint)",
     },
 
-    // Accents fonctionnels
     gold: {
-      primary: "#D4AF37",
-      glow: "rgba(212, 175, 55, 0.3)",
-      light: "#F5D06A",
+      primary: "var(--color-primary)",
+      glow: "var(--color-border-primary)",
+      light: "var(--color-primary)",
     },
     indigo: {
-      primary: "#6366F1",
-      glow: "rgba(99, 102, 241, 0.3)",
+      primary: "var(--color-accent-violet)",
+      glow: "var(--color-border-violet)",
     },
     emerald: {
-      primary: "#10B981",
-      glow: "rgba(16, 185, 129, 0.3)",
+      primary: "var(--color-accent-green)",
+      glow: "var(--color-border-green)",
     },
     amber: {
-      primary: "#F59E0B",
-      glow: "rgba(245, 158, 11, 0.3)",
+      primary: "var(--color-accent-amber)",
+      glow: "var(--color-accent-amber)",
     },
     cyan: {
-      primary: "#06B6D4",
-      glow: "rgba(6, 182, 212, 0.3)",
+      primary: "var(--color-accent-cyan)",
+      glow: "var(--color-border-cyan)",
     },
     rose: {
-      primary: "#F43F5E",
-      glow: "rgba(244, 63, 94, 0.3)",
+      primary: "var(--color-accent-red)",
+      glow: "var(--color-accent-red)",
     },
 
-    // Bordures
     border: {
-      default: "rgba(255, 255, 255, 0.08)",
-      hover: "rgba(255, 255, 255, 0.15)",
-      accent: "rgba(212, 175, 55, 0.3)",
+      default: "var(--color-border)",
+      hover: "var(--color-border-neutral)",
+      accent: "var(--color-border-primary)",
     },
   },
 
@@ -78,34 +66,30 @@ export const tokens = {
   },
 
   text: {
-    /** Label de section : "CA MENSUEL", "BILAN", etc. */
     label: {
       fontSize: "10px",
       fontWeight: 700,
-      textTransform: "uppercase",
+      textTransform: "uppercase" as const,
       letterSpacing: "0.2em",
-      color: "rgba(255, 255, 255, 0.35)",
+      color: "var(--color-text-muted)",
       fontFamily: "'Syne', sans-serif",
     },
-    /** Valeur monétaire ou numérique */
     value: {
       fontSize: "20px",
       fontWeight: 600,
       fontFamily: "'DM Mono', monospace",
-      color: "#FFFFFF",
+      color: "var(--color-text)",
     },
-    /** Petit texte d'information */
     caption: {
       fontSize: "11px",
       fontWeight: 400,
-      color: "rgba(255, 255, 255, 0.45)",
+      color: "var(--color-text-dim)",
       fontFamily: "'Syne', sans-serif",
     },
-    /** Texte de badge / tag */
     badge: {
       fontSize: "9px",
       fontWeight: 700,
-      textTransform: "uppercase",
+      textTransform: "uppercase" as const,
       letterSpacing: "0.15em",
       fontFamily: "'Syne', sans-serif",
     },
@@ -114,21 +98,21 @@ export const tokens = {
   // ─── Composants réutilisables ────────────────────────────────────────────
   card: {
     base: {
-      background: "rgba(10, 22, 40, 0.7)",
-      border: "1px solid rgba(255, 255, 255, 0.08)",
-      borderRadius: "20px",
+      background: "var(--color-surface)",
+      border: "1px solid var(--color-border)",
+      borderRadius: "var(--radius-lg)",
       padding: "20px",
-      backdropFilter: "blur(12px)",
-      WebkitBackdropFilter: "blur(12px)",
-      color: "#FFFFFF",
+      backdropFilter: "var(--blur-card)",
+      WebkitBackdropFilter: "var(--blur-card)",
+      color: "var(--color-text)",
     },
     elevated: {
-      background: "rgba(15, 31, 61, 0.8)",
-      border: "1px solid rgba(212, 175, 55, 0.3)",
+      background: "var(--color-surface-2)",
+      border: "1px solid var(--color-border-primary)",
     },
     compact: {
       padding: "14px",
-      borderRadius: "16px",
+      borderRadius: "var(--radius-md)",
     },
   },
 
@@ -141,51 +125,51 @@ export const tokens = {
       fontWeight: 500,
     },
     subtle: {
-      background: "rgba(255, 255, 255, 0.03)",
-      border: "1px solid rgba(255, 255, 255, 0.08)",
-      color: "rgba(255, 255, 255, 0.45)",
+      background: "var(--color-surface-offset)",
+      border: "1px solid var(--color-border)",
+      color: "var(--color-text-dim)",
     },
   },
 
   input: {
     base: {
-      background: "rgba(10, 22, 40, 0.9)",
-      border: "1px solid rgba(255, 255, 255, 0.12)",
-      borderRadius: "12px",
+      background: "var(--color-bg-input)",
+      border: "1px solid var(--color-border)",
+      borderRadius: "var(--radius-md)",
       padding: "8px 14px",
-      color: "#FFFFFF",
+      color: "var(--color-text)",
       fontFamily: "'Syne', sans-serif",
       fontSize: "13px",
       outline: "none",
     },
     focus: {
-      borderColor: "rgba(212, 175, 55, 0.4)",
+      borderColor: "var(--color-border-primary)",
     },
   },
 
   select: {
     base: {
-      background: "rgba(10, 22, 40, 0.9)",
-      border: "1px solid rgba(255, 255, 255, 0.12)",
-      borderRadius: "12px",
+      background: "var(--color-bg-input)",
+      border: "1px solid var(--color-border)",
+      borderRadius: "var(--radius-md)",
       padding: "8px 36px 8px 14px",
-      color: "rgba(255, 255, 255, 0.7)",
+      color: "var(--color-text-muted)",
       fontFamily: "'Syne', sans-serif",
       fontSize: "13px",
       fontWeight: 600,
       cursor: "pointer",
       outline: "none",
-      appearance: "none",
+      appearance: "none" as const,
     },
     active: {
-      color: "#D4AF37",
-      borderColor: "rgba(212, 175, 55, 0.4)",
+      color: "var(--color-primary)",
+      borderColor: "var(--color-border-primary)",
     },
   },
 
   button: {
     base: {
-      borderRadius: "12px",
+      borderRadius: "var(--radius-md)",
       padding: "10px 18px",
       fontFamily: "'Syne', sans-serif",
       fontSize: "13px",
@@ -193,20 +177,20 @@ export const tokens = {
       cursor: "pointer",
       border: "none",
       outline: "none",
-      transition: "all 0.2s ease",
+      transition: "var(--transition-normal)",
     },
     primary: {
-      background: "linear-gradient(135deg, #D4AF37, #B8941F)",
-      color: "#0A1628",
+      background: "var(--color-primary)",
+      color: "var(--color-bg)",
     },
     secondary: {
-      background: "rgba(255, 255, 255, 0.08)",
-      color: "#FFFFFF",
-      border: "1px solid rgba(255, 255, 255, 0.12)",
+      background: "var(--color-surface-offset)",
+      color: "var(--color-text)",
+      border: "1px solid var(--color-border)",
     },
     ghost: {
       background: "transparent",
-      color: "rgba(255, 255, 255, 0.6)",
+      color: "var(--color-text-muted)",
     },
   },
 
@@ -227,16 +211,16 @@ export const tokens = {
 
   // ─── Transitions & Animations ────────────────────────────────────────────
   transitions: {
-    fast: "all 0.15s ease",
-    default: "all 0.2s ease",
-    slow: "all 0.3s ease",
+    fast: "var(--transition-fast)",
+    default: "var(--transition-normal)",
+    slow: "colors 0.35s ease",
   },
 
   // ─── Effets visuels ──────────────────────────────────────────────────────
   effects: {
-    blur: "blur(12px)",
-    glowGold: "0 0 20px rgba(212, 175, 55, 0.15)",
-    glowIndigo: "0 0 20px rgba(99, 102, 241, 0.15)",
+    blur: "var(--blur-card)",
+    glowGold: "var(--glow-primary)",
+    glowIndigo: "var(--glow-violet)",
   },
 };
 

@@ -136,7 +136,7 @@ export const BilanTab = ({
           {kmSettings?.km_enable === true && missionsThisWeek.length > 0 && (
             kmFraisThisWeek !== null && kmFraisThisWeek.items.length > 0 ? (
               <div className="mt-2 p-4 rounded-[25px] border backdrop-blur-md bg-[var(--color-surface)] border-[var(--color-border)]">
-                <p className="text-[10px] font-black uppercase mb-3 tracking-[0.2em] text-blue-400/70">
+                <p className="text-[10px] font-black uppercase mb-3 tracking-[0.2em] text-[var(--color-accent-cyan)]/70">
                   🚗 Frais kilométriques
                 </p>
                 <div className="space-y-2 mb-3">
@@ -147,8 +147,8 @@ export const BilanTab = ({
                         <span className="ml-2 text-[var(--color-text-muted)]">{item.labelLieuOuClient}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-blue-300/80 text-xs">{Math.round(item.kmTotal ?? 0)} km</span>
-                        <span className="font-bold text-blue-300 ml-2">{formatEuro(item.amount ?? 0)}</span>
+                        <span className="text-[var(--color-accent-cyan)]/80 text-xs">{Math.round(item.kmTotal ?? 0)} km</span>
+                        <span className="font-bold text-[var(--color-accent-cyan)] ml-2">{formatEuro(item.amount ?? 0)}</span>
                       </div>
                     </div>
                   ))}
@@ -161,7 +161,7 @@ export const BilanTab = ({
                 {kmFraisThisWeek.totalAmount > 0 && (
                   <div className="pt-2 border-t flex justify-between border-[var(--color-border)]">
                     <span className="text-sm text-[var(--color-text-muted)]">{Math.round(kmFraisThisWeek.totalKm)} km total</span>
-                    <span className="font-black text-blue-300">{formatEuro(kmFraisThisWeek.totalAmount)}</span>
+                    <span className="font-black text-[var(--color-accent-cyan)]">{formatEuro(kmFraisThisWeek.totalAmount)}</span>
                   </div>
                 )}
               </div>

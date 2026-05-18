@@ -21,7 +21,6 @@ import { PeriodModal } from "../common/bilan/PeriodModal";
 import { CustomAlert } from "../common/CustomAlert";
 import { PatronSelectorModal, useEnrichedPatronAccesses } from "../patron/PatronSelectorModal";
 
-import { DarkModeProvider } from "../../contexts/DarkModeContext";
 import { LabelsContext } from "../../contexts/LabelsContext";
 import { PermissionsContext } from "../../contexts/PermissionsContext";
 import { getLabels } from "../../utils/labels";
@@ -389,8 +388,7 @@ function PatronOnboarding() {
   };
 
   return (
-    <DarkModeProvider>
-      <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
         {/* Header */}
         <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl px-4 py-3">
           <div className="flex items-center justify-between max-w-xl mx-auto">
@@ -589,7 +587,6 @@ function PatronOnboarding() {
           )}
         </div>
       </div>
-    </DarkModeProvider>
   );
 }
 
@@ -654,24 +651,21 @@ export function PatronView({ user }: PatronViewProps) {
   // Sélecteur d'ouvrier
   if (showSelector || !selectedAccess) {
     return (
-      <DarkModeProvider>
-        <PatronSelectorModal
-          owners={accesses.map((a) => ({
-            profileId: a.profileId,
-            ownerName: a.ownerName,
-            patronNom: a.patronNom,
-          }))}
-          onSelect={handleSelect}
-        />
-      </DarkModeProvider>
+      <PatronSelectorModal
+        owners={accesses.map((a) => ({
+          profileId: a.profileId,
+          ownerName: a.ownerName,
+          patronNom: a.patronNom,
+        }))}
+        onSelect={handleSelect}
+      />
     );
   }
 
   // Vue principale
   return (
-    <DarkModeProvider>
-      <LabelsContext.Provider value={getLabels(null)}>
-        <PermissionsContext.Provider value={{
+    <LabelsContext.Provider value={getLabels(null)}>
+      <PermissionsContext.Provider value={{
           isViewer: false,
           viewerPatronId: selectedAccess.patronId,
           isAdmin: false,
@@ -695,6 +689,5 @@ export function PatronView({ user }: PatronViewProps) {
           />
         </PermissionsContext.Provider>
       </LabelsContext.Provider>
-    </DarkModeProvider>
   );
 }

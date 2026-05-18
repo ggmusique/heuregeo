@@ -6,6 +6,7 @@ interface Props {
   selectedClientId?: string | null;
   onSelect?: (id: string | null) => void;
   required?: boolean;
+  /** @deprecated — ignoré, le thème vient de DarkModeContext */
   darkMode?: boolean;
   onAddNew?: (() => void) | null;
 }
@@ -15,7 +16,6 @@ export const ClientSelector = ({
   selectedClientId = null,
   onSelect = () => {},
   required = false,
-  darkMode = true,
   onAddNew = null,
 }: Props) => {
   const L = useLabels();
@@ -81,7 +81,7 @@ export const ClientSelector = ({
 
   return (
     <div className="relative">
-      <label className="block text-[10px] font-black uppercase mb-2 text-indigo-300 tracking-wider opacity-80">
+      <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider opacity-80">
         {L.client} {required && <span className="text-red-400">*</span>}
       </label>
 
@@ -90,11 +90,7 @@ export const ClientSelector = ({
           ref={inputRef}
           type="text"
           placeholder="🏢 Rechercher ou sélectionner..."
-          className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all ${
-            darkMode
-              ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
-              : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"
-          } backdrop-blur-md placeholder:text-white/40`}
+          className="w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] backdrop-blur-md placeholder:text-[var(--color-text-dim)]"
           value={search}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
@@ -107,7 +103,7 @@ export const ClientSelector = ({
               e.stopPropagation();
               onAddNew();
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-indigo-600 hover:bg-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-lg transition-all active:scale-90"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[var(--color-accent-violet)] hover:opacity-80 rounded-lg flex items-center justify-center text-white font-black text-lg transition-opacity duration-150 active:scale-90"
             title="Nouveau client"
           >
             +
@@ -118,11 +114,7 @@ export const ClientSelector = ({
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className={`absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl ${
-            darkMode
-              ? "bg-[var(--color-field)] border-indigo-500/40"
-              : "bg-white border-slate-200"
-          } backdrop-blur-xl`}
+          className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-modal bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-card"
         >
           {filteredClients.length > 0 ? (
             <div className="p-2">
@@ -133,10 +125,8 @@ export const ClientSelector = ({
                   onClick={() => handleSelect(client)}
                   className={`w-full text-left p-3 rounded-xl transition-all ${
                     client.id === selectedClientId
-                      ? "bg-indigo-600 text-white"
-                      : darkMode
-                      ? "hover:bg-white/10 text-white"
-                      : "hover:bg-slate-100 text-slate-900"
+                      ? "bg-[var(--color-accent-violet)] text-white"
+                      : "hover:bg-[var(--color-surface-hover)] text-[var(--color-text)]"
                   }`}
                 >
                   <div className="font-bold">{client.nom}</div>
@@ -162,7 +152,7 @@ export const ClientSelector = ({
                 <button
                   type="button"
                   onClick={onAddNew}
-                  className="mt-2 text-xs text-indigo-400 hover:text-indigo-300 font-bold"
+                  className="mt-2 text-xs text-[var(--color-accent-violet)] hover:opacity-80 font-bold transition-opacity"
                 >
                   + Créer "{search}"
                 </button>
@@ -173,20 +163,20 @@ export const ClientSelector = ({
       )}
 
       {selectedClient && !showDropdown && (
-        <div className="mt-2 p-3 bg-indigo-600/20 rounded-xl border border-indigo-500/30">
-          <div className="text-xs font-bold text-white">
+        <div className="mt-2 p-3 bg-[var(--color-accent-violet)]/10 rounded-xl border border-[var(--color-accent-violet)]/20">
+          <div className="text-xs font-bold text-[var(--color-text)]">
             ✓ {selectedClient.nom}
           </div>
 
           {selectedClient.lieu_travail && (
-            <div className="text-[10px] text-white/60 mt-1 flex items-start gap-1">
+            <div className="text-[10px] text-[var(--color-text-muted)] mt-1 flex items-start gap-1">
               <span>📍</span>
               <span className="flex-1">{selectedClient.lieu_travail}</span>
             </div>
           )}
 
           {selectedClient.contact && (
-            <div className="text-[10px] text-white/60 mt-1">
+            <div className="text-[10px] text-[var(--color-text-muted)] mt-1">
               📞 {selectedClient.contact}
             </div>
           )}

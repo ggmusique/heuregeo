@@ -74,7 +74,7 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
 
   if (!show) return null;
 
-  const inputCls = (extra = "") => `w-full px-5 py-4 rounded-[20px] text-base font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)] ${extra}`;
+  const inputCls = (extra = "") => `w-full px-5 py-4 rounded-[20px] text-base font-semibold transition-[border-color] duration-150 outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-[var(--color-accent-violet)] ${extra}`;
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -128,13 +128,13 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
             </button>
             {showBilling && (
               <div className="px-4 pb-4 space-y-3 border-t border-[var(--color-divider)]">
-                <div className="pt-3"><input type="text" value={adresse} onChange={e => setAdresse(e.target.value)} placeholder="Adresse" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" /></div>
+                <div className="pt-3"><input type="text" value={adresse} onChange={e => setAdresse(e.target.value)} placeholder="Adresse" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-[border-color] duration-150 outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-[var(--color-accent-violet)]" /></div>
                 <div className="flex gap-2">
-                  <input type="text" value={codePostal} onChange={e => setCodePostal(e.target.value)} placeholder="Code postal" disabled={loading} className="w-1/3 px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
-                  <input type="text" value={ville} onChange={e => setVille(e.target.value)} placeholder="Ville" disabled={loading} className="w-2/3 px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
+                  <input type="text" value={codePostal} onChange={e => setCodePostal(e.target.value)} placeholder="Code postal" disabled={loading} className="w-1/3 px-4 py-3 rounded-xl text-sm font-semibold transition-[border-color] duration-150 outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-[var(--color-accent-violet)]" />
+                  <input type="text" value={ville} onChange={e => setVille(e.target.value)} placeholder="Ville" disabled={loading} className="w-2/3 px-4 py-3 rounded-xl text-sm font-semibold transition-[border-color] duration-150 outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-[var(--color-accent-violet)]" />
                 </div>
-                <input type="tel" value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="Téléphone" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
-                <input type="text" value={siret} onChange={e => setSiret(e.target.value)} placeholder="SIRET" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-indigo-400 focus:bg-[var(--color-bg-input)]" />
+                <input type="tel" value={telephone} onChange={e => setTelephone(e.target.value)} placeholder="Téléphone" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-[border-color] duration-150 outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-[var(--color-accent-violet)]" />
+                <input type="text" value={siret} onChange={e => setSiret(e.target.value)} placeholder="SIRET" disabled={loading} className="w-full px-4 py-3 rounded-xl text-sm font-semibold transition-[border-color] duration-150 outline-none bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] focus:border-[var(--color-accent-violet)]" />
               </div>
             )}
           </div>
@@ -153,7 +153,7 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
 
         <div className="flex gap-3 mt-8">
           <button onClick={onCancel} disabled={loading} className="flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] transition-all bg-[var(--color-surface-offset)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] disabled:opacity-50 active:scale-95">Annuler</button>
-          <button onClick={handleSubmit} disabled={!canSubmit} className={`flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] active:scale-95 transition-all shadow-lg ${canSubmit ? "bg-gradient-to-r from-indigo-600 to-purple-700 text-white" : "bg-gray-600/30 text-white/40 cursor-not-allowed"}`}>
+          <button onClick={handleSubmit} disabled={!canSubmit} className={`flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] active:scale-95 transition-[opacity,transform] duration-150 ${canSubmit ? "bg-[var(--color-accent-violet)] text-white" : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] opacity-40 cursor-not-allowed"}`}>
             {loading ? "⏳" : editMode ? "Modifier" : "Créer"}
           </button>
         </div>

@@ -1,55 +1,63 @@
 // supabase/functions/send-planning-email/index.ts
-// Envoi d'email via Gmail SMTP (nodemailer) sans passer par Supabase Auth.
-// verify_jwt: false — appelable depuis le frontend sans token.
+// Envoi d'email via Gmail SMTP (nodemailer) — authentification JWT requise.
+// SÉCURITÉ (2026-05-22) :
+//  - verify_jwt = true (défaut Supabase) : Supabase vérifie le JWT avant d'appeler la fonction.
+//  - requireAuth() vérifie également le JWT en interne (défense en profondeur).
+//  - validateEmail() protège contre l'injection d'adresses invalides.
+//  - validateOrigin() bloque les URLs de phishing dans les emails.
+//  - checkRateLimit() limite à 10 emails/heure par utilisateur.
 // Déploiement : supabase functions deploy send-planning-email
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import nodemailer from "npm:nodemailer@6.9.13";
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-interface PlanningPayload {
-  patron_email: string;
-  employe_nom: string;
-  semaine: string;
-  planning_url: string;
-}
+import {
+  handleCors,
+  jsonError,
+  jsonOk,
+  requireAuth,
+  validateEmail,
+  validateOrigin,
+  validateNonEmpty,
+} from "../_shared/auth.ts";
+import { checkRateLimit, extractIpAddress, RATE_LIMITS } from "../_shared/rateLimit.ts";
+import { logger } from "../_shared/monitoring.ts";
 
 serve(async (req: Request) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS_HEADERS });
-  }
+  if (req.method === "OPTIONS") return handleCors();
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Méthode non autorisée" }), {
-      status: 405,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-    });
+    return jsonError("Méthode non autorisée", 405);
   }
 
   try {
-    // ── Lire le corps ───────────────────────────────────────────────────────
-    let body: PlanningPayload;
+    // ── [SÉCURITÉ] Vérification JWT — refuse tout appel anonyme ────────────
+    // requireAuth() lève une Response 401 si non authentifié.
+    const { user, adminClient } = await requireAuth(req);
+
+    // ── [SÉCURITÉ] Rate limiting — max 10 emails/heure par user ───────────
+    const ip = extractIpAddress(req);
+    await checkRateLimit(adminClient, {
+      action: "send_planning_email",
+      userId: user.id,
+      ipAddress: ip,
+      ...RATE_LIMITS.SEND_PLANNING_EMAIL,
+    });
+
+    // ── Lire et valider le corps ────────────────────────────────────────────
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
-      return new Response(JSON.stringify({ error: "Body JSON invalide ou vide" }), {
-        status: 400,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
+      return jsonError("Body JSON invalide ou vide", 400);
     }
 
     const { patron_email, employe_nom, semaine, planning_url } = body;
 
-    if (!patron_email || !employe_nom || !semaine || !planning_url) {
-      return new Response(
-        JSON.stringify({ error: "Paramètres manquants : patron_email, employe_nom, semaine, planning_url requis" }),
-        { status: 400, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-      );
-    }
+    // Validation stricte de chaque paramètre
+    validateNonEmpty(employe_nom, "employe_nom", 200);
+    validateNonEmpty(semaine, "semaine", 50);
+    validateEmail(patron_email);            // Format email valide
+    validateOrigin(planning_url);           // URL dans la whitelist de l'app
 
     // ── Récupérer les credentials Gmail ────────────────────────────────────
     const gmailUser = Deno.env.get("GMAIL_USER");
@@ -57,10 +65,7 @@ serve(async (req: Request) => {
 
     if (!gmailUser || !gmailPassword) {
       console.error("GMAIL_USER ou GMAIL_APP_PASSWORD manquant dans les secrets");
-      return new Response(JSON.stringify({ error: "Configuration email manquante" }), {
-        status: 500,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
+      return jsonError("Configuration email manquante", 500);
     }
 
     // ── Configurer le transporteur Gmail SMTP ──────────────────────────────
@@ -77,23 +82,30 @@ serve(async (req: Request) => {
     // ── Envoyer l'email ─────────────────────────────────────────────────────
     await transporter.sendMail({
       from: `HeurGeo <${gmailUser}>`,
-      to: patron_email,
+      to: patron_email as string,
       subject: `Nouveau planning soumis par ${employe_nom}`,
-      html: buildEmailHtml({ employe_nom, semaine, planning_url }),
+      html: buildEmailHtml({
+        employe_nom: employe_nom as string,
+        semaine: semaine as string,
+        planning_url: planning_url as string,
+      }),
     });
 
-    console.log(`Email envoyé à ${patron_email} pour le planning de ${employe_nom} (semaine ${semaine})`);
-
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    logger.info("send-planning-email", "Email envoyé", {
+      userId: user.id.slice(0, 8),
+      semaine: semaine as string,
     });
+
+    return jsonOk({ success: true });
   } catch (err) {
-    console.error("Erreur envoi email:", err);
-    return new Response(
-      JSON.stringify({ error: "Échec envoi email", detail: (err as Error).message }),
-      { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-    );
+    // Si c'est une Response levée par requireAuth / checkRateLimit / validate*
+    if (err instanceof Response) return err;
+    // Loguer l'erreur complète côté serveur (jamais côté client)
+    logger.error("send-planning-email", "Erreur interne", {
+      error: (err as Error).message,
+    });
+    // Retourner un message générique sans détails techniques
+    return jsonError("Erreur lors de l'envoi de l'email. Veuillez réessayer.", 500);
   }
 });
 

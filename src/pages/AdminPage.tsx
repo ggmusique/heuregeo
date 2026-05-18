@@ -199,7 +199,7 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
                         {[user.prenom, user.nom].filter(Boolean).join(" ") || "—"}
                       </span>
                       {user.is_admin && (
-                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-600/30 border border-purple-500/40 text-purple-400">
+                        <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-[var(--color-accent-violet)]/20 border border-[var(--color-accent-violet)]/40 text-[var(--color-accent-violet)]">
                           Admin
                         </span>
                       )}

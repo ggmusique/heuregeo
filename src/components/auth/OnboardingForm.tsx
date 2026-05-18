@@ -35,7 +35,7 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
         <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-[45px] p-8 space-y-4">
 
           {/* Section Identité */}
-          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-indigo-400 opacity-80">
+          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-text-muted)] opacity-80">
             Identité *
           </p>
 
@@ -44,7 +44,7 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
             placeholder="Prénom *"
             value={form.prenom}
             onChange={e => setForm(f => ({ ...f, prenom: e.target.value }))}
-            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-indigo-500/40 text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
+            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-[var(--color-accent-violet)] transition-[border-color] duration-150"
           />
 
           <input
@@ -52,11 +52,11 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
             placeholder="Nom *"
             value={form.nom}
             onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
-            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-indigo-500/40 text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
+            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-[var(--color-accent-violet)] transition-[border-color] duration-150"
           />
 
           {/* Section Coordonnées */}
-          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-indigo-400 opacity-80 pt-2">
+          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-text-muted)] opacity-80 pt-2">
             Coordonnées (optionnel)
           </p>
 
@@ -65,7 +65,7 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
             placeholder="Adresse"
             value={form.adresse}
             onChange={e => setForm(f => ({ ...f, adresse: e.target.value }))}
-            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
+            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-[var(--color-accent-violet)] transition-[border-color] duration-150"
           />
 
           <div className="flex gap-3">
@@ -74,14 +74,14 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
               placeholder="Code postal"
               value={form.code_postal}
               onChange={e => setForm(f => ({ ...f, code_postal: e.target.value }))}
-              className="w-1/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
+              className="w-1/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-[var(--color-accent-violet)] transition-[border-color] duration-150"
             />
             <input
               type="text"
               placeholder="Ville"
               value={form.ville}
               onChange={e => setForm(f => ({ ...f, ville: e.target.value }))}
-              className="w-2/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
+              className="w-2/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-[var(--color-accent-violet)] transition-[border-color] duration-150"
             />
           </div>
 
@@ -90,7 +90,7 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
             placeholder="Téléphone"
             value={form.telephone}
             onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))}
-            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-indigo-400 transition-all"
+            className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-base focus:outline-none focus:border-[var(--color-accent-violet)] transition-[border-color] duration-150"
           />
 
           <p className="text-[9px] text-[var(--color-text-dim)] px-1">* champs obligatoires</p>
@@ -101,7 +101,7 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
             disabled={!isValid || saving}
             className={`w-full py-4 rounded-2xl font-black uppercase text-[12px] tracking-wider transition-all mt-2 ${
               isValid && !saving
-                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg active:scale-95'
+                ? 'bg-[var(--color-accent-violet)] text-white active:scale-95'
                 : 'bg-[var(--color-surface-offset)] text-[var(--color-text-dim)] cursor-not-allowed'
             }`}
           >

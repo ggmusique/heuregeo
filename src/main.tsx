@@ -5,9 +5,29 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import AuthGate from "./components/auth/AuthGate";
 import { AcceptInvitePage } from "./pages/AcceptInvitePage";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import { initMonitoring, monitoring } from "./lib/monitoring";
 
 // ✅ Tailwind + styles globaux
 import "./styles.css";
+
+// ── Initialisation du monitoring (Sentry) ────────────────────────────────────
+initMonitoring();
+
+// ── Capture globale des erreurs non gérées (Promise rejections, etc.) ────────
+window.addEventListener("unhandledrejection", (event) => {
+  monitoring.captureError(event.reason, {
+    route: window.location.pathname,
+    context: "unhandledrejection",
+  });
+});
+
+window.addEventListener("error", (event) => {
+  monitoring.captureError(event.error ?? event.message, {
+    route: window.location.pathname,
+    context: "window.onerror",
+  });
+});
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("Root #root introuvable dans index.html");
@@ -20,12 +40,14 @@ const isAcceptInvite =
 
 createRoot(rootElement).render(
   <StrictMode>
-    {isAcceptInvite ? (
-      <AcceptInvitePage token={inviteToken as string} />
-    ) : (
-      <AuthGate>
-        <App />
-      </AuthGate>
-    )}
+    <ErrorBoundary context="root">
+      {isAcceptInvite ? (
+        <AcceptInvitePage token={inviteToken as string} />
+      ) : (
+        <AuthGate>
+          <App />
+        </AuthGate>
+      )}
+    </ErrorBoundary>
   </StrictMode>
 );

@@ -606,7 +606,7 @@ export function BilanPanel({
           label={canExportPDF ? "PDF" : "🔒 PDF"}
           onClick={onExportPDF}
           disabled={!canExportPDF}
-          color="#F87171"
+          color={"var(--color-accent-red)"}
         />
         {canFacture && (
           <ExportBtn

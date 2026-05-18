@@ -29,6 +29,9 @@ export const createPatron = async (patronData: PatronInsert): Promise<Patron> =>
 };
 
 export const updatePatron = async (patronId: string, updates: PatronUpdate): Promise<Patron> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
   const sanitized: PatronUpdate = {
     ...updates,
     ...(updates.nom != null && { nom: sanitizeName(updates.nom) }),
@@ -37,6 +40,7 @@ export const updatePatron = async (patronId: string, updates: PatronUpdate): Pro
     .from("patrons")
     .update(sanitized)
     .eq("id", patronId)
+    .eq("user_id", user.id)  // défense en profondeur : ownership explicite
     .select()
     .single();
 
@@ -45,10 +49,14 @@ export const updatePatron = async (patronId: string, updates: PatronUpdate): Pro
 };
 
 export const deletePatron = async (patronId: string): Promise<void> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
   const { error } = await supabase
     .from("patrons")
     .update({ actif: false })
-    .eq("id", patronId);
+    .eq("id", patronId)
+    .eq("user_id", user.id);  // défense en profondeur : ownership explicite
 
   if (error) throw error;
 };

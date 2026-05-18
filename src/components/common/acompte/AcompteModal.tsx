@@ -12,6 +12,7 @@ interface AcompteModalProps {
   onSubmit: () => void;
   onCancel: () => void;
   loading?: boolean;
+  /** @deprecated — ignoré, le thème vient de DarkModeContext */
   darkMode?: boolean;
   isIOS?: boolean;
   patrons?: Patron[];
@@ -37,7 +38,6 @@ export const AcompteModal = ({
   onSubmit,
   onCancel,
   loading = false,
-  darkMode = true,
   isIOS = false,
   patrons = [],
   selectedPatronId = null,
@@ -46,9 +46,9 @@ export const AcompteModal = ({
   if (!show) return null;
 
   return (
-    <div className={`fixed inset-0 z-[500] flex items-center justify-center p-6 ${darkMode ? "bg-[var(--color-bg)]/90" : "bg-black/40"} backdrop-blur-md`}>
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-[var(--color-overlay)] backdrop-blur-[var(--blur-overlay)]">
       
-      <div className={`w-full max-w-sm p-8 rounded-[40px] border-2 ${darkMode ? "bg-[var(--color-surface)] border-cyan-500/30" : "bg-white border-cyan-400/50"} backdrop-blur-xl shadow-2xl`}>
+      <div className="w-full max-w-sm p-8 rounded-[40px] border-2 bg-[var(--color-surface)] border-[var(--color-border-cyan)] backdrop-blur-card shadow-modal">
         
         <h3 className="text-xl font-black uppercase mb-6 text-center italic text-cyan-400">
           Nouvel Acompte
@@ -61,7 +61,6 @@ export const AcompteModal = ({
             selectedPatronId={selectedPatronId}
             onSelect={onPatronChange}
             required={true}
-            darkMode={darkMode}
           />
 
           <div>
@@ -72,7 +71,7 @@ export const AcompteModal = ({
             <input
               type="number"
               placeholder="0.00 €"
-              className={`w-full p-6 rounded-2xl font-black outline-none border text-center text-3xl focus:border-cyan-400 transition-colors text-base ${darkMode ? "bg-black/40 text-white border-cyan-500/30" : "bg-white text-slate-900 border-slate-200"}`}
+              className="w-full p-6 rounded-2xl font-black outline-none border text-center text-3xl focus:border-[var(--color-accent-cyan)] transition-colors bg-[var(--color-bg-input)] text-[var(--color-text)] border-[var(--color-border-cyan)] placeholder:text-[var(--color-text-dim)]"
               value={montant}
               onChange={(e) => setMontant(e.target.value)}
             />
@@ -94,7 +93,7 @@ export const AcompteModal = ({
 
             <button
               onClick={onCancel}
-              className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase transition-colors ${darkMode ? "bg-white/5 text-white/60 hover:bg-white/10" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+              className="flex-1 py-4 rounded-2xl text-[10px] font-black uppercase transition-colors bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
             >
               Annuler
             </button>
@@ -102,7 +101,7 @@ export const AcompteModal = ({
             <button
               onClick={onSubmit}
               disabled={loading}
-              className="flex-1 py-4 bg-gradient-to-r from-cyan-600 to-blue-700 rounded-2xl text-[10px] font-black text-white shadow-lg uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+              className="flex-1 py-4 bg-[var(--color-accent-cyan)] hover:opacity-90 rounded-2xl text-[10px] font-black text-white shadow-card uppercase tracking-widest active:scale-95 transition-[opacity] duration-150 disabled:opacity-50"
             >
               {loading ? "Chargement..." : "Valider"}
             </button>

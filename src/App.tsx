@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 
 import { ParametresTab } from "./pages/ParametresTab";
+import { SystemHealthPage } from "./pages/SystemHealthPage";
 
 import { useClients } from "./hooks/useClients";
 import { useMissions } from "./hooks/useMissions";
@@ -250,7 +251,7 @@ function AppInner({
   });
 
   return (
-    <div data-theme={darkMode ? "neon" : "light"} className={"min-h-screen relative overflow-hidden transition-all duration-700 bg-[var(--color-bg)] text-[var(--color-text)] " + (darkMode ? "dark" : "light")}>
+    <div className={"min-h-screen relative overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)] transition-colors duration-300 " + (darkMode ? "dark" : "light")}>
       <div className="fixed inset-0 pointer-events-none">
         {darkMode && <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-blue-800/10" />}
         <div className="absolute inset-0 backdrop-blur-3xl" />
@@ -324,6 +325,8 @@ function AppInner({
             ownerProfile={profile}
           />
         )}
+
+        {activeTab === "health" && <SystemHealthPage />}
       </main>
 
       <AppModals {...modalsProps} />

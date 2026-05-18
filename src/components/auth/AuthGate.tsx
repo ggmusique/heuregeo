@@ -96,7 +96,7 @@ export default function AuthGate({ children }: Props) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--color-bg)] text-[var(--color-text)]">
         <div className="flex flex-col items-center gap-5">
-          <div className="w-24 h-24 rounded-[28px] bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-700 flex items-center justify-center shadow-2xl shadow-indigo-500/40">
+          <div className="w-24 h-24 rounded-[28px] bg-[var(--color-accent-violet)] flex items-center justify-center shadow-modal">
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <polyline points="12 6 12 12 16 14"/>
@@ -107,9 +107,9 @@ export default function AuthGate({ children }: Props) {
             <p className="text-[var(--color-text-muted)] text-xs mt-2 tracking-[0.2em] uppercase">Gérez vos heures &amp; km</p>
           </div>
           <div className="flex gap-2 mt-4">
-            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+            <span className="w-2 h-2 rounded-full bg-[var(--color-accent-violet)] animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-2 h-2 rounded-full bg-[var(--color-accent-violet)] animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="w-2 h-2 rounded-full bg-[var(--color-accent-violet)] animate-bounce" style={{ animationDelay: "300ms" }} />
           </div>
         </div>
       </div>
@@ -155,7 +155,7 @@ export default function AuthGate({ children }: Props) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-2xl bg-indigo-600 text-white font-black uppercase text-sm active:scale-95 transition-all disabled:opacity-50"
+              className="w-full py-3 rounded-2xl bg-[var(--color-accent-violet)] text-white font-black uppercase text-sm active:scale-95 transition-[opacity,transform] duration-150 disabled:opacity-50"
             >
               {mode === "signup" ? "Créer un compte" : "Se connecter"}
             </button>

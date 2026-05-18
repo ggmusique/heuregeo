@@ -27,6 +27,9 @@ export const createFrais = async (fraisData: Partial<FraisDivers>): Promise<Frai
 };
 
 export const updateFrais = async (id: string, fraisData: Partial<FraisDivers>): Promise<FraisDivers> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
   const { data, error } = await supabase
     .from("frais_divers")
     .update({
@@ -34,6 +37,7 @@ export const updateFrais = async (id: string, fraisData: Partial<FraisDivers>): 
       ...(fraisData.description != null && { description: sanitizeText(fraisData.description) }),
     })
     .eq("id", id)
+    .eq("user_id", user.id)  // défense en profondeur : ownership explicite
     .select();
 
   if (error) throw error;
@@ -41,7 +45,14 @@ export const updateFrais = async (id: string, fraisData: Partial<FraisDivers>): 
 };
 
 export const deleteFrais = async (id: string): Promise<void> => {
-  const { error } = await supabase.from("frais_divers").delete().eq("id", id);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  const { error } = await supabase
+    .from("frais_divers")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);  // défense en profondeur : ownership explicite
   if (error) throw error;
 };
 

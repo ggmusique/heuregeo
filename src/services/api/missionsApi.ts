@@ -69,6 +69,9 @@ export const createMission = async (missionData: Partial<Mission>): Promise<Miss
 };
 
 export const updateMission = async (id: string, missionData: Partial<Mission>): Promise<Mission> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
   const payload: MissionUpdate = {
     ...(missionData as MissionUpdate),
     ...(missionData.client != null && { client: sanitizeName(missionData.client) }),
@@ -82,6 +85,7 @@ export const updateMission = async (id: string, missionData: Partial<Mission>): 
     .from("missions")
     .update(payload)
     .eq("id", id)
+    .eq("user_id", user.id)  // défense en profondeur : ownership explicite
     .select();
 
   if (error) {
@@ -98,7 +102,14 @@ export const updateMission = async (id: string, missionData: Partial<Mission>): 
 };
 
 export const deleteMission = async (id: string): Promise<void> => {
-  const { error } = await supabase.from("missions").delete().eq("id", id);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  const { error } = await supabase
+    .from("missions")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);  // défense en profondeur : ownership explicite
   if (error) throw error;
 };
 

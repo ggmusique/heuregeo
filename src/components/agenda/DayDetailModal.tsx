@@ -79,7 +79,7 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
     >
       {/* Panel */}
       <div
-        className="w-full sm:max-w-lg bg-gray-900/95 backdrop-blur border border-cyan-400/20 rounded-t-3xl sm:rounded-2xl max-h-[calc(85dvh-80px)] sm:max-h-[80dvh] flex flex-col overflow-hidden shadow-[0_0_40px_rgba(34,211,238,0.1)] mb-[80px] sm:mb-0"
+        className="w-full sm:max-w-lg bg-[var(--color-surface)] backdrop-blur-card border border-[var(--color-border-cyan)] rounded-t-3xl sm:rounded-2xl max-h-[calc(85dvh-80px)] sm:max-h-[80dvh] flex flex-col overflow-hidden shadow-modal mb-[80px] sm:mb-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle — mobile only */}

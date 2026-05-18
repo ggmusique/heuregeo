@@ -18,16 +18,16 @@ interface PatronSelectorModalProps {
 export function PatronSelectorModal({ owners, onSelect }: PatronSelectorModalProps) {
   return (
     <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-md bg-[#1e293b] rounded-2xl border border-slate-700 p-6 shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+      <div className="w-full max-w-md bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-6 shadow-modal animate-in slide-in-from-bottom-4 duration-300">
         {/* En-tête */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
+          <div className="w-12 h-12 rounded-2xl bg-[var(--color-accent-violet)]/20 border border-[var(--color-accent-violet)]/30 flex items-center justify-center mx-auto mb-3">
             <span className="text-xl">👥</span>
           </div>
-          <h2 className="text-lg font-black tracking-tight text-slate-100">
+          <h2 className="text-lg font-black tracking-tight text-[var(--color-text)]">
             Choisir un employeur
           </h2>
-          <p className="text-slate-400 text-xs mt-1">
+          <p className="text-[var(--color-text-muted)] text-xs mt-1">
             Vous avez accès à plusieurs employeurs
           </p>
         </div>
@@ -38,24 +38,24 @@ export function PatronSelectorModal({ owners, onSelect }: PatronSelectorModalPro
             <button
               key={owner.profileId}
               onClick={() => onSelect(owner.profileId)}
-              className="w-full text-left px-4 py-3.5 rounded-xl border border-slate-600 bg-slate-800/50 hover:bg-slate-700/60 hover:border-indigo-500/50 transition-all group"
+              className="w-full text-left px-4 py-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-accent-violet)]/50 transition-all group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500/30 to-violet-500/30 border border-indigo-400/30 flex items-center justify-center flex-shrink-0">
+                <div className="w-9 h-9 rounded-full bg-[var(--color-surface-offset)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">
                   <span className="text-base">👔</span>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-bold text-sm text-slate-100 truncate group-hover:text-indigo-300 transition-colors">
+                  <p className="font-bold text-sm text-[var(--color-text)] truncate group-hover:text-[var(--color-accent-violet)] transition-colors">
                     {owner.ownerName}
                   </p>
                   {owner.patronNom && (
-                    <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                    <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5 truncate">
                       En tant que : {owner.patronNom}
                     </p>
                   )}
                 </div>
                 <svg
-                  className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors flex-shrink-0"
+                  className="w-4 h-4 text-[var(--color-text-faint)] group-hover:text-[var(--color-accent-violet)] transition-colors flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

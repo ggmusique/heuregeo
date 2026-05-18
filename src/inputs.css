@@ -1,5 +1,8 @@
 @import "./styles/themes/neon.css";
 @import "./styles/themes/light.css";
+@import "./styles/themes/oled.css";
+@import "./styles/themes/emerald.css";
+@import "./styles/themes/arctic.css";
 
 /* ============================================
    INPUTS.CSS — styles consolidés pour les

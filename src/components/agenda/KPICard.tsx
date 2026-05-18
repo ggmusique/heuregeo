@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type GlowColor = "cyan" | "violet" | "green";
+type GlowColor = "cyan" | "violet" | "green" | "amber";
 
 interface KPICardProps {
   title: string;
@@ -13,38 +13,31 @@ interface KPICardProps {
   subtitle?: string;
 }
 
-// ─── Glow configs ─────────────────────────────────────────────────────────────
+// ─── Accent configs (couleurs sémantiques intentionnelles par carte) ──────────
 
-const GLOW_CONFIG: Record<
+const ACCENT_CONFIG: Record<
   GlowColor,
-  {
-    border: string;
-    shadow: string;
-    shadowHover: string;
-    iconColor: string;
-    titleColor: string;
-  }
+  { accent: string; accentBg: string; accentBorder: string }
 > = {
   cyan: {
-    border: "border-cyan-400/30",
-    shadow: "shadow-[0_0_15px_rgba(34,211,238,0.2)]",
-    shadowHover: "hover:shadow-[0_0_30px_rgba(34,211,238,0.45)]",
-    iconColor: "text-cyan-400",
-    titleColor: "text-cyan-300",
+    accent: "text-[var(--color-accent-cyan)]",
+    accentBg: "bg-[var(--color-accent-cyan)]/10",
+    accentBorder: "border-[var(--color-accent-cyan)]/25",
   },
   violet: {
-    border: "border-violet-400/30",
-    shadow: "shadow-[0_0_15px_rgba(167,139,250,0.2)]",
-    shadowHover: "hover:shadow-[0_0_30px_rgba(167,139,250,0.45)]",
-    iconColor: "text-violet-400",
-    titleColor: "text-violet-300",
+    accent: "text-[var(--color-accent-violet)]",
+    accentBg: "bg-[var(--color-accent-violet)]/10",
+    accentBorder: "border-[var(--color-accent-violet)]/25",
   },
   green: {
-    border: "border-emerald-400/30",
-    shadow: "shadow-[0_0_15px_rgba(52,211,153,0.2)]",
-    shadowHover: "hover:shadow-[0_0_30px_rgba(52,211,153,0.45)]",
-    iconColor: "text-emerald-400",
-    titleColor: "text-emerald-300",
+    accent: "text-[var(--color-accent-green)]",
+    accentBg: "bg-[var(--color-accent-green)]/10",
+    accentBorder: "border-[var(--color-accent-green)]/25",
+  },
+  amber: {
+    accent: "text-[var(--color-accent-amber)]",
+    accentBg: "bg-[var(--color-accent-amber)]/10",
+    accentBorder: "border-[var(--color-accent-amber)]/25",
   },
 };
 
@@ -57,36 +50,45 @@ export function KPICard({
   glowColor = "cyan",
   subtitle,
 }: KPICardProps) {
-  const cfg = GLOW_CONFIG[glowColor];
+  const cfg = ACCENT_CONFIG[glowColor];
 
   return (
     <div
       className={[
-        "relative flex flex-col gap-2 p-5 rounded-2xl",
-        "bg-gray-800/60 backdrop-blur",
+        "group relative flex flex-col gap-3 p-5 rounded-2xl",
+        "bg-[var(--color-surface)] backdrop-blur-card",
         "border",
-        cfg.border,
-        cfg.shadow,
-        cfg.shadowHover,
-        "transition-all duration-300 cursor-default",
-        "hover:scale-105 hover:bg-gray-800/80",
+        cfg.accentBorder,
+        "shadow-card",
+        "duration-200 cursor-default",
+        "hover:shadow-modal hover:-translate-y-0.5",
+        "transition-[box-shadow,transform]",
       ].join(" ")}
     >
-      {/* Icon + title */}
-      <div className="flex items-center gap-2">
-        <Icon size={18} className={cfg.iconColor} aria-hidden="true" />
-        <span className={`text-xs font-semibold uppercase tracking-wider ${cfg.titleColor}`}>
+      {/* Icon badge + title */}
+      <div className="flex items-center gap-2.5">
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${cfg.accentBg}`}>
+          <Icon size={14} className={cfg.accent} aria-hidden="true" />
+        </div>
+        <span className={`text-[10px] font-black uppercase tracking-widest ${cfg.accent} opacity-80`}>
           {title}
         </span>
       </div>
 
       {/* Main value */}
-      <span className="text-3xl font-bold text-white leading-none">{value}</span>
+      <span className="text-2xl font-black text-[var(--color-text)] leading-none tracking-tight tabular-nums">
+        {value}
+      </span>
 
       {/* Optional subtitle */}
       {subtitle && (
-        <span className="text-xs text-white/50 truncate">{subtitle}</span>
+        <span className="text-[10px] text-[var(--color-text-muted)] truncate font-medium">
+          {subtitle}
+        </span>
       )}
+
+      {/* Subtle accent line bottom */}
+      <div className={`absolute bottom-0 left-4 right-4 h-[1px] ${cfg.accentBg} rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200`} />
     </div>
   );
 }

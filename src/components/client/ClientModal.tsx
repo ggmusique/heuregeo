@@ -8,6 +8,7 @@ interface Props {
   onSubmit?: (data: any) => void;
   onCancel?: () => void;
   loading?: boolean;
+  /** @deprecated — ignoré, le thème vient de DarkModeContext */
   darkMode?: boolean;
 }
 
@@ -18,7 +19,6 @@ export const ClientModal = ({
   onSubmit = () => {},
   onCancel = () => {},
   loading = false,
-  darkMode = true,
 }: Props) => {
   const L = useLabels();
   const [formData, setFormData] = useState({
@@ -57,13 +57,9 @@ export const ClientModal = ({
   if (!show) return null;
 
   return (
-    <div className={`fixed inset-0 z-[500] flex items-center justify-center p-6 ${darkMode ? "bg-black/60" : "bg-black/30"} backdrop-blur-sm`}>
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-[var(--color-overlay)] backdrop-blur-[var(--blur-overlay)]">
       <div
-        className={`w-full max-w-md p-6 rounded-[30px] max-h-[calc(100vh-8rem)] overflow-y-auto ${
-          darkMode
-            ? "bg-[var(--color-field)] border-2 border-indigo-500/40"
-            : "bg-white border-2 border-slate-200"
-        } shadow-2xl`}
+        className="w-full max-w-md p-6 rounded-[30px] max-h-[calc(100vh-8rem)] overflow-y-auto bg-[var(--color-surface)] border-2 border-[var(--color-border)] backdrop-blur-card shadow-modal"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-2xl font-black uppercase mb-6 text-center">
@@ -73,26 +69,22 @@ export const ClientModal = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* NOM */}
           <div>
-            <label className="block text-[10px] font-black uppercase mb-2 text-indigo-300 tracking-wider">
-              Nom du client <span className="text-red-400">*</span>
+            <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider">
+              Nom du client <span className="text-[var(--color-accent-red)]">*</span>
             </label>
             <input
               type="text"
               value={formData.nom}
               onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
               placeholder="Ex: Confluence, Yohan, Dachet..."
-              className={`w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all ${
-                darkMode
-                  ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
-                  : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"
-              } backdrop-blur-md ${darkMode ? "placeholder:text-white/40" : "placeholder:text-slate-400"}`}
+              className="w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] backdrop-blur-md placeholder:text-[var(--color-text-dim)]"
               required
             />
           </div>
 
           {/* CONTACT */}
           <div>
-            <label className="block text-[10px] font-black uppercase mb-2 text-indigo-300 tracking-wider opacity-60">
+            <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider opacity-60">
               Contact (optionnel)
             </label>
             <input
@@ -100,17 +92,13 @@ export const ClientModal = ({
               value={formData.contact}
               onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
               placeholder="Téléphone, email..."
-              className={`w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all ${
-                darkMode
-                  ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
-                  : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"
-              } backdrop-blur-md ${darkMode ? "placeholder:text-white/40" : "placeholder:text-slate-400"}`}
+              className="w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] backdrop-blur-md placeholder:text-[var(--color-text-dim)]"
             />
           </div>
 
           {/* NOTES */}
           <div>
-            <label className="block text-[10px] font-black uppercase mb-2 text-indigo-300 tracking-wider opacity-60">
+            <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider opacity-60">
               Notes (optionnel)
             </label>
             <textarea
@@ -118,11 +106,7 @@ export const ClientModal = ({
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Infos complémentaires..."
               rows={3}
-              className={`w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all resize-none ${
-                darkMode
-                  ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
-                  : "bg-slate-50 border-slate-200 text-slate-900 focus:border-indigo-500"
-              } backdrop-blur-md ${darkMode ? "placeholder:text-white/40" : "placeholder:text-slate-400"}`}
+              className="w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all resize-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] backdrop-blur-md placeholder:text-[var(--color-text-dim)]"
             />
           </div>
 
@@ -131,14 +115,14 @@ export const ClientModal = ({
             <button
               type="button"
               onClick={onCancel}
-              className={`flex-1 py-3 rounded-2xl font-black uppercase text-[11px] transition-all border ${darkMode ? "bg-white/5 hover:bg-white/10 border-white/10 text-white/60 hover:text-white" : "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600 hover:text-slate-800"}`}
+              className="flex-1 py-3 rounded-2xl font-black uppercase text-[11px] transition-all border bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-hover)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 rounded-2xl font-black uppercase text-[11px] text-white transition-all disabled:opacity-50 active:scale-95"
+              className="flex-1 py-3 bg-[var(--color-accent-violet)] hover:opacity-90 rounded-2xl font-black uppercase text-[11px] text-white transition-[opacity,transform] duration-150 disabled:opacity-40 active:scale-95"
             >
               {loading ? "..." : editMode ? "Modifier" : "Créer"}
             </button>

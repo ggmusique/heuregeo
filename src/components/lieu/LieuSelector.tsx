@@ -143,7 +143,7 @@ export const LieuSelector = ({
 
   return (
     <div className="relative">
-      <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-80">
+      <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider opacity-80">
         Lieu {required && <span className="text-red-400">*</span>}
       </label>
 
@@ -152,7 +152,7 @@ export const LieuSelector = ({
           ref={inputRef}
           type="text"
           placeholder="📍 Rechercher ou sélectionner..."
-          className="w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md placeholder:text-white/40"
+          className="w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-[border-color] duration-150 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] placeholder:text-[var(--color-text-dim)]"
           value={search}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
@@ -161,7 +161,7 @@ export const LieuSelector = ({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onAddNew(); }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center justify-center text-white font-black text-lg transition-all active:scale-90"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[var(--color-accent-violet)] hover:opacity-90 rounded-lg flex items-center justify-center text-white font-black text-lg transition-[opacity] duration-150 active:scale-90"
             title="Nouveau lieu"
           >+</button>
         )}
@@ -181,7 +181,7 @@ export const LieuSelector = ({
                     const idStr = String(lieu?.id);
                     return (
                       <button key={lieu.id} type="button" onClick={() => handleSelect(lieu)}
-                        className={`w-full text-left p-3 rounded-xl transition-all mb-1 ${idStr === selectedLieuIdStr ? "bg-purple-600 text-white" : "hover:bg-green-600/20 text-[var(--color-text)] border border-green-500/30"}`}
+                        className={`w-full text-left p-3 rounded-xl transition-[background] duration-150 mb-1 ${idStr === selectedLieuIdStr ? "bg-[var(--color-accent-violet)] text-white" : "hover:bg-[var(--color-accent-green)]/20 text-[var(--color-text)] border border-[var(--color-accent-green)]/30"}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-bold">{lieu.nom}</div>
@@ -200,7 +200,7 @@ export const LieuSelector = ({
                     const idStr = String(lieu?.id);
                     return (
                       <button key={lieu.id} type="button" onClick={() => handleSelect(lieu)}
-                        className={`w-full text-left p-3 rounded-xl transition-all ${idStr === selectedLieuIdStr ? "bg-purple-600 text-white" : "hover:bg-[var(--color-surface-offset)] text-[var(--color-text)]"}`}
+                          className={`w-full text-left p-3 rounded-xl transition-[background] duration-150 ${idStr === selectedLieuIdStr ? "bg-[var(--color-accent-violet)] text-white" : "hover:bg-[var(--color-surface-offset)] text-[var(--color-text)]"}`}
                       >
                         <div className="font-bold">{lieu.nom}</div>
                         {lieu.adresse_complete && <div className="text-xs opacity-60 mt-1 line-clamp-1">📍 {lieu.adresse_complete}</div>}
@@ -213,21 +213,21 @@ export const LieuSelector = ({
           ) : (
             <div className="p-4 text-center">
               <p className="text-sm opacity-60">Aucun lieu trouvé</p>
-              {onAddNew && <button type="button" onClick={onAddNew} className="mt-2 text-xs text-purple-400 hover:text-purple-300 font-bold">+ Créer "{search}"</button>}
+              {onAddNew && <button type="button" onClick={onAddNew} className="mt-2 text-xs text-[var(--color-accent-violet)] hover:opacity-80 font-bold transition-[opacity] duration-150">+ Créer "{search}"</button>}
             </div>
           )}
         </div>
       )}
 
       {selectedLieu && !showDropdown && (
-        <div className="mt-2 p-3 bg-purple-600/20 rounded-xl border border-purple-500/30">
-          <div className="text-xs font-bold text-white flex items-center justify-between">
+          <div className="mt-2 p-3 bg-[var(--color-accent-violet)]/20 rounded-xl border border-[var(--color-accent-violet)]/30">
+          <div className="text-xs font-bold text-[var(--color-text)] flex items-center justify-between">
             <span>✓ {selectedLieu.nom}</span>
             {selectedClientIdStr != null && getMissionCount(selectedLieu.id) > 0 && (
               <span className="text-[10px] bg-green-600/30 px-2 py-0.5 rounded-full">{getMissionCount(selectedLieu.id)} missions ici</span>
             )}
           </div>
-          {selectedLieu.adresse_complete && <div className="text-[10px] text-white/60 mt-1 line-clamp-2">{selectedLieu.adresse_complete}</div>}
+          {selectedLieu.adresse_complete && <div className="text-[10px] text-[var(--color-text-muted)] mt-1 line-clamp-2">{selectedLieu.adresse_complete}</div>}
         </div>
       )}
     </div>

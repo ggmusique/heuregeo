@@ -48,6 +48,9 @@ export const createLieu = async (lieuData: any) => {
 };
 
 export const updateLieu = async (id: any, lieuData: any) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
   const raw: Record<string, unknown> = { ...lieuData };
   if (typeof raw.nom === "string") raw.nom = sanitizeName(raw.nom);
   if (typeof raw.adresse_complete === "string") raw.adresse_complete = sanitizeName(raw.adresse_complete);
@@ -55,6 +58,7 @@ export const updateLieu = async (id: any, lieuData: any) => {
     .from("lieux")
     .update(sanitizeLieu(raw))
     .eq("id", id)
+    .eq("user_id", user.id)  // défense en profondeur : ownership explicite
     .select();
 
   if (error) throw error;
@@ -62,6 +66,13 @@ export const updateLieu = async (id: any, lieuData: any) => {
 };
 
 export const deleteLieu = async (id: any) => {
-  const { error } = await supabase.from("lieux").delete().eq("id", id);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  const { error } = await supabase
+    .from("lieux")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);  // défense en profondeur : ownership explicite
   if (error) throw error;
 };

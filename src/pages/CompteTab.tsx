@@ -13,7 +13,7 @@ interface SectionProps {
   children?: React.ReactNode;
 }
 
-const Section = ({ title, titleColor = "text-indigo-400", badge, open, onToggle, children }: SectionProps) => (
+const Section = ({ title, titleColor = "text-[var(--color-text-muted)]", badge, open, onToggle, children }: SectionProps) => (
   <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-[32px] overflow-hidden">
     <button
       onClick={onToggle}
@@ -100,7 +100,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
   const tauxSelectionne = EU_TVA_RATES.find(c => c.code === form.pays_tva)?.rate ?? ''
 
   const inputCls = (border = 'border-[var(--color-border)]') =>
-    `w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 ${border} text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all`
+    `w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 ${border} text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-[var(--color-accent-violet)] transition-[border-color] duration-150`
 
   return (
     <div className="flex flex-col min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] pb-32">
@@ -117,7 +117,6 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
         {/* ── Identité ── */}
         <Section
           title="Identité"
-          titleColor="text-indigo-400"
           badge={form.prenom || form.nom ? `${form.prenom} ${form.nom}`.trim() : undefined}
           open={showIdent}
           onToggle={() => setShowIdent(v => !v)}
@@ -127,21 +126,20 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
             placeholder="Prénom *"
             value={form.prenom}
             onChange={e => setForm(f => ({ ...f, prenom: e.target.value }))}
-            className={inputCls('border-indigo-500/40')}
+            className={inputCls()}
           />
           <input
             type="text"
             placeholder="Nom *"
             value={form.nom}
             onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
-            className={inputCls('border-indigo-500/40')}
+            className={inputCls()}
           />
         </Section>
 
         {/* ── Coordonnées ── */}
         <Section
           title="Coordonnées"
-          titleColor="text-indigo-400"
           badge={form.ville || form.adresse || undefined}
           open={showCoords}
           onToggle={() => setShowCoords(v => !v)}
@@ -159,14 +157,14 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
               placeholder="Code postal"
               value={form.code_postal}
               onChange={e => setForm(f => ({ ...f, code_postal: e.target.value }))}
-              className={`w-1/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all`}
+              className={`w-1/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-[var(--color-accent-violet)] transition-[border-color] duration-150`}
             />
             <input
               type="text"
               placeholder="Ville"
               value={form.ville}
               onChange={e => setForm(f => ({ ...f, ville: e.target.value }))}
-              className={`w-2/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-indigo-400 transition-all`}
+              className={`w-2/3 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] focus:outline-none focus:border-[var(--color-accent-violet)] transition-[border-color] duration-150`}
             />
           </div>
           <input
@@ -181,7 +179,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
         {/* ── Facturation / TVA ── */}
         <Section
           title="Facturation / TVA"
-          titleColor="text-amber-400"
+          titleColor="text-[var(--color-accent-amber)]"
           badge={form.numero_tva || undefined}
           open={showTva}
           onToggle={() => setShowTva(v => !v)}
@@ -197,7 +195,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
               placeholder="ex : FR12345678901"
               value={form.numero_tva}
               onChange={e => setForm(f => ({ ...f, numero_tva: e.target.value.toUpperCase() }))}
-              className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-amber-500/30 text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] uppercase focus:outline-none focus:border-amber-400 transition-all tracking-widest"
+              className="w-full p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-accent-amber)]/30 text-[var(--color-text)] placeholder-[var(--color-text-dim)] font-black text-[13px] uppercase focus:outline-none focus:border-[var(--color-accent-amber)] transition-[border-color] duration-150 tracking-widest"
             />
           </div>
 
@@ -209,14 +207,14 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
               <select
                 value={form.pays_tva}
                 onChange={e => setForm(f => ({ ...f, pays_tva: e.target.value }))}
-                className="flex-1 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-amber-500/30 text-[var(--color-text)] font-black text-[13px] focus:outline-none focus:border-amber-400 transition-all appearance-none"
+                className="flex-1 p-4 rounded-2xl bg-[var(--color-field)] border-2 border-[var(--color-accent-amber)]/30 text-[var(--color-text)] font-black text-[13px] focus:outline-none focus:border-[var(--color-accent-amber)] transition-[border-color] duration-150 appearance-none"
               >
                 {EU_TVA_RATES.map(c => (
                   <option key={c.code} value={c.code}>{c.label} — {c.rate} %</option>
                 ))}
               </select>
               {tauxSelectionne && (
-                <div className="px-4 py-3 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-500 font-black text-[18px] min-w-[64px] text-center">
+                <div className="px-4 py-3 rounded-2xl bg-[var(--color-accent-amber)]/10 border-2 border-[var(--color-accent-amber)]/30 text-[var(--color-accent-amber)] font-black text-[18px] min-w-[64px] text-center">
                   {tauxSelectionne}%
                 </div>
               )}
@@ -226,7 +224,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
 
         {/* ── Compte ── */}
         <div className="bg-[var(--color-surface)] border-2 border-[var(--color-border)] rounded-[32px] p-5 space-y-2">
-          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-indigo-400 opacity-80">Compte</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-text-muted)] opacity-80">Compte</p>
           <p className="text-[var(--color-text-muted)] text-[13px] font-black">📧 {userEmail}</p>
           <p className="text-[9px] text-[var(--color-text-faint)]">Email non modifiable</p>
         </div>
@@ -238,8 +236,8 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
           className={`w-full py-4 rounded-2xl font-black uppercase text-[12px] tracking-wider transition-all ${
             !saving && form.prenom.trim() && form.nom.trim()
               ? saved
-                ? 'bg-green-600 text-white'
-                : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg active:scale-95'
+                ? 'bg-[var(--color-accent-green)] text-white'
+                : 'bg-[var(--color-accent-violet)] text-white active:scale-95'
               : 'bg-[var(--color-surface-offset)] text-[var(--color-text-dim)] cursor-not-allowed'
           }`}
         >

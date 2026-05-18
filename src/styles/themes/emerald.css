@@ -1,0 +1,112 @@
+/*
+ * Thème : Emerald Pro
+ * Dark avec accent émeraude/teal. Professionnel, nature, finance.
+ */
+
+[data-theme="emerald"] {
+  /* Couleurs primaires */
+  --color-primary:       #34d399;
+  --color-accent-cyan:   #22d3ee;
+  --color-accent-violet: #a78bfa;
+  --color-accent-green:  #6ee7b7;
+  --color-accent-red:    #f87171;
+  --color-accent-orange: #fb923c;
+  --color-accent-amber:  #F59E0B;
+  --color-accent-fuchsia:#d946ef;
+
+  /* Couleurs événements agenda */
+  --color-event-rdv:   #3b82f6;
+  --color-event-conge: #f97316;
+  --color-event-note:  #34d399;
+
+  /* Surfaces — dark avec teinte verte profonde */
+  --color-surface:        rgba(5, 25, 20, 0.85);
+  --color-surface-hover:  rgba(8, 35, 28, 0.95);
+  --color-surface-2:      rgba(3, 15, 12, 0.90);
+  --color-surface-offset: rgba(52, 211, 153, 0.04);
+  --color-bg:             #020f0b;
+  --color-bg-input:       rgba(52, 211, 153, 0.04);
+  --color-field:          #0a1f18;
+
+  /* Texte */
+  --color-text:          #ecfdf5;
+  --color-text-muted:    rgba(236, 253, 245, 0.50);
+  --color-text-dim:      rgba(236, 253, 245, 0.25);
+  --color-text-faint:    rgba(236, 253, 245, 0.15);
+
+  /* Bordures */
+  --color-border:         rgba(52, 211, 153, 0.12);
+  --color-border-primary: rgba(52, 211, 153, 0.40);
+  --color-border-cyan:    rgba(34, 211, 238, 0.35);
+  --color-border-violet:  rgba(167, 139, 250, 0.35);
+  --color-border-green:   rgba(52, 211, 153, 0.40);
+  --color-border-neutral: rgba(52, 211, 153, 0.10);
+  --color-divider:        rgba(52, 211, 153, 0.07);
+
+  /* États fonctionnels */
+  --color-success: #34d399;
+  --color-error:   #f87171;
+  --color-warning: #F59E0B;
+  --color-info:    #22d3ee;
+  --color-danger:  #f87171;
+
+  /* Glow — émeraude */
+  --glow-primary: 0 0 20px rgba(52, 211, 153, 0.30), 0 0 40px rgba(52, 211, 153, 0.12);
+  --glow-cyan:    0 0 20px rgba(34, 211, 238, 0.25),  0 0 40px rgba(34, 211, 238, 0.10);
+  --glow-violet:  0 0 20px rgba(167, 139, 250, 0.25), 0 0 40px rgba(167, 139, 250, 0.10);
+  --glow-green:   0 0 20px rgba(110, 231, 183, 0.30), 0 0 40px rgba(110, 231, 183, 0.12);
+  --glow-fuchsia: 0 0 20px rgba(217, 70, 239, 0.25),  0 0 40px rgba(217, 70, 239, 0.10);
+
+  /* Ombres */
+  --shadow-modal: 0 10px 40px rgba(0, 0, 0, 0.60);
+
+  /* Radius */
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   24px;
+  --radius-xl:   32px;
+  --radius-xxl:  50px;
+  --radius-pill: 999px;
+
+  /* Blur */
+  --blur-card:    blur(16px);
+  --blur-modal:   blur(24px);
+  --blur-overlay: blur(8px);
+
+  /* Transitions */
+  --transition-fast:   colors 0.15s ease;
+  --transition-normal: colors 0.25s ease;
+
+  /* Overlays */
+  --color-overlay:       rgba(2, 15, 11, 0.90);
+  --color-overlay-light: rgba(2, 15, 11, 0.45);
+
+  /* Tables */
+  --color-table-header:    rgba(52, 211, 153, 0.05);
+  --color-table-row-alt:   rgba(52, 211, 153, 0.02);
+  --color-table-row-hover: rgba(52, 211, 153, 0.06);
+
+  /* Skeleton */
+  --color-skeleton-base:    rgba(52, 211, 153, 0.05);
+  --color-skeleton-shimmer: rgba(52, 211, 153, 0.10);
+
+  /* Charts */
+  --color-chart-tooltip-bg:     rgba(2, 12, 9, 0.97);
+  --color-chart-tooltip-border: rgba(52, 211, 153, 0.35);
+  --color-chart-tooltip-title:  #34d399;
+  --color-chart-axis-text:      rgba(236, 253, 245, 0.30);
+  --color-chart-grid:           rgba(52, 211, 153, 0.06);
+
+  /* Scrollbars */
+  --color-scrollbar-track: rgba(52, 211, 153, 0.03);
+  --color-scrollbar-thumb: rgba(52, 211, 153, 0.12);
+
+  /* SVG / Rings */
+  --color-ring-track: rgba(52, 211, 153, 0.08);
+
+  /* Badges */
+  --color-badge-success-bg: rgba(52, 211, 153, 0.14);
+  --color-badge-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-badge-danger-bg:  rgba(248, 113, 113, 0.12);
+  --color-badge-info-bg:    rgba(34, 211, 238, 0.12);
+}

@@ -60,11 +60,50 @@
   --radius-xxl:  50px;
   --radius-pill: 999px;
 
-  /* Blur */
-  --blur-card:  blur(20px);
-  --blur-modal: blur(40px);
+  /* Blur (réduit pour perf GPU mobile) */
+  --blur-card:    blur(16px);
+  --blur-modal:   blur(24px);
+  --blur-overlay: blur(8px);
 
-  /* Transitions */
-  --transition-fast:   all 0.15s ease;
-  --transition-normal: all 0.25s ease;
+  /* Transitions (ciblées pour éviter repaint global) */
+  --transition-fast:   colors 0.15s ease;
+  --transition-normal: colors 0.25s ease;
+
+  /* ── États fonctionnels supplémentaires ─── */
+  --color-warning: #F59E0B;
+  --color-info:    #22d3ee;
+  --color-danger:  #EF4444;
+
+  /* ── Overlays ─── */
+  --color-overlay:       rgba(2, 8, 24, 0.88);
+  --color-overlay-light: rgba(2, 8, 24, 0.40);
+
+  /* ── Tables ─── */
+  --color-table-header:    rgba(255, 255, 255, 0.04);
+  --color-table-row-alt:   rgba(255, 255, 255, 0.02);
+  --color-table-row-hover: rgba(255, 255, 255, 0.05);
+
+  /* ── Skeleton ─── */
+  --color-skeleton-base:    rgba(255, 255, 255, 0.04);
+  --color-skeleton-shimmer: rgba(255, 255, 255, 0.09);
+
+  /* ── Charts ─── */
+  --color-chart-tooltip-bg:     rgba(2, 8, 24, 0.95);
+  --color-chart-tooltip-border: rgba(201, 168, 76, 0.35);
+  --color-chart-tooltip-title:  #C9A84C;
+  --color-chart-axis-text:      rgba(255, 255, 255, 0.30);
+  --color-chart-grid:           rgba(255, 255, 255, 0.05);
+
+  /* ── Scrollbars ─── */
+  --color-scrollbar-track: rgba(255, 255, 255, 0.03);
+  --color-scrollbar-thumb: rgba(255, 255, 255, 0.10);
+
+  /* ── SVG / Rings ─── */
+  --color-ring-track: rgba(255, 255, 255, 0.07);
+
+  /* ── Badges fonctionnels ─── */
+  --color-badge-success-bg: rgba(52, 211, 153, 0.12);
+  --color-badge-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-badge-danger-bg:  rgba(239, 68, 68, 0.12);
+  --color-badge-info-bg:    rgba(34, 211, 238, 0.12);
 }

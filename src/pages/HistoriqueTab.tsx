@@ -172,7 +172,7 @@ export const HistoriqueTab = ({
           onClick={() => setShowStats((v) => !v)}
           className={`px-4 py-2 rounded-2xl font-black uppercase text-[10px] tracking-wider transition-all ${
             showStats
-              ? "bg-indigo-600/80 text-white"
+              ? "bg-[var(--color-accent-violet)]/20 text-[var(--color-accent-violet)] border border-[var(--color-accent-violet)]/30"
               : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
           }`}
         >
@@ -236,23 +236,23 @@ export const HistoriqueTab = ({
               {/* CA Mois + Total */}
               <div className="grid grid-cols-2 gap-3">
                 <div
-                  className="p-4 rounded-[20px] border bg-indigo-900/30 border-indigo-500/20"
+                  className="p-4 rounded-[20px] border bg-[var(--color-surface-offset)] border-[var(--color-border)]"
                 >
                   <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
                     CA ce mois
                   </p>
-                  <p className="text-xl font-black text-indigo-300">
+                  <p className="text-xl font-black text-[var(--color-accent-violet)] amount-safe">
                     {formatEuro(caMois)}
                   </p>
                 </div>
 
                 <div
-                  className="p-4 rounded-[20px] border bg-purple-900/30 border-purple-500/20"
+                  className="p-4 rounded-[20px] border bg-[var(--color-accent-violet)]/10 border-[var(--color-accent-violet)]/20"
                 >
                   <p className="text-[9px] font-black uppercase opacity-50 tracking-widest mb-1">
                     CA total
                   </p>
-                  <p className="text-xl font-black text-purple-300">
+                  <p className="text-xl font-black text-[var(--color-accent-violet)]">
                     {formatEuro(caTotal)}
                   </p>
                 </div>
@@ -335,7 +335,7 @@ export const HistoriqueTab = ({
       {historique.all?.length === 0 && (
         <button
           onClick={() => onLoadHistorique(effectivePatronId)}
-          className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-700 rounded-2xl font-black text-white text-[11px] uppercase active:scale-95 transition-all"
+          className="w-full py-4 bg-[var(--color-accent-violet)] hover:opacity-90 rounded-2xl font-black text-white text-[11px] uppercase active:scale-95 transition-[opacity,transform] duration-150"
         >
           {loadingHistorique ? "Chargement..." : "📊 Charger le tableau de bord"}
         </button>
@@ -371,7 +371,7 @@ export const HistoriqueTab = ({
               onClick={() => onTabChange("missions")}
               className={`flex-1 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${
                 historiqueTab === "missions"
-                  ? "bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-lg"
+                  ? "bg-[var(--color-accent-violet)]/20 text-[var(--color-text)] border border-[var(--color-accent-violet)]/30 shadow-sm"
                   : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
               }`}
             >
@@ -565,7 +565,7 @@ export const HistoriqueTab = ({
                   <p className="text-[10px] font-black opacity-60 uppercase">
                     {missionsFiltrees.length} mission(s)
                   </p>
-                  <p className="text-[11px] font-black text-indigo-400">
+                  <p className="text-[11px] font-black text-[var(--color-text-muted)]">
                     {formatEuro(missionsFiltrees.reduce((s, m) => s + (m.montant || 0), 0))}
                     {" · "}
                     {missionsFiltrees.reduce((s, m) => s + (m.duree || 0), 0).toFixed(1)} h
@@ -609,7 +609,7 @@ export const HistoriqueTab = ({
 
                       {/* Montant + heures */}
                       <div className="shrink-0 text-right">
-                        <p className="font-black text-sm text-indigo-400 amount-safe">
+                        <p className="font-black text-sm text-[var(--color-accent-green)] amount-safe">
                           {formatEuro(m.montant || 0)}
                         </p>
                         <p className="text-[9px] opacity-40">

@@ -13,7 +13,8 @@ export type TabId =
   | "suivi"
   | "dashboard"
   | "agenda"
-  | "parametres";
+  | "parametres"
+  | "health";
 
 /** Élément de menu de la barre de navigation. */
 export interface NavItem {

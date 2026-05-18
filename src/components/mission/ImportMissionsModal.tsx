@@ -207,7 +207,7 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
 
           {!preview && !result && mode === "paste" && (
             <>
-              <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} placeholder={"Date;Début;Fin;Pause;Patron;Client;Lieu;Tarif\n2026-03-01;08:00;17:00;60;Pierre;Mairie;Paris;15"} rows={6} className="w-full p-3 rounded-2xl border text-[11px] font-mono resize-none focus:outline-none focus:border-indigo-400 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]" />
+              <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} placeholder={"Date;Début;Fin;Pause;Patron;Client;Lieu;Tarif\n2026-03-01;08:00;17:00;60;Pierre;Mairie;Paris;15"} rows={6} className="w-full p-3 rounded-2xl border text-[11px] font-mono resize-none focus:outline-none focus:border-[var(--color-accent-violet)] bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]" />
               <button onClick={handleAnalysePaste} disabled={!csvText.trim()} className="w-full py-3 rounded-2xl font-black uppercase text-[11px] bg-[var(--color-accent-violet)] text-[var(--color-bg)] disabled:opacity-30">Analyser</button>
             </>
           )}
@@ -215,7 +215,7 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
           {!preview && !result && mode === "upload" && (
             <>
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
-              <button onClick={() => fileRef.current?.click()} className="w-full py-8 rounded-2xl border-2 border-dashed font-black text-[11px] uppercase transition-colors border-[var(--color-border)] hover:border-indigo-400 text-[var(--color-text-muted)] hover:text-indigo-400">📂 Choisir un fichier .xlsx ou .csv</button>
+              <button onClick={() => fileRef.current?.click()} className="w-full py-8 rounded-2xl border-2 border-dashed font-black text-[11px] uppercase transition-colors border-[var(--color-border)] hover:border-[var(--color-accent-violet)] text-[var(--color-text-muted)] hover:text-[var(--color-accent-violet)]">📂 Choisir un fichier .xlsx ou .csv</button>
             </>
           )}
 

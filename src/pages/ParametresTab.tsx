@@ -3,6 +3,7 @@ import React, { Component, Dispatch, SetStateAction, Suspense, lazy, useEffect, 
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { InviteSection } from "../components/invitations/InviteSection";
+import { ThemeSelector } from "../components/ui/ThemeSelector";
 import { EUROPE_COUNTRIES, KM_RATES, detectCountryFromLatLng } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
@@ -78,84 +79,22 @@ const IconSettings = () => (
   </svg>
 );
 
+const IconPalette = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+    <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/>
+    <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/>
+    <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/>
+    <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/>
+    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+  </svg>
+);
+
 // ─── Couleurs par section ────────────────────────────────────────────────────
 
-type ColorTokens = {
-  active: string;
-  icon: string;
-  dot: string;
-  header: string;
-  headerText: string;
-  badge: string;
-};
+import { colorTokens } from "../utils/colorTokens";
+import type { ColorTokens } from "../utils/colorTokens";
 
-const colorMap: Record<string, ColorTokens> = {
-  indigo: {
-    active: "bg-indigo-500/15 border-indigo-400/40",
-    icon: "text-indigo-400 bg-indigo-500/15",
-    dot: "bg-indigo-400",
-    header: "from-indigo-500/15 to-transparent border-indigo-500/20",
-    headerText: "text-indigo-300",
-    badge: "bg-indigo-500/20 text-indigo-300 border-indigo-400/30",
-  },
-  violet: {
-    active: "bg-violet-500/15 border-violet-400/40",
-    icon: "text-violet-400 bg-violet-500/15",
-    dot: "bg-violet-400",
-    header: "from-violet-500/15 to-transparent border-violet-500/20",
-    headerText: "text-violet-300",
-    badge: "bg-violet-500/20 text-violet-300 border-violet-400/30",
-  },
-  yellow: {
-    active: "bg-yellow-500/15 border-yellow-400/40",
-    icon: "text-yellow-400 bg-yellow-500/15",
-    dot: "bg-yellow-400",
-    header: "from-yellow-500/15 to-transparent border-yellow-500/20",
-    headerText: "text-yellow-300",
-    badge: "bg-yellow-500/20 text-yellow-300 border-yellow-400/30",
-  },
-  teal: {
-    active: "bg-teal-500/15 border-teal-400/40",
-    icon: "text-teal-400 bg-teal-500/15",
-    dot: "bg-teal-400",
-    header: "from-teal-500/15 to-transparent border-teal-500/20",
-    headerText: "text-teal-300",
-    badge: "bg-teal-500/20 text-teal-300 border-teal-400/30",
-  },
-  red: {
-    active: "bg-red-500/15 border-red-400/40",
-    icon: "text-red-400 bg-red-500/15",
-    dot: "bg-red-400",
-    header: "from-red-500/15 to-transparent border-red-500/20",
-    headerText: "text-red-300",
-    badge: "bg-red-500/20 text-red-300 border-red-400/30",
-  },
-  cyan: {
-    active: "bg-cyan-500/15 border-cyan-400/40",
-    icon: "text-cyan-400 bg-cyan-500/15",
-    dot: "bg-cyan-400",
-    header: "from-cyan-500/15 to-transparent border-cyan-500/20",
-    headerText: "text-cyan-300",
-    badge: "bg-cyan-500/20 text-cyan-300 border-cyan-400/30",
-  },
-  green: {
-    active: "bg-emerald-500/15 border-emerald-400/40",
-    icon: "text-emerald-400 bg-emerald-500/15",
-    dot: "bg-emerald-400",
-    header: "from-emerald-500/15 to-transparent border-emerald-500/20",
-    headerText: "text-emerald-300",
-    badge: "bg-emerald-500/20 text-emerald-300 border-emerald-400/30",
-  },
-};
 
-const colorMapLight: Record<string, ColorTokens> = {
-  indigo: { ...colorMap.indigo, headerText: "text-indigo-600", badge: "bg-indigo-100 text-indigo-600 border-indigo-300/60" },
-  violet: { ...colorMap.violet, headerText: "text-violet-600", badge: "bg-violet-100 text-violet-600 border-violet-300/60" },
-  yellow: { ...colorMap.yellow, headerText: "text-amber-700", badge: "bg-amber-50 text-amber-700 border-amber-300/60" },
-  teal: { ...colorMap.teal, headerText: "text-teal-700", badge: "bg-teal-100 text-teal-700 border-teal-300/60" },
-  red: { ...colorMap.red, headerText: "text-red-600", badge: "bg-red-100 text-red-600 border-red-300/60" },
-  cyan: { ...colorMap.cyan, headerText: "text-cyan-700", badge: "bg-cyan-100 text-cyan-700 border-cyan-300/60" },
-};
 
 // ─── Error boundary Diagnostics ──────────────────────────────────────────────
 
@@ -302,6 +241,13 @@ export function ParametresTab({
         subtitle: "Personnaliser le vocabulaire",
       },
       {
+        key: "apparence",
+        icon: <IconPalette />,
+        color: "violet",
+        title: "Apparence",
+        subtitle: "Thème, couleurs et style visuel",
+      },
+      {
         key: "invitations",
         icon: (
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -366,7 +312,7 @@ export function ParametresTab({
           </p>
           {sections.map((item) => {
             const isActive = activePanel === item.key;
-            const colors = colorMap[item.color];
+            const colors = colorTokens[item.color];
             return (
               <button
                 key={item.key}
@@ -437,7 +383,7 @@ export function ParametresTab({
               </div>
               <div className="flex flex-wrap gap-2 justify-center">
                 {sections.map((item) => {
-                  const colors = colorMap[item.color];
+                  const colors = colorTokens[item.color];
                   return (
                     <button
                       key={item.key}
@@ -455,7 +401,7 @@ export function ParametresTab({
             <>
               {/* Header de section */}
               {(() => {
-                const colors = colorMap[activeSection.color];
+                const colors = colorTokens[activeSection.color];
                 return (
                   <div className={`px-5 py-4 border-b border-[var(--color-border)] bg-gradient-to-r ${colors.header}`}>
                     <div className="flex items-center justify-between gap-3">
@@ -497,8 +443,8 @@ export function ParametresTab({
 
                 {activePanel === "extra-pro" && (
                   <div className="space-y-4">
-                    <div className="rounded-2xl border p-4 border-yellow-500/25 bg-yellow-500/5">
-                      <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-yellow-200/80">
+                    <div className="rounded-2xl border p-4 border-[var(--color-accent-amber)]/25 bg-[var(--color-accent-amber)]/5">
+                      <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-[var(--color-accent-amber)]/80">
                         Sélecteur taux du jour
                       </p>
                       <div className="flex items-center justify-between gap-3">
@@ -574,8 +520,8 @@ export function ParametresTab({
                         </div>
                       )}
                     </div>
-                    <div className="rounded-2xl border p-4 border-indigo-500/25 bg-indigo-500/5">
-                      <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-indigo-200/80">
+                    <div className="rounded-2xl border p-4 border-[var(--color-accent-violet)]/25 bg-[var(--color-accent-violet)]/5">
+                      <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-[var(--color-accent-violet)]/80">
                         Dashboard
                       </p>
                       <div className="flex items-center justify-between gap-3">
@@ -592,7 +538,7 @@ export function ParametresTab({
                           className={
                             "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
                             (profile?.features?.dashboard
-                              ? "border-indigo-400/40 text-indigo-300 bg-indigo-500/10"
+                              ? "border-[var(--color-accent-violet)]/40 text-[var(--color-accent-violet)] bg-[var(--color-accent-violet)]/10"
                               : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
                             (!isPro || profileSaving ? " opacity-40 cursor-not-allowed" : "")
                           }
@@ -663,8 +609,51 @@ export function ParametresTab({
                   />
                 )}
 
-                {activePanel === "libelles" && (
-                  <LabelsPanel
+                {activePanel === "apparence" && (
+                  <div className="space-y-6">
+                    {/* Sélecteur de thème */}
+                    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-offset)] p-5">
+                      <p className="text-[10px] font-black uppercase tracking-widest mb-4 text-[var(--color-accent-violet)]">
+                        Thème de l&apos;interface
+                      </p>
+                      <ThemeSelector layout="grid" />
+                      <p className="text-[10px] text-[var(--color-text-dim)] mt-3">
+                        Le thème est sauvegardé automatiquement sur cet appareil.
+                      </p>
+                    </div>
+
+                    {/* Aperçu tokens */}
+                    <div className="rounded-2xl border border-[var(--color-border)] p-5">
+                      <p className="text-[10px] font-black uppercase tracking-widest mb-4 text-[var(--color-text-muted)]">
+                        Aperçu du thème actif
+                      </p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { label: "Fond",       bg: "var(--color-bg)" },
+                          { label: "Surface",    bg: "var(--color-surface)" },
+                          { label: "Primaire",   bg: "var(--color-primary)" },
+                          { label: "Accent",     bg: "var(--color-accent-violet)" },
+                          { label: "Cyan",       bg: "var(--color-accent-cyan)" },
+                          { label: "Vert",       bg: "var(--color-accent-green)" },
+                          { label: "Ambre",      bg: "var(--color-accent-amber)" },
+                          { label: "Rouge",      bg: "var(--color-error)" },
+                        ].map(({ label, bg }) => (
+                          <div key={label} className="flex flex-col items-center gap-1.5">
+                            <div
+                              className="w-full h-8 rounded-[var(--radius-md)] border border-[var(--color-border)]"
+                              style={{ background: `var(${bg.slice(4, -1)})` }}
+                            />
+                            <span className="text-[9px] font-bold text-[var(--color-text-dim)] truncate w-full text-center">
+                              {label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activePanel === "libelles" && (                  <LabelsPanel
                     profile={profile}
                     saveProfile={saveProfile}
                     profileSaving={profileSaving}
@@ -1027,14 +1016,14 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
   };
 
   return (
-    <div className="rounded-2xl border p-4 space-y-4 border-blue-500/25 bg-blue-500/5">
+    <div className="rounded-2xl border p-4 space-y-4 border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-blue-200/80">
+          <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-[var(--color-accent-cyan)]/80">
             Frais kilométriques
           </p>
           {!isPro && (
-            <p className="text-[10px] text-yellow-400/80">Fonctionnalité Pro</p>
+            <p className="text-[10px] text-[var(--color-accent-amber)]/80">Fonctionnalité Pro</p>
           )}
         </div>
         <button
@@ -1042,9 +1031,9 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
           onClick={handleToggleEnable}
           disabled={!isPro || saving}
           className={
-            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-[background,border-color] duration-150 " +
             (kmEnable
-              ? "border-blue-400/40 text-blue-300 bg-blue-500/10"
+              ? "border-[var(--color-accent-cyan)]/40 text-[var(--color-accent-cyan)] bg-[var(--color-accent-cyan)]/10"
               : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
             (!isPro ? " opacity-50 cursor-not-allowed" : "")
           }
@@ -1072,7 +1061,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
           </div>
 
           <div>
-            <label className="block text-[10px] font-black uppercase mb-1 tracking-wider text-blue-300/80">
+            <label className="block text-[10px] font-black uppercase mb-1 tracking-wider text-[var(--color-accent-cyan)]/80">
               Adresse domicile
             </label>
             <input
@@ -1086,14 +1075,14 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
                       .join(", ")
                   : "Ex: Rue de la Paix 1, 75001 Paris"
               }
-              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm backdrop-blur-md bg-[var(--color-bg)] border-[var(--color-border)] text-[var(--color-text)] focus:border-blue-500 placeholder:text-[var(--color-text-faint)]"
+              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-[border-color] duration-150 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-cyan)] placeholder:text-[var(--color-text-faint)]"
             />
             <button
               type="button"
               onClick={handleGeolocate}
               disabled={geoLoading || saving}
-              className={"mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
-                "border-blue-400/30 text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 disabled:opacity-40"}
+              className={"mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-[background] duration-150 " +
+                "border-[var(--color-accent-cyan)]/30 text-[var(--color-accent-cyan)] bg-[var(--color-accent-cyan)]/10 hover:bg-[var(--color-accent-cyan)]/20 disabled:opacity-40"}
             >
               {geoLoading ? "⏳ Localisation…" : "📍 Ma position actuelle"}
             </button>
@@ -1106,14 +1095,14 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
             Number.isFinite(Number(profile?.features?.km_domicile_lng)) ? (
               <p className="text-[10px] text-green-400 mt-1">✅ Coordonnées GPS enregistrées</p>
             ) : (
-              <p className="text-[10px] text-yellow-400/80 mt-1">
+            <p className="text-[10px] text-[var(--color-accent-amber)]/80 mt-1">
                 ⚠️ Coordonnées non résolues — enregistrez pour les calculer
               </p>
             )}
           </div>
 
           <div>
-            <label className="block text-[10px] font-black uppercase mb-1 tracking-wider text-blue-300/80">
+            <label className="block text-[10px] font-black uppercase mb-1 tracking-wider text-[var(--color-accent-cyan)]/80">
               Pays
             </label>
             <select
@@ -1122,7 +1111,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
                 setKmCountryCode(e.target.value);
                 setKmRateMode("AUTO_BY_COUNTRY");
               }}
-              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm backdrop-blur-md bg-[var(--color-bg)] border-[var(--color-border)] text-[var(--color-text)] focus:border-blue-500"
+              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-[border-color] duration-150 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-cyan)]"
             >
               {EUROPE_COUNTRIES.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -1133,14 +1122,14 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
           </div>
 
           <div>
-            <label className="block text-[10px] font-black uppercase mb-1 tracking-wider text-blue-300/80">
+            <label className="block text-[10px] font-black uppercase mb-1 tracking-wider text-[var(--color-accent-cyan)]/80">
               Taux kilométrique
             </label>
             {kmRateMode === "AUTO_BY_COUNTRY" ? (
-              <div className="flex items-center justify-between p-3 rounded-xl border bg-[var(--color-bg)] border-[var(--color-border)]">
+              <div className="flex items-center justify-between p-3 rounded-xl border bg-[var(--color-bg-input)] border-[var(--color-border)]">
                 <span className="text-sm text-[var(--color-text-muted)]">
                   Taux recommandé :{" "}
-                  <strong className="text-blue-300">{recommendedRate} €/km</strong> ({countryLabel})
+                  <strong className="text-[var(--color-accent-cyan)]">{recommendedRate} €/km</strong> ({countryLabel})
                 </span>
                 <button
                   type="button"
@@ -1148,7 +1137,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
                     setKmRateMode("CUSTOM");
                     setKmRate(recommendedRate);
                   }}
-                  className="text-[10px] font-black uppercase text-purple-300 hover:text-purple-100 transition-all ml-2"
+                  className="text-[10px] font-black uppercase text-[var(--color-accent-violet)] hover:opacity-80 transition-[opacity] duration-150 ml-2"
                 >
                   Personnaliser
                 </button>
@@ -1162,7 +1151,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
                   value={kmRate}
                   onChange={(e) => setKmRate(e.target.value)}
                   placeholder={`${recommendedRate}`}
-                  className="flex-1 p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm backdrop-blur-md bg-[var(--color-bg)] border-[var(--color-border)] text-[var(--color-text)] focus:border-blue-500 placeholder:text-[var(--color-text-faint)]"
+                  className="flex-1 p-3 rounded-xl font-bold outline-none border-2 transition-[border-color] duration-150 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-cyan)] placeholder:text-[var(--color-text-faint)]"
                 />
                 <span className="text-sm text-[var(--color-text-muted)]">€/km</span>
                 <button
@@ -1182,7 +1171,7 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-black uppercase text-[11px] text-white transition-all disabled:opacity-50"
+            className="w-full py-3 bg-[var(--color-accent-cyan)] hover:opacity-90 rounded-xl font-black uppercase text-[11px] text-white transition-[opacity] duration-150 disabled:opacity-50"
           >
             {saving ? "Enregistrement..." : "Enregistrer les réglages km"}
           </button>

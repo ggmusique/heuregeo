@@ -33,9 +33,9 @@ body {
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.03),
-    rgba(255, 255, 255, 0.08),
-    rgba(255, 255, 255, 0.03)
+    var(--color-skeleton-base),
+    var(--color-skeleton-shimmer),
+    var(--color-skeleton-base)
   );
   background-size: 200% 100%;
   animation: skeleton 1.2s ease-in-out infinite;

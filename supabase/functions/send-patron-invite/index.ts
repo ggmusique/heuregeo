@@ -1,73 +1,98 @@
 // supabase/functions/send-patron-invite/index.ts
 // Edge Function Supabase : envoi de l'email d'invitation patron
+// SÉCURITÉ (2026-05-22) :
+//  - requireAuth() vérifie le JWT (défense en profondeur, JWT Supabase aussi vérifié en amont).
+//  - Lecture de l'invitation en DB avec vérification owner_id = caller → empêche l'envoi
+//    d'emails arbitraires depuis un compte authentifié.
+//  - Utilisation de invitation.patron_email issu de la DB, pas du body → pas d'injection email.
+//  - validateOrigin() sur invite_url → pas de phishing via URL arbitraire.
+//  - checkRateLimit() : max 20 invitations/heure par user.
 // Déploiement : supabase functions deploy send-patron-invite
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import nodemailer from "npm:nodemailer";
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-interface InvitePayload {
-  patron_email: string;
-  patron_nom: string;
-  owner_nom: string;
-  token: string;
-  invite_url: string;
-}
+import {
+  handleCors,
+  jsonError,
+  jsonOk,
+  requireAuth,
+  validateOrigin,
+} from "../_shared/auth.ts";
+import { checkRateLimit, extractIpAddress, RATE_LIMITS } from "../_shared/rateLimit.ts";
+import { logger } from "../_shared/monitoring.ts";
 
 serve(async (req: Request) => {
   // Preflight CORS
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS_HEADERS });
-  }
+  if (req.method === "OPTIONS") return handleCors();
 
   try {
-    // ── Vérification de l'appelant ──────────────────────────────────────────
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Non autorisé" }), {
-        status: 401,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
-    }
+    // ── [SÉCURITÉ] Vérification JWT ──────────────────────────────────────────
+    const { user, adminClient } = await requireAuth(req);
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
-
-    // Vérifier que l'appelant est authentifié
-    // getUser() doit recevoir le JWT explicitement (client serveur sans session interne)
-    const jwt = authHeader.replace(/^Bearer\s+/i, "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(jwt);
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Non authentifié" }), {
-        status: 401,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
-    }
+    // ── [SÉCURITÉ] Rate limiting ─────────────────────────────────────────────
+    const ip = extractIpAddress(req);
+    await checkRateLimit(adminClient, {
+      action: "send_patron_invite",
+      userId: user.id,
+      ipAddress: ip,
+      ...RATE_LIMITS.SEND_PATRON_INVITE,
+    });
 
     // ── Lire le corps ───────────────────────────────────────────────────────
-    let body: InvitePayload;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
-      return new Response(JSON.stringify({ error: "Body JSON invalide ou vide" }), {
-        status: 400,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
+      return jsonError("Body JSON invalide ou vide", 400);
     }
-    const { patron_email, patron_nom, owner_nom, token, invite_url } = body;
 
-    if (!patron_email || !token || !invite_url) {
-      return new Response(JSON.stringify({ error: "Paramètres manquants" }), {
-        status: 400,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
+    const { token, invite_url, owner_nom, patron_nom } = body;
+
+    if (!token || typeof token !== "string") {
+      return jsonError("Paramètre manquant : token", 400);
     }
+
+    // Valider invite_url avant même d'aller en DB
+    validateOrigin(invite_url);
+
+    // ── [SÉCURITÉ] Lire l'invitation depuis la DB et vérifier l'ownership ───
+    // On charge l'invitation par son token en vérifiant que :
+    //  1. Le token existe et est encore "pending" (non utilisé / non annulé)
+    //  2. owner_id = user.id → l'appelant est bien l'owner de CETTE invitation
+    //  3. L'invitation n'est pas expirée
+    //
+    // On utilise intentionnellement invitation.patron_email depuis la DB,
+    // et NON l'email fourni dans le body, pour empêcher toute injection.
+    const { data: invitation, error: invErr } = await adminClient
+      .from("patron_invitations")
+      .select("id, owner_id, patron_email, status, invite_expires, method")
+      .eq("invite_token", token)
+      .eq("owner_id", user.id)        // ← binding owner → caller
+      .eq("status", "pending")
+      .single();
+
+    if (invErr || !invitation) {
+      // Ne pas révéler si le token existe mais appartient à un autre user
+      return jsonError("Invitation introuvable, expirée ou non autorisée", 403);
+    }
+
+    // Vérifier expiration
+    if (invitation.invite_expires && new Date(invitation.invite_expires) < new Date()) {
+      return jsonError("Cette invitation a expiré", 403);
+    }
+
+    // ── Résoudre les noms depuis les paramètres du body (non-sensibles) ─────
+    // owner_nom et patron_nom sont des chaînes d'affichage, pas critiques.
+    // On les tronque pour éviter tout débordement dans l'email.
+    const safeOwnerNom = typeof owner_nom === "string"
+      ? owner_nom.slice(0, 100)
+      : "Votre employeur";
+    const safePatronNom = typeof patron_nom === "string"
+      ? patron_nom.slice(0, 100)
+      : "";
+
+    // L'email de destination est toujours celui de la DB, jamais du body
+    const recipientEmail = invitation.patron_email;
 
     // ── Envoi via Brevo SMTP ─────────────────────────────────────────────
     const brevoLogin = Deno.env.get("BREVO_LOGIN");
@@ -75,10 +100,7 @@ serve(async (req: Request) => {
 
     if (!brevoLogin || !brevoPassword) {
       console.error("BREVO_LOGIN ou BREVO_PASSWORD manquant dans les secrets Supabase");
-      return new Response(JSON.stringify({ error: "Configuration SMTP manquante" }), {
-        status: 500,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
+      return jsonError("Configuration SMTP manquante", 500);
     }
 
     const transporter = nodemailer.createTransport({
@@ -95,39 +117,40 @@ serve(async (req: Request) => {
     try {
       await transporter.verify();
     } catch (verifyErr) {
-      console.error("Erreur connexion SMTP Brevo:", verifyErr);
-      return new Response(
-        JSON.stringify({ error: "Connexion SMTP échouée", detail: (verifyErr as Error).message }),
-        { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-      );
+      logger.error("send-patron-invite", "Erreur connexion SMTP Brevo", {
+        error: (verifyErr as Error).message,
+      });
+      return jsonError("Connexion SMTP temporairement indisponible", 500);
     }
 
     try {
       await transporter.sendMail({
-  from: "Geoffrey <geohelene@msn.com>",
-  to: patron_email,
-  subject: `${owner_nom} vous invite à consulter vos heures sur HeurGeo`,
-  html: buildEmailHtml({ patron_nom, owner_nom, invite_url }),
-});
-      console.log(`Email envoyé à ${patron_email} via Brevo`);
+        from: "Geoffrey <geohelene@msn.com>",
+        to: recipientEmail,
+        subject: `${safeOwnerNom} vous invite à consulter vos heures sur HeurGeo`,
+        html: buildEmailHtml({
+          patron_nom: safePatronNom,
+          owner_nom: safeOwnerNom,
+          invite_url: invite_url as string,
+        }),
+      });
+      logger.info("send-patron-invite", "Invitation envoyée", {
+        userId: user.id.slice(0, 8),
+        invitationId: invitation.id.slice(0, 8),
+      });
     } catch (smtpErr) {
-      console.error("Erreur envoi SMTP Brevo:", smtpErr);
-      return new Response(
-        JSON.stringify({ error: "Échec envoi email", detail: (smtpErr as Error).message }),
-        { status: 500, headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
-      );
+      logger.error("send-patron-invite", "Erreur envoi SMTP Brevo", {
+        error: (smtpErr as Error).message,
+      });
+      return jsonError("Erreur lors de l'envoi de l'email. Veuillez réessayer.", 500);
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-    });
+    return jsonOk({ success: true });
   } catch (err) {
+    // Si c'est une Response levée par requireAuth / checkRateLimit / validateOrigin
+    if (err instanceof Response) return err;
     console.error("Edge function error:", err);
-    return new Response(JSON.stringify({ error: "Erreur interne" }), {
-      status: 500,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-    });
+    return jsonError("Erreur interne", 500);
   }
 });
 

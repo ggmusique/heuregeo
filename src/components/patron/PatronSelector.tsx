@@ -29,7 +29,7 @@ export function PatronSelector({ patrons = [], selectedPatronId, onSelect, requi
         <div className="text-center py-8">
           <p className="text-sm opacity-60 mb-4">Aucun patron créé</p>
           {onAddNew && (
-            <button onClick={onAddNew} className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-700 text-white rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-all">+ Créer un patron</button>
+            <button onClick={onAddNew} className="px-6 py-3 bg-[var(--color-accent-violet)] hover:opacity-90 text-white rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-[opacity,transform] duration-150">+ Créer un patron</button>
           )}
         </div>
       ) : (
@@ -43,7 +43,7 @@ export function PatronSelector({ patrons = [], selectedPatronId, onSelect, requi
                 disabled={disabled}
                 className={`p-4 rounded-[20px] flex items-center gap-3 transition-all ${
                   selectedPatronId === patron.id
-                    ? "bg-indigo-500/20 border-2 border-indigo-500/60"
+                    ? "bg-[var(--color-accent-violet)]/15 border-2 border-[var(--color-accent-violet)]/50"
                     : "bg-[var(--color-surface-offset)] border-2 border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]"
                 } disabled:opacity-50 active:scale-95`}
               >
@@ -125,22 +125,22 @@ export function PatronSelectorCompact({ patrons = [], selectedPatronId, onSelect
           ref={inputRef}
           type="text"
           placeholder="👔 Rechercher ou sélectionner..."
-          className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-indigo-500 backdrop-blur-md placeholder:text-white/40 ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-[border-color] duration-150 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] backdrop-blur-card placeholder:text-[var(--color-text-dim)] ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
           value={search}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           disabled={disabled}
         />
         {onAddNew && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); onAddNew(); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-indigo-600 hover:bg-indigo-700 rounded-lg flex items-center justify-center text-white font-black text-lg transition-all active:scale-90" title="Nouveau patron" disabled={disabled}>+</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onAddNew(); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[var(--color-accent-violet)] hover:opacity-80 rounded-lg flex items-center justify-center text-white font-black text-lg transition-opacity duration-150 active:scale-90" title="Nouveau patron" disabled={disabled}>+</button>
         )}
       </div>
 
       {showDropdown && !disabled && (
-        <div ref={dropdownRef} className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl bg-[var(--color-field)] border-[var(--color-border-violet)] backdrop-blur-xl">
+        <div ref={dropdownRef} className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-modal bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-card">
           {filteredPatrons.length > 0 ? (
             filteredPatrons.map((patron) => (
-              <button key={patron.id} type="button" className={`w-full p-4 text-left transition-all border-b border-white/5 last:border-b-0 ${selectedPatronId === patron.id ? "bg-indigo-500/20" : "hover:bg-white/10"}`} onClick={() => handleSelect(patron)}>
+              <button key={patron.id} type="button" className={`w-full p-4 text-left transition-[background] duration-150 border-b border-[var(--color-border)] last:border-b-0 ${selectedPatronId === patron.id ? "bg-[var(--color-accent-violet)]/15" : "hover:bg-[var(--color-surface-hover)]"}`} onClick={() => handleSelect(patron)}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="font-black text-sm uppercase truncate">{patron.nom}</div>
@@ -157,7 +157,7 @@ export function PatronSelectorCompact({ patrons = [], selectedPatronId, onSelect
       )}
 
       {selectedPatron && !showDropdown && (
-        <div className="mt-3 p-3 rounded-xl border bg-indigo-500/10 border-indigo-500/20">
+        <div className="mt-3 p-3 rounded-xl border bg-[var(--color-accent-violet)]/10 border-[var(--color-accent-violet)]/20">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedPatron.couleur || "#8b5cf6" }} />
             <span className="text-[10px] font-black uppercase opacity-60 tracking-wider">{L.patron} sélectionné</span>

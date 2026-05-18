@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { getWeekNumber } from "../utils/dateUtils";
 import { AgendaWeekView } from "../components/agenda/AgendaWeekView";
-import { useDarkMode } from "../contexts/DarkModeContext";
 import { AgendaEvent } from "../types/entities";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -142,7 +141,6 @@ export function AgendaTab({
   onOpenForDate,
   onEventEdit,
 }: AgendaTabProps) {
-  const { darkMode } = useDarkMode();
   const today    = new Date();
   const todayIso = toIso(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
@@ -181,10 +179,10 @@ export function AgendaTab({
   const selectedEvents = selectedIso ? (eventsByDate[selectedIso] || []) : [];
 
   // ── Styles ───────────────────────────────────────────────────────────────
-  const bg    = darkMode ? "bg-[var(--color-bg)]"                        : "bg-slate-50";
-  const card  = darkMode ? "bg-[var(--color-surface)] border-white/10"   : "bg-white border-slate-200";
-  const text  = darkMode ? "text-white"                  : "text-slate-900";
-  const muted = darkMode ? "text-white/40"               : "text-slate-400";
+  const bg    = "bg-[var(--color-bg)]";
+  const card  = "bg-[var(--color-surface)] border-[var(--color-border)]";
+  const text  = "text-[var(--color-text)]";
+  const muted = "text-[var(--color-text-dim)]";
 
   // ── Navigation ───────────────────────────────────────────────────────────
   const handlePrev = () => (view === "week" ? onGoToPrevWeek?.() : onGoToPrev?.());
@@ -225,7 +223,7 @@ export function AgendaTab({
         <div className={`flex items-center justify-between px-3 py-2.5 rounded-[24px] border-2 ${card}`}>
           <button
             onClick={handlePrev}
-            className={`w-9 h-9 rounded-full flex items-center justify-center text-xl font-black transition-all ${darkMode ? "bg-white/10 text-white hover:bg-white/20" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-xl font-black transition-all bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-offset)]"
           >
             ‹
           </button>
@@ -234,13 +232,13 @@ export function AgendaTab({
             <p className={`text-[14px] font-black uppercase tracking-wider ${text}`}>{navTitle}</p>
 
             {/* Toggle Mois / Semaine */}
-            <div className={`flex rounded-xl overflow-hidden border ${darkMode ? "border-white/10" : "border-slate-200"}`}>
+            <div className="flex rounded-xl overflow-hidden border border-[var(--color-border)]">
               <button
                 onClick={() => setView("month")}
                 className={`px-3 py-1 text-[9px] font-black uppercase transition-all ${
                   view === "month"
-                    ? "bg-indigo-600 text-white"
-                    : darkMode ? "text-white/40 hover:text-white/70" : "text-slate-400 hover:text-slate-600"
+                    ? "bg-[var(--color-accent-violet)] text-white"
+                    : "text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
                 }`}
               >
                 Mois
@@ -249,8 +247,8 @@ export function AgendaTab({
                 onClick={() => setView("week")}
                 className={`px-3 py-1 text-[9px] font-black uppercase transition-all ${
                   view === "week"
-                    ? "bg-indigo-600 text-white"
-                    : darkMode ? "text-white/40 hover:text-white/70" : "text-slate-400 hover:text-slate-600"
+                    ? "bg-[var(--color-accent-violet)] text-white"
+                    : "text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
                 }`}
               >
                 Semaine
@@ -261,13 +259,13 @@ export function AgendaTab({
           <div className="flex items-center gap-1.5">
             <button
               onClick={onGoToToday}
-              className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase transition-all ${darkMode ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30" : "bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100"}`}
+              className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase transition-all bg-[var(--color-accent-green)]/20 text-[var(--color-accent-green)] border border-[var(--color-accent-green)]/30 hover:bg-[var(--color-accent-green)]/30"
             >
               Auj.
             </button>
             <button
               onClick={handleNext}
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-xl font-black transition-all ${darkMode ? "bg-white/10 text-white hover:bg-white/20" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-xl font-black transition-all bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-offset)]"
             >
               ›
             </button>
@@ -281,14 +279,12 @@ export function AgendaTab({
           <div className={`rounded-[28px] border-2 overflow-hidden ${card}`}>
 
             {/* En-têtes jours de semaine */}
-            <div className={`grid grid-cols-7 border-b ${darkMode ? "border-white/5" : "border-slate-100"}`}>
+            <div className="grid grid-cols-7 border-b border-[var(--color-border)]">
               {DAYS_FR.map((d, i) => (
                 <div
                   key={i}
                   className={`py-2 text-center text-[9px] font-black uppercase ${
-                    i >= 5
-                      ? (darkMode ? "text-white/25" : "text-slate-300")
-                      : (darkMode ? "text-white/45" : "text-slate-400")
+                    i >= 5 ? "text-[var(--color-text-faint)]" : "text-[var(--color-text-dim)]"
                   }`}
                 >
                   {d}
@@ -306,7 +302,7 @@ export function AgendaTab({
               return (
                 <div
                   key={wIdx}
-                  className={`border-b last:border-b-0 ${darkMode ? "border-white/5" : "border-slate-100"}`}
+                  className="border-b last:border-b-0 border-[var(--color-border)]"
                 >
                   {/* ── Barres congés multi-jours ── */}
                   {nbLanes > 0 && (
@@ -354,21 +350,21 @@ export function AgendaTab({
                           onClick={() => setSelectedDay(isSelected ? null : day)}
                           className={`flex flex-col items-start p-0.5 min-h-[60px] rounded-xl transition-all active:scale-95 ${
                             isSelected
-                              ? (darkMode ? "bg-emerald-600/25 ring-1 ring-emerald-500/40" : "bg-emerald-50 ring-1 ring-emerald-400/40")
+                              ? "bg-[var(--color-accent-green)]/20 ring-1 ring-[var(--color-accent-green)]/40"
                               : isToday
-                              ? (darkMode ? "bg-emerald-500/10" : "bg-emerald-50/60")
-                              : (darkMode ? "hover:bg-white/5" : "hover:bg-slate-50")
+                              ? "bg-[var(--color-accent-green)]/10"
+                              : "hover:bg-[var(--color-surface-hover)]"
                           }`}
                         >
                           {/* Numéro jour */}
                           <span className={`text-[11px] font-black w-6 h-6 flex items-center justify-center rounded-full flex-shrink-0 ${
                             isSelected
-                              ? "bg-emerald-500 text-white"
+                              ? "bg-[var(--color-accent-green)] text-[var(--color-bg)]"
                               : isToday
-                              ? (darkMode ? "bg-emerald-500/30 text-emerald-300" : "bg-emerald-100 text-emerald-700")
+                              ? "bg-[var(--color-accent-green)]/30 text-[var(--color-accent-green)]"
                               : isWeekend
-                              ? (darkMode ? "text-white/25" : "text-slate-300")
-                              : (darkMode ? "text-white/80" : "text-slate-700")
+                              ? "text-[var(--color-text-faint)]"
+                              : "text-[var(--color-text-muted)]"
                           }`}>
                             {day}
                           </span>
@@ -406,7 +402,7 @@ export function AgendaTab({
             })}
 
             {/* Légende */}
-            <div className={`px-4 py-3 border-t ${darkMode ? "border-white/5" : "border-slate-100"} flex flex-wrap gap-3`}>
+            <div className="px-4 py-3 border-t border-[var(--color-border)] flex flex-wrap gap-3">
               {[
                 { dot: "bg-yellow-400",  label: "Travaillé" },
                 { dot: "bg-blue-500",    label: "RDV"       },
@@ -432,7 +428,6 @@ export function AgendaTab({
             workedDays={workedDays}
             onOpenForDate={onOpenForDate}
             onEventEdit={onEventEdit}
-            darkMode={darkMode}
           />
         )}
 

@@ -1,5 +1,4 @@
 import React from "react";
-import { useDarkMode } from "../contexts/DarkModeContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 
 import { FraisModal } from "./common/frais/FraisModal";
@@ -69,7 +68,6 @@ export function AppModals({
   setShowImportModal,
   bulkCreateMissions,
 }: Props) {
-  const { darkMode } = useDarkMode();
   const { isViewer, canBilanMois, canBilanAnnee } = usePermissions();
 
   return (
@@ -97,7 +95,7 @@ export function AppModals({
         onSubmit={fraisModal.handleFraisSubmit}
         onCancel={() => fraisModal.closeFraisModal()}
         loading={loading}
-        darkMode={darkMode}
+
         isIOS={isIOS}
         patrons={patrons}
         selectedPatronId={fraisModal.fraisPatronId}
@@ -113,7 +111,7 @@ export function AppModals({
         onSubmit={acompteModal.handleAcompteSubmit}
         onCancel={() => acompteModal.closeAcompteModal()}
         loading={loading || acompteModal.isSavingAcompte}
-        darkMode={darkMode}
+
         isIOS={isIOS}
         patrons={patrons}
         selectedPatronId={acompteModal.acomptePatronId}
@@ -127,7 +125,7 @@ export function AppModals({
         onSubmit={patronModal.handlePatronSubmit}
         onCancel={() => patronModal.closePatronModal()}
         loading={loading}
-        darkMode={darkMode}
+
       />
 
       <ClientModal
@@ -137,7 +135,7 @@ export function AppModals({
         onSubmit={clientModal.handleClientSubmit}
         onCancel={() => clientModal.closeClientModal()}
         loading={loading}
-        darkMode={darkMode}
+
       />
 
       <PeriodModal
@@ -150,7 +148,7 @@ export function AppModals({
         formatPeriodLabel={bilan.formatPeriodLabel}
         onConfirm={() => bilan.genererBilan(bilanPatronId, bilanClientId)}
         onCancel={() => { bilan.setShowPeriodModal(false); setBilanClientId(null); }}
-        darkMode={darkMode}
+
         patrons={patrons}
         selectedPatronId={bilanPatronId}
         onPatronChange={(id: any) => !isViewer && setBilanPatronId(id)}
@@ -169,7 +167,7 @@ export function AppModals({
         onSubmit={lieuModal.handleLieuSubmit}
         onCancel={() => { lieuModal.closeLieuModal(); }}
         loading={loading}
-        darkMode={darkMode}
+
       />
 
       {agendaModal.showAgendaModal && (
@@ -182,7 +180,7 @@ export function AppModals({
           onCancel={() => agendaModal.closeAgendaModal()}
           onDelete={() => agendaModal.editingEventId && agendaModal.handleEventDelete(agendaModal.editingEventId)}
           loading={loading}
-          darkMode={darkMode}
+
         />
       )}
 
@@ -193,7 +191,7 @@ export function AppModals({
         patrons={patrons}
         clients={clients}
         lieux={lieux}
-        darkMode={darkMode}
+
       />
     </>
   );

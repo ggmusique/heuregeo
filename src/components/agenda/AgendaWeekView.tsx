@@ -91,6 +91,7 @@ interface Props {
   workedDays?: Set<string>;
   onOpenForDate?: (iso: string) => void;
   onEventEdit?: (event: any) => void;
+  /** @deprecated — ignoré, le thème vient de DarkModeContext */
   darkMode?: boolean;
 }
 
@@ -100,7 +101,6 @@ export function AgendaWeekView({
   workedDays    = new Set(),
   onOpenForDate,
   onEventEdit,
-  darkMode      = true,
 }: Props) {
   const [now, setNow] = useState(new Date());
 
@@ -153,11 +153,11 @@ export function AgendaWeekView({
   const nbAllDayLanes = allDayBars.length > 0 ? Math.max(...allDayBars.map((b) => b.lane)) + 1 : 0;
   const allDayHeight  = nbAllDayLanes * 22 + (nbAllDayLanes > 0 ? 8 : 0);
 
-  const card   = darkMode ? "bg-[var(--color-surface)] border-white/10" : "bg-white border-slate-200";
-  const sep    = darkMode ? "border-white/5"               : "border-slate-100";
-  const muted  = darkMode ? "text-white/35"                : "text-slate-400";
-  const colSep = darkMode ? "border-white/5"               : "border-slate-100";
-  const hourLn = darkMode ? "border-white/5"               : "border-slate-100";
+  const card   = "bg-[var(--color-surface)] border-[var(--color-border)]";
+  const sep    = "border-[var(--color-border)]";
+  const muted  = "text-[var(--color-text-dim)]";
+  const colSep = "border-[var(--color-border)]";
+  const hourLn = "border-[var(--color-border)]";
 
   return (
     <div className={`rounded-[28px] border-2 overflow-hidden ${card}`}>
@@ -172,11 +172,9 @@ export function AgendaWeekView({
             <button
               key={i}
               onClick={() => onOpenForDate?.(d.iso)}
-              className={`flex-1 flex flex-col items-center py-2 px-0.5 gap-0.5 transition-colors ${
-                isWeekend
-                  ? (darkMode ? "text-white/30" : "text-slate-300")
-                  : (darkMode ? "text-white/70" : "text-slate-600")
-              } ${darkMode ? "hover:bg-white/5" : "hover:bg-slate-50"}`}
+              className={`flex-1 flex flex-col items-center py-2 px-0.5 gap-0.5 transition-colors hover:bg-[var(--color-surface-hover)] ${
+                isWeekend ? "text-[var(--color-text-dim)]" : "text-[var(--color-text-muted)]"
+              }`}
             >
               <span className="text-[8px] font-black uppercase">{DAYS_ABBR[i].charAt(0)}</span>
               <span className={`text-[13px] font-black w-7 h-7 flex items-center justify-center rounded-full ${
@@ -251,7 +249,7 @@ export function AgendaWeekView({
                   <div
                     key={colIdx}
                     className={`relative h-full border-l ${colSep} first:border-l-0 ${
-                      isToday ? (darkMode ? "bg-[var(--color-accent-green)]/5" : "bg-emerald-50/40") : ""
+                      isToday ? "bg-[var(--color-accent-green)]/5" : ""
                     }`}
                   >
                     {rdvEvts.map((e) => {

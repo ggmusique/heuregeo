@@ -62,13 +62,9 @@ export const PeriodModal = ({
   if (!show) return null;
 
   return (
-    <div className={`fixed inset-0 z-[400] flex items-end sm:items-center justify-center sm:p-6 ${darkMode ? "bg-[var(--color-bg)]/95" : "bg-black/40"} backdrop-blur-xl`}>
+    <div className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center sm:p-6 bg-[var(--color-overlay)] backdrop-blur-[var(--blur-overlay)]">
       <div
-        className={`w-full max-w-full sm:max-w-sm p-5 sm:p-8 rounded-t-[32px] sm:rounded-[45px] max-h-[90dvh] overflow-y-auto border-2 ${
-          darkMode
-            ? "bg-[var(--color-surface)] border-[var(--color-border)]"
-            : "bg-white border-slate-200"
-        } backdrop-blur-xl`}
+        className="w-full max-w-full sm:max-w-sm p-5 sm:p-8 rounded-t-[32px] sm:rounded-[45px] max-h-[90dvh] overflow-y-auto border-2 bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-modal"
       >
         <h3 className="text-xl font-black uppercase mb-4 text-center tracking-tighter italic">
           Choisir la période
@@ -77,13 +73,13 @@ export const PeriodModal = ({
         {/* ======================================================
             1) Choix du TYPE de période
            ====================================================== */}
-        <div className={`flex ${darkMode ? "bg-black/20" : "bg-slate-100"} rounded-2xl p-1 mb-6 backdrop-blur-md`}>
+        <div className="flex bg-[var(--color-surface-offset)] rounded-2xl p-1 mb-6">
           <button
             onClick={() => setPeriodType("semaine")}
-            className={`flex-1 py-3 min-h-[44px] text-[11px] font-black rounded-xl transition-all ${
+            className={`flex-1 py-3 min-h-[44px] text-[11px] font-black rounded-xl transition-[background,color] duration-150 ${
               periodType === "semaine"
-                ? "bg-indigo-600 text-white shadow-md"
-                : `${darkMode ? "text-white/50" : "text-slate-500"} hover:bg-white/10`
+                ? "bg-[var(--color-accent-violet)] text-white shadow-sm"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
             }`}
           >
             Semaine
@@ -93,12 +89,12 @@ export const PeriodModal = ({
             onClick={() => canBilanMois && setPeriodType("mois")}
             disabled={!canBilanMois}
             title={!canBilanMois ? "Fonctionnalité Pro" : undefined}
-            className={`flex-1 py-3 min-h-[44px] text-[11px] font-black rounded-xl transition-all ${
+            className={`flex-1 py-3 min-h-[44px] text-[11px] font-black rounded-xl transition-[background,color] duration-150 ${
               !canBilanMois
-                ? `${darkMode ? "text-white/20" : "text-slate-300"} cursor-not-allowed`
+                ? "text-[var(--color-text-muted)] opacity-30 cursor-not-allowed"
                 : periodType === "mois"
-                ? "bg-indigo-600 text-white shadow-md"
-                : `${darkMode ? "text-white/50" : "text-slate-500"} hover:bg-white/10`
+                ? "bg-[var(--color-accent-violet)] text-white shadow-sm"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
             }`}
           >
             {canBilanMois ? "Mois" : "🔒 Mois"}
@@ -108,12 +104,12 @@ export const PeriodModal = ({
             onClick={() => canBilanAnnee && setPeriodType("annee")}
             disabled={!canBilanAnnee}
             title={!canBilanAnnee ? "Fonctionnalité Pro" : undefined}
-            className={`flex-1 py-3 min-h-[44px] text-[11px] font-black rounded-xl transition-all ${
+            className={`flex-1 py-3 min-h-[44px] text-[11px] font-black rounded-xl transition-[background,color] duration-150 ${
               !canBilanAnnee
-                ? `${darkMode ? "text-white/20" : "text-slate-300"} cursor-not-allowed`
+                ? "text-[var(--color-text-muted)] opacity-30 cursor-not-allowed"
                 : periodType === "annee"
-                ? "bg-indigo-600 text-white shadow-md"
-                : `${darkMode ? "text-white/50" : "text-slate-500"} hover:bg-white/10`
+                ? "bg-[var(--color-accent-violet)] text-white shadow-sm"
+                : "text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)]"
             }`}
           >
             {canBilanAnnee ? "Année" : "🔒 Année"}
@@ -124,7 +120,7 @@ export const PeriodModal = ({
             2) Choix de la PÉRIODE
            ====================================================== */}
         <div className="mb-6">
-          <label className="block text-[11px] font-black uppercase mb-3 text-indigo-300 tracking-[0.25em] opacity-80">
+          <label className="block text-[11px] font-black uppercase mb-3 text-[var(--color-text-muted)] tracking-[0.25em]">
             {periodType === "semaine"
               ? "Choisir la semaine"
               : periodType === "mois"
@@ -136,7 +132,7 @@ export const PeriodModal = ({
             <select
               value={periodValue || ""}
               onChange={(e) => setPeriodValue(e.target.value)}
-              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-base uppercase border-2 border-indigo-500/40 appearance-none cursor-pointer focus:outline-none focus:border-indigo-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-base uppercase border-2 border-[var(--color-border)] appearance-none cursor-pointer focus:outline-none focus:border-[var(--color-accent-violet)] transition-[border-color] duration-150 shadow-inner backdrop-blur-card bg-[var(--color-field)] text-[var(--color-text)]`}
             >
               <option value="" disabled>
                 Sélectionner une période...
@@ -149,7 +145,7 @@ export const PeriodModal = ({
               ))}
             </select>
 
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-indigo-400">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-[var(--color-accent-violet)]">
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -183,7 +179,7 @@ export const PeriodModal = ({
                 const value = e.target.value;
                 onPatronChange(value === "" ? null : value);
               }}
-              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-base uppercase border-2 border-green-500/40 appearance-none cursor-pointer focus:outline-none focus:border-green-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-base uppercase border-2 border-[var(--color-accent-green)]/40 appearance-none cursor-pointer focus:outline-none focus:border-[var(--color-accent-green)] transition-[border-color] duration-150 shadow-inner bg-[var(--color-field)] text-[var(--color-text)]`}
             >
               <option value="">📊 Tous les {L.patrons} (Global)</option>
 
@@ -233,7 +229,7 @@ export const PeriodModal = ({
                 const value = e.target.value;
                 onClientChange(value === "" ? null : value);
               }}
-              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-base uppercase border-2 border-amber-500/40 appearance-none cursor-pointer focus:outline-none focus:border-amber-400 transition-all shadow-inner backdrop-blur-md ${darkMode ? "bg-[var(--color-field)] text-[var(--color-text)]" : "bg-white text-slate-900 border-slate-200"}`}
+              className={`w-full p-4 pl-5 pr-12 rounded-2xl font-black text-base uppercase border-2 border-[var(--color-accent-amber)]/40 appearance-none cursor-pointer focus:outline-none focus:border-[var(--color-accent-amber)] transition-[border-color] duration-150 shadow-inner bg-[var(--color-field)] text-[var(--color-text)]`}
             >
               <option value="">👥 Tous les {L.clients}</option>
 
@@ -283,8 +279,8 @@ export const PeriodModal = ({
             disabled={!periodValue}
             className={`flex-1 py-4 rounded-2xl font-black uppercase text-[10px] transition-all ${
               periodValue
-                ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg active:scale-95"
-                : "bg-gray-600/30 text-white/40 cursor-not-allowed"
+                ? "bg-[var(--color-accent-violet)] text-white active:scale-95"
+                : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] opacity-40 cursor-not-allowed"
             } backdrop-blur-md`}
           >
             Confirmer

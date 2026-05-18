@@ -47,20 +47,23 @@ export function useNavigation(profile: UserProfile | null): UseNavigationReturn 
   const proNavItems = useMemo<NavItem[]>(
     () => [
       ...(!isViewer
-        ? [{ key: "saisie" as TabId, label: "Saisie", icon: "📝", activeClass: "from-indigo-600 to-indigo-800" }]
+        ? [{ key: "saisie" as TabId, label: "Saisie", icon: "📝", activeClass: "from-[var(--color-accent-violet)] to-[color-mix(in_srgb,var(--color-accent-violet)_70%,black)]" }]
         : []),
       ...(canDashboard && !isViewer
-        ? [{ key: "dashboard" as TabId, label: "Dashboard", icon: "📊", activeClass: "from-violet-600 to-indigo-700" }]
+        ? [{ key: "dashboard" as TabId, label: "Dashboard", icon: "📊", activeClass: "from-[var(--color-accent-fuchsia)] to-[var(--color-accent-violet)]" }]
         : []),
-      { key: "suivi", label: "Suivi", icon: "📈", activeClass: "from-cyan-600 to-indigo-700" },
+      { key: "suivi", label: "Suivi", icon: "📈", activeClass: "from-[var(--color-accent-cyan)] to-[var(--color-accent-violet)]" },
       ...(canAgenda
-        ? [{ key: "agenda" as TabId, label: "Agenda", icon: "📅", activeClass: "from-emerald-600 to-teal-700" }]
+        ? [{ key: "agenda" as TabId, label: "Agenda", icon: "📅", activeClass: "from-[var(--color-accent-green)] to-[color-mix(in_srgb,var(--color-accent-green)_70%,black)]" }]
         : []),
       ...(!isViewer
-        ? [{ key: "parametres" as TabId, label: "Parametres", icon: "⚙️", activeClass: "from-indigo-600 to-purple-700" }]
+        ? [{ key: "parametres" as TabId, label: "Parametres", icon: "⚙️", activeClass: "from-[var(--color-accent-violet)] to-[var(--color-accent-fuchsia)]" }]
+        : []),
+      ...(profile?.is_admin === true
+        ? [{ key: "health" as TabId, label: "Santé", icon: "🛡️", activeClass: "from-[var(--color-accent-cyan)] to-[var(--color-accent-violet)]" }]
         : []),
     ],
-    [isPro, isViewer, canAgenda, canDashboard]
+    [isPro, isViewer, canAgenda, canDashboard, profile?.is_admin]
   );
 
   return { activeTab, setActiveTab, canAgenda, canDashboard, isViewer, proNavItems };

@@ -1,0 +1,113 @@
+/*
+ * Thème : OLED Black
+ * Fond pur #000000 pour économiser la batterie sur écrans OLED.
+ * Accents violet électrique.
+ */
+
+[data-theme="oled"] {
+  /* Couleurs primaires */
+  --color-primary:       #C9A84C;
+  --color-accent-cyan:   #22d3ee;
+  --color-accent-violet: #a78bfa;
+  --color-accent-green:  #34d399;
+  --color-accent-red:    #f87171;
+  --color-accent-orange: #fb923c;
+  --color-accent-amber:  #F59E0B;
+  --color-accent-fuchsia:#d946ef;
+
+  /* Couleurs événements agenda */
+  --color-event-rdv:   #3b82f6;
+  --color-event-conge: #f97316;
+  --color-event-note:  #10b981;
+
+  /* Surfaces — fond pur noir */
+  --color-surface:        rgba(10, 10, 10, 0.90);
+  --color-surface-hover:  rgba(20, 20, 20, 0.98);
+  --color-surface-2:      rgba(5, 5, 5, 0.95);
+  --color-surface-offset: rgba(255, 255, 255, 0.03);
+  --color-bg:             #000000;
+  --color-bg-input:       rgba(255, 255, 255, 0.04);
+  --color-field:          #0a0a0a;
+
+  /* Texte */
+  --color-text:          #ffffff;
+  --color-text-muted:    rgba(255, 255, 255, 0.50);
+  --color-text-dim:      rgba(255, 255, 255, 0.25);
+  --color-text-faint:    rgba(255, 255, 255, 0.12);
+
+  /* Bordures */
+  --color-border:         rgba(255, 255, 255, 0.07);
+  --color-border-primary: rgba(201, 168, 76, 0.35);
+  --color-border-cyan:    rgba(34, 211, 238, 0.35);
+  --color-border-violet:  rgba(167, 139, 250, 0.35);
+  --color-border-green:   rgba(52, 211, 153, 0.35);
+  --color-border-neutral: rgba(255, 255, 255, 0.07);
+  --color-divider:        rgba(255, 255, 255, 0.04);
+
+  /* États fonctionnels */
+  --color-success: #10B981;
+  --color-error:   #EF4444;
+  --color-warning: #F59E0B;
+  --color-info:    #22d3ee;
+  --color-danger:  #EF4444;
+
+  /* Glow */
+  --glow-primary: 0 0 20px rgba(201, 168, 76, 0.30), 0 0 40px rgba(201, 168, 76, 0.12);
+  --glow-cyan:    0 0 20px rgba(34, 211, 238, 0.30),  0 0 40px rgba(34, 211, 238, 0.12);
+  --glow-violet:  0 0 20px rgba(167, 139, 250, 0.30), 0 0 40px rgba(167, 139, 250, 0.12);
+  --glow-green:   0 0 20px rgba(52, 211, 153, 0.30),  0 0 40px rgba(52, 211, 153, 0.12);
+  --glow-fuchsia: 0 0 20px rgba(217, 70, 239, 0.30),  0 0 40px rgba(217, 70, 239, 0.12);
+
+  /* Ombres */
+  --shadow-modal: 0 10px 40px rgba(0, 0, 0, 0.80);
+
+  /* Radius */
+  --radius-sm:   10px;
+  --radius-md:   16px;
+  --radius-lg:   24px;
+  --radius-xl:   32px;
+  --radius-xxl:  50px;
+  --radius-pill: 999px;
+
+  /* Blur */
+  --blur-card:    blur(16px);
+  --blur-modal:   blur(24px);
+  --blur-overlay: blur(8px);
+
+  /* Transitions */
+  --transition-fast:   colors 0.15s ease;
+  --transition-normal: colors 0.25s ease;
+
+  /* Overlays */
+  --color-overlay:       rgba(0, 0, 0, 0.92);
+  --color-overlay-light: rgba(0, 0, 0, 0.50);
+
+  /* Tables */
+  --color-table-header:    rgba(255, 255, 255, 0.03);
+  --color-table-row-alt:   rgba(255, 255, 255, 0.015);
+  --color-table-row-hover: rgba(255, 255, 255, 0.04);
+
+  /* Skeleton */
+  --color-skeleton-base:    rgba(255, 255, 255, 0.03);
+  --color-skeleton-shimmer: rgba(255, 255, 255, 0.07);
+
+  /* Charts */
+  --color-chart-tooltip-bg:     rgba(0, 0, 0, 0.97);
+  --color-chart-tooltip-border: rgba(201, 168, 76, 0.35);
+  --color-chart-tooltip-title:  #C9A84C;
+  --color-chart-axis-text:      rgba(255, 255, 255, 0.28);
+  --color-chart-grid:           rgba(255, 255, 255, 0.04);
+
+  /* Scrollbars */
+  --color-scrollbar-track: rgba(255, 255, 255, 0.02);
+  --color-scrollbar-thumb: rgba(255, 255, 255, 0.08);
+
+  /* SVG / Rings */
+  --color-ring-track: rgba(255, 255, 255, 0.06);
+
+  /* Badges */
+  --color-badge-success-bg: rgba(52, 211, 153, 0.12);
+  --color-badge-warning-bg: rgba(245, 158, 11, 0.12);
+  --color-badge-danger-bg:  rgba(239, 68, 68, 0.12);
+  --color-badge-info-bg:    rgba(34, 211, 238, 0.12);
+}

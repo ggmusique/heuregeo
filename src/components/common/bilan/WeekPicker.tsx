@@ -107,10 +107,10 @@ export const WeekPicker = ({
             w-48
             max-h-64 overflow-y-auto
             rounded-2xl
-            bg-gradient-to-br from-fuchsia-800/95 to-indigo-900/95
-            backdrop-blur-xl
-            border border-fuchsia-300/40
-            shadow-[0_0_30px_color-mix(in_srgb,var(--color-accent-fuchsia)_50%,transparent)]
+            bg-[var(--color-surface-2)]
+            backdrop-blur-modal
+            border border-[var(--color-border)]
+            shadow-modal
             custom-scrollbar
           "
         >

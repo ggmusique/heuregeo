@@ -155,8 +155,8 @@ export const LieuModal = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider">
-              Nom de la ville <span className="text-red-400">*</span>
+            <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider">
+              Nom de la ville <span className="text-[var(--color-accent-red)]">*</span>
             </label>
             <input
               type="text"
@@ -169,7 +169,7 @@ export const LieuModal = ({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider">
+            <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider">
               Type de lieu
             </label>
             <select
@@ -186,7 +186,7 @@ export const LieuModal = ({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-60">
+            <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider opacity-60">
               Adresse complète (optionnel)
             </label>
             <input
@@ -218,7 +218,7 @@ export const LieuModal = ({
             {geocodeStatus === "idle" && (
               <div className="flex items-center justify-between">
                 <span className="text-white/50 text-sm">Non renseignées</span>
-                <button type="button" onClick={doGeocode} className="text-[10px] font-black uppercase text-purple-300 hover:text-purple-100 transition-all">
+                <button type="button" onClick={doGeocode} className="text-[10px] font-black uppercase text-[var(--color-accent-violet)] hover:opacity-80 transition-[opacity] duration-150">
                   {editMode ? "Mettre à jour GPS" : "Chercher les coordonnées"}
                 </button>
               </div>
@@ -242,7 +242,7 @@ export const LieuModal = ({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-40">Latitude</label>
+            <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider opacity-40">Latitude</label>
               <input
                 type="number"
                 step="any"
@@ -253,11 +253,11 @@ export const LieuModal = ({
                   else if (!e.target.value) setGeocodeStatus("idle");
                 }}
                 placeholder="Ex: 50.1234"
-                className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md placeholder:text-white/30"
+                className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-[border-color] duration-150 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] placeholder:text-[var(--color-text-dim)]"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-40">Longitude</label>
+              <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider opacity-40">Longitude</label>
               <input
                 type="number"
                 step="any"
@@ -268,28 +268,28 @@ export const LieuModal = ({
                   else if (!e.target.value) setGeocodeStatus("idle");
                 }}
                 placeholder="Ex: 4.5678"
-                className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-all text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md placeholder:text-white/30"
+                className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-[border-color] duration-150 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] placeholder:text-[var(--color-text-dim)]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[10px] font-black uppercase mb-2 text-purple-300 tracking-wider opacity-60">Notes (optionnel)</label>
+            <label className="block text-[10px] font-black uppercase mb-2 text-[var(--color-text-muted)] tracking-wider opacity-60">Notes (optionnel)</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               placeholder="Infos complémentaires..."
               rows={3}
-              className="w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all resize-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md placeholder:text-white/40"
+              className="w-full p-4 rounded-2xl font-bold outline-none border-2 transition-[border-color] duration-150 resize-none bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] placeholder:text-[var(--color-text-dim)]"
             />
           </div>
 
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onCancel} className="flex-1 py-3 bg-white/5 hover:bg-white/10 rounded-2xl font-black uppercase text-[11px] text-white/60 hover:text-white transition-all border border-white/10">Annuler</button>
+            <button type="button" onClick={onCancel} className="flex-1 py-3 bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-hover)] rounded-2xl font-black uppercase text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-[background,color] duration-150 border border-[var(--color-border)]">Annuler</button>
             <button
               type="submit"
               disabled={loading || pendingSubmit || geocodeStatus === "searching"}
-              className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-2xl font-black uppercase text-[11px] text-white transition-all disabled:opacity-50 active:scale-95"
+              className="flex-1 py-3 bg-[var(--color-accent-violet)] hover:opacity-90 rounded-2xl font-black uppercase text-[11px] text-white transition-[opacity] duration-150 disabled:opacity-50 active:scale-95"
             >
               {loading || pendingSubmit || geocodeStatus === "searching" ? "..." : editMode ? "Modifier" : "Créer"}
             </button>

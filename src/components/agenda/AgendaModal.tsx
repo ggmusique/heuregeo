@@ -27,6 +27,7 @@ interface Props {
   onCancel?: () => void;
   onDelete?: () => void;
   loading?: boolean;
+  /** @deprecated — ignoré, le thème vient de DarkModeContext */
   darkMode?: boolean;
 }
 
@@ -39,7 +40,6 @@ export function AgendaModal({
   onCancel,
   onDelete,
   loading       = false,
-  darkMode      = true,
 }: Props) {
   const [type,        setType]       = useState<AgendaEventType>(AGENDA_EVENT_TYPES.RDV);
   const [titre,       setTitre]      = useState("");
@@ -92,29 +92,25 @@ export function AgendaModal({
 
   if (!show) return null;
 
-  const inputCls = `w-full px-5 py-4 rounded-[20px] text-base font-semibold transition-all outline-none ${
-    darkMode
-      ? "bg-white/10 border-2 border-white/20 focus:border-emerald-400 focus:bg-white/15 text-white"
-      : "bg-[var(--color-field)] border-2 border-[var(--color-border)] focus:border-[var(--color-accent-green)] focus:bg-[var(--color-field)] text-[var(--color-text)]"
-  }`;
+  const inputCls =
+    "w-full px-5 py-4 rounded-[20px] text-base font-semibold transition-all outline-none " +
+    "bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] " +
+    "focus:border-[var(--color-accent-green)] text-[var(--color-text)] " +
+    "placeholder:text-[var(--color-text-dim)]";
 
-  const labelCls = `block text-[10px] font-black uppercase tracking-wider mb-2 ${darkMode ? "text-white/60" : "text-slate-500"}`;
+  const labelCls = "block text-[10px] font-black uppercase tracking-wider mb-2 text-[var(--color-text-muted)]";
 
   const selectedType = TYPE_OPTIONS.find((t) => t.key === type);
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center p-4 animate-in fade-in duration-200 sm:items-center">
       <div
-        className={`absolute inset-0 ${darkMode ? "bg-black/60" : "bg-black/30"} backdrop-blur-sm`}
+        className="absolute inset-0 bg-[var(--color-overlay)] backdrop-blur-[var(--blur-overlay)]"
         onClick={onCancel}
       />
 
       <div
-        className={`relative w-full max-w-md rounded-[35px] p-7 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 max-h-[90vh] overflow-y-auto ${
-          darkMode
-            ? "bg-gradient-to-br from-[var(--color-bg)]/98 to-[var(--color-surface)]/98 text-white border border-white/10"
-            : "bg-[var(--color-bg)] text-[var(--color-text)] border border-[var(--color-border)]"
-        }`}
+        className="relative w-full max-w-md rounded-[35px] p-7 shadow-modal animate-in slide-in-from-bottom-4 duration-300 max-h-[90vh] overflow-y-auto bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] backdrop-blur-card"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -123,7 +119,7 @@ export function AgendaModal({
           </h2>
           <button
             onClick={onCancel}
-            className={`w-9 h-9 rounded-full flex items-center justify-center text-lg transition-all ${darkMode ? "bg-white/10 hover:bg-white/20" : "bg-slate-100 hover:bg-slate-200"}`}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-lg transition-all bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]"
           >
             ×
           </button>
@@ -142,7 +138,7 @@ export function AgendaModal({
                   className={`flex-1 py-3 rounded-2xl text-[11px] font-black uppercase transition-all ${
                     type === t.key
                       ? `bg-gradient-to-br ${t.color} text-white shadow-lg`
-                      : darkMode ? "bg-white/5 text-white/40 border border-white/10" : "bg-slate-100 text-slate-400 border border-slate-200"
+                      : "bg-[var(--color-surface-offset)] text-[var(--color-text-dim)] border border-[var(--color-border)]"
                   }`}
                 >
                   <span className="block text-base leading-none mb-0.5">{t.emoji}</span>
@@ -172,7 +168,7 @@ export function AgendaModal({
               <p className={labelCls}>Période <span className="text-[var(--color-accent-red)]">*</span></p>
               <div className="flex gap-3 items-center">
                 <div className="flex-1">
-                  <p className={`text-[9px] font-bold uppercase mb-1 ${darkMode ? "text-white/40" : "text-slate-400"}`}>Du</p>
+                  <p className={`text-[9px] font-bold uppercase mb-1 text-[var(--color-text-dim)]`}>Du</p>
                   <input
                     type="date"
                     value={dateIso}
@@ -184,9 +180,9 @@ export function AgendaModal({
                     disabled={loading}
                   />
                 </div>
-                <span className={`text-lg font-black mt-5 ${darkMode ? "text-white/30" : "text-slate-300"}`}>→</span>
+                <span className="text-lg font-black mt-5 text-[var(--color-text-dim)]">→</span>
                 <div className="flex-1">
-                  <p className={`text-[9px] font-bold uppercase mb-1 ${darkMode ? "text-white/40" : "text-slate-400"}`}>Au</p>
+                  <p className={`text-[9px] font-bold uppercase mb-1 text-[var(--color-text-dim)]`}>Au</p>
                   <input
                     type="date"
                     value={dateFin}
@@ -217,7 +213,7 @@ export function AgendaModal({
               <p className={labelCls}>Horaires</p>
               <div className="flex gap-3">
                 <div className="flex-1">
-                  <p className={`text-[9px] font-bold uppercase mb-1 ${darkMode ? "text-white/40" : "text-slate-400"}`}>Début</p>
+                  <p className={`text-[9px] font-bold uppercase mb-1 text-[var(--color-text-dim)]`}>Début</p>
                   <input
                     type="time"
                     value={heureDebut}
@@ -227,7 +223,7 @@ export function AgendaModal({
                   />
                 </div>
                 <div className="flex-1">
-                  <p className={`text-[9px] font-bold uppercase mb-1 ${darkMode ? "text-white/40" : "text-slate-400"}`}>Fin</p>
+                  <p className={`text-[9px] font-bold uppercase mb-1 text-[var(--color-text-dim)]`}>Fin</p>
                   <input
                     type="time"
                     value={heureFin}
@@ -279,9 +275,7 @@ export function AgendaModal({
             <button
               onClick={onCancel}
               disabled={loading}
-              className={`flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] transition-all active:scale-95 ${
-                darkMode ? "bg-white/10 text-white" : "bg-slate-200 text-slate-700"
-              } disabled:opacity-50`}
+              className="flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] transition-all active:scale-95 bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] disabled:opacity-50"
             >
               Annuler
             </button>
@@ -291,7 +285,7 @@ export function AgendaModal({
               className={`flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] active:scale-95 transition-all shadow-lg ${
                 canSubmit
                   ? `bg-gradient-to-r ${selectedType?.color || "from-emerald-600 to-teal-600"} text-white`
-                  : "bg-gray-600/30 text-white/40 cursor-not-allowed"
+                  : "bg-[var(--color-surface-2)] text-[var(--color-text-dim)] cursor-not-allowed"
               }`}
             >
               {loading ? "⏳" : editMode ? "Modifier" : "Créer"}
@@ -318,3 +312,4 @@ export function AgendaModal({
     </div>
   );
 }
+

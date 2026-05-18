@@ -135,20 +135,32 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
   }, []);
 
   // ── Rendu ────────────────────────────────────────────────────────────────
-  const containerCls = "min-h-screen flex flex-col items-center justify-center bg-[#0f172a] text-slate-100 px-4 py-8";
-  const cardCls = "w-full max-w-md bg-[#1e293b] rounded-2xl border border-slate-700 p-8 shadow-2xl";
-  const inputCls = "w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-600 text-sm font-medium text-slate-100 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-colors";
-  const btnPrimaryCls = "w-full py-3 px-6 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-sm tracking-wide hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed";
+
+  // Classes tokenisées — aucune couleur hardcodée
+  const containerCls =
+    "min-h-screen flex flex-col items-center justify-center bg-[var(--color-bg)] text-[var(--color-text)] px-4 py-8";
+  const cardCls =
+    "w-full max-w-md bg-[var(--color-surface)] rounded-2xl border border-[var(--color-border)] p-8 shadow-modal backdrop-blur-card";
+  const inputCls =
+    "w-full px-4 py-3 rounded-xl bg-[var(--color-bg-input)] border border-[var(--color-border)] " +
+    "text-sm font-medium text-[var(--color-text)] " +
+    "focus:outline-none focus:border-[var(--color-border-primary)] focus:ring-1 focus:ring-[var(--color-border-primary)] " +
+    "transition-colors placeholder:text-[var(--color-text-dim)]";
+  const btnPrimaryCls =
+    "w-full py-3 px-6 rounded-xl bg-gradient-to-r from-[var(--color-accent-violet)] to-[var(--color-primary)] " +
+    "text-white font-bold text-sm tracking-wide hover:opacity-90 transition-opacity " +
+    "disabled:opacity-50 disabled:cursor-not-allowed";
+
 
   if (state === "loading" || state === "activating") {
     return (
       <div className={containerCls}>
         <div className="flex flex-col items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl">
+          <div className="w-14 h-14 rounded-2xl bg-[var(--color-accent-violet)]/20 border border-[var(--color-accent-violet)]/30 flex items-center justify-center">
             <span className="text-2xl">⏱</span>
           </div>
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-400 border-t-transparent" />
-          <p className="text-slate-400 text-sm">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[var(--color-primary)] border-t-transparent" />
+          <p className="text-[var(--color-text-muted)] text-sm">
             {state === "activating" ? "Activation de votre accès…" : "Vérification du lien…"}
           </p>
         </div>
@@ -163,10 +175,10 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
           <div className="text-center space-y-4">
             <div className="text-4xl">⏰</div>
             <h1 className="text-xl font-black tracking-tight">Lien expiré ou invalide</h1>
-            <p className="text-slate-400 text-sm">
+            <p className="text-[var(--color-text-muted)] text-sm">
               Ce lien d&apos;invitation n&apos;est plus valide (expiré après 7 jours ou déjà utilisé).
             </p>
-            <p className="text-slate-400 text-sm">
+            <p className="text-[var(--color-text-muted)] text-sm">
               Demandez à votre employeur de vous renvoyer une invitation depuis HeurGeo.
             </p>
           </div>
@@ -182,7 +194,7 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
           <div className="text-center space-y-4">
             <div className="text-4xl">❌</div>
             <h1 className="text-xl font-black tracking-tight">Erreur</h1>
-            <p className="text-slate-400 text-sm">{errorMsg}</p>
+            <p className="text-[var(--color-text-muted)] text-sm">{errorMsg}</p>
             <button onClick={handleGoToApp} className={btnPrimaryCls}>
               Retour à l&apos;accueil
             </button>
@@ -197,12 +209,12 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
       <div className={containerCls}>
         <div className={cardCls}>
           <div className="text-center space-y-5">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto shadow-xl">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--color-accent-violet)]/20 border border-[var(--color-border-violet)] flex items-center justify-center mx-auto shadow-xl">
               <span className="text-2xl">⏱</span>
             </div>
             <h1 className="text-xl font-black tracking-tight">Activer votre accès</h1>
             {invite && (
-              <p className="text-slate-400 text-sm">
+              <p className="text-[var(--color-text-muted)] text-sm">
                 Vous êtes connecté. Cliquez sur le bouton ci-dessous pour activer votre accès patron.
               </p>
             )}
@@ -219,11 +231,11 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
       <div className={containerCls}>
         <div className={cardCls}>
           <div className="text-center space-y-5">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto">
+            <div className="w-16 h-16 rounded-full bg-[var(--color-badge-success-bg)] border border-[var(--color-border-green)] flex items-center justify-center mx-auto">
               <span className="text-3xl">✅</span>
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-emerald-400">Accès activé !</h1>
-            <p className="text-slate-400 text-sm">
+            <h1 className="text-2xl font-black tracking-tight text-[var(--color-success)]">Accès activé !</h1>
+            <p className="text-[var(--color-text-muted)] text-sm">
               Votre accès a été activé avec succès. Vous pouvez maintenant consulter vos heures et bilans.
             </p>
             <button onClick={handleGoToApp} className={btnPrimaryCls}>
@@ -241,14 +253,14 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
       <div className={cardCls}>
         {/* Logo + titre */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-3 shadow-lg">
+          <div className="w-12 h-12 rounded-2xl bg-[var(--color-accent-violet)]/20 border border-[var(--color-border-violet)] flex items-center justify-center mx-auto mb-3 shadow-lg">
             <span className="text-xl">⏱</span>
           </div>
           <h1 className="text-xl font-black tracking-tight">Tracko</h1>
-          <p className="text-slate-400 text-xs mt-1">Activer mon accès patron</p>
+          <p className="text-[var(--color-text-muted)] text-xs mt-1">Activer mon accès patron</p>
         </div>
 
-        <div className="mb-5 p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-sm text-indigo-200">
+        <div className="mb-5 p-3 rounded-xl bg-[var(--color-badge-info-bg)] border border-[var(--color-border-cyan)] text-sm text-[var(--color-accent-cyan)]">
           {forcedAuthMode === "signup"
             ? "Aucun compte n'existe pour cette adresse. Créez un compte pour activer votre accès."
             : forcedAuthMode === "login"
@@ -258,7 +270,7 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
 
         {/* Sélecteur mode — masqué si le mode est verrouillé */}
         {!forcedAuthMode && (
-        <div className="flex gap-1 mb-5 bg-slate-800 rounded-xl p-1">
+        <div className="flex gap-1 mb-5 bg-[var(--color-surface-2)] rounded-xl p-1">
           {(["signup", "login"] as const).map((m) => (
             <button
               key={m}
@@ -267,8 +279,8 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
               className={
                 "flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all " +
                 (authMode === m
-                  ? "bg-indigo-600 text-white shadow"
-                  : "text-slate-400 hover:text-slate-200")
+                  ? "bg-[var(--color-accent-violet)] text-white shadow"
+                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]")
               }
             >
               {m === "signup" ? "Créer un compte" : "Se connecter"}
@@ -279,7 +291,7 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
 
         <form onSubmit={handleAuth} className="space-y-4">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">
               Email
             </label>
             <input
@@ -295,7 +307,7 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
             />
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)] mb-1.5">
               Mot de passe
             </label>
             <input
@@ -310,12 +322,12 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
               className={inputCls}
             />
             {authMode === "signup" && (
-              <p className="text-[10px] text-slate-500 mt-1">Minimum 6 caractères</p>
+              <p className="text-[10px] text-[var(--color-text-dim)] mt-1">Minimum 6 caractères</p>
             )}
           </div>
 
           {authMsg && (
-            <p className={"text-sm px-3 py-2 rounded-lg " + (authMsg.startsWith("✅") ? "bg-emerald-500/10 text-emerald-300" : "bg-red-500/10 text-red-300")}>
+            <p className={"text-sm px-3 py-2 rounded-lg " + (authMsg.startsWith("✅") ? "bg-[var(--color-badge-success-bg)] text-[var(--color-success)]" : "bg-[var(--color-badge-danger-bg)] text-[var(--color-error)]")}>
               {authMsg}
             </p>
           )}

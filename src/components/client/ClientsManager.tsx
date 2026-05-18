@@ -168,11 +168,7 @@ export const ClientsManager = ({
           <input
             type="text"
             placeholder="🔍 Rechercher un client..."
-            className={`w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all ${
-              darkMode
-                ? "bg-black/20 border-white/5 text-white focus:border-indigo-500"
-                : "bg-[var(--color-field)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)]"
-            } backdrop-blur-md`}
+            className="w-full p-4 rounded-2xl font-bold outline-none border-2 transition-[border-color] duration-150 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] backdrop-blur-card"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

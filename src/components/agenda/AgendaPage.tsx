@@ -121,15 +121,17 @@ export function AgendaPage({
     }
   }, [refreshKey]); // intentionally omit `refetch` to avoid loop on first render
 
-  // Fallback: force dark background on FullCalendar header cells after render
+  // Fallback: force theme background on FullCalendar header cells after render
   useEffect(() => {
     const timer = setTimeout(() => {
+      const bg    = getComputedStyle(document.documentElement).getPropertyValue("--color-bg").trim();
+      const border = getComputedStyle(document.documentElement).getPropertyValue("--color-border-cyan").trim();
       document.querySelectorAll<HTMLElement>(".fc-col-header-cell").forEach((el) => {
-        el.style.setProperty("background", "#0d1117", "important");
-        el.style.setProperty("border-color", "rgba(34,211,238,0.15)", "important");
+        el.style.setProperty("background", bg, "important");
+        el.style.setProperty("border-color", border, "important");
       });
       document.querySelectorAll<HTMLElement>(".fc-scrollgrid-sync-inner").forEach((el) => {
-        el.style.setProperty("background", "#0d1117", "important");
+        el.style.setProperty("background", bg, "important");
       });
     }, 100);
     return () => clearTimeout(timer);
@@ -234,24 +236,24 @@ export function AgendaPage({
       </div>
 
       {/* ── Calendar Container ────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-white/8 bg-gray-900/60 backdrop-blur overflow-hidden shadow-[0_0_30px_rgba(34,211,238,0.07)]">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-card overflow-hidden shadow-modal">
 
         {/* ── Custom Toolbar ──────────────────────────────────────────────── */}
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 pt-3 sm:pt-4 pb-2 sm:pb-3 border-b border-white/6">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 pt-3 sm:pt-4 pb-2 sm:pb-3 border-b border-[var(--color-border)]">
 
           {/* Navigation */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               onClick={handlePrev}
               aria-label="Précédent"
-              className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-300 hover:border-cyan-400/40 hover:bg-cyan-400/10 transition-all duration-200"
+              className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-accent-cyan)] hover:border-[var(--color-border-cyan)] hover:bg-[var(--color-accent-cyan)]/10 transition-all duration-200"
             >
               <ChevronLeft size={16} />
             </button>
 
             <button
               onClick={handleToday}
-              className="px-3 h-11 sm:h-8 text-xs font-semibold rounded-lg bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 hover:bg-cyan-500/30 hover:border-cyan-400/60 hover:shadow-[0_0_12px_rgba(34,211,238,0.35)] transition-all duration-200"
+              className="px-3 h-11 sm:h-8 text-xs font-semibold rounded-lg bg-[var(--color-accent-cyan)]/15 border border-[var(--color-border-cyan)] text-[var(--color-accent-cyan)] hover:bg-[var(--color-accent-cyan)]/30 hover:border-[var(--color-accent-cyan)]/60 transition-all duration-200"
             >
               Aujourd&apos;hui
             </button>
@@ -259,19 +261,19 @@ export function AgendaPage({
             <button
               onClick={handleNext}
               aria-label="Suivant"
-              className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-cyan-300 hover:border-cyan-400/40 hover:bg-cyan-400/10 transition-all duration-200"
+              className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-accent-cyan)] hover:border-[var(--color-border-cyan)] hover:bg-[var(--color-accent-cyan)]/10 transition-all duration-200"
             >
               <ChevronRight size={16} />
             </button>
           </div>
 
           {/* Title */}
-          <span className="text-sm font-bold text-white/80 tracking-wide min-w-0 truncate flex-1 text-center sm:flex-none">
+          <span className="text-sm font-bold text-[var(--color-text-muted)] tracking-wide min-w-0 truncate flex-1 text-center sm:flex-none">
             {calendarTitle}
           </span>
 
           {/* View switcher */}
-          <div className="flex items-center gap-1 rounded-xl bg-white/5 border border-white/8 p-1">
+          <div className="flex items-center gap-1 rounded-xl bg-[var(--color-surface-hover)] border border-[var(--color-border)] p-1">
             {visibleViews.map((view) => (
               <button
                 key={view}
@@ -279,8 +281,8 @@ export function AgendaPage({
                 className={[
                   "px-2 sm:px-3 h-9 sm:h-auto sm:py-1 text-xs font-semibold rounded-lg transition-all duration-200",
                   currentView === view
-                    ? "bg-cyan-500/30 border border-cyan-400/50 text-cyan-200 shadow-[0_0_10px_rgba(34,211,238,0.3)]"
-                    : "text-white/50 hover:text-white/80 hover:bg-white/8",
+                    ? "bg-[var(--color-accent-cyan)]/30 border border-[var(--color-border-cyan)] text-[var(--color-accent-cyan)]"
+                    : "text-[var(--color-text-dim)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-offset)]",
                 ].join(" ")}
               >
                 <span className="hidden sm:inline">{VIEW_LABELS[view].full}</span>

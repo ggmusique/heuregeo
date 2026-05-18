@@ -1,2 +1,2 @@
-[functions.send-planning-email]
-verify_jwt = false
+# send-planning-email nécessite un JWT valide depuis la migration sécurité 2026-05-22.
+# verify_jwt = true est la valeur par défaut — ne pas ajouter verify_jwt = false ici.
