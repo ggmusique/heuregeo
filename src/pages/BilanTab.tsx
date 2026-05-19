@@ -40,6 +40,37 @@ interface Props {
   onRecalculerFraisKm?: (() => void) | null;
 }
 
+const MOIS_FR = [
+  "janvier", "fevrier", "mars", "avril", "mai", "juin",
+  "juillet", "aout", "septembre", "octobre", "novembre", "decembre",
+];
+
+function buildPdfFilename(
+  prenom: string | null | undefined,
+  nom: string | null | undefined,
+  periodType: string,
+  periodValue: string,
+): string {
+  const rawName = (prenom || nom || "bilan")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, "")
+    .trim();
+
+  let period: string;
+  if (periodType === "semaine") {
+    period = `semaine ${periodValue}`;
+  } else if (periodType === "mois") {
+    const [year, month] = (periodValue || "").split("-");
+    const label = MOIS_FR[parseInt(month ?? "0", 10) - 1] ?? month ?? "";
+    period = `${label} ${year}`.trim();
+  } else {
+    period = periodValue;
+  }
+
+  return `${rawName} ${period}.pdf`.replace(/\s+/g, " ").trim();
+}
+
 export const BilanTab = ({
   bilan,
   bilanPatronId,
@@ -120,8 +151,13 @@ export const BilanTab = ({
         regenerateEncryptedPdf: (pwd) => generatePDFProArrayBuffer({ ...pdfInput, password: pwd }),
       });
 
-      const baseTitle = (exportBilanContent.titre || "bilan").replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
-      const file = new File([secureBytes], `${baseTitle}_whatsapp_securise.pdf`, { type: "application/pdf" });
+      const filename = buildPdfFilename(
+        profile?.prenom,
+        profile?.nom,
+        bilan.bilanPeriodType,
+        bilan.bilanPeriodValue,
+      );
+      const file = new File([secureBytes], filename, { type: "application/pdf" });
 
       await shareWhatsAppFile(
         file,

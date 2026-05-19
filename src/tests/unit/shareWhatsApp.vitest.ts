@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shareWhatsAppFile } from "../../utils/shareWhatsApp";
 
 describe("shareWhatsAppFile", () => {
@@ -6,6 +6,11 @@ describe("shareWhatsAppFile", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("utilise navigator.share en mode natif", async () => {
@@ -29,10 +34,10 @@ describe("shareWhatsAppFile", () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     const appendSpy = vi.spyOn(document.body, "appendChild");
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:pdf");
-    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const revokeSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
 
     const result = await shareWhatsAppFile(
-      new File([new Uint8Array([1])], "secure.pdf", { type: "application/pdf" }),
+      new File([new Uint8Array([1])], "Geoffrey semaine 19.pdf", { type: "application/pdf" }),
       "Message test",
     );
 
@@ -40,6 +45,10 @@ describe("shareWhatsAppFile", () => {
     expect(openSpy).toHaveBeenCalled();
     expect(clickSpy).toHaveBeenCalled();
     expect(appendSpy).toHaveBeenCalled();
+    // revokeObjectURL est différé (setTimeout 10s) — ne doit pas être appelé immédiatement
+    expect(revokeSpy).not.toHaveBeenCalled();
+    vi.runAllTimers();
+    expect(revokeSpy).toHaveBeenCalledWith("blob:pdf");
   });
 
   it("renvoie une erreur propre si fichier absent", async () => {

@@ -15,7 +15,9 @@ function triggerDownload(file: File): void {
   document.body.appendChild(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(blobUrl);
+  // Révoquer après un délai pour laisser le navigateur démarrer le téléchargement.
+  // Une révocation immédiate peut interrompre le transfert sur certains navigateurs mobiles.
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
 }
 
 export async function shareWhatsAppFile(file: File, message: string): Promise<ShareWhatsAppResult> {
