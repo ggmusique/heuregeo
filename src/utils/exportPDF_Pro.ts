@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { formatEuro, formatHeures, formatDateFR } from "./formatters";
+import { buildPdfFilename } from "./pdfFilename";
 
 /**
  * PALETTE CLASSIQUE PRO — Blanc / Bleu Marine
@@ -915,10 +916,12 @@ export const exportToPDFPro = (
     if (estPaye) drawPayeStamp(doc, y);
     drawFooter(doc);
 
-    const fileName = `GeoBilan_${(bilanContent.titre || "export")
-      .replace(/\s+/g, "_")
-      .replace(/[^a-zA-Z0-9_-]/g, "")}_${Date.now()}.pdf`;
-
+    const fileName = buildPdfFilename(
+      profile?.prenom,
+      profile?.nom,
+      periodType,
+      periodValue,
+    );
     doc.save(fileName);
   } catch (error) {
     console.error("❌ Erreur PDF:", error);
@@ -936,11 +939,11 @@ interface PdfBuildParams {
   password?: string;
 }
 
-const getPdfFileName = (title: string | undefined): string => (
-  `GeoBilan_${(title || "export")
-    .replace(/\s+/g, "_")
-    .replace(/[^a-zA-Z0-9_-]/g, "")}_${Date.now()}.pdf`
-);
+const getPdfFileName = (
+  profile: any,
+  periodType: string,
+  periodValue: string,
+): string => buildPdfFilename(profile?.prenom, profile?.nom, periodType, periodValue);
 
 const createPdfDoc = ({
   bilanContent,
@@ -1023,5 +1026,5 @@ export const downloadPDFPro = ({
     profile,
     labels,
   });
-  doc.save(getPdfFileName(bilanContent?.titre));
+  doc.save(getPdfFileName(profile, periodType, periodValue));
 };

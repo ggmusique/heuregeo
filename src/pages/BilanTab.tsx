@@ -7,6 +7,7 @@ import { WhatsAppSecureModal } from "../components/common/WhatsAppSecureModal";
 import { useLabels } from "../contexts/LabelsContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { sanitizeErrorForDisplay } from "../utils/sanitize";
+import { buildPdfFilename } from "../utils/pdfFilename";
 import type { Mission, Patron, FraisDivers } from "../types/entities";
 import type { UserProfile } from "../types/profile";
 import type { KmSettings, KmFraisResult } from "../hooks/useKmDomicile";
@@ -38,37 +39,6 @@ interface Props {
   kmFraisThisWeek?: KmFraisResult | null;
   domicileLatLng?: { lat: number; lng: number } | null;
   onRecalculerFraisKm?: (() => void) | null;
-}
-
-const MOIS_FR = [
-  "janvier", "fevrier", "mars", "avril", "mai", "juin",
-  "juillet", "aout", "septembre", "octobre", "novembre", "decembre",
-];
-
-function buildPdfFilename(
-  prenom: string | null | undefined,
-  nom: string | null | undefined,
-  periodType: string,
-  periodValue: string,
-): string {
-  const rawName = (prenom || nom || "bilan")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s]/g, "")
-    .trim();
-
-  let period: string;
-  if (periodType === "semaine") {
-    period = `semaine ${periodValue}`;
-  } else if (periodType === "mois") {
-    const [year, month] = (periodValue || "").split("-");
-    const label = MOIS_FR[parseInt(month ?? "0", 10) - 1] ?? month ?? "";
-    period = `${label} ${year}`.trim();
-  } else {
-    period = periodValue;
-  }
-
-  return `${rawName} ${period}.pdf`.replace(/\s+/g, " ").trim();
 }
 
 export const BilanTab = ({
