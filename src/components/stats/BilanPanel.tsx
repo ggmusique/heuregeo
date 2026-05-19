@@ -98,10 +98,12 @@ interface BilanPanelProps {
   isViewer?: boolean;
   canExportExcel?: boolean;
   canExportPDF?: boolean;
+  canExportWhatsAppSecure?: boolean;
   canExportCSV?: boolean;
   canFacture?: boolean;
   onExportExcel?: () => void;
   onExportPDF?: () => void;
+  onExportWhatsAppSecure?: () => void;
   onExportCSV?: () => void;
   onExportCSVWithFrais?: () => void;
   onExportFacture?: () => void;
@@ -122,10 +124,12 @@ export function BilanPanel({
   isViewer = false,
   canExportExcel = true,
   canExportPDF = true,
+  canExportWhatsAppSecure = true,
   canExportCSV = true,
   canFacture = false,
   onExportExcel,
   onExportPDF,
+  onExportWhatsAppSecure,
   onExportCSV,
   onExportCSVWithFrais,
   onExportFacture,
@@ -607,6 +611,12 @@ export function BilanPanel({
           onClick={onExportPDF}
           disabled={!canExportPDF}
           color={"var(--color-accent-red)"}
+        />
+        <ExportBtn
+          label={canExportWhatsAppSecure ? "WhatsApp sécurisé" : "🔒 WhatsApp sécurisé"}
+          onClick={onExportWhatsAppSecure}
+          disabled={!canExportWhatsAppSecure}
+          color={tokens.colors.emerald.primary}
         />
         {canFacture && (
           <ExportBtn

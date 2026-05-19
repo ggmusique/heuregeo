@@ -1,10 +1,12 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { MissionCard } from "../components/mission/MissionCard";
 import { WeekPicker } from "../components/common/bilan/WeekPicker";
 import { formatEuro, formatDateFR } from "../utils/formatters";
 import { BilanPanel } from "../components/stats/BilanPanel";
+import { WhatsAppSecureModal } from "../components/common/WhatsAppSecureModal";
 import { useLabels } from "../contexts/LabelsContext";
 import { usePermissions } from "../contexts/PermissionsContext";
+import { sanitizeErrorForDisplay } from "../utils/sanitize";
 import type { Mission, Patron, FraisDivers } from "../types/entities";
 import type { UserProfile } from "../types/profile";
 import type { KmSettings, KmFraisResult } from "../hooks/useKmDomicile";
@@ -75,6 +77,9 @@ export const BilanTab = ({
   const canExportCSV  = canExportCSVProp  !== undefined ? canExportCSVProp  : perms.canExportCSV;
   const canFacture    = canFactureProp    !== undefined ? canFactureProp    : perms.canFacture;
   const L = useLabels();
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [isWhatsAppSubmitting, setIsWhatsAppSubmitting] = useState(false);
+  const [whatsAppError, setWhatsAppError] = useState<string | null>(null);
   const exportBilanContent = useMemo(() => {
     if (kmSettings?.km_enable === true) return bilan.bilanContent;
     return {
@@ -89,6 +94,47 @@ export const BilanTab = ({
       (a: Mission, b: Mission) => new Date(a.date_iso ?? "").getTime() - new Date(b.date_iso ?? "").getTime()
     );
   }, [bilan.bilanContent?.filteredData]);
+
+  const handleSecureWhatsAppShare = async (password: string) => {
+    setWhatsAppError(null);
+    setIsWhatsAppSubmitting(true);
+
+    try {
+      const { generatePDFProArrayBuffer } = await import("../utils/exportPDF_Pro");
+      const { securePdf } = await import("../utils/securePdf");
+      const { shareWhatsAppFile } = await import("../utils/shareWhatsApp");
+
+      const pdfInput = {
+        bilanContent: exportBilanContent,
+        periodType: bilan.bilanPeriodType,
+        estPaye: bilan.bilanPaye,
+        periodValue: bilan.bilanPeriodValue,
+        profile,
+        labels: L,
+      };
+
+      const sourcePdfBytes = generatePDFProArrayBuffer(pdfInput);
+      const secureBytes = await securePdf({
+        sourcePdfBytes,
+        password,
+        regenerateEncryptedPdf: (pwd) => generatePDFProArrayBuffer({ ...pdfInput, password: pwd }),
+      });
+
+      const baseTitle = (exportBilanContent.titre || "bilan").replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "");
+      const file = new File([secureBytes], `${baseTitle}_whatsapp_securise.pdf`, { type: "application/pdf" });
+
+      await shareWhatsAppFile(
+        file,
+        "Bonjour, voici votre PDF sécurisé. Partagez le mot de passe via un canal séparé.",
+      );
+
+      setIsWhatsAppModalOpen(false);
+    } catch (error) {
+      setWhatsAppError(sanitizeErrorForDisplay(error));
+    } finally {
+      setIsWhatsAppSubmitting(false);
+    }
+  };
 
   if (!bilan.showBilan) {
     return (
@@ -210,6 +256,7 @@ export const BilanTab = ({
         isViewer={isViewer}
         canExportExcel={canExportExcel}
         canExportPDF={canExportPDF}
+        canExportWhatsAppSecure={canExportPDF}
         canExportCSV={canExportCSV}
         canFacture={canFacture}
         onExportExcel={async () => {
@@ -223,6 +270,11 @@ export const BilanTab = ({
           const { exportToPDFPro } = await import("../utils/exportPDF_Pro");
           exportToPDFPro(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
             bilan.bilanPeriodValue, profile, L);
+        }}
+        onExportWhatsAppSecure={() => {
+          if (!canExportPDF) return;
+          setWhatsAppError(null);
+          setIsWhatsAppModalOpen(true);
         }}
         onExportCSV={async () => {
           if (!canExportCSV) return;
@@ -251,6 +303,17 @@ export const BilanTab = ({
         onRecalculerFraisKm={onRecalculerFraisKm ?? undefined}
         isRecalculatingKm={bilan.isRecalculatingKm}
         domicileLatLng={domicileLatLng}
+      />
+
+      <WhatsAppSecureModal
+        open={isWhatsAppModalOpen}
+        isSubmitting={isWhatsAppSubmitting}
+        errorMessage={whatsAppError}
+        onClose={() => {
+          if (isWhatsAppSubmitting) return;
+          setIsWhatsAppModalOpen(false);
+        }}
+        onSubmit={handleSecureWhatsAppShare}
       />
     </div>
   );

@@ -925,3 +925,103 @@ export const exportToPDFPro = (
     alert("Erreur lors de la génération du PDF. Consultez la console.");
   }
 };
+
+interface PdfBuildParams {
+  bilanContent: any;
+  periodType: string;
+  estPaye?: boolean;
+  periodValue?: string;
+  profile?: any;
+  labels?: Record<string, string>;
+  password?: string;
+}
+
+const getPdfFileName = (title: string | undefined): string => (
+  `GeoBilan_${(title || "export")
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9_-]/g, "")}_${Date.now()}.pdf`
+);
+
+const createPdfDoc = ({
+  bilanContent,
+  periodType,
+  estPaye = false,
+  periodValue = "",
+  profile = null,
+  labels = {},
+  password,
+}: PdfBuildParams): jsPDF => {
+  const doc = password
+    ? new jsPDF({
+        encryption: {
+          userPassword: password,
+          ownerPassword: `${password}_owner`,
+          userPermissions: ["print", "copy"],
+        },
+      })
+    : new jsPDF();
+
+  let y = drawHeader(doc, bilanContent, periodType, periodValue);
+  y = drawProfileSection(doc, profile, y);
+  y = drawMetrics(doc, bilanContent, periodType, y);
+
+  if (periodType === "semaine") {
+    y = drawMissionsTable(doc, bilanContent, y, labels);
+    y = drawFraisTable(doc, bilanContent, y);
+    y = drawKmFeesTable(doc, bilanContent, y, labels);
+    y = drawAcomptesSection(doc, bilanContent, y);
+  } else if (periodType === "mois") {
+    y = drawWeeklySummary(doc, bilanContent, y);
+  } else if (periodType === "annee") {
+    y = drawMonthlySummary(doc, bilanContent, y);
+  }
+
+  if (estPaye) drawPayeStamp(doc, y);
+  drawFooter(doc);
+  return doc;
+};
+
+export const generatePDFProArrayBuffer = ({
+  bilanContent,
+  periodType,
+  estPaye = false,
+  periodValue = "",
+  profile = null,
+  labels = {},
+  password,
+}: PdfBuildParams): Uint8Array => {
+  if (!bilanContent) {
+    throw new Error("Aucune donnée à exporter.");
+  }
+
+  const doc = createPdfDoc({
+    bilanContent,
+    periodType,
+    estPaye,
+    periodValue,
+    profile,
+    labels,
+    password,
+  });
+
+  return new Uint8Array(doc.output("arraybuffer"));
+};
+
+export const downloadPDFPro = ({
+  bilanContent,
+  periodType,
+  estPaye = false,
+  periodValue = "",
+  profile = null,
+  labels = {},
+}: Omit<PdfBuildParams, "password">): void => {
+  const doc = createPdfDoc({
+    bilanContent,
+    periodType,
+    estPaye,
+    periodValue,
+    profile,
+    labels,
+  });
+  doc.save(getPdfFileName(bilanContent?.titre));
+};
