@@ -22,7 +22,8 @@ import { test as setup, expect } from "@playwright/test";
 import * as fs from "fs";
 import * as path from "path";
 
-const AUTH_DIR = path.join(__dirname, "../.auth");
+// Utilise process.cwd() au lieu de __dirname (incompatible ESM avec "type": "module")
+const AUTH_DIR = path.join(process.cwd(), "e2e", ".auth");
 
 // Crée le répertoire si inexistant
 if (!fs.existsSync(AUTH_DIR)) {
