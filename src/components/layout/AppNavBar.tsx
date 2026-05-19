@@ -16,7 +16,7 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
   const isProNavigationMode = isPro && !isViewer;
 
   return (
-    <nav className="fixed bottom-6 left-6 right-6 z-[100]">
+    <nav data-testid="mobile-navbar" className="fixed bottom-6 left-6 right-6 z-[100]">
       {isProNavigationMode ? (
         <div
           className={

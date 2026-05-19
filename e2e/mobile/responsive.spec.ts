@@ -10,13 +10,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { test, expect } from "@playwright/test";
-import { waitForNoSpinner } from "../helpers/navigation";
+import { waitForAppReady } from "../helpers/navigation";
 import { captureMobileView } from "../helpers/screenshot";
 
 test.describe("Responsive mobile", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await waitForNoSpinner(page);
+    await waitForAppReady(page);
   });
 
   // ── Pas d'overflow horizontal ───────────────────────────────────────────────
@@ -34,31 +34,38 @@ test.describe("Responsive mobile", () => {
     // Pas d'erreur React visible
     await expect(page.locator("[data-testid='error-boundary'], .error-boundary")).not.toBeVisible();
 
-    // Root monté
-    await expect(page.locator("main, #app, #root")).toBeVisible({ timeout: 10_000 });
+    // app-shell ou login-form monté (waitForAppReady garantit l'un des deux)
+    const appReady =
+      (await page.locator('[data-testid="app-shell"]').isVisible().catch(() => false)) ||
+      (await page.locator('[data-testid="login-form"]').isVisible().catch(() => false));
+    expect(appReady, "Ni app-shell ni login-form visible après chargement").toBe(true);
 
     await captureMobileView(page, `app-loaded-${browserName}`, testInfo);
   });
 
   // ── Navigation mobile accessible ────────────────────────────────────────────
-  test("3. Navigation mobile accessible (hamburger ou navbar)", async ({ page }, testInfo) => {
-    // Sur mobile, la navigation peut être un hamburger menu ou une navbar bottom
-    const navElements = [
-      page.locator("[data-testid='mobile-nav'], [data-testid='hamburger']").first(),
-      page.getByRole("navigation").first(),
-      page.locator("nav").first(),
-    ];
+  test("3. Navigation mobile accessible (navbar bottom)", async ({ page }, testInfo) => {
+    // La nav est visible uniquement si authentifié (app-shell présent)
+    const isAuthenticated = await page
+      .locator('[data-testid="app-shell"]')
+      .isVisible()
+      .catch(() => false);
 
-    let navFound = false;
-    for (const nav of navElements) {
-      if (await nav.isVisible({ timeout: 2_000 }).catch(() => false)) {
-        navFound = true;
-        break;
-      }
+    if (!isAuthenticated) {
+      // Sans session : login-form visible, nav absente → test non applicable
+      await expect(page.locator('[data-testid="login-form"]')).toBeVisible({ timeout: 5_000 });
+      await captureMobileView(page, "navigation-mobile-login", testInfo);
+      test.skip(true, "Session absente — navigation authentifiée non testable");
+      return;
     }
 
+    // App authentifiée : la navbar bottom doit être visible
+    await expect(
+      page.locator('[data-testid="mobile-navbar"]'),
+      "La navbar mobile (bottom nav) n'est pas visible",
+    ).toBeVisible({ timeout: 5_000 });
+
     await captureMobileView(page, "navigation-mobile", testInfo);
-    expect(navFound, "Aucun élément de navigation trouvé sur mobile").toBe(true);
   });
 
   // ── Boutons avec taille minimale (accessibilité touch) ──────────────────────
@@ -99,7 +106,7 @@ test.describe("Responsive mobile", () => {
 
   // ── Modals visibles sur mobile ──────────────────────────────────────────────
   test("5. Ouverture de modal sans overflow sur mobile", async ({ page }, testInfo) => {
-    await waitForNoSpinner(page);
+    // waitForAppReady est déjà fait dans beforeEach — l'app est stable ici
 
     // Chercher un bouton qui ouvre une modal (ajouter, créer, paramètres...)
     const modalTrigger = page
@@ -148,7 +155,11 @@ test.describe("Responsive mobile", () => {
     }
 
     await bilanLink.click();
-    await waitForNoSpinner(page);
+    // Attendre que l'app se stabilise après navigation interne (SPA)
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="app-shell"]') !== null,
+      { timeout: 8_000 },
+    );
 
     const overflow = await page.evaluate(() => {
       return document.documentElement.scrollWidth > document.documentElement.clientWidth;

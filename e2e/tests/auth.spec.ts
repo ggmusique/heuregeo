@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { test, expect } from "@playwright/test";
+import { waitForAppReady } from "../helpers/navigation";
 
 test.describe("Authentification", () => {
   // Ces tests ne dépendent pas de la session sauvegardée : ils testent
@@ -12,15 +13,15 @@ test.describe("Authentification", () => {
 
   test("1. Redirige vers la page de login si non authentifié", async ({ page }) => {
     await page.goto("/");
-    // L'app doit afficher un formulaire de connexion
-    await expect(
-      page.locator('input[type="email"], [data-testid="login-email"]')
-    ).toBeVisible({ timeout: 10_000 });
+    await waitForAppReady(page);
+    // L'app doit afficher le formulaire de connexion (pas l'app-shell)
+    await expect(page.locator('[data-testid="login-form"]')).toBeVisible({ timeout: 5_000 });
   });
 
   test("2. Login avec mauvaises credentials → message d'erreur", async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector('input[type="email"]', { timeout: 10_000 });
+    await waitForAppReady(page);
+    await expect(page.locator('[data-testid="login-form"]')).toBeVisible({ timeout: 5_000 });
 
     await page.fill('input[type="email"]', "nonexistant@example.com");
     await page.fill('input[type="password"]', "mauvais-mot-de-passe-123");
@@ -32,7 +33,7 @@ test.describe("Authentification", () => {
     ).toBeVisible({ timeout: 8_000 });
   });
 
-  test("3. Login valide → redirige vers l'application", async ({ page }) => {
+  test("3. Login valide → app-shell visible (SPA, URL invariante)", async ({ page }) => {
     const email = process.env.E2E_OWNER_EMAIL;
     const password = process.env.E2E_OWNER_PASSWORD;
 
@@ -42,21 +43,24 @@ test.describe("Authentification", () => {
     }
 
     await page.goto("/");
-    await page.waitForSelector('input[type="email"]', { timeout: 10_000 });
+    await waitForAppReady(page);
+    await expect(page.locator('[data-testid="login-form"]')).toBeVisible({ timeout: 5_000 });
 
     await page.fill('input[type="email"]', email);
     await page.fill('input[type="password"]', password);
     await page.click('button[type="submit"]');
 
-    // L'app est une SPA : l'URL ne change pas après login.
-    // Signal fiable : le formulaire de login disparaît (AuthGate a la session).
+    // L'app est une SPA : l'URL ne change JAMAIS après login.
+    // Signal fiable : login-form disparaît, app-shell apparaît.
     await expect(
-      page.locator('input[type="email"]'),
+      page.locator('[data-testid="login-form"]'),
       "Le formulaire de login n'a pas disparu — connexion échouée ?",
     ).not.toBeVisible({ timeout: 20_000 });
 
-    // La navigation de l'app est montée (confirme session active)
-    await expect(page.locator("nav").first()).toBeVisible({ timeout: 10_000 });
+    await expect(
+      page.locator('[data-testid="app-shell"]'),
+      "L'app-shell n'est pas apparu après connexion",
+    ).toBeVisible({ timeout: 10_000 });
 
     // Pas d'écran d'erreur
     await expect(page.locator('[data-testid="auth-error"]')).not.toBeVisible();
@@ -70,11 +74,10 @@ test.describe("Authentification", () => {
       sessionStorage.clear();
     });
     await page.reload();
+    await waitForAppReady(page);
 
-    // Doit rediriger vers le login
-    await expect(
-      page.locator('input[type="email"], [data-testid="login-email"]')
-    ).toBeVisible({ timeout: 10_000 });
+    // Doit afficher le formulaire de login
+    await expect(page.locator('[data-testid="login-form"]')).toBeVisible({ timeout: 5_000 });
   });
 });
 
@@ -82,6 +85,7 @@ test.describe("Authentification — utilisateur connecté", () => {
   // Utilise la session owner sauvegardée
   test("5. Logout déconnecte et redirige vers login", async ({ page }) => {
     await page.goto("/");
+    await waitForAppReady(page);
 
     // Cherche le bouton de déconnexion (dans le menu profil)
     const logoutButton = page
@@ -101,9 +105,8 @@ test.describe("Authentification — utilisateur connecté", () => {
     await expect(logoutButton).toBeVisible({ timeout: 5_000 });
     await logoutButton.click();
 
-    // Doit retourner vers le login
-    await expect(
-      page.locator('input[type="email"]')
-    ).toBeVisible({ timeout: 10_000 });
+    // Après logout → login-form doit réapparaître
+    await waitForAppReady(page);
+    await expect(page.locator('[data-testid="login-form"]')).toBeVisible({ timeout: 10_000 });
   });
 });

@@ -251,7 +251,7 @@ function AppInner({
   });
 
   return (
-    <div className={"min-h-screen relative overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)] transition-colors duration-300 " + (darkMode ? "dark" : "light")}>
+    <div data-testid="app-shell" className={"min-h-screen relative overflow-hidden bg-[var(--color-bg)] text-[var(--color-text)] transition-colors duration-300 " + (darkMode ? "dark" : "light")}>
       <div className="fixed inset-0 pointer-events-none">
         {darkMode && <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/20 via-transparent to-blue-800/10" />}
         <div className="absolute inset-0 backdrop-blur-3xl" />

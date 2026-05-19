@@ -45,32 +45,38 @@ if (!fs.existsSync(AUTH_DIR)) {
  * Vérifie qu'une session authentifiée est active après login.
  *
  * Stratégie robuste (URL-indépendante, compatible SPA React/Supabase) :
- *   1. Le formulaire de login disparaît   → AuthGate a accepté la session
- *   2. La navigation app apparaît         → l'app authentifiée est montée
- *   3. Token Supabase présent en localStorage (warning si absent)
+ *   1. Le splash screen disparaît (AuthGate a terminé son délai minimum)
+ *   2. Le formulaire de login disparaît → AuthGate a rendu l'app (session OK)
+ *   3. L'app-shell est visible → arbre React authentifié monté
+ *   4. Token Supabase présent en localStorage (warning si absent)
  */
 async function assertAuthenticated(page: import("@playwright/test").Page): Promise<void> {
-  // ── Étape 1 : disparition du formulaire de login ──────────────────────────
-  // AuthGate rend le formulaire quand !session. Quand session est définie
-  // (après signInWithPassword réussi), il rend l'app à la place.
-  // Le délai minimum de 2500ms (minDelayDone dans AuthGate) est absorbé
-  // par le timeout de 20 000ms.
+  // ── Étape 1 : splash screen disparu ──────────────────────────────────────
+  // AuthGate impose un délai minimum de 2500ms (minDelayDone) avant de rendre
+  // quoi que ce soit d'autre. Timeout 20s pour absorber ce délai + réseau.
   await expect(
-    page.locator('input[type="email"]'),
-    "Le formulaire de login n'a pas disparu — la connexion a peut-être échoué ou l'app est trop lente",
+    page.locator('[data-testid="app-loading-screen"]'),
+    "Le splash screen n'a pas disparu — l'app est bloquée en chargement",
   ).not.toBeVisible({ timeout: 20_000 });
 
-  // ── Étape 2 : présence de la navigation authentifiée ─────────────────────
-  // `<nav>` n'existe que dans l'app montée (AppNavBar). Absent sur l'écran
-  // de login. Sa présence confirme que l'arbre React authentifié est rendu.
+  // ── Étape 2 : login-form disparu → session acceptée ───────────────────────
+  // AuthGate rend [login-form] quand !session. Après signInWithPassword réussi,
+  // onAuthStateChange met session → AuthGate rend l'app à la place.
   await expect(
-    page.locator("nav").first(),
-    "La navigation n'est pas visible après connexion — l'app ne s'est pas montée",
+    page.locator('[data-testid="login-form"]'),
+    "Le formulaire de login n'a pas disparu — la connexion a peut-être échoué",
+  ).not.toBeVisible({ timeout: 10_000 });
+
+  // ── Étape 3 : app-shell visible → app authentifiée montée ─────────────────
+  // [data-testid="app-shell"] n'existe que dans AppInner (authentifié).
+  // Absent sur le login form et le splash screen.
+  await expect(
+    page.locator('[data-testid="app-shell"]'),
+    "L'app-shell n'est pas visible — l'app authentifiée ne s'est pas montée",
   ).toBeVisible({ timeout: 10_000 });
 
-  // ── Étape 3 : token Supabase dans localStorage (warning seulement) ────────
+  // ── Étape 4 : token Supabase dans localStorage (warning seulement) ────────
   // Vérifie que storageState() capturera bien une session valide.
-  // Supabase stocke le token sous une clé commençant par "sb-".
   const hasSupabaseToken = await page.evaluate(() =>
     Object.keys(localStorage).some((k) => k.startsWith("sb-") && k.includes("auth-token")),
   );
@@ -99,11 +105,15 @@ setup("authenticate owner", async ({ page }) => {
 
   await page.goto("/");
 
-  // Attendre que le formulaire de login soit prêt
+  // Attendre que le splash screen disparaisse et que le formulaire de login soit prêt
   await expect(
-    page.locator('input[type="email"]'),
+    page.locator('[data-testid="app-loading-screen"]'),
+    "Le splash screen n'a pas disparu",
+  ).not.toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.locator('[data-testid="login-form"]'),
     "Le formulaire de login n'est pas apparu",
-  ).toBeVisible({ timeout: 15_000 });
+  ).toBeVisible({ timeout: 10_000 });
 
   // Remplir et soumettre
   await page.fill('input[type="email"]', email);
@@ -135,7 +145,10 @@ setup("authenticate userB", async ({ page }) => {
 
   await page.goto("/");
 
-  await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.locator('[data-testid="app-loading-screen"]'),
+  ).not.toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('[data-testid="login-form"]')).toBeVisible({ timeout: 10_000 });
 
   await page.fill('input[type="email"]', email);
   await page.fill('input[type="password"]', password);

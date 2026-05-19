@@ -94,7 +94,7 @@ export default function AuthGate({ children }: Props) {
 
   if (loading || !minDelayDone) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--color-bg)] text-[var(--color-text)]">
+      <div data-testid="app-loading-screen" className="min-h-screen flex flex-col items-center justify-center bg-[var(--color-bg)] text-[var(--color-text)]">
         <div className="flex flex-col items-center gap-5">
           <div className="w-24 h-24 rounded-[28px] bg-[var(--color-accent-violet)] flex items-center justify-center shadow-modal">
             <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -118,7 +118,7 @@ export default function AuthGate({ children }: Props) {
 
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-[var(--color-bg)] text-[var(--color-text)]">
+      <div data-testid="login-form" className="min-h-screen flex items-center justify-center p-6 bg-[var(--color-bg)] text-[var(--color-text)]">
         <div className="w-full max-w-md rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl p-6">
           <h2 className="text-2xl font-black mb-2">Connexion</h2>
           <p className="text-sm text-[var(--color-text-muted)] mb-6">

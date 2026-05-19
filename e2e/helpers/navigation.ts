@@ -3,6 +3,31 @@
 
 import { type Page, expect } from "@playwright/test";
 
+/**
+ * Attend que l'app soit dans un état stable après le chargement initial.
+ *
+ * Séquence attendue :
+ *   1. [data-testid="app-loading-screen"] visible ≥2500ms (AuthGate minDelay)
+ *   2. Splash disparaît → soit [app-shell] (auth OK) soit [login-form] (non-auth)
+ *
+ * Sans waitForTimeout(). Synchronisation précise via data-testid.
+ * Timeout 15s pour absorber les 2500ms minDelay + latence réseau.
+ */
+export async function waitForAppReady(page: Page): Promise<void> {
+  // Étape 1 : le splash screen doit disparaître
+  await expect(
+    page.locator('[data-testid="app-loading-screen"]'),
+  ).not.toBeVisible({ timeout: 15_000 });
+
+  // Étape 2 : état stable — app-shell (authentifié) OU login-form (non authentifié)
+  await page.waitForFunction(
+    () =>
+      document.querySelector('[data-testid="app-shell"]') !== null ||
+      document.querySelector('[data-testid="login-form"]') !== null,
+    { timeout: 8_000 },
+  );
+}
+
 /** Attend que le dashboard soit chargé (spinner disparu) */
 export async function waitForDashboard(page: Page): Promise<void> {
   await expect(page.locator('[data-testid="dashboard"], main')).toBeVisible({ timeout: 10_000 });
@@ -19,7 +44,7 @@ export async function goToMissions(page: Page): Promise<void> {
   await page.waitForURL(/missions/, { timeout: 5_000 });
 }
 
-/** Attend la disparition des spinners de chargement */
+/** Attend la disparition des spinners de chargement (legacy — préférer waitForAppReady) */
 export async function waitForNoSpinner(page: Page): Promise<void> {
   const spinner = page.locator('[data-testid="spinner"], .animate-spin');
   if (await spinner.isVisible()) {
