@@ -48,7 +48,16 @@ test.describe("Authentification", () => {
     await page.fill('input[type="password"]', password);
     await page.click('button[type="submit"]');
 
-    await expect(page).toHaveURL(/\/(dashboard|missions|bilan|agenda)/, { timeout: 15_000 });
+    // L'app est une SPA : l'URL ne change pas après login.
+    // Signal fiable : le formulaire de login disparaît (AuthGate a la session).
+    await expect(
+      page.locator('input[type="email"]'),
+      "Le formulaire de login n'a pas disparu — connexion échouée ?",
+    ).not.toBeVisible({ timeout: 20_000 });
+
+    // La navigation de l'app est montée (confirme session active)
+    await expect(page.locator("nav").first()).toBeVisible({ timeout: 10_000 });
+
     // Pas d'écran d'erreur
     await expect(page.locator('[data-testid="auth-error"]')).not.toBeVisible();
   });
