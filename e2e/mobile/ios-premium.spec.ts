@@ -393,20 +393,24 @@ test.describe("iOS 4 · Modals iPhone", () => {
       return;
     }
 
+    // Naviguer vers Saisie pour être sûr d'avoir les boutons de modal
+    await navigateToTab(page, /saisie/i);
+
     const trigger = page
-      .getByRole("button", { name: /ajouter|créer|nouveau|rapport|paramètre/i })
+      .getByRole("button", { name: /frais divers|acompte/i })
       .first();
 
     if (!(await trigger.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, "Aucun bouton de modal dans la vue courante");
+      test.skip(true, "Aucun bouton de modal dans la vue Saisie");
       return;
     }
 
     await trigger.click();
 
-    const dialog = page.locator('[role="dialog"]').first();
-    if (!(await dialog.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, "Aucune dialog ouverte après le clic");
+    // Les modals sont des div.fixed.inset-0 (pas role=dialog) — on cherche le heading
+    const modalHeading = page.locator('h3').filter({ hasText: /nouveau frais|nouvel acompte/i });
+    if (!(await modalHeading.isVisible({ timeout: 5_000 }).catch(() => false))) {
+      test.skip(true, "Aucune modal ouverte après le clic");
       return;
     }
 
@@ -429,20 +433,22 @@ test.describe("iOS 4 · Modals iPhone", () => {
       return;
     }
 
+    await navigateToTab(page, /saisie/i);
+
     const trigger = page
-      .getByRole("button", { name: /ajouter|créer|nouveau|rapport|paramètre/i })
+      .getByRole("button", { name: /frais divers|acompte/i })
       .first();
 
     if (!(await trigger.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, "Aucun bouton de modal dans la vue courante");
+      test.skip(true, "Aucun bouton de modal dans la vue Saisie");
       return;
     }
 
     await trigger.click();
 
-    const dialog = page.locator('[role="dialog"]').first();
-    if (!(await dialog.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, "Pas de dialog visible");
+    const modalHeading = page.locator('h3').filter({ hasText: /nouveau frais|nouvel acompte/i });
+    if (!(await modalHeading.isVisible({ timeout: 5_000 }).catch(() => false))) {
+      test.skip(true, "Pas de modal visible");
       return;
     }
 
@@ -462,24 +468,28 @@ test.describe("iOS 4 · Modals iPhone", () => {
       return;
     }
 
+    await navigateToTab(page, /saisie/i);
+
     const trigger = page
-      .getByRole("button", { name: /ajouter|créer|nouveau|rapport|paramètre/i })
+      .getByRole("button", { name: /frais divers|acompte/i })
       .first();
 
     if (!(await trigger.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, "Aucun bouton de modal dans la vue courante");
+      test.skip(true, "Aucun bouton de modal dans la vue Saisie");
       return;
     }
 
     await trigger.click();
 
-    const dialog = page.locator('[role="dialog"]').first();
-    if (!(await dialog.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, "Pas de dialog visible");
+    const modalHeading = page.locator('h3').filter({ hasText: /nouveau frais|nouvel acompte/i });
+    if (!(await modalHeading.isVisible({ timeout: 5_000 }).catch(() => false))) {
+      test.skip(true, "Pas de modal visible");
       return;
     }
 
-    const box = await dialog.boundingBox();
+    // La modal overlay : div.fixed.inset-0
+    const modalOverlay = page.locator('.fixed.inset-0').last();
+    const box = await modalOverlay.boundingBox();
     const viewportHeight = page.viewportSize()?.height ?? 852;
 
     if (box) {
@@ -674,9 +684,20 @@ test.describe("iOS 6 · Navigation & Workflow", () => {
 
     await navigateToTab(page, /suivi/i);
 
+    // Le Suivi démarre sur "Historique" — basculer sur le sous-onglet "Bilan"
+    // Le bouton CTA "Rapport bilan" n'est visible que dans ce sous-onglet (state showBilan=false)
+    const bilanSubTab = page.locator('button', { hasText: 'Bilan' }).first();
+    if (await bilanSubTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await bilanSubTab.click();
+      // Attendre que le BilanTab lazy-loaded soit rendu et affiche le bouton CTA
+      await page.waitForSelector('button', { timeout: 8_000 }).catch(() => {});
+      await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    }
+
+    // Le bouton CTA "Rapport bilan" (visible quand !showBilan) lance le workflow PDF
     const bilanBtn = page.getByRole("button", { name: /rapport.*bilan/i }).first();
     if (!(await bilanBtn.isVisible({ timeout: 5_000 }).catch(() => false))) {
-      test.skip(true, "Bouton Rapport bilan non trouvé — bilan peut être déjà actif");
+      test.skip(true, "Bouton Rapport bilan non trouvé après clic sur sous-onglet Bilan");
       return;
     }
 
