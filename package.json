@@ -30,7 +30,12 @@
     "e2e:firefox": "playwright test --project=desktop-firefox",
     "e2e:iphone": "playwright test --project=mobile-iphone",
     "e2e:pixel": "playwright test --project=mobile-pixel",
-    "e2e:ci": "playwright test --project=desktop-chrome --project=desktop-firefox"
+    "e2e:ci": "playwright test --project=desktop-chrome --project=desktop-firefox",
+    "e2e:visual": "playwright test --config=playwright.visual.config.ts",
+    "e2e:visual:update": "playwright test --config=playwright.visual.config.ts --update-snapshots",
+    "e2e:visual:iphone": "playwright test --config=playwright.visual.config.ts --project=visual-iphone",
+    "e2e:visual:desktop": "playwright test --config=playwright.visual.config.ts --project=visual-desktop",
+    "e2e:visual:report": "playwright show-report playwright-visual-report"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.20",

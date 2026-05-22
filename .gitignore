@@ -20,5 +20,7 @@ tsc_output.txt
 
 # Playwright : artefacts de tests (ne pas commiter)
 playwright-report/
+playwright-visual-report/
 test-results/
 e2e/.auth/
+# Les snapshots visuels (e2e/snapshots/) sont intentionnellement commités comme baselines
