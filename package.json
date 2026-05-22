@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/gen-build-info.mjs && vite",
+    "dev:mobile-lab": "node scripts/gen-build-info.mjs && vite --host 0.0.0.0 --open /mobile-lab",
     "build": "vite build",
     "preview": "vite preview",
     "test": "node scripts/run-tests.mjs all",

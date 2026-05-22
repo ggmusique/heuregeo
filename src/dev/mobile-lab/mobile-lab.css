@@ -1,0 +1,119 @@
+.lab-button,
+.lab-icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  transition-property: color, background-color, border-color, transform, opacity;
+  transition-duration: 180ms;
+}
+
+.lab-button {
+  border-radius: var(--radius-lg);
+  padding: 0.65rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.lab-icon-button {
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+}
+
+.lab-button:hover,
+.lab-icon-button:hover {
+  border-color: var(--color-border-primary);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.mobile-lab-device {
+  position: relative;
+  max-width: calc(100vw - 2rem);
+  max-height: calc(100vh - 2.5rem);
+  overflow: hidden;
+  border: 1px solid var(--color-border-primary);
+  border-radius: 44px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-modal);
+  transition-property: width, height;
+  transition-duration: 220ms;
+}
+
+.mobile-lab-screen {
+  position: absolute;
+  inset: 10px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 34px;
+  background: var(--color-bg);
+}
+
+.mobile-lab-device [data-testid="mobile-navbar"] {
+  position: absolute;
+  right: 1rem;
+  bottom: calc(var(--mobile-lab-safe-bottom) + 0.75rem);
+  left: 1rem;
+}
+
+.mobile-lab-device [role="dialog"] {
+  position: absolute;
+}
+
+.mobile-lab-drawer-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.mobile-lab-drawer-layer.is-open {
+  pointer-events: auto;
+}
+
+.mobile-lab-drawer-scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: var(--color-overlay);
+  opacity: 0;
+  transition-property: opacity;
+  transition-duration: 180ms;
+}
+
+.mobile-lab-drawer-layer.is-open .mobile-lab-drawer-scrim {
+  opacity: 1;
+}
+
+.mobile-lab-drawer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: min(82%, 19rem);
+  padding: calc(var(--mobile-lab-safe-top) + 1rem) 1rem calc(var(--mobile-lab-safe-bottom) + 1rem);
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-modal);
+  backdrop-filter: blur(24px);
+  transform: translateX(-102%);
+  transition-property: transform;
+  transition-duration: 220ms;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.mobile-lab-drawer-layer.is-open .mobile-lab-drawer {
+  transform: translateX(0);
+}
+
+@media (max-width: 720px) {
+  .mobile-lab-device {
+    max-height: 72vh;
+  }
+}
