@@ -55,7 +55,9 @@ input[type="time"]::selection {
 }
 
 @media (max-width: 768px) {
-  input[type="time"] { font-size: 16px !important; }
+  /* Prévenir le zoom automatique iOS Safari (déclenché par font-size < 16px) */
+  input[type="time"],
+  select { font-size: 16px !important; }
 }
 
 @media (min-width: 1024px) {
