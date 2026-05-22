@@ -131,8 +131,13 @@ export async function assertModalLifecycle(
   const opened = await heading.isVisible({ timeout: 6_000 }).catch(() => false);
   if (!opened) return false;
 
-  // Chercher le bouton de fermeture parmi les boutons visibles
-  const closeBtn = page.getByRole("button", { name: closePattern }).first();
+  // Chercher le bouton de fermeture DANS l'overlay modal (class fixed+inset-0)
+  // pour éviter de sélectionner des boutons derrière la modal (ex: MissionForm "Annuler"
+  // qui est hors viewport et provoquerait un scroll-hang sur WebKit/Windows).
+  const closeBtn = page
+    .locator('[class*="fixed"][class*="inset-0"] button')
+    .filter({ hasText: closePattern })
+    .first();
 
   if (await closeBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await closeBtn.click();
