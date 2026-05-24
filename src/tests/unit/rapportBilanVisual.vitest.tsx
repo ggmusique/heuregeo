@@ -11,6 +11,10 @@ const permissions: PermissionsContextType = {
   contract: {
     source: { mode: "pro", isPro: true },
     isViewer: false,
+    contractType: "interim",
+    hoursPerWeek: 8,
+    surplusRule: "payable",
+    surplusSplitPct: 50,
     weeklyQuotaHours: 8,
     reserveEnabled: true,
     payableRule: "capped_quota",
@@ -40,6 +44,10 @@ const permissionsNoPro: PermissionsContextType = {
   contract: {
     source: { mode: "free", isPro: false },
     isViewer: false,
+    contractType: "other",
+    hoursPerWeek: 8,
+    surplusRule: "payable",
+    surplusSplitPct: 50,
     weeklyQuotaHours: 8,
     reserveEnabled: false,
     payableRule: "capped_quota",

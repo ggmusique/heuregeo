@@ -2,6 +2,7 @@ export { deriveContractMode, buildContractFeatures } from "./contractFeatures";
 export { getContractVisibility } from "./contractVisibility";
 export {
   calculateWeeklyBilan,
+  calculateWeeklySettlement,
   calculateContractReserve,
   calculatePayableHours,
   calculateQuotaOverflow,
@@ -25,6 +26,11 @@ export type {
   ContractFeatures,
   ContractCalculationInput,
   ContractCalculationResult,
+  ContractType,
+  SurplusRule,
+  WeeklySettlementInput,
+  WeeklySettlementResult,
+  WeeklySettlementStatus,
 } from "./contract.types";
 export type {
   ReserveMovementType,

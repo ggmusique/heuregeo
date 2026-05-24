@@ -91,6 +91,16 @@ export interface UserFeatures {
   kilometrage?: boolean;
   /** Module génération de factures. */
   facture?: boolean;
+  /** Type de contrat métier simplifié. */
+  contract_type?: "interim" | "formation" | "cdd" | "cdi" | "other";
+  /** Heures contractuelles hebdomadaires. */
+  contract_hours_week?: number;
+  /** Règle de répartition du surplus. */
+  surplus_rule?: "payable" | "banque" | "les_deux";
+  /** Pourcentage du surplus vers le payable quand surplus_rule = "les_deux". */
+  surplus_split_pct?: number;
+
+  // Legacy V2 (conservé pour migration progressive).
   /** Quota d'heures hebdomadaire du contrat Pro (par défaut 8h). */
   contract_weekly_quota_hours?: number;
   /** Activation explicite du contrat (migration progressive V2). */

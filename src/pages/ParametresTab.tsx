@@ -476,7 +476,6 @@ export function ParametresTab({
                       profile={profile}
                       saveProfile={saveProfile}
                       profileSaving={profileSaving}
-                      isAdmin={isAdmin}
                     />
                     <div className="rounded-2xl border p-4 border-emerald-500/25 bg-emerald-500/5">
                       <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-emerald-200/80">
@@ -839,121 +838,197 @@ interface ContractSettingsPanelProps {
   profile: any;
   saveProfile: (data: any) => Promise<any>;
   profileSaving?: boolean;
-  isAdmin: boolean;
 }
 
-function ContractSettingsPanel({ profile, saveProfile, profileSaving, isAdmin }: ContractSettingsPanelProps) {
+function ContractSettingsPanel({ profile, saveProfile, profileSaving }: ContractSettingsPanelProps) {
   const features = profile?.features ?? {};
   const plan = features.plan === "pro" ? "pro" : "free";
-  const contractEnabled = features.contract_enabled !== false;
+  const isProPlan = plan === "pro";
   const reserveEnabled = features.contract_reserve_enabled !== false;
-  const quota = Number(features.contract_weekly_quota_hours ?? 8);
-  const payableRule = features.contract_payable_rule === "worked_hours" ? "worked_hours" : "capped_quota";
-  const overflowRule = features.contract_overflow_rule === "to_reserve" ? "to_reserve" : "ignore";
+  const contractType =
+    features.contract_type === "interim" ||
+    features.contract_type === "formation" ||
+    features.contract_type === "cdd" ||
+    features.contract_type === "cdi" ||
+    features.contract_type === "other"
+      ? features.contract_type
+      : "other";
+  const contractHoursWeek = Number(features.contract_hours_week ?? features.contract_weekly_quota_hours ?? 20);
+  const surplusRule =
+    features.surplus_rule === "payable" ||
+    features.surplus_rule === "banque" ||
+    features.surplus_rule === "les_deux"
+      ? features.surplus_rule
+      : (features.contract_overflow_rule === "to_reserve" ? "banque" : "payable");
+  const splitPct = Number(features.surplus_split_pct ?? 50);
 
-  const setFeature = async (patch: Record<string, unknown>) => {
-    await saveProfile({ features: { ...features, ...patch } });
+  const [localType, setLocalType] = useState(contractType);
+  const [localHoursWeek, setLocalHoursWeek] = useState(String(contractHoursWeek));
+  const [localSurplusRule, setLocalSurplusRule] = useState(surplusRule);
+  const [localSplitPct, setLocalSplitPct] = useState(String(splitPct));
+  const [localReserveEnabled, setLocalReserveEnabled] = useState(reserveEnabled);
+  const [savingContract, setSavingContract] = useState(false);
+
+  useEffect(() => {
+    setLocalType(contractType);
+    setLocalHoursWeek(String(contractHoursWeek));
+    setLocalSurplusRule(surplusRule);
+    setLocalSplitPct(String(splitPct));
+    setLocalReserveEnabled(reserveEnabled);
+  }, [contractType, contractHoursWeek, surplusRule, splitPct, reserveEnabled]);
+
+  const handleSaveContract = async () => {
+    if (!isProPlan || profileSaving) return;
+
+    const nextHours = Number(localHoursWeek);
+    if (!Number.isFinite(nextHours) || nextHours <= 0) return;
+
+    const nextSplit = Math.min(100, Math.max(0, Number(localSplitPct)));
+    if (!Number.isFinite(nextSplit)) return;
+
+    const nextFeatures = {
+      ...features,
+      contract_type: localType,
+      contract_hours_week: nextHours,
+      surplus_rule: localSurplusRule,
+      surplus_split_pct: nextSplit,
+      contract_reserve_enabled: localReserveEnabled,
+
+      // Compatibilité legacy, en cohérence avec le modèle simplifié.
+      contract_weekly_quota_hours: nextHours,
+      contract_payable_rule: localSurplusRule === "payable" ? "worked_hours" : "capped_quota",
+      contract_overflow_rule: localSurplusRule === "banque" || localSurplusRule === "les_deux" ? "to_reserve" : "ignore",
+    };
+
+    setSavingContract(true);
+    try {
+      await saveProfile({ features: nextFeatures });
+    } finally {
+      setSavingContract(false);
+    }
   };
 
   return (
     <div className="rounded-2xl border p-4 border-[var(--color-accent-violet)]/25 bg-[var(--color-accent-violet)]/5 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-violet)]/80">
-          Contrat V2
+          Mon contrat
         </p>
         <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">plan: {plan}</span>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          disabled={!isAdmin || profileSaving}
-          onClick={() => setFeature({ plan: plan === "pro" ? "free" : "pro" })}
-          className={
-            "rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-[background,border-color] duration-150 " +
-            (plan === "pro"
-              ? "border-[var(--color-accent-green)]/40 text-[var(--color-accent-green)] bg-[var(--color-accent-green)]/10"
-              : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
-            (!isAdmin || profileSaving ? " opacity-50 cursor-not-allowed" : "")
-          }
-        >
-          {plan === "pro" ? "Contrat actif" : "Activer contrat"}
-        </button>
-
-        <button
-          type="button"
-          disabled={!isAdmin || profileSaving || plan !== "pro"}
-          onClick={() => setFeature({ contract_enabled: !contractEnabled })}
-          className={
-            "rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-[background,border-color] duration-150 " +
-            (contractEnabled
-              ? "border-[var(--color-accent-cyan)]/40 text-[var(--color-accent-cyan)] bg-[var(--color-accent-cyan)]/10"
-              : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
-            (!isAdmin || profileSaving || plan !== "pro" ? " opacity-50 cursor-not-allowed" : "")
-          }
-        >
-          {contractEnabled ? "Moteur contrat ON" : "Moteur contrat OFF"}
-        </button>
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-xs text-[var(--color-text-muted)]">
-          Quota semaine (h)
+          Type de contrat
+          <select
+            value={localType}
+            disabled={!isProPlan || profileSaving || savingContract}
+            onChange={(e) => setLocalType(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
+          >
+            <option value="interim">Intérim</option>
+            <option value="formation">Formation</option>
+            <option value="cdd">CDD</option>
+            <option value="cdi">CDI</option>
+            <option value="other">Autre</option>
+          </select>
+        </label>
+
+        <label className="text-xs text-[var(--color-text-muted)]">
+          Heures / semaine
           <input
             type="number"
             min={1}
             step={0.5}
-            defaultValue={quota}
-            disabled={profileSaving || plan !== "pro"}
-            onBlur={(e) => {
-              const next = Number(e.target.value);
-              if (!Number.isFinite(next) || next <= 0) return;
-              void setFeature({ contract_weekly_quota_hours: next });
-            }}
+            value={localHoursWeek}
+            disabled={!isProPlan || profileSaving || savingContract}
+            onChange={(e) => setLocalHoursWeek(e.target.value)}
             className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
           />
         </label>
+      </div>
 
-        <label className="text-xs text-[var(--color-text-muted)]">
-          Règle payable
-          <select
-            value={payableRule}
-            disabled={profileSaving || plan !== "pro"}
-            onChange={(e) => void setFeature({ contract_payable_rule: e.target.value })}
-            className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
-          >
-            <option value="capped_quota">Capé au quota</option>
-            <option value="worked_hours">Heures travaillées</option>
-          </select>
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-offset)] p-3 space-y-3">
+        <p className="text-xs font-bold text-[var(--color-text-muted)]">Surplus</p>
+
+        <label className="flex items-center gap-2 text-sm text-[var(--color-text)]">
+          <input
+            type="radio"
+            name="surplus-rule"
+            checked={localSurplusRule === "payable"}
+            disabled={!isProPlan || profileSaving || savingContract}
+            onChange={() => setLocalSurplusRule("payable")}
+          />
+          Payable
         </label>
 
-        <label className="text-xs text-[var(--color-text-muted)]">
-          Dépassement quota
-          <select
-            value={overflowRule}
-            disabled={profileSaving || plan !== "pro"}
-            onChange={(e) => void setFeature({ contract_overflow_rule: e.target.value })}
-            className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
-          >
-            <option value="ignore">Ignorer</option>
-            <option value="to_reserve">Envoyer en réserve</option>
-          </select>
+        <label className="flex items-center gap-2 text-sm text-[var(--color-text)]">
+          <input
+            type="radio"
+            name="surplus-rule"
+            checked={localSurplusRule === "banque"}
+            disabled={!isProPlan || profileSaving || savingContract || !localReserveEnabled}
+            onChange={() => setLocalSurplusRule("banque")}
+          />
+          Banque (réserve)
         </label>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--color-text)]">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="surplus-rule"
+              checked={localSurplusRule === "les_deux"}
+              disabled={!isProPlan || profileSaving || savingContract || !localReserveEnabled}
+              onChange={() => setLocalSurplusRule("les_deux")}
+            />
+            Les deux
+          </label>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={localSplitPct}
+            disabled={!isProPlan || profileSaving || savingContract || localSurplusRule !== "les_deux"}
+            onChange={(e) => setLocalSplitPct(e.target.value)}
+            className="w-20 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1 text-sm text-[var(--color-text)]"
+          />
+          <span className="text-xs text-[var(--color-text-muted)]">% payable</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-[var(--color-text-muted)]">Activer ma réserve</p>
+        <button
+          type="button"
+          disabled={!isProPlan || profileSaving || savingContract}
+          onClick={() => {
+            const next = !localReserveEnabled;
+            setLocalReserveEnabled(next);
+            if (!next && localSurplusRule !== "payable") {
+              setLocalSurplusRule("payable");
+            }
+          }}
+          className={
+            "rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-[background,border-color] duration-150 " +
+            (localReserveEnabled
+              ? "border-[var(--color-accent-amber)]/40 text-[var(--color-accent-amber)] bg-[var(--color-accent-amber)]/10"
+              : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
+            (!isProPlan || profileSaving || savingContract ? " opacity-50 cursor-not-allowed" : "")
+          }
+        >
+          {localReserveEnabled ? "Réserve activée" : "Réserve désactivée"}
+        </button>
       </div>
 
       <button
         type="button"
-        disabled={profileSaving || plan !== "pro"}
-        onClick={() => void setFeature({ contract_reserve_enabled: !reserveEnabled })}
-        className={
-          "rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-[background,border-color] duration-150 " +
-          (reserveEnabled
-            ? "border-[var(--color-accent-amber)]/40 text-[var(--color-accent-amber)] bg-[var(--color-accent-amber)]/10"
-            : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
-          (profileSaving || plan !== "pro" ? " opacity-50 cursor-not-allowed" : "")
-        }
+        disabled={!isProPlan || profileSaving || savingContract}
+        onClick={() => void handleSaveContract()}
+        className="rounded-xl border border-[var(--color-accent-violet)]/40 bg-[var(--color-accent-violet)]/15 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-violet)] transition-[background,border-color] duration-150 disabled:opacity-50"
       >
-        {reserveEnabled ? "Réserve activée" : "Réserve désactivée"}
+        {savingContract ? "Enregistrement..." : "Enregistrer"}
       </button>
     </div>
   );
