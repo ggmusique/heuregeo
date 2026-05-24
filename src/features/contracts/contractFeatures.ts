@@ -44,7 +44,8 @@ function resolveSurplusSplitPct(features: UserFeatures): number {
 
 export function deriveContractMode(features: UserFeatures): ContractMode {
   if (features?.plan !== "pro") return "free";
-  if (features?.contract_enabled === false) return "free";
+  const active = features?.contract_active ?? features?.contract_enabled ?? false;
+  if (!active) return "free";
   return "pro";
 }
 

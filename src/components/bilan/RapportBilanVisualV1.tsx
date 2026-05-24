@@ -35,6 +35,7 @@ interface RapportBilanVisualV1Props {
   onFraisEdit?: (frais: FraisDivers) => void;
   onFraisDelete?: (frais: FraisDivers) => void;
   onRecalculerFraisKm?: () => void;
+  onOpenReserve?: () => void;
   isRecalculatingKm?: boolean;
 }
 
@@ -163,6 +164,7 @@ export function RapportBilanVisualV1({
   onFraisEdit,
   onFraisDelete,
   onRecalculerFraisKm,
+  onOpenReserve,
   isRecalculatingKm = false,
 }: RapportBilanVisualV1Props) {
   const [periodOpen, setPeriodOpen] = useState(false);
@@ -453,14 +455,13 @@ export function RapportBilanVisualV1({
                   </div>
                   <p className="text-base font-black text-[var(--color-accent-green)]">+{Math.round(resolvedContractMetrics.reserveHours * 10) / 10}h en réserve</p>
                 </div>
-                {onRecalculerFraisKm && (
+                {onOpenReserve && (
                   <button
                     type="button"
-                    onClick={onRecalculerFraisKm}
-                    disabled={isRecalculatingKm}
+                    onClick={onOpenReserve}
                     className="mt-2 rounded-[var(--radius-pill)] border border-[var(--color-accent-green)]/35 bg-[var(--color-accent-green)]/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[var(--color-accent-green)] disabled:opacity-45"
                   >
-                    {isRecalculatingKm ? "Recalcul" : "Voir réserve"}
+                    Voir réserve
                   </button>
                 )}
               </div>

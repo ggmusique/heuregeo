@@ -6,6 +6,7 @@ import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
 import { computePeriodeIndex, computePeriodDates, buildGroupedData } from "../lib/bilanPeriods";
 import { logBilanError } from "../utils/bilanLogger";
+import { getWeekAndYear } from "../utils/dateUtils";
 import type { Mission, FraisDivers } from "../types/entities";
 import type { HistoriqueData } from "./useHistorique";
 import { useBilanPeriod } from "./useBilanPeriod";
@@ -25,6 +26,30 @@ export type { UseBilanParams, UseBilanReturn } from "./useBilanTypes";
 // ─── Constante ────────────────────────────────────────────────────────────────
 
 const GLOBAL_PATRON_ID = "00000000-0000-0000-0000-000000000000";
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function aggregateWorkedHoursByIsoWeek(missions: Mission[]): number[] {
+  const weeklyWorkedMap = new Map<string, number>();
+
+  missions.forEach((mission) => {
+    const missionDate = mission.date_iso || mission.date_mission;
+    if (!missionDate) return;
+
+    const parsedDate = new Date(missionDate);
+    if (Number.isNaN(parsedDate.getTime())) return;
+
+    const { week, year } = getWeekAndYear(parsedDate);
+    if (week <= 0 || year <= 0) return;
+
+    const key = `${year}-${week}`;
+    weeklyWorkedMap.set(key, (weeklyWorkedMap.get(key) ?? 0) + Number(mission.duree || 0));
+  });
+
+  return Array.from(weeklyWorkedMap.values());
+}
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -93,7 +118,30 @@ export function useBilan({
         const totalH = filtered.reduce((s, m) => s + (m.duree || 0), 0);
 
         const contract = buildContractFeatures({ features: profileFeatures || {}, isViewer });
-        const contractMetrics = calculateWeeklyBilan({ workedHours: totalH }, contract);
+        const weeklyWorkedBuckets = aggregateWorkedHoursByIsoWeek(filtered);
+        const contractMetrics = contract.source.isPro && bilanPeriodType !== PERIOD_TYPES.SEMAINE
+          ? weeklyWorkedBuckets.reduce(
+              (acc, workedHours) => {
+                const metrics = calculateWeeklyBilan({ workedHours }, contract);
+                return {
+                  workedHours: round2(acc.workedHours + metrics.workedHours),
+                  quotaHours: round2(acc.quotaHours + metrics.quotaHours),
+                  payableHours: round2(acc.payableHours + metrics.payableHours),
+                  reserveHours: round2(acc.reserveHours + metrics.reserveHours),
+                  overtimeHours: round2(acc.overtimeHours + metrics.overtimeHours),
+                  quotaOverflowHours: round2(acc.quotaOverflowHours + metrics.quotaOverflowHours),
+                };
+              },
+              {
+                workedHours: 0,
+                quotaHours: 0,
+                payableHours: 0,
+                reserveHours: 0,
+                overtimeHours: 0,
+                quotaOverflowHours: 0,
+              },
+            )
+          : calculateWeeklyBilan({ workedHours: totalH }, contract);
         const averageHourlyRate = totalH > 0 ? totalMissions / totalH : 0;
         const surplusGrossAmount = contract.source.isPro
           ? Math.max(0, contractMetrics.payableHours * averageHourlyRate)
@@ -207,9 +255,9 @@ export function useBilan({
           fraisKilometriques: fraisKm, lieux,
           contractSummary: {
             mode: contract.source.mode,
-            quotaHours: contract.hoursPerWeek,
+            quotaHours: contractMetrics.quotaHours,
             workedHours: contractMetrics.workedHours,
-            contractualExternalHours: Math.min(contractMetrics.workedHours, contract.hoursPerWeek),
+            contractualExternalHours: Math.max(0, contractMetrics.workedHours - contractMetrics.quotaOverflowHours),
             surplusHours: contractMetrics.quotaOverflowHours,
             payableHours: contractMetrics.payableHours,
             reserveHours: contractMetrics.reserveHours,

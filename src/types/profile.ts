@@ -93,6 +93,8 @@ export interface UserFeatures {
   facture?: boolean;
   /** Type de contrat métier simplifié. */
   contract_type?: "interim" | "formation" | "cdd" | "cdi" | "other";
+  /** Activation explicite du module contrat (source prioritaire). */
+  contract_active?: boolean;
   /** Heures contractuelles hebdomadaires. */
   contract_hours_week?: number;
   /** Règle de répartition du surplus. */

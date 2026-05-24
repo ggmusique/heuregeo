@@ -41,6 +41,7 @@ interface Props {
   kmFraisThisWeek?: KmFraisResult | null;
   domicileLatLng?: { lat: number; lng: number } | null;
   onRecalculerFraisKm?: (() => void) | null;
+  onOpenReserve?: (() => void) | null;
 }
 
 export const BilanTab = ({
@@ -70,6 +71,7 @@ export const BilanTab = ({
   kmFraisThisWeek = null,
   domicileLatLng = null,
   onRecalculerFraisKm = null,
+  onOpenReserve = null,
 }: Props) => {
   const perms = usePermissions();
   const L = useLabels();
@@ -87,8 +89,20 @@ export const BilanTab = ({
   const exportBilanContent = useMemo(() => {
     const workedHours = Number(bilan.bilanContent?.totalH ?? 0);
     const averageHourlyRate = Number(bilan.bilanContent?.contractSummary?.averageHourlyRate ?? 0);
-    const metrics = calculateWeeklyBilan({ workedHours }, perms.contract);
-    const surplusGrossAmount = Math.max(0, metrics.payableHours * averageHourlyRate);
+    const summary = bilan.bilanContent?.contractSummary;
+    const metrics = summary
+      ? {
+          workedHours: Number(summary.workedHours ?? workedHours),
+          quotaHours: Number(summary.quotaHours ?? perms.contract.hoursPerWeek),
+          payableHours: Number(summary.payableHours ?? 0),
+          reserveHours: Number(summary.reserveHours ?? 0),
+          overtimeHours: Number(summary.quotaOverflowHours ?? 0),
+          quotaOverflowHours: Number(summary.quotaOverflowHours ?? 0),
+        }
+      : calculateWeeklyBilan({ workedHours }, perms.contract);
+    const surplusGrossAmount = Number(
+      summary?.surplusGrossAmount ?? Math.max(0, metrics.payableHours * averageHourlyRate),
+    );
     const acompteAppliedAmount = Number(bilan.bilanContent?.totalAcomptes ?? 0);
     const fraisRemboursablesAmount = Number(bilan.bilanContent?.totalFrais ?? 0);
     const fraisDeductiblesAmount = 0;
@@ -164,12 +178,21 @@ export const BilanTab = ({
   );
 
   const contractMetrics = useMemo(() => {
+    const summary = bilan.bilanContent?.contractSummary;
+    if (summary) {
+      return {
+        workedHours: Number(summary.workedHours ?? 0),
+        quotaHours: Number(summary.quotaHours ?? perms.contract.hoursPerWeek),
+        payableHours: Number(summary.payableHours ?? 0),
+        reserveHours: Number(summary.reserveHours ?? 0),
+        overtimeHours: Number(summary.quotaOverflowHours ?? 0),
+        quotaOverflowHours: Number(summary.quotaOverflowHours ?? 0),
+      };
+    }
+
     const workedHours = Number(bilan.bilanContent?.totalH ?? 0);
-    return calculateWeeklyBilan(
-      { workedHours },
-      perms.contract,
-    );
-  }, [bilan.bilanContent?.totalH, perms.contract]);
+    return calculateWeeklyBilan({ workedHours }, perms.contract);
+  }, [bilan.bilanContent?.contractSummary, bilan.bilanContent?.totalH, perms.contract]);
 
   useEffect(() => {
     if (bilan.bilanPeriodType !== "semaine") return;
@@ -421,6 +444,7 @@ export const BilanTab = ({
         onFraisEdit={onFraisEdit}
         onFraisDelete={onFraisDelete}
         onRecalculerFraisKm={onRecalculerFraisKm ?? undefined}
+        onOpenReserve={onOpenReserve ?? undefined}
         isRecalculatingKm={bilan.isRecalculatingKm}
       />
 

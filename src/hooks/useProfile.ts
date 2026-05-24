@@ -83,8 +83,21 @@ export const useProfile = (user: AuthUser | null | undefined): UseProfileReturn 
           .single();
 
         if (error) throw error;
-        setProfile(data);
-        return { data };
+        // Refresh serveur systématique: certains paramètres sont recalculés
+        // côté DB/règles et doivent être reflétés immédiatement dans toute l'UI.
+        const { data: freshProfile, error: freshError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (freshError) {
+          setProfile(data);
+          return { data };
+        }
+
+        setProfile(freshProfile);
+        return { data: freshProfile };
       } catch (err) {
         setError((err as Error).message);
         return { error: (err as Error).message };
@@ -107,7 +120,8 @@ export const useProfile = (user: AuthUser | null | undefined): UseProfileReturn 
   const isAdmin = profile?.is_admin === true;
   const features: UserFeatures = profile?.features || {};
   const contract = buildContractFeatures({ features, isViewer });
-  const isPro = contract.source.isPro;
+  // Le statut Pro dépend du plan, pas de l'activation du module contrat.
+  const isPro = features?.plan === "pro";
 
   // Features individuelles (avec fallback sur isPro)
   const canBilanMois = isPro || features?.bilan_mois === true;

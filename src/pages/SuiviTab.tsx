@@ -86,6 +86,7 @@ export function SuiviTab({
         <Suspense fallback={<LazyFallback />}>
           <BilanTab
             {...bilanProps}
+            onOpenReserve={canShowReserveTab ? () => setView("reserve") : undefined}
             isViewer={isViewer}
             isProContractEnabled={contract.source.isPro}
             canBilanMois={canBilanMois}
