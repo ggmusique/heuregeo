@@ -133,7 +133,7 @@ describe("updateMission — ownership explicite", () => {
     // Vérifie que eq() a été appelé avec user_id = test-owner-uid
     const eqCalls = chain.eq.mock.calls;
     const hasUserIdCheck = eqCalls.some(
-      ([field, value]: [string, string]) => field === "user_id" && value === "test-owner-uid"
+      (call) => call[0] === "user_id" && call[1] === "test-owner-uid"
     );
     expect(hasUserIdCheck).toBe(true);
   });
@@ -159,7 +159,7 @@ describe("deleteMission — ownership explicite", () => {
 
     const eqCalls = chain.eq.mock.calls;
     const hasUserIdCheck = eqCalls.some(
-      ([field, value]: [string, string]) => field === "user_id" && value === "test-owner-uid"
+      (call) => call[0] === "user_id" && call[1] === "test-owner-uid"
     );
     expect(hasUserIdCheck).toBe(true);
   });
@@ -176,7 +176,7 @@ describe("lieuxApi — ownership explicite sur mutations", () => {
     await lieuxApi.updateLieu("l1", { nom: "Chantier Nord" });
 
     const eqCalls = chain.eq.mock.calls;
-    expect(eqCalls.some(([f, v]: [string, string]) => f === "user_id" && v === "test-owner-uid")).toBe(true);
+    expect(eqCalls.some((call) => call[0] === "user_id" && call[1] === "test-owner-uid")).toBe(true);
   });
 
   it("deleteLieu appelle .eq('user_id', user.id)", async () => {
@@ -186,7 +186,7 @@ describe("lieuxApi — ownership explicite sur mutations", () => {
     await lieuxApi.deleteLieu("l1");
 
     const eqCalls = chain.eq.mock.calls;
-    expect(eqCalls.some(([f, v]: [string, string]) => f === "user_id" && v === "test-owner-uid")).toBe(true);
+    expect(eqCalls.some((call) => call[0] === "user_id" && call[1] === "test-owner-uid")).toBe(true);
   });
 
   it("updateLieu throw si non connecté", async () => {
@@ -206,7 +206,7 @@ describe("fraisApi — ownership explicite sur mutations", () => {
     await fraisApi.updateFrais("f1", { montant: 50 } as any);
 
     const eqCalls = chain.eq.mock.calls;
-    expect(eqCalls.some(([f, v]: [string, string]) => f === "user_id" && v === "test-owner-uid")).toBe(true);
+    expect(eqCalls.some((call) => call[0] === "user_id" && call[1] === "test-owner-uid")).toBe(true);
   });
 
   it("deleteFrais appelle .eq('user_id', user.id)", async () => {
@@ -216,7 +216,7 @@ describe("fraisApi — ownership explicite sur mutations", () => {
     await fraisApi.deleteFrais("f1");
 
     const eqCalls = chain.eq.mock.calls;
-    expect(eqCalls.some(([f, v]: [string, string]) => f === "user_id" && v === "test-owner-uid")).toBe(true);
+    expect(eqCalls.some((call) => call[0] === "user_id" && call[1] === "test-owner-uid")).toBe(true);
   });
 
   it("updateFrais throw si non connecté", async () => {
@@ -236,7 +236,7 @@ describe("patronsApi — ownership explicite sur mutations", () => {
     await patronsApi.updatePatron("p1", { nom: "Dupont" });
 
     const eqCalls = chain.eq.mock.calls;
-    expect(eqCalls.some(([f, v]: [string, string]) => f === "user_id" && v === "test-owner-uid")).toBe(true);
+    expect(eqCalls.some((call) => call[0] === "user_id" && call[1] === "test-owner-uid")).toBe(true);
   });
 
   it("deletePatron (soft delete) appelle .eq('user_id', user.id)", async () => {
@@ -246,7 +246,7 @@ describe("patronsApi — ownership explicite sur mutations", () => {
     await patronsApi.deletePatron("p1");
 
     const eqCalls = chain.eq.mock.calls;
-    expect(eqCalls.some(([f, v]: [string, string]) => f === "user_id" && v === "test-owner-uid")).toBe(true);
+    expect(eqCalls.some((call) => call[0] === "user_id" && call[1] === "test-owner-uid")).toBe(true);
   });
 
   it("updatePatron throw si non connecté", async () => {

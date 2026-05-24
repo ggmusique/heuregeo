@@ -1,5 +1,6 @@
 import React, { useMemo, useState, lazy, Suspense } from "react";
 import { usePermissions } from "../contexts/PermissionsContext";
+import { ReserveTab } from "./ReserveTab";
 
 const HistoriqueTab = lazy(() =>
   import("./HistoriqueTab").then((m) => ({ default: m.HistoriqueTab }))
@@ -25,32 +26,30 @@ export function SuiviTab({
   defaultView = "historique",
   historiqueProps,
   bilanProps,
-  onNavigateDashboard,
 }: Props) {
-  const { isViewer, viewerPatronId, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canFacture } = usePermissions();
+  const { contract, isViewer, viewerPatronId, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canFacture } = usePermissions();
+  const canShowReserveTab = contract.visibility.suivi.showReserveTab;
   const [view, setView] = useState(
-    defaultView === "bilan" ? "bilan" : "historique"
+    defaultView === "bilan" ? "bilan" : defaultView === "reserve" && canShowReserveTab ? "reserve" : "historique"
   );
 
   const tabs = useMemo(
     () => [
+      ...(canShowReserveTab ? [{ key: "reserve", label: "Réserve heures" }] : []),
       { key: "historique", label: "Historique" },
       { key: "bilan", label: "Bilan" },
     ],
-    []
+    [canShowReserveTab]
   );
 
   return (
     <section className="space-y-4">
-      <div className="rounded-2xl border p-2 backdrop-blur-xl flex gap-2 border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
-        {onNavigateDashboard && (
-          <button
-            onClick={onNavigateDashboard}
-            className="flex-1 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-          >
-            📊 Dashboard
-          </button>
-        )}
+      <div
+        className={
+          "grid gap-2 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-modal " +
+          (canShowReserveTab ? "grid-cols-3" : "grid-cols-2")
+        }
+      >
         {tabs.map((tab) => {
           const isActive = view === tab.key;
           return (
@@ -58,7 +57,7 @@ export function SuiviTab({
               key={tab.key}
               onClick={() => setView(tab.key)}
               className={
-                "flex-1 py-2.5 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all " +
+                "min-h-11 rounded-[var(--radius-lg)] px-2 py-2 text-center text-[10px] font-black uppercase tracking-wider transition-colors " +
                 (isActive ? "bg-[var(--color-accent-violet)] text-[var(--color-bg)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]")
               }
             >
@@ -68,6 +67,12 @@ export function SuiviTab({
         })}
       </div>
 
+      {view === "reserve" && (
+        <ReserveTab
+          patronId={bilanProps?.bilanPatronId ?? null}
+          patronName={bilanProps?.getPatronNom?.(bilanProps?.bilanPatronId ?? null)}
+        />
+      )}
       {view === "historique" && (
         <Suspense fallback={<LazyFallback />}>
           <HistoriqueTab
@@ -82,6 +87,7 @@ export function SuiviTab({
           <BilanTab
             {...bilanProps}
             isViewer={isViewer}
+            isProContractEnabled={contract.source.isPro}
             canBilanMois={canBilanMois}
             canBilanAnnee={canBilanAnnee}
             canExportPDF={canExportPDF}

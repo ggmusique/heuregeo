@@ -88,7 +88,6 @@ export function useBilan({
 
         const totalMissions = filtered.reduce((s, m) => s + (m.montant || 0), 0);
         const totalH = filtered.reduce((s, m) => s + (m.duree || 0), 0);
-        const groupedData = buildGroupedData(filtered, bilanPeriodType);
 
         let fraisFiltres: FraisDivers[] = [];
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
@@ -107,6 +106,29 @@ export function useBilan({
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           impayePrecedent = await db.getImpayePrecedent(parseInt(bilanPeriodValue, 10), runPatronId);
         }
+
+        let weeklyPaymentStatus: Map<number, { paye: boolean; datePaiement: string | null; resteAPercevoir: number }> | undefined;
+        if ((bilanPeriodType === PERIOD_TYPES.MOIS || bilanPeriodType === PERIOD_TYPES.ANNEE) && !isGlobalPatronId(runPatronId)) {
+          try {
+            const weeklyRows = await fetchWeeklyBilansHistory({ patronId: pId });
+            const allocs = await fetchAcompteAllocationsByPatron({ patronId: pId });
+            const normalizedRows = normalizeHistoriqueRows(weeklyRows, buildAllocByWeek(allocs), resolvePatronNom);
+            weeklyPaymentStatus = new Map(
+              normalizedRows.map((row) => [
+                Number(row.periode_index),
+                {
+                  paye: row.paye === true,
+                  datePaiement: row.date_paiement ?? null,
+                  resteAPercevoir: Number(row.reste_a_percevoir ?? 0),
+                },
+              ]),
+            );
+          } catch {
+            weeklyPaymentStatus = undefined;
+          }
+        }
+
+        const groupedData = buildGroupedData(filtered, bilanPeriodType, weeklyPaymentStatus);
 
         let resteCettePeriode = 0, resteAPercevoir = 0, soldeAvantPeriode = 0;
         let soldeApresPeriode = 0, acompteConsomme = 0, acompteConsommePeriode = 0;

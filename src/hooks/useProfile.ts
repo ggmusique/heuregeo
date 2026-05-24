@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../services/supabase";
 import type { UserProfile, UserFeatures } from "../types/profile";
+import { buildContractFeatures } from "../features/contracts";
+import type { ContractFeatures } from "../features/contracts";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +24,7 @@ export interface UseProfileReturn {
   viewerPatronId: string | null;
   isAdmin: boolean;
   features: UserFeatures;
+  contract: ContractFeatures;
   isPro: boolean;
   canBilanMois: boolean;
   canBilanAnnee: boolean;
@@ -103,7 +106,8 @@ export const useProfile = (user: AuthUser | null | undefined): UseProfileReturn 
   // L'admin geohelene@msn.com doit avoir is_admin = true dans Supabase
   const isAdmin = profile?.is_admin === true;
   const features: UserFeatures = profile?.features || {};
-  const isPro = features?.plan === "pro";
+  const contract = buildContractFeatures({ features, isViewer });
+  const isPro = contract.source.isPro;
 
   // Features individuelles (avec fallback sur isPro)
   const canBilanMois = isPro || features?.bilan_mois === true;
@@ -122,7 +126,7 @@ export const useProfile = (user: AuthUser | null | undefined): UseProfileReturn 
   return {
     profile, loading, saving, error, saveProfile, fetchProfile,
     isProfileComplete, isViewer, viewerPatronId,
-    isAdmin, features, isPro,
+    isAdmin, features, contract, isPro,
     canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV,
     canMultiPatron, canViewerMode, canHistoriqueComplet, canKilometrage, canAgenda, canFacture, canDashboard,
   };

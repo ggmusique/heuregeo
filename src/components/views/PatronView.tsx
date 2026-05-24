@@ -666,6 +666,18 @@ export function PatronView({ user }: PatronViewProps) {
   return (
     <LabelsContext.Provider value={getLabels(null)}>
       <PermissionsContext.Provider value={{
+          contract: {
+            source: { mode: "free", isPro: false },
+            isViewer: false,
+            weeklyQuotaHours: 8,
+            reserveEnabled: false,
+            payableRule: "capped_quota",
+            overflowRule: "ignore",
+            visibility: {
+              suivi: { showReserveTab: false },
+              bilan: { showOvertimeKpi: false, showPayableHoursKpi: false, showReserveKpi: false },
+            },
+          },
           isViewer: false,
           viewerPatronId: selectedAccess.patronId,
           isAdmin: false,

@@ -155,12 +155,22 @@ export interface MissionWithWeather extends Mission {
   weather?: WeatherData;
 }
 
+export type BilanGroupedPaymentStatus = "paid" | "unpaid" | "partial" | "unknown";
+
 /** Ligne groupée du bilan (par semaine ou par mois). */
 export interface BilanGroupedRow {
   label: string;
+  periodValue?: string;
+  childPeriodValues?: string[];
   h: number;
   e: number;
   missions: Mission[];
+  paymentStatus?: BilanGroupedPaymentStatus;
+  paymentLabel?: string;
+  paymentDate?: string | null;
+  paymentRemaining?: number;
+  paidCount?: number;
+  totalCount?: number;
 }
 
 /** Contenu calculé d'un bilan pour une période et un patron donnés. */
@@ -183,5 +193,23 @@ export interface BilanContent {
   selectedPatronId: string | null;
   selectedPatronNom: string;
   fraisKilometriques: BilanKmResult;
+  contractSummary?: {
+    mode: "free" | "pro";
+    quotaHours: number;
+    workedHours: number;
+    payableHours: number;
+    reserveHours: number;
+    quotaOverflowHours: number;
+    reserveBalanceHours: number;
+  };
+  reserveMovements?: Array<{
+    id: string;
+    date: string;
+    type: string;
+    source: string;
+    deltaHours: number;
+    missionId?: string | null;
+    comment?: string | null;
+  }>;
   lieux?: Lieu[];
 }

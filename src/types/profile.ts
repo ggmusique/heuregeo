@@ -91,6 +91,16 @@ export interface UserFeatures {
   kilometrage?: boolean;
   /** Module génération de factures. */
   facture?: boolean;
+  /** Quota d'heures hebdomadaire du contrat Pro (par défaut 8h). */
+  contract_weekly_quota_hours?: number;
+  /** Activation explicite du contrat (migration progressive V2). */
+  contract_enabled?: boolean;
+  /** Active la banque d'heures persistante. */
+  contract_reserve_enabled?: boolean;
+  /** Règle de calcul des heures payables. */
+  contract_payable_rule?: "capped_quota" | "worked_hours";
+  /** Règle de traitement du dépassement quota. */
+  contract_overflow_rule?: "ignore" | "to_reserve";
   /** Coordonnées GPS du domicile pour le calcul km. */
   km_domicile_lat?: number | null;
   km_domicile_lng?: number | null;

@@ -1,16 +1,17 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { MissionCard } from "../components/mission/MissionCard";
-import { WeekPicker } from "../components/common/bilan/WeekPicker";
-import { formatEuro, formatDateFR } from "../utils/formatters";
-import { BilanPanel } from "../components/stats/BilanPanel";
+import { RapportBilanVisualV1 } from "../components/bilan/RapportBilanVisualV1";
 import { WhatsAppSecureModal } from "../components/common/WhatsAppSecureModal";
-import { useLabels } from "../contexts/LabelsContext";
-import { usePermissions } from "../contexts/PermissionsContext";
+import { formatDateFR, formatEuro } from "../utils/formatters";
 import { sanitizeErrorForDisplay } from "../utils/sanitize";
 import { buildPdfFilename } from "../utils/pdfFilename";
+import { useLabels } from "../contexts/LabelsContext";
+import { usePermissions } from "../contexts/PermissionsContext";
+import { calculateWeeklyBilan } from "../features/contracts";
+import { useReserve } from "../features/contracts/reserve";
 import type { Mission, Patron, FraisDivers } from "../types/entities";
 import type { UserProfile } from "../types/profile";
-import type { KmSettings, KmFraisResult } from "../hooks/useKmDomicile";
+import type { KmFraisResult, KmSettings } from "../hooks/useKmDomicile";
 import type { UseBilanReturn } from "../hooks/useBilan";
 
 interface Props {
@@ -28,6 +29,7 @@ interface Props {
   onMissionDelete?: (id: string) => void;
   profile: UserProfile | null;
   isViewer?: boolean;
+  isProContractEnabled?: boolean;
   canBilanMois?: boolean;
   canBilanAnnee?: boolean;
   canExportPDF?: boolean;
@@ -55,8 +57,8 @@ export const BilanTab = ({
   onMissionEdit,
   onMissionDelete,
   profile,
-  // permissions can come from props (passed by SuiviTab) or fallback to context
   isViewer: isViewerProp,
+  isProContractEnabled: isProContractEnabledProp,
   canBilanMois: canBilanMoisProp,
   canBilanAnnee: canBilanAnneeProp,
   canExportPDF: canExportPDFProp,
@@ -70,31 +72,109 @@ export const BilanTab = ({
   onRecalculerFraisKm = null,
 }: Props) => {
   const perms = usePermissions();
-  const isViewer    = isViewerProp    !== undefined ? isViewerProp    : perms.isViewer;
-  const canBilanMois  = canBilanMoisProp  !== undefined ? canBilanMoisProp  : perms.canBilanMois;
-  const canBilanAnnee = canBilanAnneeProp !== undefined ? canBilanAnneeProp : perms.canBilanAnnee;
-  const canExportPDF  = canExportPDFProp  !== undefined ? canExportPDFProp  : perms.canExportPDF;
-  const canExportExcel= canExportExcelProp!== undefined ? canExportExcelProp: perms.canExportExcel;
-  const canExportCSV  = canExportCSVProp  !== undefined ? canExportCSVProp  : perms.canExportCSV;
-  const canFacture    = canFactureProp    !== undefined ? canFactureProp    : perms.canFacture;
   const L = useLabels();
+  const isViewer = isViewerProp !== undefined ? isViewerProp : perms.isViewer;
+  const isProContractEnabled = isProContractEnabledProp !== undefined ? isProContractEnabledProp : perms.isPro;
+  const canExportPDF = canExportPDFProp !== undefined ? canExportPDFProp : perms.canExportPDF;
+  const canExportExcel = canExportExcelProp !== undefined ? canExportExcelProp : perms.canExportExcel;
+  const canExportCSV = canExportCSVProp !== undefined ? canExportCSVProp : perms.canExportCSV;
+  const canFacture = canFactureProp !== undefined ? canFactureProp : perms.canFacture;
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [isWhatsAppSubmitting, setIsWhatsAppSubmitting] = useState(false);
   const [whatsAppError, setWhatsAppError] = useState<string | null>(null);
+  const reserve = useReserve(bilanPatronId);
+
   const exportBilanContent = useMemo(() => {
-    if (kmSettings?.km_enable === true) return bilan.bilanContent;
-    return {
+    const workedHours = Number(bilan.bilanContent?.totalH ?? 0);
+    const metrics = calculateWeeklyBilan({ workedHours }, perms.contract);
+
+    const reserveMovements = reserve.movements.slice(0, 20).map((movement) => ({
+      id: movement.id,
+      date: movement.movement_date,
+      type: movement.movement_type,
+      source: movement.movement_source,
+      deltaHours: Number(movement.delta_hours),
+      comment: movement.comment,
+      missionId: movement.mission_id,
+    }));
+
+    const contractSummary = {
+      mode: perms.contract.source.mode,
+      quotaHours: metrics.quotaHours,
+      workedHours: metrics.workedHours,
+      payableHours: metrics.payableHours,
+      reserveHours: metrics.reserveHours,
+      quotaOverflowHours: metrics.quotaOverflowHours,
+      reserveBalanceHours: reserve.balanceHours,
+    };
+
+    const content = {
       ...bilan.bilanContent,
+      reserveMovements,
+      contractSummary,
+    };
+
+    if (kmSettings?.km_enable === true) return content;
+
+    return {
+      ...content,
       fraisKilometriques: { items: [], totalKm: 0, totalAmount: 0 },
     };
-  }, [bilan.bilanContent, kmSettings?.km_enable]);
+  }, [
+    bilan.bilanContent,
+    kmSettings?.km_enable,
+    reserve.movements,
+    reserve.balanceHours,
+    perms.contract.source.mode,
+    perms.contract,
+  ]);
 
   const sortedBilanMissions = useMemo(() => {
     if (!bilan.bilanContent?.filteredData) return [];
     return [...bilan.bilanContent.filteredData].sort(
-      (a: Mission, b: Mission) => new Date(a.date_iso ?? "").getTime() - new Date(b.date_iso ?? "").getTime()
+      (a: Mission, b: Mission) => new Date(a.date_iso ?? "").getTime() - new Date(b.date_iso ?? "").getTime(),
     );
   }, [bilan.bilanContent?.filteredData]);
+
+  const periodOptions = useMemo(
+    () => bilan.availablePeriods.map((periodValue) => ({
+      value: String(periodValue),
+      label: bilan.formatPeriodLabel(periodValue),
+      helper: "Période disponible",
+    })),
+    [bilan.availablePeriods, bilan],
+  );
+
+  const contractMetrics = useMemo(() => {
+    const workedHours = Number(bilan.bilanContent?.totalH ?? 0);
+    return calculateWeeklyBilan(
+      { workedHours },
+      perms.contract,
+    );
+  }, [bilan.bilanContent?.totalH, perms.contract]);
+
+  useEffect(() => {
+    if (bilan.bilanPeriodType !== "semaine") return;
+    if (!perms.contract.source.isPro) return;
+    if (!bilan.bilanPeriodValue) return;
+
+    void reserve.syncWeeklySettlement({
+      periodValue: String(bilan.bilanPeriodValue),
+      workedHours: contractMetrics.workedHours,
+      quotaHours: contractMetrics.quotaHours,
+      reserveEnabled: perms.contract.reserveEnabled,
+      overflowRule: perms.contract.overflowRule,
+    });
+  }, [
+    bilan.bilanPeriodType,
+    bilan.bilanPeriodValue,
+    contractMetrics.workedHours,
+    contractMetrics.quotaHours,
+    perms.contract.source.isPro,
+    perms.contract.reserveEnabled,
+    perms.contract.overflowRule,
+    reserve.syncWeeklySettlement,
+  ]);
 
   const handleSecureWhatsAppShare = async (password: string) => {
     setWhatsAppError(null);
@@ -127,11 +207,15 @@ export const BilanTab = ({
         bilan.bilanPeriodType,
         bilan.bilanPeriodValue,
       );
-      const file = new File([secureBytes], filename, { type: "application/pdf" });
+      const secureBuffer = secureBytes.buffer.slice(
+        secureBytes.byteOffset,
+        secureBytes.byteOffset + secureBytes.byteLength,
+      ) as ArrayBuffer;
+      const file = new File([secureBuffer], filename, { type: "application/pdf" });
 
       await shareWhatsAppFile(
         file,
-        "Bonjour, voici votre PDF sécurisé. Partagez le mot de passe via un canal séparé.",
+        "Bonjour, voici votre PDF securise. Partagez le mot de passe via un canal separe.",
       );
 
       setIsWhatsAppModalOpen(false);
@@ -146,83 +230,83 @@ export const BilanTab = ({
     return (
       <div className="animate-in slide-in-from-right duration-400">
         <div className="mb-12 space-y-4">
-          <p className="text-[11px] font-black uppercase opacity-40 px-2 tracking-[0.25em] text-center">
+          <p className="px-2 text-center text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-text-muted)]">
             Rapports & Bilans
           </p>
           <button
+            type="button"
             onClick={() => {
               bilan.setShowBilan(false);
               bilan.setShowPeriodModal(true);
             }}
-            className="w-full py-6 bg-gradient-to-r from-[var(--color-primary)] to-[color-mix(in_srgb,var(--color-primary)_60%,black)] rounded-3xl font-black text-[14px] uppercase shadow-xl active:scale-95 transition-all text-[var(--color-text)]"
+            className="w-full rounded-[var(--radius-xl)] bg-gradient-to-r from-[var(--color-primary)] to-[color-mix(in_srgb,var(--color-primary)_60%,black)] py-6 text-[14px] font-black uppercase text-[var(--color-text)] shadow-modal transition-transform active:scale-[0.98]"
           >
             Rapport bilan
           </button>
         </div>
 
         <div className="space-y-4">
-          <p className="text-[11px] font-black uppercase opacity-40 px-2 tracking-[0.25em]">
+          <p className="px-2 text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-text-muted)]">
             Semaine en cours (S{currentWeek})
           </p>
 
           {missionsThisWeek.length === 0 ? (
-            <p className="text-center text-[13px] opacity-60 py-8">
+            <p className="py-8 text-center text-[13px] text-[var(--color-text-muted)]">
               Aucune mission cette semaine...
             </p>
           ) : (
             [...missionsThisWeek]
               .sort((a: Mission, b: Mission) => new Date(a.date_iso ?? "").getTime() - new Date(b.date_iso ?? "").getTime())
-              .map((m) => (
+              .map((mission) => (
                 <MissionCard
-                  key={m.id}
-                  mission={m}
+                  key={mission.id}
+                  mission={mission}
                   onEdit={isViewer ? undefined : onMissionEdit}
                   onDelete={isViewer ? undefined : onMissionDelete}
-                  patronNom={getPatronNom(m.patron_id)}
-                  patronColor={getPatronColor(m.patron_id)}
+                  patronNom={getPatronNom(mission.patron_id)}
+                  patronColor={getPatronColor(mission.patron_id)}
                 />
               ))
           )}
 
-          {/* ── BLOC FRAIS KM – Semaine en cours ── */}
           {kmSettings?.km_enable === true && missionsThisWeek.length > 0 && (
             kmFraisThisWeek !== null && kmFraisThisWeek.items.length > 0 ? (
-              <div className="mt-2 p-4 rounded-[25px] border backdrop-blur-md bg-[var(--color-surface)] border-[var(--color-border)]">
-                <p className="text-[10px] font-black uppercase mb-3 tracking-[0.2em] text-[var(--color-accent-cyan)]/70">
-                  🚗 Frais kilométriques
+              <div className="mt-2 rounded-[25px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+                <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--color-accent-cyan)]">
+                  Frais kilometriques
                 </p>
-                <div className="space-y-2 mb-3">
-                  {kmFraisThisWeek.items.filter((item) => item.amount !== null).map((item, i) => (
-                    <div key={i} className="flex justify-between items-center text-sm">
+                <div className="mb-3 space-y-2">
+                  {kmFraisThisWeek.items.filter((item) => item.amount !== null).map((item, index) => (
+                    <div key={index} className="flex items-center justify-between text-sm">
                       <div>
                         <span className="font-bold text-[var(--color-text)]">{formatDateFR(item.date ?? "")}</span>
                         <span className="ml-2 text-[var(--color-text-muted)]">{item.labelLieuOuClient}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[var(--color-accent-cyan)]/80 text-xs">{Math.round(item.kmTotal ?? 0)} km</span>
-                        <span className="font-bold text-[var(--color-accent-cyan)] ml-2">{formatEuro(item.amount ?? 0)}</span>
+                        <span className="text-xs text-[var(--color-accent-cyan)]">{Math.round(item.kmTotal ?? 0)} km</span>
+                        <span className="ml-2 font-bold text-[var(--color-accent-cyan)]">{formatEuro(item.amount ?? 0)}</span>
                       </div>
                     </div>
                   ))}
-                  {kmFraisThisWeek.items.filter((item) => item.amount === null).map((item, i) => (
-                    <div key={`missing-${i}`} className="text-sm italic text-[var(--color-text-muted)]">
-                      {formatDateFR(item.date ?? "")} — {item.labelLieuOuClient}
+                  {kmFraisThisWeek.items.filter((item) => item.amount === null).map((item, index) => (
+                    <div key={`missing-${index}`} className="text-sm italic text-[var(--color-text-muted)]">
+                      {formatDateFR(item.date ?? "")} - {item.labelLieuOuClient}
                     </div>
                   ))}
                 </div>
                 {kmFraisThisWeek.totalAmount > 0 && (
-                  <div className="pt-2 border-t flex justify-between border-[var(--color-border)]">
+                  <div className="flex justify-between border-t border-[var(--color-border)] pt-2">
                     <span className="text-sm text-[var(--color-text-muted)]">{Math.round(kmFraisThisWeek.totalKm)} km total</span>
                     <span className="font-black text-[var(--color-accent-cyan)]">{formatEuro(kmFraisThisWeek.totalAmount)}</span>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="mt-2 p-4 rounded-[25px] border text-sm italic bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)]">
-                🚗 Frais kilométriques —{" "}
+              <div className="mt-2 rounded-[25px] border border-[var(--color-border)] bg-[var(--color-surface)] p-4 text-sm italic text-[var(--color-text-muted)]">
+                Frais kilometriques -{" "}
                 {!domicileLatLng
-                  ? "adresse domicile manquante ou non géocodée (vérifiez Paramètres → Km)"
-                  : "coordonnées GPS manquantes pour les lieux de mission"}
+                  ? "adresse domicile manquante ou non geocodee (verifiez Parametres -> Km)"
+                  : "coordonnees GPS manquantes pour les lieux de mission"}
               </div>
             )
           )}
@@ -233,49 +317,53 @@ export const BilanTab = ({
 
   return (
     <div className="animate-in fade-in duration-500">
-      <button
-        onClick={() => bilan.setShowBilan(false)}
-        className="mb-6 flex items-center gap-2 text-[10px] font-black uppercase opacity-50"
-      >
-        ← Retour
-      </button>
-
-      {/* Navigation de période */}
-      <div className="flex justify-end mb-4">
-        <WeekPicker
-          value={bilan.bilanPeriodValue}
-          weeks={bilan.availablePeriods}
-          onChange={(w) => bilan.handleWeekChange(String(w))}
-          onPrevious={bilan.gotoPreviousWeek}
-          onNext={bilan.gotoNextWeek}
-          hasPrevious={bilan.hasPreviousWeek}
-          hasNext={bilan.hasNextWeek}
-        />
-      </div>
-
-      <BilanPanel
+      <RapportBilanVisualV1
+        title={bilan.bilanContent?.titre || `Semaine ${bilan.bilanPeriodValue}`}
+        subtitle={bilan.formatPeriodLabel(bilan.bilanPeriodValue)}
+        onBack={() => bilan.setShowBilan(false)}
+        onOpenGroupedPeriod={(periodType, periodValue) => {
+          bilan.setBilanPeriodType(periodType);
+          bilan.handleWeekChange(periodValue);
+        }}
+        periodOptions={periodOptions}
+        selectedPeriodValue={String(bilan.bilanPeriodValue)}
+        onSelectPeriod={(periodValue) => bilan.handleWeekChange(periodValue)}
+        isProContractEnabled={isProContractEnabled}
+        contractMetrics={contractMetrics}
         bilanContent={bilan.bilanContent}
-        bilanPeriodType={bilan.bilanPeriodType as "semaine" | "mois" | "annee" | undefined}
+        bilanPeriodType={bilan.bilanPeriodType}
         bilanPaye={bilan.bilanPaye}
         sortedMissions={sortedBilanMissions}
-        onMarquerCommePaye={onMarquerCommePaye}
         isViewer={isViewer}
         canExportExcel={canExportExcel}
         canExportPDF={canExportPDF}
-        canExportWhatsAppSecure={canExportPDF}
         canExportCSV={canExportCSV}
         canFacture={canFacture}
+        onMarquerCommePaye={onMarquerCommePaye}
         onExportExcel={async () => {
           if (!canExportExcel) return;
           const { exportToExcel } = await import("../utils/exportUtils");
-          exportToExcel(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPeriodValue,
-            exportBilanContent.titre, exportBilanContent.fraisDivers, profile, L);
+          exportToExcel(
+            exportBilanContent,
+            bilan.bilanPeriodType,
+            bilan.bilanPeriodValue,
+            exportBilanContent.titre,
+            exportBilanContent.fraisDivers,
+            profile,
+            L,
+          );
         }}
         onExportPDF={async () => {
           if (!canExportPDF) return;
           const { exportToPDFPro } = await import("../utils/exportPDF_Pro");
-          exportToPDFPro(exportBilanContent, bilan.bilanPeriodType, bilan.bilanPaye,
-            bilan.bilanPeriodValue, profile, L);
+          exportToPDFPro(
+            exportBilanContent,
+            bilan.bilanPeriodType,
+            bilan.bilanPaye,
+            bilan.bilanPeriodValue,
+            profile,
+            L,
+          );
         }}
         onExportWhatsAppSecure={() => {
           if (!canExportPDF) return;
@@ -295,20 +383,25 @@ export const BilanTab = ({
         onExportFacture={async () => {
           const { generateFacture } = await import("../utils/generateFacture");
           const patron = patrons.find((p) => p.id === bilanPatronId) || null;
-          // Wrap saveProfile to match generateFacture's (data: any) => Promise<void> signature
-          // and safely handle the null case (no-op when saveProfile is unavailable).
           const sp = saveProfile
-            ? async (data: Partial<UserProfile>) => { await saveProfile(data); }
+            ? async (data: Partial<UserProfile>) => {
+                await saveProfile(data);
+              }
             : async () => {};
-          await generateFacture(exportBilanContent, bilan.bilanPeriodType,
-            bilan.bilanPeriodValue, profile, patron, sp, L);
+          await generateFacture(
+            exportBilanContent,
+            bilan.bilanPeriodType,
+            bilan.bilanPeriodValue,
+            profile,
+            patron,
+            sp,
+            L,
+          );
         }}
         onFraisEdit={onFraisEdit}
         onFraisDelete={onFraisDelete}
-        kmSettings={kmSettings}
         onRecalculerFraisKm={onRecalculerFraisKm ?? undefined}
         isRecalculatingKm={bilan.isRecalculatingKm}
-        domicileLatLng={domicileLatLng}
       />
 
       <WhatsAppSecureModal
@@ -324,4 +417,3 @@ export const BilanTab = ({
     </div>
   );
 };
-

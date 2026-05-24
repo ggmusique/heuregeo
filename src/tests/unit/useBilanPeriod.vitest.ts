@@ -155,6 +155,25 @@ describe("calculerPeriodesDisponibles — mode MOIS", () => {
     expect(result.current.availablePeriods).toHaveLength(1);
     expect(result.current.availablePeriods[0]).toBe("2026-01");
   });
+
+  it("ignore les missions avec date invalide pour éviter un bilan mois incohérent", () => {
+    const invalidMission = {
+      ...makeMission("2026-01-10"),
+      id: "m-invalid",
+      date_mission: "2026-13-99",
+      date_iso: "2026-13-99",
+    } as unknown as Mission;
+    const params = {
+      missions: [makeMission("2026-03-10"), invalidMission],
+    };
+    const { result } = renderHook(() => useBilanPeriod(params));
+
+    act(() => { result.current.setBilanPeriodType("mois"); });
+    act(() => { result.current.calculerPeriodesDisponibles(); });
+
+    expect(result.current.availablePeriods).toEqual(["2026-03"]);
+    expect(result.current.bilanPeriodValue).toBe("2026-03");
+  });
 });
 
 // ─── 4. calculerPeriodesDisponibles — mode ANNEE ─────────────────────────────

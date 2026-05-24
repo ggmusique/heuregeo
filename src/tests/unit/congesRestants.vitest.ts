@@ -74,17 +74,18 @@ function congesRestants(congesAnnuels: number, congesPassesAnnee: number): numbe
 function makeEvent(
   overrides: Partial<AgendaEvent> & { type: string; date_iso: string }
 ): AgendaEvent {
+  const { date_iso, type, ...rest } = overrides;
   return {
     id: "evt-1",
     titre: "Congé",
-    date_iso: overrides.date_iso,
-    type: overrides.type,
+    date_iso,
+    type,
     date_fin: overrides.date_fin ?? null,
     heure_debut: undefined,
     heure_fin: undefined,
     rappel_minutes: undefined,
     description: undefined,
-    ...overrides,
+    ...rest,
   } as AgendaEvent;
 }
 

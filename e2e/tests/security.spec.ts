@@ -90,13 +90,13 @@ test.describe("Isolation multi-utilisateur", () => {
     // La page doit afficher une erreur (pas un crash)
     await waitForNoSpinner(page);
 
-    const errorOrContent = await page
-      .locator('[data-testid="invite-error"], .error, [role="alert"], main')
-      .first()
-      .textContent({ timeout: 10_000 });
+    const container = page.locator("body");
+    await expect(container).toBeVisible({ timeout: 10_000 });
+    const errorOrContent = (await container.textContent()) ?? "";
 
     // Doit afficher un message d'erreur (et pas un token ou données sensibles)
     expect(errorOrContent).toBeTruthy();
+    expect(errorOrContent).toMatch(/expiré|invalide|erreur/i);
     expect(errorOrContent).not.toMatch(/service_role/i);
     expect(errorOrContent).not.toMatch(/secret/i);
     expect(errorOrContent).not.toMatch(/SUPABASE_/i);

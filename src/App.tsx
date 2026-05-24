@@ -71,12 +71,13 @@ function AppContent({ user }: AppProps) {
 
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canFacture } = useProfile(user);
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, viewerPatronId, isAdmin, contract, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canFacture } = useProfile(user);
   const { activeTab, setActiveTab, canAgenda, canDashboard, isViewer, proNavItems } = useNavigation(profile);
 
   const labels = getLabels(profile);
 
   const permissions = {
+    contract,
     isViewer, viewerPatronId, isAdmin, isPro,
     canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV,
     canKilometrage, canAgenda, canFacture, canDashboard,

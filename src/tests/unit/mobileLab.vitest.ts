@@ -16,6 +16,7 @@ describe("mobile lab routing", () => {
     expect(getMobileLabRoute("/mobile-lab/modals")).toBe("modals");
     expect(getMobileLabRoute("/mobile-lab/drawer")).toBe("drawer");
     expect(getMobileLabRoute("/mobile-lab/banque-heures")).toBe("banque-heures");
+    expect(getMobileLabRoute("/mobile-lab/rapport-bilan")).toBe("rapport-bilan");
     expect(getMobileLabRoute("/mobile-lab/unknown")).toBe("overview");
   });
 });

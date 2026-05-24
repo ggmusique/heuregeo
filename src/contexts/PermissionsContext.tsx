@@ -1,8 +1,10 @@
 import { createContext, useContext } from "react";
+import type { ContractFeatures } from "../features/contracts";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface PermissionsContextType {
+  contract: ContractFeatures;
   isViewer: boolean;
   viewerPatronId: string | null;
   isAdmin: boolean;

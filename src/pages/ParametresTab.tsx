@@ -472,6 +472,12 @@ export function ParametresTab({
                       saveProfile={saveProfile}
                       isPro={isPro}
                     />
+                    <ContractSettingsPanel
+                      profile={profile}
+                      saveProfile={saveProfile}
+                      profileSaving={profileSaving}
+                      isAdmin={isAdmin}
+                    />
                     <div className="rounded-2xl border p-4 border-emerald-500/25 bg-emerald-500/5">
                       <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-emerald-200/80">
                         Agenda
@@ -827,6 +833,130 @@ interface KmSettingsPanelProps {
   profile: any;
   saveProfile: (data: any) => Promise<any>;
   isPro: boolean;
+}
+
+interface ContractSettingsPanelProps {
+  profile: any;
+  saveProfile: (data: any) => Promise<any>;
+  profileSaving?: boolean;
+  isAdmin: boolean;
+}
+
+function ContractSettingsPanel({ profile, saveProfile, profileSaving, isAdmin }: ContractSettingsPanelProps) {
+  const features = profile?.features ?? {};
+  const plan = features.plan === "pro" ? "pro" : "free";
+  const contractEnabled = features.contract_enabled !== false;
+  const reserveEnabled = features.contract_reserve_enabled !== false;
+  const quota = Number(features.contract_weekly_quota_hours ?? 8);
+  const payableRule = features.contract_payable_rule === "worked_hours" ? "worked_hours" : "capped_quota";
+  const overflowRule = features.contract_overflow_rule === "to_reserve" ? "to_reserve" : "ignore";
+
+  const setFeature = async (patch: Record<string, unknown>) => {
+    await saveProfile({ features: { ...features, ...patch } });
+  };
+
+  return (
+    <div className="rounded-2xl border p-4 border-[var(--color-accent-violet)]/25 bg-[var(--color-accent-violet)]/5 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-violet)]/80">
+          Contrat V2 {isAdmin ? "(admin)" : "(lecture)"}
+        </p>
+        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">plan: {plan}</span>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          disabled={!isAdmin || profileSaving}
+          onClick={() => setFeature({ plan: plan === "pro" ? "free" : "pro" })}
+          className={
+            "rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-[background,border-color] duration-150 " +
+            (plan === "pro"
+              ? "border-[var(--color-accent-green)]/40 text-[var(--color-accent-green)] bg-[var(--color-accent-green)]/10"
+              : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
+            (!isAdmin || profileSaving ? " opacity-50 cursor-not-allowed" : "")
+          }
+        >
+          {plan === "pro" ? "Contrat actif" : "Activer contrat"}
+        </button>
+
+        <button
+          type="button"
+          disabled={!isAdmin || profileSaving || plan !== "pro"}
+          onClick={() => setFeature({ contract_enabled: !contractEnabled })}
+          className={
+            "rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-[background,border-color] duration-150 " +
+            (contractEnabled
+              ? "border-[var(--color-accent-cyan)]/40 text-[var(--color-accent-cyan)] bg-[var(--color-accent-cyan)]/10"
+              : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
+            (!isAdmin || profileSaving || plan !== "pro" ? " opacity-50 cursor-not-allowed" : "")
+          }
+        >
+          {contractEnabled ? "Moteur contrat ON" : "Moteur contrat OFF"}
+        </button>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-3">
+        <label className="text-xs text-[var(--color-text-muted)]">
+          Quota semaine (h)
+          <input
+            type="number"
+            min={1}
+            step={0.5}
+            defaultValue={quota}
+            disabled={!isAdmin || profileSaving || plan !== "pro"}
+            onBlur={(e) => {
+              const next = Number(e.target.value);
+              if (!Number.isFinite(next) || next <= 0) return;
+              void setFeature({ contract_weekly_quota_hours: next });
+            }}
+            className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
+          />
+        </label>
+
+        <label className="text-xs text-[var(--color-text-muted)]">
+          Règle payable
+          <select
+            value={payableRule}
+            disabled={!isAdmin || profileSaving || plan !== "pro"}
+            onChange={(e) => void setFeature({ contract_payable_rule: e.target.value })}
+            className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
+          >
+            <option value="capped_quota">Capé au quota</option>
+            <option value="worked_hours">Heures travaillées</option>
+          </select>
+        </label>
+
+        <label className="text-xs text-[var(--color-text-muted)]">
+          Dépassement quota
+          <select
+            value={overflowRule}
+            disabled={!isAdmin || profileSaving || plan !== "pro"}
+            onChange={(e) => void setFeature({ contract_overflow_rule: e.target.value })}
+            className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
+          >
+            <option value="ignore">Ignorer</option>
+            <option value="to_reserve">Envoyer en réserve</option>
+          </select>
+        </label>
+      </div>
+
+      <button
+        type="button"
+        disabled={!isAdmin || profileSaving || plan !== "pro"}
+        onClick={() => void setFeature({ contract_reserve_enabled: !reserveEnabled })}
+        className={
+          "rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-[background,border-color] duration-150 " +
+          (reserveEnabled
+            ? "border-[var(--color-accent-amber)]/40 text-[var(--color-accent-amber)] bg-[var(--color-accent-amber)]/10"
+            : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
+          (!isAdmin || profileSaving || plan !== "pro" ? " opacity-50 cursor-not-allowed" : "")
+        }
+      >
+        {reserveEnabled ? "Réserve activée" : "Réserve désactivée"}
+      </button>
+    </div>
+  );
 }
 
 function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) {

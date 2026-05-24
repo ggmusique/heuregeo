@@ -163,10 +163,11 @@ describe("PatronView — résolution du nom patron", () => {
   });
 
   it("met à jour le nom si patronNom change d'undefined à une valeur", async () => {
+    const initialProps: { patronNom: string | null } = { patronNom: null };
     const { result, rerender } = renderHook(
       ({ patronNom }: { patronNom: string | null }) =>
         usePatronNom({ patronNom, patronId: "patron-uuid" }),
-      { initialProps: { patronNom: null } }
+      { initialProps }
     );
 
     expect(result.current).toBe("Patron");
