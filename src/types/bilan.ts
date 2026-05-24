@@ -197,9 +197,21 @@ export interface BilanContent {
     mode: "free" | "pro";
     quotaHours: number;
     workedHours: number;
+    contractualExternalHours?: number;
+    surplusHours?: number;
     payableHours: number;
     reserveHours: number;
     quotaOverflowHours: number;
+    surplusRule?: "payable" | "banque" | "les_deux";
+    surplusSplitPct?: number;
+    averageHourlyRate?: number;
+    surplusGrossAmount?: number;
+    acompteAppliedAmount?: number;
+    fraisRemboursablesAmount?: number;
+    fraisDeductiblesAmount?: number;
+    appTotalAmount?: number;
+    externalPaymentLabel?: string;
+    contractType?: "interim" | "formation" | "cdd" | "cdi" | "other";
     reserveBalanceHours: number;
   };
   reserveMovements?: Array<{

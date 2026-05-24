@@ -89,6 +89,28 @@ describe("Rapport bilan visual V1", () => {
     expect(screen.getByLabelText("Heure payable 5h")).toBeInTheDocument();
   });
 
+  it("affiche les 2 lignes séparées heures contractuelles (source externe) et heures supplémentaires", () => {
+    render(
+      <RapportBilanVisualV1
+        title="Semaine 19"
+        subtitle="5 mai - 11 mai 2025"
+        onBack={vi.fn()}
+        contractMetrics={{
+          workedHours: 32,
+          quotaHours: 20,
+          payableHours: 12,
+          reserveHours: 0,
+          overtimeHours: 12,
+          quotaOverflowHours: 12,
+        }}
+        isProContractEnabled={true}
+      />
+    );
+
+    expect(screen.getByText(/Heures contractuelles: 20h \(source externe\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Heures supplémentaires: 12h \(gérées par l'app\)/i)).toBeInTheDocument();
+  });
+
   it("shows a premium period selector with week, month and year", () => {
     render(
       <RapportBilanVisualV1

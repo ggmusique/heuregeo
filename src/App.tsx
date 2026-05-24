@@ -172,7 +172,24 @@ function AppInner({
 
   const { kmSettings, domicileLatLng, currentWeek, missionsThisWeek, kmFraisThisWeek, handleRecalculerKmSemaine } = useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek });
 
-  const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
+  const bilan = useBilan({
+    missions,
+    fraisDivers,
+    patrons,
+    getMissionsByWeek,
+    getMissionsByPeriod,
+    getFraisByWeek,
+    getTotalFrais,
+    getSoldeAvant,
+    getAcomptesDansPeriode,
+    getTotalAcomptesJusqua,
+    triggerAlert,
+    kmSettings,
+    domicileLatLng,
+    lieux,
+    profileFeatures: profile?.features ?? null,
+    isViewer,
+  });
   const { repairBilansDB } = bilan;
 
   const missionForm = useMissionForm({ createMission, updateMission, deleteMission, missions, setLoading, triggerAlert, showConfirm, setActiveTab });

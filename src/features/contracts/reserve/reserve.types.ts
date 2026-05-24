@@ -59,6 +59,7 @@ export interface ReserveSyncWeeklyInput {
   quotaHours: number;
   reserveEnabled: boolean;
   overflowRule: "ignore" | "to_reserve";
+  surplusSplitPct?: number;
 }
 
 export interface ReserveHistoryFilters {

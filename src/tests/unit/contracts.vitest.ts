@@ -187,4 +187,108 @@ describe("Contrat hebdo V3", () => {
     expect(result.grossPayableAmount).toBe(60);
     expect(result.netAfterFrais).toBe(50);
   });
+
+  it("TEST 13 : Semaine exacte (20h/20h) -> surplus=0, payable=0, banque=0, bilan=0€", () => {
+    const result = calculateWeeklySettlement({
+      workedHours: 20,
+      contractHoursWeek: 20,
+      surplusRule: "payable",
+      hourlyRate: 12,
+      weekStartIso: "2026-05-18",
+      nowIso: "2026-05-24",
+      isEncoded: true,
+    });
+
+    expect(result.surplusHours).toBe(0);
+    expect(result.surplusPayableHours).toBe(0);
+    expect(result.surplusBanqueHours).toBe(0);
+    expect(result.grossPayableAmount).toBe(0);
+  });
+
+  it("TEST 14 : Sous contrat (15h/20h) -> surplus=0, payable=0, banque=0", () => {
+    const result = calculateWeeklySettlement({
+      workedHours: 15,
+      contractHoursWeek: 20,
+      surplusRule: "payable",
+      hourlyRate: 12,
+      weekStartIso: "2026-05-18",
+      nowIso: "2026-05-24",
+      isEncoded: true,
+    });
+
+    expect(result.surplusHours).toBe(0);
+    expect(result.surplusPayableHours).toBe(0);
+    expect(result.surplusBanqueHours).toBe(0);
+    expect(result.grossPayableAmount).toBe(0);
+  });
+
+  it("TEST 15 : Surplus payable (32h/20h, 12€/h) -> brut surplus 144€, sans heures contractuelles", () => {
+    const result = calculateWeeklySettlement({
+      workedHours: 32,
+      contractHoursWeek: 20,
+      surplusRule: "payable",
+      hourlyRate: 12,
+      weekStartIso: "2026-05-18",
+      nowIso: "2026-05-24",
+      isEncoded: true,
+    });
+
+    expect(result.surplusHours).toBe(12);
+    expect(result.grossPayableAmount).toBe(144);
+    expect(result.grossPayableAmount).not.toBe(384);
+  });
+
+  it("TEST 16 : Acompte basé sur surplus uniquement (32h/20h, acompte 50€) -> net 94€", () => {
+    const result = calculateWeeklySettlement({
+      workedHours: 32,
+      contractHoursWeek: 20,
+      surplusRule: "payable",
+      hourlyRate: 12,
+      acompteAmount: 50,
+      weekStartIso: "2026-05-18",
+      nowIso: "2026-05-24",
+      isEncoded: true,
+    });
+
+    expect(result.grossPayableAmount).toBe(144);
+    expect(result.netBeforeFrais).toBe(94);
+    expect(result.grossPayableAmount).not.toBe(384);
+  });
+
+  it("TEST 17 : Bilan app != heures totales * taux (32*12=384 absent) -> total app 144€", () => {
+    const settlement = calculateWeeklySettlement({
+      workedHours: 32,
+      contractHoursWeek: 20,
+      surplusRule: "payable",
+      hourlyRate: 12,
+      weekStartIso: "2026-05-18",
+      nowIso: "2026-05-24",
+      isEncoded: true,
+    });
+
+    const totalDueApp = settlement.grossPayableAmount;
+    const totalAllHours = 32 * 12;
+    expect(totalDueApp).toBe(144);
+    expect(totalDueApp).not.toBe(totalAllHours);
+  });
+
+  it("TEST 18 : Combiné complet (les_deux 60/40) -> payable 7.2h, banque 4.8h, net 76.4€", () => {
+    const result = calculateWeeklySettlement({
+      workedHours: 32,
+      contractHoursWeek: 20,
+      surplusRule: "les_deux",
+      surplusSplitPct: 60,
+      hourlyRate: 12,
+      acompteAmount: 30,
+      fraisRemboursables: 20,
+      weekStartIso: "2026-05-18",
+      nowIso: "2026-05-24",
+      isEncoded: true,
+    });
+
+    expect(result.surplusHours).toBe(12);
+    expect(result.surplusPayableHours).toBe(7.2);
+    expect(result.surplusBanqueHours).toBe(4.8);
+    expect(result.netAfterFrais).toBe(76.4);
+  });
 });

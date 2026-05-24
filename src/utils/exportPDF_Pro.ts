@@ -633,13 +633,28 @@ const drawContractSection = (doc: any, bilanContent: any, startY: number): numbe
     doc.line(15, y + 2, 55, y + 2);
     y += 8;
 
+    const externalHours = Number(summary.contractualExternalHours ?? Math.min(Number(summary.workedHours || 0), Number(summary.quotaHours || 0)));
+    const surplusHours = Number(summary.surplusHours ?? summary.quotaOverflowHours ?? 0);
+    const surplusRule = String(summary.surplusRule || "payable");
+    const surplusGross = Number(summary.surplusGrossAmount || 0);
+    const acompteApplied = Number(summary.acompteAppliedAmount || 0);
+    const fraisRemboursables = Number(summary.fraisRemboursablesAmount || 0);
+    const fraisDeductibles = Number(summary.fraisDeductiblesAmount || 0);
+    const totalApp = Number(summary.appTotalAmount || Math.max(0, surplusGross - acompteApplied + fraisRemboursables - fraisDeductibles));
+
     const lines = [
-      ["Mode", String(summary.mode || "free").toUpperCase()],
-      ["Quota hebdo", formatHeures(summary.quotaHours || 0)],
-      ["Heures travaillées", formatHeures(summary.workedHours || 0)],
-      ["Heures payables", formatHeures(summary.payableHours || 0)],
-      ["Réserve période", formatHeures(summary.reserveHours || 0)],
-      ["Dépassement quota", formatHeures(summary.quotaOverflowHours || 0)],
+      ["Type de contrat", String(summary.contractType || "other").toUpperCase()],
+      ["Heures / semaine", formatHeures(summary.quotaHours || 0)],
+      ["Heures contractuelles", `${formatHeures(externalHours)} (${summary.externalPaymentLabel || "payé par source externe"})`],
+      ["Heures supplémentaires", formatHeures(surplusHours)],
+      ["Règle surplus", surplusRule],
+      ["Surplus payable", formatHeures(summary.payableHours || 0)],
+      ["Surplus banque", formatHeures(summary.reserveHours || 0)],
+      ["Montant surplus", formatEuro(surplusGross)],
+      ["Acomptes (surplus)", `-${formatEuro(acompteApplied)}`],
+      ["Frais remboursables", `+${formatEuro(fraisRemboursables)}`],
+      ["Frais déductibles", `-${formatEuro(fraisDeductibles)}`],
+      ["Total app", formatEuro(totalApp)],
       ["Solde réserve", formatHeures(summary.reserveBalanceHours || 0)],
     ];
 

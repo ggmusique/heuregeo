@@ -132,7 +132,7 @@ export function calculatePayableHours(input: ContractCalculationInput, contract:
   const quotaHours = sanitizeHours(input.quotaHours ?? contract.hoursPerWeek);
   const surplus = Math.max(0, workedHours - quotaHours);
   const split = splitSurplusHours(surplus, contract.surplusRule, contract.surplusSplitPct);
-  return round2(quotaHours + split.payable);
+  return round2(split.payable);
 }
 
 export function calculateQuotaOverflow(input: ContractCalculationInput, contract: ContractFeatures): number {
@@ -160,7 +160,7 @@ export function calculateWeeklyBilan(input: ContractCalculationInput, contract: 
   const quotaOverflowHours = calculateQuotaOverflow(input, contract);
   const split = splitSurplusHours(quotaOverflowHours, contract.surplusRule, contract.surplusSplitPct);
   const reserveHours = contract.reserveEnabled ? split.banque : 0;
-  const payableHours = round2(quotaHours + split.payable);
+  const payableHours = round2(split.payable);
 
   return {
     workedHours,

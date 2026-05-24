@@ -12,6 +12,7 @@ import { useBilanPeriod } from "./useBilanPeriod";
 import { enrichWithWeather } from "./useBilanWeather";
 import { computeKmItems, useBilanKm } from "./useBilanKm";
 import { useBilanDB } from "./useBilanDB";
+import { buildContractFeatures, calculateWeeklyBilan } from "../features/contracts";
 
 export { normalizeBilanForWrite as normalizeBilanRow };
 
@@ -42,6 +43,8 @@ export function useBilan({
   kmSettings = null,
   domicileLatLng = null,
   lieux = [],
+  profileFeatures = null,
+  isViewer = false,
   readOnly = false,
 }: import("./useBilanTypes").UseBilanParams): import("./useBilanTypes").UseBilanReturn {
   const [showBilan, setShowBilan] = useState<boolean>(false);
@@ -89,13 +92,20 @@ export function useBilan({
         const totalMissions = filtered.reduce((s, m) => s + (m.montant || 0), 0);
         const totalH = filtered.reduce((s, m) => s + (m.duree || 0), 0);
 
+        const contract = buildContractFeatures({ features: profileFeatures || {}, isViewer });
+        const contractMetrics = calculateWeeklyBilan({ workedHours: totalH }, contract);
+        const averageHourlyRate = totalH > 0 ? totalMissions / totalH : 0;
+        const surplusGrossAmount = contract.source.isPro
+          ? Math.max(0, contractMetrics.payableHours * averageHourlyRate)
+          : totalMissions;
+
         let fraisFiltres: FraisDivers[] = [];
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           fraisFiltres = getFraisByWeek(parseInt(bilanPeriodValue, 10), runPatronId);
         }
         const totalFrais = getTotalFrais(fraisFiltres);
         const { debutPeriode, finPeriode } = computePeriodDates(bilanPeriodType, bilanPeriodValue);
-        const caBrutPeriode = totalMissions + totalFrais;
+        const caBrutPeriode = (contract.source.isPro ? surplusGrossAmount : totalMissions) + totalFrais;
 
         if (caBrutPeriode === 0 && filtered.length === 0) {
           triggerAlert?.(`⚠️ Aucune mission pour ${resolvePatronNom(runPatronId) || "ce patron"} en ${period.formatCurrentPeriodLabel(bilanPeriodValue)}`);
@@ -195,6 +205,27 @@ export function useBilan({
           soldeAcomptesAvant: soldeAvantPeriode, soldeAcomptesApres: soldeApresPeriode,
           selectedPatronId: runPatronId, selectedPatronNom: patronNom,
           fraisKilometriques: fraisKm, lieux,
+          contractSummary: {
+            mode: contract.source.mode,
+            quotaHours: contract.hoursPerWeek,
+            workedHours: contractMetrics.workedHours,
+            contractualExternalHours: Math.min(contractMetrics.workedHours, contract.hoursPerWeek),
+            surplusHours: contractMetrics.quotaOverflowHours,
+            payableHours: contractMetrics.payableHours,
+            reserveHours: contractMetrics.reserveHours,
+            quotaOverflowHours: contractMetrics.quotaOverflowHours,
+            surplusRule: contract.surplusRule,
+            surplusSplitPct: contract.surplusSplitPct,
+            averageHourlyRate,
+            surplusGrossAmount,
+            acompteAppliedAmount: bilanPeriodType === PERIOD_TYPES.SEMAINE ? consommeCettePeriode : 0,
+            fraisRemboursablesAmount: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
+            fraisDeductiblesAmount: 0,
+            appTotalAmount: Math.max(0, surplusGrossAmount - (bilanPeriodType === PERIOD_TYPES.SEMAINE ? consommeCettePeriode : 0) + (bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0)),
+            externalPaymentLabel: "payé par source externe",
+            contractType: contract.contractType,
+            reserveBalanceHours: 0,
+          },
         };
 
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
@@ -233,7 +264,7 @@ export function useBilan({
     [bilanPeriodValue, bilanPeriodType, getMissionsByPeriod, getFraisByWeek, getTotalFrais,
       getSoldeAvant, getAcomptesDansPeriode, db.getImpayePrecedent,
       getTotalAcomptesJusqua, db.getStatutPaiement, period.formatCurrentPeriodLabel,
-      triggerAlert, patrons, kmSettings, domicileLatLng, lieux]
+      triggerAlert, patrons, kmSettings, domicileLatLng, lieux, profileFeatures, isViewer]
   );
 
   const { isRecalculatingKm, recalculerFraisKm } = useBilanKm({

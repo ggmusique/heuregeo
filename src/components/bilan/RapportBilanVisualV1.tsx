@@ -208,8 +208,8 @@ export function RapportBilanVisualV1({
       };
     }
     const quotaHours = 8;
-    const payableHours = isProContractEnabled ? Math.min(totalWorked, quotaHours) : totalWorked;
-    const reserveHours = isProContractEnabled ? Math.max(0, quotaHours - totalWorked) : 0;
+    const payableHours = isProContractEnabled ? Math.max(0, totalWorked - quotaHours) : totalWorked;
+    const reserveHours = 0;
     const quotaOverflowHours = isProContractEnabled ? Math.max(0, totalWorked - quotaHours) : 0;
     return {
       workedHours: totalWorked,
@@ -232,6 +232,8 @@ export function RapportBilanVisualV1({
 
   const showResteKpi = !bilanPaye && resteAPercevoir > 0;
   const showReserveKpi = isProContractEnabled;
+  const contractualExternalHours = Math.max(0, Math.min(resolvedContractMetrics.workedHours, resolvedContractMetrics.quotaHours));
+  const overtimeHours = Math.max(0, resolvedContractMetrics.quotaOverflowHours);
 
   const hasFraisList = (bilanContent?.fraisDivers?.length ?? 0) > 0;
   const hasAcompteSection =
@@ -387,7 +389,10 @@ export function RapportBilanVisualV1({
             >
               {Math.round(resolvedContractMetrics.payableHours * 10) / 10}h
             </p>
-            <p className="relative mt-2 text-xs text-[var(--color-text-dim)]">Calcul contrat selon quota hebdomadaire</p>
+            <div className="relative mt-2 space-y-1 text-[11px] text-[var(--color-text-dim)]">
+              <p>Heures contractuelles: {Math.round(contractualExternalHours * 10) / 10}h (source externe)</p>
+              <p>Heures supplémentaires: {Math.round(overtimeHours * 10) / 10}h (gérées par l'app)</p>
+            </div>
           </article>
           )}
 

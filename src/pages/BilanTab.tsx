@@ -86,7 +86,13 @@ export const BilanTab = ({
 
   const exportBilanContent = useMemo(() => {
     const workedHours = Number(bilan.bilanContent?.totalH ?? 0);
+    const averageHourlyRate = Number(bilan.bilanContent?.contractSummary?.averageHourlyRate ?? 0);
     const metrics = calculateWeeklyBilan({ workedHours }, perms.contract);
+    const surplusGrossAmount = Math.max(0, metrics.payableHours * averageHourlyRate);
+    const acompteAppliedAmount = Number(bilan.bilanContent?.totalAcomptes ?? 0);
+    const fraisRemboursablesAmount = Number(bilan.bilanContent?.totalFrais ?? 0);
+    const fraisDeductiblesAmount = 0;
+    const appTotalAmount = Math.max(0, surplusGrossAmount - acompteAppliedAmount + fraisRemboursablesAmount - fraisDeductiblesAmount);
 
     const reserveMovements = reserve.movements.slice(0, 20).map((movement) => ({
       id: movement.id,
@@ -102,9 +108,21 @@ export const BilanTab = ({
       mode: perms.contract.source.mode,
       quotaHours: metrics.quotaHours,
       workedHours: metrics.workedHours,
+      contractualExternalHours: Math.min(metrics.workedHours, metrics.quotaHours),
+      surplusHours: metrics.quotaOverflowHours,
       payableHours: metrics.payableHours,
       reserveHours: metrics.reserveHours,
       quotaOverflowHours: metrics.quotaOverflowHours,
+      surplusRule: perms.contract.surplusRule,
+      surplusSplitPct: perms.contract.surplusSplitPct,
+      averageHourlyRate,
+      surplusGrossAmount,
+      acompteAppliedAmount,
+      fraisRemboursablesAmount,
+      fraisDeductiblesAmount,
+      appTotalAmount,
+      externalPaymentLabel: "payé par source externe",
+      contractType: perms.contract.contractType,
       reserveBalanceHours: reserve.balanceHours,
     };
 
@@ -164,6 +182,7 @@ export const BilanTab = ({
       quotaHours: contractMetrics.quotaHours,
       reserveEnabled: perms.contract.reserveEnabled,
       overflowRule: perms.contract.overflowRule,
+      surplusSplitPct: perms.contract.surplusSplitPct,
     });
   }, [
     bilan.bilanPeriodType,
@@ -173,6 +192,7 @@ export const BilanTab = ({
     perms.contract.source.isPro,
     perms.contract.reserveEnabled,
     perms.contract.overflowRule,
+    perms.contract.surplusSplitPct,
     reserve.syncWeeklySettlement,
   ]);
 

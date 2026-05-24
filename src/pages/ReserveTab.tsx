@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { PiggyBank, Plus, Minus, RotateCcw } from "lucide-react";
 import { useReserve } from "../features/contracts/reserve";
 import type { ReserveMovementType } from "../features/contracts/reserve";
-import { formatDateFR, formatHeures } from "../utils/formatters";
+import { formatHeures } from "../utils/formatters";
 
 interface ReserveTabProps {
   patronId: string | null;
@@ -143,7 +143,7 @@ export function ReserveTab({ patronId, patronName }: ReserveTabProps) {
                 return (
                   <div key={movement.id} className="grid grid-cols-[140px_140px_1fr_120px_120px_120px] items-center gap-2 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-2 py-2">
                     <p className="text-[10px] text-[var(--color-text-muted)]">
-                      {formatDateFR(movement.movement_date)}
+                      {new Date(movement.movement_date).toLocaleString("fr-BE")}
                     </p>
                     <p className="text-xs font-black text-[var(--color-text)]">{movement.movement_type}</p>
                     <p className="text-xs text-[var(--color-text-muted)]">{movement.comment || "-"}</p>

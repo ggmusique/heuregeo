@@ -6,6 +6,12 @@ function sanitizeHours(value: number | string | undefined | null): number {
   return Math.round(num * 100) / 100;
 }
 
+function clampPct(value: number | undefined): number {
+  const num = Number(value ?? 0);
+  if (!Number.isFinite(num)) return 0;
+  return Math.min(100, Math.max(0, num));
+}
+
 export function computeReserveBalanceHours(movements: ReserveMovementRow[]): number {
   return Math.round(
     movements.reduce((sum, movement) => sum + sanitizeHours(movement.delta_hours), 0) * 100,
@@ -22,7 +28,9 @@ export function computeWeeklySettlementDelta(input: ReserveSyncWeeklyInput): num
   const overflowHours = Math.max(0, workedHours - quotaHours);
 
   if (input.overflowRule === "to_reserve") {
-    return sanitizeHours(missingToQuota + overflowHours);
+    const splitPct = clampPct(input.surplusSplitPct);
+    const surplusBanque = overflowHours * (1 - splitPct / 100);
+    return sanitizeHours(missingToQuota + surplusBanque);
   }
 
   return sanitizeHours(missingToQuota);
