@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   fetchUsers,
-  updateUserFeatures,
+  adminSetUserPlan,
   deleteUserProfile,
   type AdminUser,
   type AdminFeatures,
@@ -75,28 +75,6 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
     fetchUsersData();
   }, [fetchUsersData]);
 
-  const updateContractSettings = async (user: AdminUser, patch: AdminFeatures) => {
-    if (!isAdmin) return;
-    setUpdating(user.id);
-    setUpdateError(null);
-    try {
-      const currentFeatures = (user.features || {}) as AdminFeatures;
-      const nextFeatures = { ...currentFeatures, ...patch };
-      const { error } = await updateUserFeatures(user.id, nextFeatures);
-      if (error) throw new Error(error);
-
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === user.id ? { ...u, features: nextFeatures } : u
-        )
-      );
-    } catch (err: unknown) {
-      setUpdateError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setUpdating(null);
-    }
-  };
-
   const togglePlan = async (user: AdminUser) => {
     if (!isAdmin) {
       setUpdateError("Accès refusé");
@@ -145,7 +123,7 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
 
     setUpdating(user.id);
     try {
-      const { error } = await updateUserFeatures(user.id, newFeatures);
+      const { error } = await adminSetUserPlan(user.id, newFeatures);
       if (error) throw new Error(error);
 
       setUsers((prev) =>
@@ -277,10 +255,6 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
             const plan = user.features?.plan || "free";
             const isPro = plan === "pro";
             const isUpdating = updating === user.id;
-            const quota = Number((user.features?.contract_weekly_quota_hours as number) ?? 8);
-            const reserveEnabled = user.features?.contract_reserve_enabled !== false;
-            const payableRule = user.features?.contract_payable_rule === "worked_hours" ? "worked_hours" : "capped_quota";
-            const overflowRule = user.features?.contract_overflow_rule === "to_reserve" ? "to_reserve" : "ignore";
 
             return (
               <div
@@ -368,64 +342,6 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-offset)] p-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
-                    Quota semaine
-                    <input
-                      type="number"
-                      min={1}
-                      step={0.5}
-                      defaultValue={quota}
-                      disabled={!isPro || isUpdating || deleting === user.id}
-                      onBlur={(e) => {
-                        const next = Number(e.target.value);
-                        if (!Number.isFinite(next) || next <= 0) return;
-                        void updateContractSettings(user, { contract_weekly_quota_hours: next });
-                      }}
-                      className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-sm text-[var(--color-text)]"
-                    />
-                  </label>
-
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
-                    Règle payable
-                    <select
-                      value={payableRule}
-                      disabled={!isPro || isUpdating || deleting === user.id}
-                      onChange={(e) => void updateContractSettings(user, { contract_payable_rule: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-sm text-[var(--color-text)]"
-                    >
-                      <option value="capped_quota">Capé quota</option>
-                      <option value="worked_hours">Heures travaillées</option>
-                    </select>
-                  </label>
-
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
-                    Dépassement
-                    <select
-                      value={overflowRule}
-                      disabled={!isPro || isUpdating || deleting === user.id}
-                      onChange={(e) => void updateContractSettings(user, { contract_overflow_rule: e.target.value })}
-                      className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-1.5 text-sm text-[var(--color-text)]"
-                    >
-                      <option value="ignore">Ignorer</option>
-                      <option value="to_reserve">Vers réserve</option>
-                    </select>
-                  </label>
-
-                  <button
-                    type="button"
-                    disabled={!isPro || isUpdating || deleting === user.id}
-                    onClick={() => void updateContractSettings(user, { contract_reserve_enabled: !reserveEnabled })}
-                    className={
-                      "mt-4 rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-[background,border-color] duration-150 " +
-                      (reserveEnabled
-                        ? "border-[var(--color-accent-green)]/40 bg-[var(--color-accent-green)]/10 text-[var(--color-accent-green)]"
-                        : "border-[var(--color-border)] text-[var(--color-text-muted)]")
-                    }
-                  >
-                    {reserveEnabled ? "Réserve ON" : "Réserve OFF"}
-                  </button>
-                </div>
               </div>
             );
           })}

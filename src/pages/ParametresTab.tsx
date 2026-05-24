@@ -859,7 +859,7 @@ function ContractSettingsPanel({ profile, saveProfile, profileSaving, isAdmin }:
     <div className="rounded-2xl border p-4 border-[var(--color-accent-violet)]/25 bg-[var(--color-accent-violet)]/5 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-violet)]/80">
-          Contrat V2 {isAdmin ? "(admin)" : "(lecture)"}
+          Contrat V2
         </p>
         <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">plan: {plan}</span>
       </div>
@@ -904,7 +904,7 @@ function ContractSettingsPanel({ profile, saveProfile, profileSaving, isAdmin }:
             min={1}
             step={0.5}
             defaultValue={quota}
-            disabled={!isAdmin || profileSaving || plan !== "pro"}
+            disabled={profileSaving || plan !== "pro"}
             onBlur={(e) => {
               const next = Number(e.target.value);
               if (!Number.isFinite(next) || next <= 0) return;
@@ -918,7 +918,7 @@ function ContractSettingsPanel({ profile, saveProfile, profileSaving, isAdmin }:
           Règle payable
           <select
             value={payableRule}
-            disabled={!isAdmin || profileSaving || plan !== "pro"}
+            disabled={profileSaving || plan !== "pro"}
             onChange={(e) => void setFeature({ contract_payable_rule: e.target.value })}
             className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
           >
@@ -931,7 +931,7 @@ function ContractSettingsPanel({ profile, saveProfile, profileSaving, isAdmin }:
           Dépassement quota
           <select
             value={overflowRule}
-            disabled={!isAdmin || profileSaving || plan !== "pro"}
+            disabled={profileSaving || plan !== "pro"}
             onChange={(e) => void setFeature({ contract_overflow_rule: e.target.value })}
             className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
           >
@@ -943,14 +943,14 @@ function ContractSettingsPanel({ profile, saveProfile, profileSaving, isAdmin }:
 
       <button
         type="button"
-        disabled={!isAdmin || profileSaving || plan !== "pro"}
+        disabled={profileSaving || plan !== "pro"}
         onClick={() => void setFeature({ contract_reserve_enabled: !reserveEnabled })}
         className={
           "rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-[background,border-color] duration-150 " +
           (reserveEnabled
             ? "border-[var(--color-accent-amber)]/40 text-[var(--color-accent-amber)] bg-[var(--color-accent-amber)]/10"
             : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
-          (!isAdmin || profileSaving || plan !== "pro" ? " opacity-50 cursor-not-allowed" : "")
+          (profileSaving || plan !== "pro" ? " opacity-50 cursor-not-allowed" : "")
         }
       >
         {reserveEnabled ? "Réserve activée" : "Réserve désactivée"}
