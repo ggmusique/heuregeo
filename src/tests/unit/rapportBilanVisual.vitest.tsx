@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -67,6 +67,15 @@ describe("Rapport bilan visual V1", () => {
         title="Semaine 19"
         subtitle="5 mai - 11 mai 2025"
         onBack={vi.fn()}
+        isProContractEnabled={true}
+        contractMetrics={{
+          workedHours: 25,
+          quotaHours: 20,
+          payableHours: 5,
+          overtimeHours: 5,
+          quotaOverflowHours: 5,
+          reserveHours: 3,
+        }}
       />
     );
 
