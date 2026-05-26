@@ -196,15 +196,14 @@ export const BilanTab = ({
   }, [bilan.bilanContent?.contractSummary, bilan.bilanContent?.totalH, perms.contract]);
 
   useEffect(() => {
+    if (bilan.bilanPeriodType !== "semaine") return;
+    if (!perms.contract.source.isPro) return;
+    if (!bilan.bilanPeriodValue) return;
     const activeSince = profile?.features?.contract_active_since ?? null;
-   
     if (activeSince) {
       const { finPeriode } = computePeriodDates(bilan.bilanPeriodType, String(bilan.bilanPeriodValue));
       if (finPeriode < activeSince) return;
     }
-    if (bilan.bilanPeriodType !== "semaine") return;
-    if (!perms.contract.source.isPro) return;
-    if (!bilan.bilanPeriodValue) return;
 
     void reserve.syncWeeklySettlement({
       periodValue: String(bilan.bilanPeriodValue),

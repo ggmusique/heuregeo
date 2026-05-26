@@ -121,7 +121,9 @@ export function useBilan({
         const filtered: Mission[] = getMissionsByPeriod(bilanPeriodType, bilanPeriodValue, runPatronId)
           .filter((m) => !clientId || m.client_id === clientId)
           .filter((m) => {
-            if (!contractActiveSince || isPreActivationWeek) return true;
+            if (!contractActiveSince) return true;
+            if (bilanPeriodType !== PERIOD_TYPES.SEMAINE) return true;
+            if (isPreActivationWeek) return true;
             const d = m.date_mission ?? m.date_iso;
             return !d || d >= contractActiveSince;
           })
