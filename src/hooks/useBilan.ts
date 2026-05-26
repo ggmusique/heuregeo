@@ -110,16 +110,28 @@ export function useBilan({
         const user = await getCurrentUserOrNull();
         if (!user) { triggerAlert?.("Utilisateur non connecté."); return false; }
 
+        const contract = buildContractFeatures({ features: profileFeatures || {}, isViewer });
+        const contractActiveSince = contract.source.isPro
+          ? (profileFeatures?.contract_active_since ?? null)
+          : null;
+        const isPreActivationWeek = Boolean(
+          contractActiveSince && bilanPeriodType === PERIOD_TYPES.SEMAINE && computePeriodDates(bilanPeriodType, bilanPeriodValue).finPeriode < contractActiveSince,
+        );
+
         const filtered: Mission[] = getMissionsByPeriod(bilanPeriodType, bilanPeriodValue, runPatronId)
           .filter((m) => !clientId || m.client_id === clientId)
+          .filter((m) => {
+            if (!contractActiveSince || isPreActivationWeek) return true;
+            const d = m.date_mission ?? m.date_iso;
+            return !d || d >= contractActiveSince;
+          })
           .sort((a, b) => new Date(a.date_iso!).getTime() - new Date(b.date_iso!).getTime());
 
         const totalMissions = filtered.reduce((s, m) => s + (m.montant || 0), 0);
         const totalH = filtered.reduce((s, m) => s + (m.duree || 0), 0);
 
-        const contract = buildContractFeatures({ features: profileFeatures || {}, isViewer });
         const weeklyWorkedBuckets = aggregateWorkedHoursByIsoWeek(filtered);
-        const contractMetrics = contract.source.isPro && bilanPeriodType !== PERIOD_TYPES.SEMAINE
+        const contractMetrics = contract.source.isPro && !isPreActivationWeek && bilanPeriodType !== PERIOD_TYPES.SEMAINE
           ? weeklyWorkedBuckets.reduce(
               (acc, workedHours) => {
                 const metrics = calculateWeeklyBilan({ workedHours }, contract);
@@ -141,10 +153,10 @@ export function useBilan({
                 quotaOverflowHours: 0,
               },
             )
-          : calculateWeeklyBilan({ workedHours: totalH }, contract);
+          : calculateWeeklyBilan({ workedHours: totalH }, isPreActivationWeek ? { ...contract, source: { ...contract.source, mode: "free", isPro: false } } : contract);
         const averageHourlyRate = totalH > 0 ? totalMissions / totalH : 0;
         const totalMissionsReel = totalMissions;
-        const surplusGrossAmount = contract.source.isPro
+        const surplusGrossAmount = contract.source.isPro && !isPreActivationWeek
           ? Math.max(0, contractMetrics.payableHours * averageHourlyRate)
           : totalMissions;
 
@@ -154,7 +166,7 @@ export function useBilan({
         }
         const totalFrais = getTotalFrais(fraisFiltres);
         const { debutPeriode, finPeriode } = computePeriodDates(bilanPeriodType, bilanPeriodValue);
-        const caBrutPeriode = (contract.source.isPro ? surplusGrossAmount : totalMissions) + totalFrais;
+        const caBrutPeriode = (contract.source.isPro && !isPreActivationWeek ? surplusGrossAmount : totalMissions) + totalFrais;
 
         if (caBrutPeriode === 0 && filtered.length === 0) {
           triggerAlert?.(`⚠️ Aucune mission pour ${resolvePatronNom(runPatronId) || "ce patron"} en ${period.formatCurrentPeriodLabel(bilanPeriodValue)}`);
@@ -256,7 +268,7 @@ export function useBilan({
           fraisKilometriques: fraisKm, lieux,
           totalMissionsReel,
           contractSummary: {
-            mode: contract.source.mode,
+            mode: isPreActivationWeek ? "free" : contract.source.mode,
             quotaHours: contractMetrics.quotaHours,
             workedHours: contractMetrics.workedHours,
             contractualExternalHours: Math.max(0, contractMetrics.workedHours - contractMetrics.quotaOverflowHours),

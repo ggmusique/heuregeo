@@ -23,9 +23,15 @@ export function buildContractFeaturesUpdate(
   const safeHours = Number.isFinite(nextHours) && nextHours > 0 ? nextHours : 20;
   const safeSplit = Number.isFinite(nextSplit) ? nextSplit : 50;
 
+  const wasActive = Boolean(features.contract_active ?? features.contract_enabled ?? false);
+  const activeSince = form.contractActive && !wasActive
+    ? new Date().toISOString().slice(0, 10)
+    : (features.contract_active_since ?? null);
+
   return {
     ...features,
     contract_active: form.contractActive,
+    contract_active_since: activeSince,
     contract_enabled: form.contractActive,
     contract_type: form.contractType,
     contract_hours_week: safeHours,

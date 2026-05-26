@@ -95,6 +95,8 @@ export interface UserFeatures {
   contract_type?: "interim" | "formation" | "cdd" | "cdi" | "other";
   /** Activation explicite du module contrat (source prioritaire). */
   contract_active?: boolean;
+  /** Date d'activation du contrat Pro — format ISO "YYYY-MM-DD". */
+  contract_active_since?: string | null;
   /** Heures contractuelles hebdomadaires. */
   contract_hours_week?: number;
   /** Règle de répartition du surplus. */
