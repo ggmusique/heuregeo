@@ -197,14 +197,7 @@ export const BilanTab = ({
 
   useEffect(() => {
     const activeSince = profile?.features?.contract_active_since ?? null;
-    console.log("[RESERVE GUARD]", {
-      activeSince,
-      bilanPeriodType: bilan.bilanPeriodType,
-      bilanPeriodValue: bilan.bilanPeriodValue,
-      finPeriode: activeSince
-        ? computePeriodDates(bilan.bilanPeriodType, String(bilan.bilanPeriodValue)).finPeriode
-        : "n/a",
-    });
+   
     if (activeSince) {
       const { finPeriode } = computePeriodDates(bilan.bilanPeriodType, String(bilan.bilanPeriodValue));
       if (finPeriode < activeSince) return;
