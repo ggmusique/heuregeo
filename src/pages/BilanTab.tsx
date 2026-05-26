@@ -5,6 +5,7 @@ import { WhatsAppSecureModal } from "../components/common/WhatsAppSecureModal";
 import { formatDateFR, formatEuro } from "../utils/formatters";
 import { sanitizeErrorForDisplay } from "../utils/sanitize";
 import { buildPdfFilename } from "../utils/pdfFilename";
+import { computePeriodDates } from "../lib/bilanPeriods";
 import { useLabels } from "../contexts/LabelsContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { calculateWeeklyBilan } from "../features/contracts";
@@ -195,6 +196,19 @@ export const BilanTab = ({
   }, [bilan.bilanContent?.contractSummary, bilan.bilanContent?.totalH, perms.contract]);
 
   useEffect(() => {
+    const activeSince = profile?.features?.contract_active_since ?? null;
+    console.log("[RESERVE GUARD]", {
+      activeSince,
+      bilanPeriodType: bilan.bilanPeriodType,
+      bilanPeriodValue: bilan.bilanPeriodValue,
+      finPeriode: activeSince
+        ? computePeriodDates(bilan.bilanPeriodType, String(bilan.bilanPeriodValue)).finPeriode
+        : "n/a",
+    });
+    if (activeSince) {
+      const { finPeriode } = computePeriodDates(bilan.bilanPeriodType, String(bilan.bilanPeriodValue));
+      if (finPeriode < activeSince) return;
+    }
     if (bilan.bilanPeriodType !== "semaine") return;
     if (!perms.contract.source.isPro) return;
     if (!bilan.bilanPeriodValue) return;
@@ -216,6 +230,7 @@ export const BilanTab = ({
     perms.contract.reserveEnabled,
     perms.contract.overflowRule,
     perms.contract.surplusSplitPct,
+    profile?.features?.contract_active_since,
     reserve.syncWeeklySettlement,
   ]);
 
