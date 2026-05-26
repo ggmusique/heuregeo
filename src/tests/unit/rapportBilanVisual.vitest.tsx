@@ -159,6 +159,8 @@ describe("Rapport bilan visual V1", () => {
         bilanContent={{
           titre: "Semaine 19",
           totalE: 320,
+          totalMissionsReel: 320,
+          isSolde: false,
           totalH: 18.5,
           filteredData: [],
           groupedData: [],
@@ -230,6 +232,8 @@ describe("Rapport bilan visual V1", () => {
         bilanContent={{
           titre: "Semaine 19",
           totalE: 260,
+          totalMissionsReel: 260,
+          isSolde: false,
           totalH: 8,
           filteredData: [],
           groupedData: [],
@@ -269,6 +273,8 @@ describe("Rapport bilan visual V1", () => {
         bilanContent={{
           titre: "Semaine 19",
           totalE: 320,
+          totalMissionsReel: 320,
+          isSolde: false,
           totalH: 18.5,
           filteredData: [],
           groupedData: [],
@@ -322,6 +328,8 @@ describe("Rapport bilan visual V1", () => {
         bilanContent={{
           titre: "Semaine 19",
           totalE: 120,
+          totalMissionsReel: 120,
+          isSolde: false,
           totalH: 8,
           filteredData: [],
           groupedData: [],
@@ -370,6 +378,8 @@ describe("Rapport bilan visual V1", () => {
         bilanContent={{
           titre: "AVRIL 2026",
           totalE: 480,
+          totalMissionsReel: 480,
+          isSolde: false,
           totalH: 16,
           filteredData: [
             {
@@ -438,6 +448,8 @@ describe("Rapport bilan visual V1", () => {
         bilanContent={{
           titre: "2026",
           totalE: 720,
+          totalMissionsReel: 720,
+          isSolde: false,
           totalH: 24,
           filteredData: [
             {

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { getCurrentUserOrNull } from "../services/authService";
-import { normalizeBilanForWrite, computeStatutPaye, computeConsommeCettePeriode, computeWeeklyAcompteState, computeStandardAcompteState } from "../lib/bilanEngine";
+import { normalizeBilanForWrite, computeStatutPaye, computeStatutSolde, computeConsommeCettePeriode, computeWeeklyAcompteState, computeStandardAcompteState } from "../lib/bilanEngine";
 import { fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchWeeklyAcompteMetrics, fetchBilanByPeriodAndPatron, insertBilanRow, updateBilanRowById } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
@@ -76,7 +76,7 @@ export function useBilan({
   const [showPeriodModal, setShowPeriodModal] = useState<boolean>(false);
   const [bilanPaye, setBilanPaye] = useState<boolean>(false);
   const [bilanContent, setBilanContent] = useState<import("../types/bilan").BilanContent>({
-    titre: "", totalE: 0, totalH: 0, filteredData: [], groupedData: [], totalFrais: 0,
+    titre: "", totalE: 0, totalMissionsReel: 0, isSolde: false, totalH: 0, filteredData: [], groupedData: [], totalFrais: 0,
     fraisDivers: [], impayePrecedent: 0, resteCettePeriode: 0, resteAPercevoir: 0,
     soldeAcomptesAvant: 0, soldeAcomptesApres: 0, acomptesDansPeriode: 0, totalAcomptes: 0,
     acompteConsommePeriode: 0, selectedPatronId: null, selectedPatronNom: "Tous les patrons (Global)",
@@ -143,6 +143,7 @@ export function useBilan({
             )
           : calculateWeeklyBilan({ workedHours: totalH }, contract);
         const averageHourlyRate = totalH > 0 ? totalMissions / totalH : 0;
+        const totalMissionsReel = totalMissions;
         const surplusGrossAmount = contract.source.isPro
           ? Math.max(0, contractMetrics.payableHours * averageHourlyRate)
           : totalMissions;
@@ -243,7 +244,7 @@ export function useBilan({
 
         const content: import("../types/bilan").BilanContent = {
           titre: period.formatCurrentPeriodLabel(bilanPeriodValue),
-          totalE: caBrutPeriode, totalH, filteredData: filteredWithWeather, groupedData,
+          totalE: caBrutPeriode, isSolde: false, totalH, filteredData: filteredWithWeather, groupedData,
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
           acompteConsommePeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsommePeriode : 0,
@@ -253,6 +254,7 @@ export function useBilan({
           soldeAcomptesAvant: soldeAvantPeriode, soldeAcomptesApres: soldeApresPeriode,
           selectedPatronId: runPatronId, selectedPatronNom: patronNom,
           fraisKilometriques: fraisKm, lieux,
+          totalMissionsReel,
           contractSummary: {
             mode: contract.source.mode,
             quotaHours: contractMetrics.quotaHours,
@@ -277,7 +279,9 @@ export function useBilan({
         };
 
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
-        const isPaid = computeStatutPaye(statutPaye, resteCettePeriode);
+        const isPaid = computeStatutPaye(statutPaye);
+        const isSolde = computeStatutSolde(resteCettePeriode);
+        content.isSolde = isSolde;
 
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           const safe = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);

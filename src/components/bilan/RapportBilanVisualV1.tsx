@@ -210,6 +210,10 @@ export function RapportBilanVisualV1({
     ? Number(bilanContent?.totalE ?? 0)
     : MOCK_MISSIONS.reduce((sum, mission) => sum + mission.amount, 0);
 
+  const totalMissionsReel = hasRealBilanData
+    ? Number(bilanContent?.totalMissionsReel ?? bilanContent?.totalE ?? 0)
+    : MOCK_MISSIONS.reduce((sum, m) => sum + m.amount, 0);
+
   const totalWorked = hasRealBilanData
     ? Number(bilanContent?.totalH ?? 0)
     : MOCK_MISSIONS.reduce((sum, mission) => sum + mission.hours, 0);
@@ -728,7 +732,12 @@ export function RapportBilanVisualV1({
           </div>
           <div className="hidden rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-right lg:block">
             <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">{isWeekView ? "Total missions" : groupedSectionMeta.totalLabel}</p>
-            <p className="mt-1 text-xl font-black text-[var(--color-text)]">{formatEuro(totalGross)}</p>
+            <p className="mt-1 text-xl font-black text-[var(--color-text)]">{formatEuro(totalMissionsReel)}</p>
+            {isWeekView && totalGross !== totalMissionsReel && (
+              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
+                CA payable : {formatEuro(totalGross)}
+              </p>
+            )}
           </div>
         </div>
 

@@ -177,6 +177,8 @@ export interface BilanGroupedRow {
 export interface BilanContent {
   titre: string;
   totalE: number;
+  totalMissionsReel: number;
+  isSolde: boolean;
   totalH: number;
   filteredData: MissionWithWeather[];
   groupedData: BilanGroupedRow[];

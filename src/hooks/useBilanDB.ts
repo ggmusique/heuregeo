@@ -12,7 +12,7 @@ import {
   updateBilanRowById,
 } from "../services/bilanRepository";
 import { buildAllocByWeek } from "../lib/bilanHistory";
-import { computeStatutPaye } from "../lib/bilanEngine";
+import { computeStatutPaye, computeStatutSolde } from "../lib/bilanEngine";
 import { computePeriodeIndex } from "../lib/bilanPeriods";
 import { computeRepairDecision } from "../lib/bilanRepair";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
@@ -95,7 +95,9 @@ export function useBilanDB({
         });
         if (!row) return false;
         const reste = parseFloat(String(row?.reste_a_percevoir ?? 0));
-        return computeStatutPaye(row?.paye, reste);
+        const isSolde = computeStatutSolde(reste);
+        void isSolde;
+        return computeStatutPaye(row?.paye ?? false);
       } catch (err) {
         console.error("Erreur getStatutPaiement:", err);
         return false;
