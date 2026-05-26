@@ -41,7 +41,7 @@ describe("reserve calculations", () => {
     expect(balance).toBe(5);
   });
 
-  it("weekly settlement under quota", () => {
+  it("weekly settlement under quota returns 0 (no surplus to bank)", () => {
     const delta = computeWeeklySettlementDelta({
       patronId: "p-1",
       periodValue: "21",
@@ -51,7 +51,7 @@ describe("reserve calculations", () => {
       overflowRule: "ignore",
     });
 
-    expect(delta).toBe(2);
+    expect(delta).toBe(0);
   });
 
   it("weekly settlement overflow to reserve", () => {

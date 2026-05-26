@@ -4,7 +4,9 @@ export type ReserveMovementType =
   | "admin_correction"
   | "weekly_settlement"
   | "carry_over"
-  | "overtime_to_reserve";
+  | "overtime_to_reserve"
+  | "deficit_cover"
+  | "planned_week";
 
 export type ReserveMovementSource =
   | "user"

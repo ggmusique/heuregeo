@@ -71,6 +71,7 @@ export function SuiviTab({
         <ReserveTab
           patronId={bilanProps?.bilanPatronId ?? null}
           patronName={bilanProps?.getPatronNom?.(bilanProps?.bilanPatronId ?? null)}
+          quotaHours={contract.hoursPerWeek}
         />
       )}
       {view === "historique" && (

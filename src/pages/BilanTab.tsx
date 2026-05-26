@@ -446,6 +446,23 @@ export const BilanTab = ({
         onRecalculerFraisKm={onRecalculerFraisKm ?? undefined}
         onOpenReserve={onOpenReserve ?? undefined}
         isRecalculatingKm={bilan.isRecalculatingKm}
+        reserveBalanceHours={reserve.balanceHours}
+        reserveWithdrawnHoursThisWeek={
+          reserve.movements
+            .filter((m) => m.movement_type === "deficit_cover" && m.period_value === String(bilan.bilanPeriodValue))
+            .reduce((sum, m) => sum + Math.abs(Number(m.delta_hours)), 0)
+        }
+        onWithdrawFromReserve={async (hours: number) => {
+          const periodValue = String(bilan.bilanPeriodValue);
+          await reserve.addMovement({
+            movementType: "deficit_cover",
+            source: "user",
+            deltaHours: -hours,
+            periodType: "semaine",
+            periodValue,
+            comment: `Comblement déficit contrat — semaine ${periodValue}`,
+          });
+        }}
       />
 
       <WhatsAppSecureModal
