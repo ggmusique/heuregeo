@@ -291,4 +291,41 @@ describe("Contrat hebdo V3", () => {
     expect(result.surplusBanqueHours).toBe(4.8);
     expect(result.netAfterFrais).toBe(76.4);
   });
+
+  it("TEST 19 : Chaîne de report — acompteCarryForward S1 -> S2 (brut 30, acompte 50 -> report 20 -> S2 brut 60 -> net 40)", () => {
+    // Semaine 1 : acompte (50€) > brut (30€) -> report = 20€
+    const semaine1 = calculateWeeklySettlement({
+      workedHours: 23,
+      contractHoursWeek: 20,
+      surplusRule: "payable",
+      hourlyRate: 10,
+      acompteAmount: 50,
+      weekStartIso: "2026-05-11",
+      nowIso: "2026-05-24",
+      isEncoded: true,
+    });
+
+    expect(semaine1.grossPayableAmount).toBe(30);
+    expect(semaine1.netBeforeFrais).toBe(0);
+    expect(semaine1.acompteCarryForward).toBe(20);
+
+    // Semaine 2 : le report de S1 est injecté comme acompteCarryForward
+    // brut = 6h * 10€ = 60€, totalAcompte = 0 + 20 (report) = 20€ -> net = 40€
+    const semaine2 = calculateWeeklySettlement({
+      workedHours: 26,
+      contractHoursWeek: 20,
+      surplusRule: "payable",
+      hourlyRate: 10,
+      acompteAmount: 0,
+      acompteCarryForward: semaine1.acompteCarryForward,
+      weekStartIso: "2026-05-18",
+      nowIso: "2026-05-24",
+      isEncoded: true,
+    });
+
+    expect(semaine2.grossPayableAmount).toBe(60);
+    expect(semaine2.acompteApplied).toBe(20);
+    expect(semaine2.netBeforeFrais).toBe(40);
+    expect(semaine2.acompteCarryForward).toBe(0);
+  });
 });
