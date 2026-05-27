@@ -19,6 +19,9 @@ interface RapportBilanVisualV1Props {
   selectedPeriodValue?: string;
   onSelectPeriod?: (periodValue: string) => void;
   isProContractEnabled?: boolean;
+  /** ISO date (YYYY-MM-DD) — date d'activation du contrat Pro (contract_active_since dans UserFeatures).
+   *  Si fourni, la carte "Heure payable" n'apparaît que pour les semaines >= cette date. */
+  contractActiveSince?: string;
   contractMetrics?: ContractCalculationResult;
   bilanContent?: BilanContent;
   bilanPeriodType?: string;
@@ -151,6 +154,7 @@ export function RapportBilanVisualV1({
   selectedPeriodValue,
   onSelectPeriod,
   isProContractEnabled = true,
+  contractActiveSince,
   contractMetrics,
   bilanContent,
   bilanPeriodType = "semaine",
@@ -265,6 +269,25 @@ export function RapportBilanVisualV1({
   const showDeficitCard = isWeekView && isProContractEnabled && deficitRestant > 0;
   const isBankEmpty = reserveBalanceHours <= 0;
   const deficitProgressPct = Math.min(100, Math.round((resolvedContractMetrics.workedHours / Math.max(1, resolvedContractMetrics.quotaHours)) * 100));
+
+  // Garde d'activation : la semaine du bilan doit être >= contract_active_since
+  // On utilise la date ISO de la première mission de la période comme référence de la semaine.
+  // Si contractActiveSince n'est pas fourni, on considère le contrat actif (rétro-compat).
+  const isContractWeekActive = useMemo(() => {
+    if (!contractActiveSince) return true;
+    const activationDate = new Date(contractActiveSince);
+    if (Number.isNaN(activationDate.getTime())) return true;
+    // Cherche la date la plus ancienne parmi les missions de la période
+    const earliestMissionDate = allPeriodMissions
+      .map((m) => m.date_iso || m.date_mission)
+      .filter((d): d is string => Boolean(d))
+      .map((d) => new Date(d))
+      .filter((d) => !Number.isNaN(d.getTime()))
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+    if (!earliestMissionDate) return true; // Pas de missions — on laisse passer (mode mock)
+    // La semaine est éligible si au moins son premier jour >= date d'activation
+    return earliestMissionDate >= activationDate;
+  }, [contractActiveSince, allPeriodMissions]);
 
   const hasFraisList = (bilanContent?.fraisDivers?.length ?? 0) > 0;
   const hasAcompteSection =
@@ -399,8 +422,9 @@ export function RapportBilanVisualV1({
             />
           )}
 
-          {/* 3. Heure payable — carte héro amber gold */}
-          {isProContractEnabled && resolvedContractMetrics.payableHours > 0 && (
+          {/* 3. Heure payable — carte héro amber gold
+               Double garde : contrat activé ET semaine >= date d'activation */}
+          {isProContractEnabled && isContractWeekActive && resolvedContractMetrics.payableHours > 0 && (
           <article className="group relative col-span-2 lg:col-span-1 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-amber)]/30 bg-[var(--color-surface)] p-3.5 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-amber)_10%,transparent),0_10px_30px_-16px_color-mix(in_srgb,var(--color-accent-amber)_30%,transparent)] transform-gpu [will-change:transform] transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-[var(--color-accent-amber)]/68 hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-amber)_26%,transparent),0_28px_60px_-18px_color-mix(in_srgb,var(--color-accent-amber)_62%,transparent)] active:translate-y-0.5 lg:min-h-[9rem] lg:p-4 xl:min-h-[10rem]">
             {/* Always-on amber halo — visible en permanence */}
             <div className="pointer-events-none absolute inset-0 opacity-[0.58] transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true">
@@ -808,8 +832,7 @@ export function RapportBilanVisualV1({
                 </div>
               </div>
             </article>
-          );})}
-        </div>
+          );})}</div>
         ) : (
         <div className="grid gap-2.5 xl:gap-3">
           {groupedRows.map((group, index) => {
@@ -1071,4 +1094,3 @@ function CompactMetric({
     </div>
   );
 }
-
