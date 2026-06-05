@@ -22,6 +22,13 @@ test("computeStatutSolde applique le seuil de tolérance sur le reste", () => {
   assert.equal(computeStatutSolde(0.02), false);
 });
 
+test("computeStatutSolde normalise et borne les entrées", () => {
+  assert.equal(computeStatutSolde("0.01"), true);
+  assert.equal(computeStatutSolde(-5), true);
+  assert.equal(computeStatutSolde("abc"), true);
+  assert.equal(computeStatutSolde(0.011), false);
+});
+
 test("computeImpayePrecedent somme les restes positifs", () => {
   const rows = [
     { reste_a_percevoir: 100 },
@@ -48,6 +55,13 @@ test("normalizeBilanForWrite normalise paye/date/reste", () => {
   assert.equal(paid.paye, true);
   assert.equal(paid.reste_a_percevoir, 0);
   assert.equal(typeof paid.date_paiement, "string");
+});
+
+test("normalizeBilanForWrite force payé si le flag paye est vrai malgré un reste positif", () => {
+  const row = normalizeBilanForWrite({ reste_a_percevoir: 150, paye: true });
+  assert.equal(row.paye, true);
+  assert.equal(row.reste_a_percevoir, 0);
+  assert.equal(typeof row.date_paiement, "string");
 });
 
 test("computeConsommeCettePeriode retourne la valeur hebdo si positive", () => {
