@@ -103,7 +103,7 @@ setup("authenticate owner", async ({ page }) => {
     return;
   }
 
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
 
   // Attendre que le splash screen disparaisse et que le formulaire de login soit prêt
   await expect(
@@ -152,7 +152,7 @@ setup("authenticate userB", async ({ page }) => {
     return;
   }
 
-  await page.goto("/");
+  await page.goto("/", { waitUntil: "domcontentloaded" });
 
   await expect(
     page.locator('[data-testid="app-loading-screen"]'),
