@@ -87,6 +87,25 @@ export const BilanTab = ({
   const [whatsAppError, setWhatsAppError] = useState<string | null>(null);
   const reserve = useReserve(bilanPatronId);
 
+  // ── Garde : semaine antérieure à l'activation du contrat Pro ──────────────────────
+  // La carte "Heure payable" ne doit s'afficher que pour les semaines dont
+  // la fin de période est >= contract_active_since.
+  const isPreActivationWeek = useMemo(() => {
+    const activeSince = profile?.features?.contract_active_since ?? null;
+    if (!activeSince || !perms.contract.source.isPro) return false;
+    if (bilan.bilanPeriodType !== "semaine") return false;
+    const { finPeriode } = computePeriodDates(
+      bilan.bilanPeriodType,
+      String(bilan.bilanPeriodValue),
+    );
+    return finPeriode < activeSince;
+  }, [
+    profile?.features?.contract_active_since,
+    perms.contract.source.isPro,
+    bilan.bilanPeriodType,
+    bilan.bilanPeriodValue,
+  ]);
+
   const exportBilanContent = useMemo(() => {
     const workedHours = Number(bilan.bilanContent?.totalH ?? 0);
     const averageHourlyRate = Number(bilan.bilanContent?.contractSummary?.averageHourlyRate ?? 0);
@@ -378,7 +397,8 @@ export const BilanTab = ({
         periodOptions={periodOptions}
         selectedPeriodValue={String(bilan.bilanPeriodValue)}
         onSelectPeriod={(periodValue) => bilan.handleWeekChange(periodValue)}
-        isProContractEnabled={isProContractEnabled}
+        isProContractEnabled={isProContractEnabled && !isPreActivationWeek}
+        contractActiveSince={profile?.features?.contract_active_since ?? undefined}
         contractMetrics={contractMetrics}
         bilanContent={bilan.bilanContent}
         bilanPeriodType={bilan.bilanPeriodType}
