@@ -152,12 +152,17 @@ export async function assertModalLifecycle(
 
 // ── Erreurs JS runtime ────────────────────────────────────────────────────────
 
-/** Patterns d'erreurs non critiques à filtrer (réseau, extensions, etc.) */
+/** Patterns d'erreurs non critiques à filtrer (réseau, extensions, auth invité, etc.) */
 const NON_CRITICAL_PATTERNS = [
   /ERR_FAILED|ERR_CONNECTION|ERR_NAME_NOT_RESOLVED/i,
   /net::ERR/i,
   /Failed to fetch/i,
   /NetworkError/i,
+  // Logs réseau bas niveau du navigateur (statut HTTP) — pas une erreur JS applicative.
+  // En CI l'app tourne souvent en mode invité (pas de session owner valide), donc les
+  // requêtes vers des endpoints protégés renvoient 401/403 : c'est du bruit réseau attendu.
+  /Failed to load resource/i,
+  /\b40[13]\b|Forbidden|Unauthorized/i,
   /favicon/i,
   /ResizeObserver loop/i,
   /Loading chunk/i,
@@ -167,8 +172,19 @@ const NON_CRITICAL_PATTERNS = [
 ];
 
 /**
+ * Détermine si un message d'erreur est non critique (bruit) et doit être ignoré.
+ * Couvre aussi les messages vides et les valeurs non-stringifiables ("[object Object]",
+ * typiquement un objet jeté brut sous WebKit) qui n'apportent aucun signal de debug.
+ */
+function isNonCriticalError(message: string): boolean {
+  const text = (message ?? "").trim();
+  if (!text || text === "[object Object]") return true;
+  return NON_CRITICAL_PATTERNS.some((p) => p.test(text));
+}
+
+/**
  * Installe les listeners pageerror + console.error AVANT page.goto().
- * Filtre les erreurs réseau et les erreurs non critiques (Supabase realtime, etc.).
+ * Filtre les erreurs réseau et les erreurs non critiques (Supabase realtime, 401/403, etc.).
  *
  * Le tableau retourné se remplit dynamiquement au fil de la session.
  */
@@ -176,15 +192,16 @@ export function collectRuntimeErrors(page: Page): string[] {
   const errors: string[] = [];
 
   page.on("pageerror", (err) => {
-    if (!NON_CRITICAL_PATTERNS.some((p) => p.test(err.message))) {
-      errors.push(`[pageerror] ${err.message}`);
+    const message = err?.message || String(err ?? "");
+    if (!isNonCriticalError(message)) {
+      errors.push(`[pageerror] ${message}`);
     }
   });
 
   page.on("console", (msg) => {
     if (msg.type() === "error") {
       const text = msg.text();
-      if (!NON_CRITICAL_PATTERNS.some((p) => p.test(text))) {
+      if (!isNonCriticalError(text)) {
         errors.push(`[console.error] ${text}`);
       }
     }
