@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   computeStatutPaye,
+  computeStatutSolde,
   computeImpayePrecedent,
   normalizeBilanForWrite,
   computeConsommeCettePeriode,
@@ -10,11 +11,15 @@ import {
 } from "../../lib/bilanEngine.ts";
 import { PERIOD_TYPES } from "../../constants/bilanPeriods.ts";
 
-test("computeStatutPaye applique la règle OR sur paye/reste", () => {
-  assert.equal(computeStatutPaye(true, 50), true);
-  assert.equal(computeStatutPaye(false, 0), true);
-  assert.equal(computeStatutPaye(false, 0.01), true);
-  assert.equal(computeStatutPaye(false, 0.02), false);
+test("computeStatutPaye reflète uniquement le flag paye", () => {
+  assert.equal(computeStatutPaye(true), true);
+  assert.equal(computeStatutPaye(false), false);
+});
+
+test("computeStatutSolde applique le seuil de tolérance sur le reste", () => {
+  assert.equal(computeStatutSolde(0), true);
+  assert.equal(computeStatutSolde(0.01), true);
+  assert.equal(computeStatutSolde(0.02), false);
 });
 
 test("computeImpayePrecedent somme les restes positifs", () => {
