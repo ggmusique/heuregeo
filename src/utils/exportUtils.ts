@@ -110,6 +110,34 @@ export const exportToExcel = (
     ["", "", "", "", "", "GRAND TOTAL :", "", formatEuro(grandTotal)]
   );
 
+  if (bilanData?.contractSummary) {
+    const c = bilanData.contractSummary;
+    data.push(
+      [],
+      ["CONTRAT PRO"],
+      ["Mode", c.mode],
+      ["Quota hebdo", formatHeures(c.quotaHours)],
+      ["Heures travaillées", formatHeures(c.workedHours)],
+      ["Heures payables", formatHeures(c.payableHours)],
+      ["Réserve période", formatHeures(c.reserveHours)],
+      ["Dépassement quota", formatHeures(c.quotaOverflowHours)],
+      ["Solde réserve", formatHeures(c.reserveBalanceHours)],
+    );
+  }
+
+  if (Array.isArray(bilanData?.reserveMovements) && bilanData.reserveMovements.length > 0) {
+    data.push([], ["MOUVEMENTS RÉSERVE"], ["Date", "Type", "Source", "Delta", "Commentaire"]);
+    bilanData.reserveMovements.forEach((m: any) => {
+      data.push([
+        formatDateFR(m.date) || "",
+        m.type || "",
+        m.source || "",
+        formatHeures(Number(m.deltaHours || 0)),
+        m.comment || "",
+      ]);
+    });
+  }
+
   // Créer et sauvegarder le fichier
   const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -205,6 +233,33 @@ export const exportToCSV = (
 
     const totalFrais = bilanContent.totalFrais || 0;
     csvContent += `\nTOTAL FRAIS;${totalFrais.toFixed(2).replace(".", ",")}\n`;
+  }
+
+  if (bilanContent.contractSummary) {
+    const c = bilanContent.contractSummary;
+    csvContent += "\n\nCONTRAT PRO\n";
+    csvContent += "Champ;Valeur\n";
+    csvContent += `Mode;${c.mode}\n`;
+    csvContent += `Quota hebdo;${(c.quotaHours || 0).toFixed(2).replace(".", ",")} h\n`;
+    csvContent += `Heures travaillees;${(c.workedHours || 0).toFixed(2).replace(".", ",")} h\n`;
+    csvContent += `Heures payables;${(c.payableHours || 0).toFixed(2).replace(".", ",")} h\n`;
+    csvContent += `Reserve periode;${(c.reserveHours || 0).toFixed(2).replace(".", ",")} h\n`;
+    csvContent += `Depassement quota;${(c.quotaOverflowHours || 0).toFixed(2).replace(".", ",")} h\n`;
+    csvContent += `Solde reserve;${(c.reserveBalanceHours || 0).toFixed(2).replace(".", ",")} h\n`;
+  }
+
+  if (Array.isArray(bilanContent.reserveMovements) && bilanContent.reserveMovements.length > 0) {
+    csvContent += "\n\nMOUVEMENTS RESERVE\n";
+    csvContent += "Date;Type;Source;Delta (h);Commentaire\n";
+    bilanContent.reserveMovements.forEach((movement: any) => {
+      csvContent += [
+        formatDateFR(movement.date) || "",
+        movement.type || "",
+        movement.source || "",
+        (Number(movement.deltaHours || 0)).toFixed(2).replace(".", ","),
+        `"${String(movement.comment || "").replace(/"/g, '""')}"`,
+      ].join(";") + "\n";
+    });
   }
 
   // Créer et télécharger le fichier

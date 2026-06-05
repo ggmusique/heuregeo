@@ -1,5 +1,5 @@
 
-import React, { Component, Dispatch, SetStateAction, Suspense, lazy, useEffect, useMemo, useState } from "react";
+import React, { Component, Dispatch, SetStateAction, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { InviteSection } from "../components/invitations/InviteSection";
@@ -10,6 +10,7 @@ import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
 import { supabase } from "../services/supabase";
 import { useLabels } from "../contexts/LabelsContext";
 import { usePermissions } from "../contexts/PermissionsContext";
+import { buildContractFeaturesUpdate, resolveContractActive } from "../features/contracts/contractSettingsPersistence";
 import type { Mission, Patron, Client, Lieu } from "../types/entities";
 import type { KmSettings, KmFraisResult } from "../hooks/useKmDomicile";
 import type { UserProfile } from "../types/profile";
@@ -472,6 +473,11 @@ export function ParametresTab({
                       saveProfile={saveProfile}
                       isPro={isPro}
                     />
+                    <ContractSettingsPanel
+                      profile={profile}
+                      saveProfile={saveProfile}
+                      profileSaving={profileSaving}
+                    />
                     <div className="rounded-2xl border p-4 border-emerald-500/25 bg-emerald-500/5">
                       <p className="text-[10px] font-black uppercase tracking-widest mb-3 text-emerald-200/80">
                         Agenda
@@ -827,6 +833,292 @@ interface KmSettingsPanelProps {
   profile: any;
   saveProfile: (data: any) => Promise<any>;
   isPro: boolean;
+}
+
+interface ContractSettingsPanelProps {
+  profile: any;
+  saveProfile: (data: any) => Promise<any>;
+  profileSaving?: boolean;
+}
+
+function ContractSettingsPanel({ profile, saveProfile, profileSaving }: ContractSettingsPanelProps) {
+  const features = profile?.features ?? {};
+  const plan = features.plan === "pro" ? "pro" : "free";
+  const isProPlan = plan === "pro";
+  const contractActive = resolveContractActive(features);
+  const contractType =
+    features.contract_type === "interim" ||
+    features.contract_type === "formation" ||
+    features.contract_type === "cdd" ||
+    features.contract_type === "cdi" ||
+    features.contract_type === "other"
+      ? features.contract_type
+      : "other";
+  const contractHoursWeek = Number(features.contract_hours_week ?? features.contract_weekly_quota_hours ?? 20);
+  const surplusRule =
+    features.surplus_rule === "payable" ||
+    features.surplus_rule === "banque" ||
+    features.surplus_rule === "les_deux"
+      ? features.surplus_rule
+      : (features.contract_overflow_rule === "to_reserve" ? "banque" : "payable");
+  const splitPct = Number(features.surplus_split_pct ?? 50);
+
+  const [localType, setLocalType] = useState(contractType);
+  const [localHoursWeek, setLocalHoursWeek] = useState(String(contractHoursWeek));
+  const [localSurplusRule, setLocalSurplusRule] = useState(surplusRule);
+  const [localSplitPct, setLocalSplitPct] = useState(String(splitPct));
+  const [localContractActive, setLocalContractActive] = useState(contractActive);
+  const localContractActiveRef = useRef(contractActive);
+  const hasPendingContractChangesRef = useRef(false);
+  const [savingContract, setSavingContract] = useState(false);
+
+  const pushContractDebug = (event: string, data: Record<string, unknown>) => {
+    const payload = { event, at: new Date().toISOString(), ...data };
+    console.log("[contract-debug]", payload);
+    if (typeof window !== "undefined") {
+      const debugWindow = window as any;
+      const history = Array.isArray(debugWindow.__contractDebug) ? debugWindow.__contractDebug : [];
+      history.push(payload);
+      debugWindow.__contractDebug = history.slice(-50);
+      debugWindow.__contractDebugLast = payload;
+    }
+  };
+
+  useEffect(() => {
+    if (hasPendingContractChangesRef.current) {
+      pushContractDebug("sync-skipped-pending-local-changes", {
+        contractActive,
+        localContractActive,
+        refValue: localContractActiveRef.current,
+      });
+      return;
+    }
+
+    setLocalType(contractType);
+    setLocalHoursWeek(String(contractHoursWeek));
+    setLocalSurplusRule(surplusRule);
+    setLocalSplitPct(String(splitPct));
+    setLocalContractActive(contractActive);
+    localContractActiveRef.current = contractActive;
+    pushContractDebug("sync-from-profile", {
+      contractActive,
+      localContractActive,
+      refValue: localContractActiveRef.current,
+      profileSaving: !!profileSaving,
+    });
+  }, [contractType, contractHoursWeek, surplusRule, splitPct, contractActive]);
+
+  const handleSaveContract = async (forcedContractActive?: boolean) => {
+    if (!isProPlan || profileSaving) return;
+    const effectiveContractActive = forcedContractActive ?? localContractActiveRef.current;
+    const nextFeatures = buildContractFeaturesUpdate(features, {
+      contractActive: effectiveContractActive,
+      contractType: localType,
+      contractHoursWeek: Number(localHoursWeek),
+      surplusRule: localSurplusRule,
+      surplusSplitPct: Number(localSplitPct),
+    });
+
+    pushContractDebug("save-click", {
+      localContractActive,
+      refValue: localContractActiveRef.current,
+      effectiveContractActive,
+      nextContractActive: nextFeatures.contract_active,
+      nextContractEnabled: nextFeatures.contract_enabled,
+      nextContractReserveEnabled: nextFeatures.contract_reserve_enabled,
+    });
+
+    setSavingContract(true);
+    try {
+      const result = await saveProfile({ features: nextFeatures });
+      if (!result?.error) {
+        hasPendingContractChangesRef.current = false;
+        const persistedActive = Boolean(result?.data?.features?.contract_active);
+        localContractActiveRef.current = persistedActive;
+        setLocalContractActive(persistedActive);
+      }
+      pushContractDebug("save-result", {
+        localContractActive,
+        refValue: localContractActiveRef.current,
+        resultError: result?.error ?? null,
+        resultContractActive: result?.data?.features?.contract_active ?? null,
+      });
+    } finally {
+      setSavingContract(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border p-4 border-[var(--color-accent-violet)]/25 bg-[var(--color-accent-violet)]/5 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-violet)]/80">
+            Mon contrat
+          </p>
+          {!localContractActive && (
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">
+              Carte compacte (contrat désactivé)
+            </p>
+          )}
+        </div>
+        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">plan: {plan}</span>
+      </div>
+
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-[var(--color-text-muted)]">Activer mon contrat</p>
+        <button
+          type="button"
+          disabled={!isProPlan || profileSaving || savingContract}
+          onClick={async () => {
+            const nextValue = !localContractActiveRef.current;
+            hasPendingContractChangesRef.current = true;
+            pushContractDebug("toggle-click", {
+              previousState: localContractActive,
+              previousRef: localContractActiveRef.current,
+              nextValue,
+            });
+            localContractActiveRef.current = nextValue;
+            setLocalContractActive(nextValue);
+
+            // UX attendu: si le contrat est désactivé, on persiste immédiatement
+            // et le bouton Enregistrer détaillé n'est plus affiché.
+            if (!nextValue) {
+              await handleSaveContract(false);
+            }
+          }}
+          className={
+            "rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-[background,border-color] duration-150 " +
+            (localContractActive
+              ? "border-[var(--color-accent-violet)]/40 text-[var(--color-accent-violet)] bg-[var(--color-accent-violet)]/10"
+              : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
+            (!isProPlan || profileSaving || savingContract ? " opacity-50 cursor-not-allowed" : "")
+          }
+        >
+          {localContractActive ? "Activé" : "Désactivé"}
+        </button>
+      </div>
+
+      <div
+        className={
+          "overflow-hidden transition-[max-height,opacity] duration-300 ease-out " +
+          (localContractActive ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0")
+        }
+      >
+        <div className="space-y-3 pt-1">
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-xs text-[var(--color-text-muted)]">
+          Type de contrat
+          <select
+            value={localType}
+            disabled={!isProPlan || profileSaving || savingContract || !localContractActive}
+            onChange={(e) => {
+              hasPendingContractChangesRef.current = true;
+              setLocalType(e.target.value);
+            }}
+            className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
+          >
+            <option value="interim">Intérim</option>
+            <option value="formation">Formation</option>
+            <option value="cdd">CDD</option>
+            <option value="cdi">CDI</option>
+            <option value="other">Autre</option>
+          </select>
+        </label>
+
+        <label className="text-xs text-[var(--color-text-muted)]">
+          Heures / semaine
+          <input
+            type="number"
+            min={1}
+            step={0.5}
+            value={localHoursWeek}
+            disabled={!isProPlan || profileSaving || savingContract || !localContractActive}
+            onChange={(e) => {
+              hasPendingContractChangesRef.current = true;
+              setLocalHoursWeek(e.target.value);
+            }}
+            className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1.5 text-sm text-[var(--color-text)]"
+          />
+        </label>
+      </div>
+
+      <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-offset)] p-3 space-y-3">
+        <p className="text-xs font-bold text-[var(--color-text-muted)]">Surplus</p>
+
+        <label className="flex items-center gap-2 text-sm text-[var(--color-text)]">
+          <input
+            type="radio"
+            name="surplus-rule"
+            checked={localSurplusRule === "payable"}
+            disabled={!isProPlan || profileSaving || savingContract || !localContractActive}
+            onChange={() => {
+              hasPendingContractChangesRef.current = true;
+              setLocalSurplusRule("payable");
+            }}
+          />
+          Payable
+        </label>
+
+        <label className="flex items-center gap-2 text-sm text-[var(--color-text)]">
+          <input
+            type="radio"
+            name="surplus-rule"
+            checked={localSurplusRule === "banque"}
+            disabled={!isProPlan || profileSaving || savingContract || !localContractActive}
+            onChange={() => {
+              hasPendingContractChangesRef.current = true;
+              setLocalSurplusRule("banque");
+            }}
+          />
+          Banque (réserve)
+        </label>
+
+        <div className="flex flex-wrap items-center gap-2 text-sm text-[var(--color-text)]">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="surplus-rule"
+              checked={localSurplusRule === "les_deux"}
+              disabled={!isProPlan || profileSaving || savingContract || !localContractActive}
+              onChange={() => {
+                hasPendingContractChangesRef.current = true;
+                setLocalSurplusRule("les_deux");
+              }}
+            />
+            Les deux
+          </label>
+          <input
+            type="number"
+            min={0}
+            max={100}
+            step={1}
+            value={localSplitPct}
+            disabled={!isProPlan || profileSaving || savingContract || localSurplusRule !== "les_deux" || !localContractActive}
+            onChange={(e) => {
+              hasPendingContractChangesRef.current = true;
+              setLocalSplitPct(e.target.value);
+            }}
+            className="w-20 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-input)] px-2 py-1 text-sm text-[var(--color-text)]"
+          />
+          <span className="text-xs text-[var(--color-text-muted)]">% payable</span>
+        </div>
+      </div>
+        </div>
+      </div>
+
+      {localContractActive && (
+        <button
+          type="button"
+          disabled={!isProPlan || profileSaving || savingContract || !localContractActive}
+          onClick={() => void handleSaveContract()}
+          className="rounded-xl border border-[var(--color-accent-violet)]/40 bg-[var(--color-accent-violet)]/15 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-violet)] transition-[background,border-color] duration-150 disabled:opacity-50"
+        >
+          {savingContract ? "Enregistrement..." : "Enregistrer"}
+        </button>
+      )}
+    </div>
+  );
 }
 
 function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) {

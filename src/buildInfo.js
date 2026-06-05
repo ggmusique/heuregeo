@@ -1,6 +1,6 @@
 // AUTO-GENERATED. Do not edit by hand.
 export const BUILD_INFO = {
-  branch: "main",
-  commit: "f61bdc1c",
-  date: "2026-05-18T16:27:44+02:00",
+  branch: "contrat",
+  commit: "9312aff1",
+  date: "2026-05-25T13:23:42+02:00",
 };

@@ -64,8 +64,10 @@ describe("ErrorBoundary", () => {
     render(
       React.createElement(
         ErrorBoundary,
-        { fallback: React.createElement("div", { "data-testid": "custom-fallback" }, "Mon fallback") },
-        React.createElement(BrokenComponent, { shouldThrow: true })
+        {
+          fallback: React.createElement("div", { "data-testid": "custom-fallback" }, "Mon fallback"),
+          children: React.createElement(BrokenComponent, { shouldThrow: true }),
+        },
       )
     );
     expect(screen.getByTestId("custom-fallback")).toBeInTheDocument();

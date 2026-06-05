@@ -71,12 +71,13 @@ function AppContent({ user }: AppProps) {
 
   const APP_VERSION = __APP_VERSION__ || import.meta.env.VITE_APP_VERSION || "";
 
-  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, viewerPatronId, isAdmin, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canFacture } = useProfile(user);
+  const { profile, loading: profileLoading, saving: profileSaving, saveProfile, isProfileComplete, viewerPatronId, isAdmin, contract, isPro, canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV, canKilometrage, canFacture } = useProfile(user);
   const { activeTab, setActiveTab, canAgenda, canDashboard, isViewer, proNavItems } = useNavigation(profile);
 
   const labels = getLabels(profile);
 
   const permissions = {
+    contract,
     isViewer, viewerPatronId, isAdmin, isPro,
     canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV,
     canKilometrage, canAgenda, canFacture, canDashboard,
@@ -171,7 +172,24 @@ function AppInner({
 
   const { kmSettings, domicileLatLng, currentWeek, missionsThisWeek, kmFraisThisWeek, handleRecalculerKmSemaine } = useKmDomicile({ profile, saveProfile, lieux, getMissionsByWeek });
 
-  const bilan = useBilan({ missions, fraisDivers, patrons, getMissionsByWeek, getMissionsByPeriod, getFraisByWeek, getTotalFrais, getSoldeAvant, getAcomptesDansPeriode, getTotalAcomptesJusqua, triggerAlert, kmSettings, domicileLatLng, lieux });
+  const bilan = useBilan({
+    missions,
+    fraisDivers,
+    patrons,
+    getMissionsByWeek,
+    getMissionsByPeriod,
+    getFraisByWeek,
+    getTotalFrais,
+    getSoldeAvant,
+    getAcomptesDansPeriode,
+    getTotalAcomptesJusqua,
+    triggerAlert,
+    kmSettings,
+    domicileLatLng,
+    lieux,
+    profileFeatures: profile?.features ?? null,
+    isViewer,
+  });
   const { repairBilansDB } = bilan;
 
   const missionForm = useMissionForm({ createMission, updateMission, deleteMission, missions, setLoading, triggerAlert, showConfirm, setActiveTab });

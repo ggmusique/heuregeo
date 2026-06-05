@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../services/supabase";
 import type { UserProfile, UserFeatures } from "../types/profile";
+import { buildContractFeatures } from "../features/contracts";
+import type { ContractFeatures } from "../features/contracts";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +24,7 @@ export interface UseProfileReturn {
   viewerPatronId: string | null;
   isAdmin: boolean;
   features: UserFeatures;
+  contract: ContractFeatures;
   isPro: boolean;
   canBilanMois: boolean;
   canBilanAnnee: boolean;
@@ -80,8 +83,21 @@ export const useProfile = (user: AuthUser | null | undefined): UseProfileReturn 
           .single();
 
         if (error) throw error;
-        setProfile(data);
-        return { data };
+        // Refresh serveur systématique: certains paramètres sont recalculés
+        // côté DB/règles et doivent être reflétés immédiatement dans toute l'UI.
+        const { data: freshProfile, error: freshError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (freshError) {
+          setProfile(data);
+          return { data };
+        }
+
+        setProfile(freshProfile);
+        return { data: freshProfile };
       } catch (err) {
         setError((err as Error).message);
         return { error: (err as Error).message };
@@ -103,6 +119,8 @@ export const useProfile = (user: AuthUser | null | undefined): UseProfileReturn 
   // L'admin geohelene@msn.com doit avoir is_admin = true dans Supabase
   const isAdmin = profile?.is_admin === true;
   const features: UserFeatures = profile?.features || {};
+  const contract = buildContractFeatures({ features, isViewer });
+  // Le statut Pro dépend du plan, pas de l'activation du module contrat.
   const isPro = features?.plan === "pro";
 
   // Features individuelles (avec fallback sur isPro)
@@ -122,7 +140,7 @@ export const useProfile = (user: AuthUser | null | undefined): UseProfileReturn 
   return {
     profile, loading, saving, error, saveProfile, fetchProfile,
     isProfileComplete, isViewer, viewerPatronId,
-    isAdmin, features, isPro,
+    isAdmin, features, contract, isPro,
     canBilanMois, canBilanAnnee, canExportPDF, canExportExcel, canExportCSV,
     canMultiPatron, canViewerMode, canHistoriqueComplet, canKilometrage, canAgenda, canFacture, canDashboard,
   };

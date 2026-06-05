@@ -110,6 +110,15 @@ setup("authenticate owner", async ({ page }) => {
     page.locator('[data-testid="app-loading-screen"]'),
     "Le splash screen n'a pas disparu",
   ).not.toBeVisible({ timeout: 15_000 });
+
+  // Si une session est deja active, ne pas exiger le login-form.
+  if (await page.locator('[data-testid="app-shell"]').isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await assertAuthenticated(page);
+    await page.context().storageState({ path: path.join(AUTH_DIR, "owner.json") });
+    console.log("[setup] ✅ Session owner déjà active, état sauvegardé.");
+    return;
+  }
+
   await expect(
     page.locator('[data-testid="login-form"]'),
     "Le formulaire de login n'est pas apparu",
@@ -148,6 +157,14 @@ setup("authenticate userB", async ({ page }) => {
   await expect(
     page.locator('[data-testid="app-loading-screen"]'),
   ).not.toBeVisible({ timeout: 15_000 });
+
+  if (await page.locator('[data-testid="app-shell"]').isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await assertAuthenticated(page);
+    await page.context().storageState({ path: path.join(AUTH_DIR, "userB.json") });
+    console.log("[setup] ✅ Session userB déjà active, état sauvegardé.");
+    return;
+  }
+
   await expect(page.locator('[data-testid="login-form"]')).toBeVisible({ timeout: 10_000 });
 
   await page.fill('input[type="email"]', email);

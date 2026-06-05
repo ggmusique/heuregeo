@@ -1,4 +1,4 @@
-export type MobileLabRoute = "overview" | "navbar" | "modals" | "drawer" | "banque-heures";
+export type MobileLabRoute = "overview" | "navbar" | "modals" | "drawer" | "banque-heures" | "rapport-bilan";
 
 const ROUTES: Record<string, MobileLabRoute> = {
   "": "overview",
@@ -6,6 +6,7 @@ const ROUTES: Record<string, MobileLabRoute> = {
   modals: "modals",
   drawer: "drawer",
   "banque-heures": "banque-heures",
+  "rapport-bilan": "rapport-bilan",
 };
 
 export function shouldRenderMobileLab(pathname: string, isDev: boolean): boolean {

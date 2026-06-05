@@ -43,6 +43,23 @@ export const updateUserFeatures = async (
 };
 
 /**
+ * Change le plan (features complètes) d'un utilisateur via la fonction
+ * SECURITY DEFINER `admin_set_user_plan` — l'admin ne peut pas modifier
+ * directement le profil des autres utilisateurs via UPDATE.
+ */
+export const adminSetUserPlan = async (
+  userId: string,
+  features: AdminFeatures
+): Promise<{ error: string | null }> => {
+  const { error } = await supabase.rpc("admin_set_user_plan", {
+    p_target_user_id: userId,
+    p_new_features: features,
+  });
+
+  return { error: error ? error.message : null };
+};
+
+/**
  * Supprime un compte utilisateur en totalité (auth.users + profiles en cascade).
  * Passe par la Edge Function `delete-user` qui utilise le client admin
  * (service_role key) — la clé n'est jamais exposée côté client.

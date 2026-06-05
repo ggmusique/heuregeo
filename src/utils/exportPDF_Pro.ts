@@ -614,6 +614,102 @@ const drawAcomptesSection = (doc: any, bilanContent: any, startY: number): numbe
   }
 };
 
+const drawContractSection = (doc: any, bilanContent: any, startY: number): number => {
+  const summary = bilanContent?.contractSummary;
+  if (!summary) return startY;
+
+  try {
+    let y = startY;
+    if (y > 250) {
+      doc.addPage();
+      y = 20;
+    }
+
+    doc.setFontSize(11);
+    doc.setFont(undefined, "bold");
+    doc.setTextColor(...COLORS.navy);
+    doc.text("Contrat Pro", 15, y);
+    doc.setDrawColor(...COLORS.gold);
+    doc.line(15, y + 2, 55, y + 2);
+    y += 8;
+
+    const externalHours = Number(summary.contractualExternalHours ?? Math.min(Number(summary.workedHours || 0), Number(summary.quotaHours || 0)));
+    const surplusHours = Number(summary.surplusHours ?? summary.quotaOverflowHours ?? 0);
+    const surplusRule = String(summary.surplusRule || "payable");
+    const surplusGross = Number(summary.surplusGrossAmount || 0);
+    const acompteApplied = Number(summary.acompteAppliedAmount || 0);
+    const fraisRemboursables = Number(summary.fraisRemboursablesAmount || 0);
+    const fraisDeductibles = Number(summary.fraisDeductiblesAmount || 0);
+    const totalApp = Number(summary.appTotalAmount || Math.max(0, surplusGross - acompteApplied + fraisRemboursables - fraisDeductibles));
+
+    const lines = [
+      ["Type de contrat", String(summary.contractType || "other").toUpperCase()],
+      ["Heures / semaine", formatHeures(summary.quotaHours || 0)],
+      ["Heures contractuelles", `${formatHeures(externalHours)} (${summary.externalPaymentLabel || "payé par source externe"})`],
+      ["Heures supplémentaires", formatHeures(surplusHours)],
+      ["Règle surplus", surplusRule],
+      ["Surplus payable", formatHeures(summary.payableHours || 0)],
+      ["Surplus banque", formatHeures(summary.reserveHours || 0)],
+      ["Montant surplus", formatEuro(surplusGross)],
+      ["Acomptes (surplus)", `-${formatEuro(acompteApplied)}`],
+      ["Frais remboursables", `+${formatEuro(fraisRemboursables)}`],
+      ["Frais déductibles", `-${formatEuro(fraisDeductibles)}`],
+      ["Total app", formatEuro(totalApp)],
+      ["Solde réserve", formatHeures(summary.reserveBalanceHours || 0)],
+    ];
+
+    lines.forEach(([label, value], idx) => {
+      doc.setFillColor(...(idx % 2 === 0 ? COLORS.light : COLORS.offWhite));
+      doc.rect(15, y - 4, 180, 7, "F");
+      doc.setTextColor(...COLORS.textPrimary);
+      doc.setFont(undefined, "bold");
+      doc.setFontSize(8);
+      doc.text(label, 18, y);
+      doc.setFont(undefined, "normal");
+      doc.text(value, 190, y, { align: "right" });
+      y += 7;
+    });
+
+    const movements = Array.isArray(bilanContent?.reserveMovements)
+      ? bilanContent.reserveMovements.slice(0, 5)
+      : [];
+
+    if (movements.length > 0) {
+      y += 3;
+      doc.setFont(undefined, "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...COLORS.navyMid);
+      doc.text("Derniers mouvements réserve", 15, y);
+      y += 6;
+
+      movements.forEach((movement: any, idx: number) => {
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.setFillColor(...(idx % 2 === 0 ? COLORS.offWhite : COLORS.white));
+        doc.rect(15, y - 4, 180, 7, "F");
+        doc.setTextColor(...COLORS.textSecondary);
+        doc.setFont(undefined, "normal");
+        doc.setFontSize(7.5);
+        doc.text(formatDateFR(movement.date || "") || "-", 18, y);
+        doc.text(String(movement.type || ""), 52, y);
+        const delta = Number(movement.deltaHours || 0);
+        doc.setTextColor(...(delta >= 0 ? COLORS.success : COLORS.warning));
+        doc.text(`${delta >= 0 ? "+" : ""}${formatHeures(delta)}`, 142, y, { align: "right" });
+        doc.setTextColor(...COLORS.textSecondary);
+        doc.text(String(movement.source || ""), 188, y, { align: "right" });
+        y += 7;
+      });
+    }
+
+    return y + 4;
+  } catch (e) {
+    console.error("Erreur drawContractSection:", e);
+    return startY;
+  }
+};
+
 // ─────────────────────────────────────────────
 // RÉSUMÉ PAR SEMAINE (BILAN MOIS)
 // ─────────────────────────────────────────────
@@ -913,6 +1009,8 @@ export const exportToPDFPro = (
       y = drawMonthlySummary(doc, bilanContent, y);
     }
 
+    y = drawContractSection(doc, bilanContent, y);
+
     if (estPaye) drawPayeStamp(doc, y);
     drawFooter(doc);
 
@@ -978,6 +1076,8 @@ const createPdfDoc = ({
   } else if (periodType === "annee") {
     y = drawMonthlySummary(doc, bilanContent, y);
   }
+
+  y = drawContractSection(doc, bilanContent, y);
 
   if (estPaye) drawPayeStamp(doc, y);
   drawFooter(doc);

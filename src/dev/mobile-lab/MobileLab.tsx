@@ -2,9 +2,11 @@ import React, { useMemo, useState } from "react";
 import { Activity, Banknote, ChevronDown, Gauge, Hand, LayoutDashboard, Menu, PanelLeftOpen, Smartphone, X } from "lucide-react";
 
 import { AppNavBar } from "../../components/layout/AppNavBar";
+import { RapportBilanVisualV1 } from "../../components/bilan/RapportBilanVisualV1";
 import { KpiCard } from "../../components/ui/KpiCard";
 import { Modal } from "../../components/ui/Modal";
 import { PermissionsContext } from "../../contexts/PermissionsContext";
+import type { PermissionsContextType } from "../../contexts/PermissionsContext";
 import { DarkModeProvider, useDarkMode, type AppTheme } from "../../contexts/DarkModeContext";
 import type { NavItem } from "../../hooks/useNavigation";
 import type { TabId } from "../../types/ui";
@@ -36,9 +38,26 @@ const LAB_ROUTES: Array<{ id: MobileLabRoute; label: string; path: string }> = [
   { id: "drawer", label: "Drawer", path: "/mobile-lab/drawer" },
   { id: "modals", label: "Modals", path: "/mobile-lab/modals" },
   { id: "banque-heures", label: "Banque", path: "/mobile-lab/banque-heures" },
+  { id: "rapport-bilan", label: "Bilan V1", path: "/mobile-lab/rapport-bilan" },
 ];
 
-const permissions = {
+const permissions: PermissionsContextType = {
+  contract: {
+    source: { mode: "pro", isPro: true },
+    isViewer: false,
+    contractType: "interim",
+    hoursPerWeek: 8,
+    surplusRule: "payable",
+    surplusSplitPct: 50,
+    weeklyQuotaHours: 8,
+    reserveEnabled: true,
+    payableRule: "capped_quota",
+    overflowRule: "ignore",
+    visibility: {
+      suivi: { showReserveTab: true },
+      bilan: { showOvertimeKpi: true, showPayableHoursKpi: true, showReserveKpi: true },
+    },
+  },
   isViewer: false,
   viewerPatronId: null,
   isAdmin: true,
@@ -203,9 +222,19 @@ function LabPhoneContent({ route, showReach }: { route: MobileLabRoute; showReac
         {route === "drawer" && <DrawerPreview onOpen={() => setDrawerOpen(true)} />}
         {route === "modals" && <ModalPreview onOpen={() => setModalOpen(true)} />}
         {route === "banque-heures" && <BanqueHeuresPreview />}
+        {route === "rapport-bilan" && (
+          <RapportBilanVisualV1
+            title="Semaine 19"
+            subtitle="5 mai - 11 mai 2025"
+            onBack={() => {
+              window.history.pushState(null, "", "/mobile-lab");
+              window.dispatchEvent(new PopStateEvent("popstate"));
+            }}
+          />
+        )}
       </div>
 
-      {showReach && <ThumbReachOverlay />}
+      {showReach && route !== "rapport-bilan" && <ThumbReachOverlay />}
       <FutureDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <Modal show={modalOpen} onClose={() => setModalOpen(false)} title="Ajuster banque" size="sm">
         <div className="space-y-3">

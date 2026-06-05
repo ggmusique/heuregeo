@@ -1,17 +1,19 @@
 import { useState, useCallback, useEffect } from "react";
 import { getCurrentUserOrNull } from "../services/authService";
-import { normalizeBilanForWrite, computeStatutPaye, computeConsommeCettePeriode, computeWeeklyAcompteState, computeStandardAcompteState } from "../lib/bilanEngine";
+import { normalizeBilanForWrite, computeStatutPaye, computeStatutSolde, computeConsommeCettePeriode, computeWeeklyAcompteState, computeStandardAcompteState } from "../lib/bilanEngine";
 import { fetchWeeklyBilansHistory, fetchAcompteAllocationsByPatron, fetchWeeklyAcompteMetrics, fetchBilanByPeriodAndPatron, insertBilanRow, updateBilanRowById } from "../services/bilanRepository";
 import { buildAllocByWeek, normalizeHistoriqueRows, splitHistoriqueRows } from "../lib/bilanHistory";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
 import { computePeriodeIndex, computePeriodDates, buildGroupedData } from "../lib/bilanPeriods";
 import { logBilanError } from "../utils/bilanLogger";
+import { getWeekAndYear } from "../utils/dateUtils";
 import type { Mission, FraisDivers } from "../types/entities";
 import type { HistoriqueData } from "./useHistorique";
 import { useBilanPeriod } from "./useBilanPeriod";
 import { enrichWithWeather } from "./useBilanWeather";
 import { computeKmItems, useBilanKm } from "./useBilanKm";
 import { useBilanDB } from "./useBilanDB";
+import { buildContractFeatures, calculateWeeklyBilan } from "../features/contracts";
 
 export { normalizeBilanForWrite as normalizeBilanRow };
 
@@ -24,6 +26,30 @@ export type { UseBilanParams, UseBilanReturn } from "./useBilanTypes";
 // ─── Constante ────────────────────────────────────────────────────────────────
 
 const GLOBAL_PATRON_ID = "00000000-0000-0000-0000-000000000000";
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+function aggregateWorkedHoursByIsoWeek(missions: Mission[]): number[] {
+  const weeklyWorkedMap = new Map<string, number>();
+
+  missions.forEach((mission) => {
+    const missionDate = mission.date_iso || mission.date_mission;
+    if (!missionDate) return;
+
+    const parsedDate = new Date(missionDate);
+    if (Number.isNaN(parsedDate.getTime())) return;
+
+    const { week, year } = getWeekAndYear(parsedDate);
+    if (week <= 0 || year <= 0) return;
+
+    const key = `${year}-${week}`;
+    weeklyWorkedMap.set(key, (weeklyWorkedMap.get(key) ?? 0) + Number(mission.duree || 0));
+  });
+
+  return Array.from(weeklyWorkedMap.values());
+}
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
@@ -42,13 +68,15 @@ export function useBilan({
   kmSettings = null,
   domicileLatLng = null,
   lieux = [],
+  profileFeatures = null,
+  isViewer = false,
   readOnly = false,
 }: import("./useBilanTypes").UseBilanParams): import("./useBilanTypes").UseBilanReturn {
   const [showBilan, setShowBilan] = useState<boolean>(false);
   const [showPeriodModal, setShowPeriodModal] = useState<boolean>(false);
   const [bilanPaye, setBilanPaye] = useState<boolean>(false);
   const [bilanContent, setBilanContent] = useState<import("../types/bilan").BilanContent>({
-    titre: "", totalE: 0, totalH: 0, filteredData: [], groupedData: [], totalFrais: 0,
+    titre: "", totalE: 0, totalMissionsReel: 0, isSolde: false, totalH: 0, filteredData: [], groupedData: [], totalFrais: 0,
     fraisDivers: [], impayePrecedent: 0, resteCettePeriode: 0, resteAPercevoir: 0,
     soldeAcomptesAvant: 0, soldeAcomptesApres: 0, acomptesDansPeriode: 0, totalAcomptes: 0,
     acompteConsommePeriode: 0, selectedPatronId: null, selectedPatronNom: "Tous les patrons (Global)",
@@ -82,13 +110,57 @@ export function useBilan({
         const user = await getCurrentUserOrNull();
         if (!user) { triggerAlert?.("Utilisateur non connecté."); return false; }
 
+        const contract = buildContractFeatures({ features: profileFeatures || {}, isViewer });
+        const contractActiveSince = contract.source.isPro
+          ? (profileFeatures?.contract_active_since ?? null)
+          : null;
+        const isPreActivationWeek = Boolean(
+          contractActiveSince && bilanPeriodType === PERIOD_TYPES.SEMAINE && computePeriodDates(bilanPeriodType, bilanPeriodValue).finPeriode < contractActiveSince,
+        );
+
         const filtered: Mission[] = getMissionsByPeriod(bilanPeriodType, bilanPeriodValue, runPatronId)
           .filter((m) => !clientId || m.client_id === clientId)
+          .filter((m) => {
+            if (!contractActiveSince) return true;
+            if (bilanPeriodType !== PERIOD_TYPES.SEMAINE) return true;
+            if (isPreActivationWeek) return true;
+            const d = m.date_mission ?? m.date_iso;
+            return !d || d >= contractActiveSince;
+          })
           .sort((a, b) => new Date(a.date_iso!).getTime() - new Date(b.date_iso!).getTime());
 
         const totalMissions = filtered.reduce((s, m) => s + (m.montant || 0), 0);
         const totalH = filtered.reduce((s, m) => s + (m.duree || 0), 0);
-        const groupedData = buildGroupedData(filtered, bilanPeriodType);
+
+        const weeklyWorkedBuckets = aggregateWorkedHoursByIsoWeek(filtered);
+        const contractMetrics = contract.source.isPro && !isPreActivationWeek && bilanPeriodType !== PERIOD_TYPES.SEMAINE
+          ? weeklyWorkedBuckets.reduce(
+              (acc, workedHours) => {
+                const metrics = calculateWeeklyBilan({ workedHours }, contract);
+                return {
+                  workedHours: round2(acc.workedHours + metrics.workedHours),
+                  quotaHours: round2(acc.quotaHours + metrics.quotaHours),
+                  payableHours: round2(acc.payableHours + metrics.payableHours),
+                  reserveHours: round2(acc.reserveHours + metrics.reserveHours),
+                  overtimeHours: round2(acc.overtimeHours + metrics.overtimeHours),
+                  quotaOverflowHours: round2(acc.quotaOverflowHours + metrics.quotaOverflowHours),
+                };
+              },
+              {
+                workedHours: 0,
+                quotaHours: 0,
+                payableHours: 0,
+                reserveHours: 0,
+                overtimeHours: 0,
+                quotaOverflowHours: 0,
+              },
+            )
+          : calculateWeeklyBilan({ workedHours: totalH }, isPreActivationWeek ? { ...contract, source: { ...contract.source, mode: "free", isPro: false } } : contract);
+        const averageHourlyRate = totalH > 0 ? totalMissions / totalH : 0;
+        const totalMissionsReel = totalMissions;
+        const surplusGrossAmount = contract.source.isPro && !isPreActivationWeek
+          ? Math.max(0, contractMetrics.payableHours * averageHourlyRate)
+          : totalMissions;
 
         let fraisFiltres: FraisDivers[] = [];
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
@@ -96,7 +168,7 @@ export function useBilan({
         }
         const totalFrais = getTotalFrais(fraisFiltres);
         const { debutPeriode, finPeriode } = computePeriodDates(bilanPeriodType, bilanPeriodValue);
-        const caBrutPeriode = totalMissions + totalFrais;
+        const caBrutPeriode = (contract.source.isPro && !isPreActivationWeek ? surplusGrossAmount : totalMissions) + totalFrais;
 
         if (caBrutPeriode === 0 && filtered.length === 0) {
           triggerAlert?.(`⚠️ Aucune mission pour ${resolvePatronNom(runPatronId) || "ce patron"} en ${period.formatCurrentPeriodLabel(bilanPeriodValue)}`);
@@ -107,6 +179,29 @@ export function useBilan({
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           impayePrecedent = await db.getImpayePrecedent(parseInt(bilanPeriodValue, 10), runPatronId);
         }
+
+        let weeklyPaymentStatus: Map<number, { paye: boolean; datePaiement: string | null; resteAPercevoir: number }> | undefined;
+        if ((bilanPeriodType === PERIOD_TYPES.MOIS || bilanPeriodType === PERIOD_TYPES.ANNEE) && !isGlobalPatronId(runPatronId)) {
+          try {
+            const weeklyRows = await fetchWeeklyBilansHistory({ patronId: pId });
+            const allocs = await fetchAcompteAllocationsByPatron({ patronId: pId });
+            const normalizedRows = normalizeHistoriqueRows(weeklyRows, buildAllocByWeek(allocs), resolvePatronNom);
+            weeklyPaymentStatus = new Map(
+              normalizedRows.map((row) => [
+                Number(row.periode_index),
+                {
+                  paye: row.paye === true,
+                  datePaiement: row.date_paiement ?? null,
+                  resteAPercevoir: Number(row.reste_a_percevoir ?? 0),
+                },
+              ]),
+            );
+          } catch {
+            weeklyPaymentStatus = undefined;
+          }
+        }
+
+        const groupedData = buildGroupedData(filtered, bilanPeriodType, weeklyPaymentStatus);
 
         let resteCettePeriode = 0, resteAPercevoir = 0, soldeAvantPeriode = 0;
         let soldeApresPeriode = 0, acompteConsomme = 0, acompteConsommePeriode = 0;
@@ -163,7 +258,7 @@ export function useBilan({
 
         const content: import("../types/bilan").BilanContent = {
           titre: period.formatCurrentPeriodLabel(bilanPeriodValue),
-          totalE: caBrutPeriode, totalH, filteredData: filteredWithWeather, groupedData,
+          totalE: caBrutPeriode, isSolde: false, totalH, filteredData: filteredWithWeather, groupedData,
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
           acompteConsommePeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsommePeriode : 0,
@@ -173,10 +268,34 @@ export function useBilan({
           soldeAcomptesAvant: soldeAvantPeriode, soldeAcomptesApres: soldeApresPeriode,
           selectedPatronId: runPatronId, selectedPatronNom: patronNom,
           fraisKilometriques: fraisKm, lieux,
+          totalMissionsReel,
+          contractSummary: {
+            mode: isPreActivationWeek ? "free" : contract.source.mode,
+            quotaHours: contractMetrics.quotaHours,
+            workedHours: contractMetrics.workedHours,
+            contractualExternalHours: Math.max(0, contractMetrics.workedHours - contractMetrics.quotaOverflowHours),
+            surplusHours: contractMetrics.quotaOverflowHours,
+            payableHours: contractMetrics.payableHours,
+            reserveHours: contractMetrics.reserveHours,
+            quotaOverflowHours: contractMetrics.quotaOverflowHours,
+            surplusRule: contract.surplusRule,
+            surplusSplitPct: contract.surplusSplitPct,
+            averageHourlyRate,
+            surplusGrossAmount,
+            acompteAppliedAmount: bilanPeriodType === PERIOD_TYPES.SEMAINE ? consommeCettePeriode : 0,
+            fraisRemboursablesAmount: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
+            fraisDeductiblesAmount: 0,
+            appTotalAmount: Math.max(0, surplusGrossAmount - (bilanPeriodType === PERIOD_TYPES.SEMAINE ? consommeCettePeriode : 0) + (bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0)),
+            externalPaymentLabel: "payé par source externe",
+            contractType: contract.contractType,
+            reserveBalanceHours: 0,
+          },
         };
 
         const periodeIndex = computePeriodeIndex(bilanPeriodType, bilanPeriodValue);
-        const isPaid = computeStatutPaye(statutPaye, resteCettePeriode);
+        const isPaid = computeStatutPaye(statutPaye);
+        const isSolde = computeStatutSolde(resteCettePeriode);
+        content.isSolde = isSolde;
 
         if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
           const safe = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -211,7 +330,7 @@ export function useBilan({
     [bilanPeriodValue, bilanPeriodType, getMissionsByPeriod, getFraisByWeek, getTotalFrais,
       getSoldeAvant, getAcomptesDansPeriode, db.getImpayePrecedent,
       getTotalAcomptesJusqua, db.getStatutPaiement, period.formatCurrentPeriodLabel,
-      triggerAlert, patrons, kmSettings, domicileLatLng, lieux]
+      triggerAlert, patrons, kmSettings, domicileLatLng, lieux, profileFeatures, isViewer]
   );
 
   const { isRecalculatingKm, recalculerFraisKm } = useBilanKm({

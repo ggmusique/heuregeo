@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
   fetchUsers,
-  updateUserFeatures,
+  adminSetUserPlan,
   deleteUserProfile,
   type AdminUser,
   type AdminFeatures,
 } from "../services/api/adminApi";
+import { createReserveMovement } from "../features/contracts/reserve";
 
 /**
  * AdminPage — Page d'administration des utilisateurs
@@ -47,6 +48,9 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
   const [updateError, setUpdateError] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [adminReserveHours, setAdminReserveHours] = useState("0");
+  const [adminReserveComment, setAdminReserveComment] = useState("");
+  const [adminReserveStatus, setAdminReserveStatus] = useState<string | null>(null);
 
   const fetchUsersData = useCallback(async () => {
     if (!isAdmin) {
@@ -84,6 +88,11 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
       newPlan === "pro"
         ? {
             plan: "pro",
+            contract_enabled: true,
+            contract_weekly_quota_hours: 8,
+            contract_reserve_enabled: true,
+            contract_payable_rule: "capped_quota",
+            contract_overflow_rule: "ignore",
             viewer_enabled: true,
             multi_patron: true,
             export_pdf: true,
@@ -96,6 +105,11 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
           }
         : {
             plan: "free",
+          contract_enabled: false,
+          contract_weekly_quota_hours: 8,
+          contract_reserve_enabled: false,
+          contract_payable_rule: "capped_quota",
+          contract_overflow_rule: "ignore",
             viewer_enabled: false,
             multi_patron: false,
             export_pdf: false,
@@ -109,7 +123,7 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
 
     setUpdating(user.id);
     try {
-      const { error } = await updateUserFeatures(user.id, newFeatures);
+      const { error } = await adminSetUserPlan(user.id, newFeatures);
       if (error) throw new Error(error);
 
       setUsers((prev) =>
@@ -135,6 +149,29 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
       setUpdateError(err instanceof Error ? err.message : String(err));
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleAdminReserveCorrection = async () => {
+    if (!isAdmin) return;
+    const delta = Number(adminReserveHours);
+    if (!Number.isFinite(delta) || delta === 0) {
+      setAdminReserveStatus("Entrez une valeur d'heures non nulle.");
+      return;
+    }
+
+    try {
+      await createReserveMovement({
+        patronId: null,
+        movementType: "admin_correction",
+        source: "admin",
+        deltaHours: delta,
+        comment: adminReserveComment,
+      });
+      setAdminReserveStatus("Correction admin enregistrée.");
+      setAdminReserveComment("");
+    } catch (err: unknown) {
+      setAdminReserveStatus(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -177,6 +214,38 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
       {updateError && (
         <div className="p-4 bg-red-600/20 border border-red-500/40 rounded-2xl text-red-400 text-sm text-center mb-4">
           ⚠️ Erreur mise à jour : {updateError}
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="mb-5 rounded-[25px] border border-[var(--color-accent-violet)]/35 bg-[var(--color-accent-violet)]/10 p-4">
+          <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-violet)]">Réserve admin</p>
+          <div className="grid gap-2 sm:grid-cols-[150px_minmax(0,1fr)_auto]">
+            <input
+              type="number"
+              step={0.25}
+              value={adminReserveHours}
+              onChange={(e) => setAdminReserveHours(e.target.value)}
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-2 text-sm text-[var(--color-text)]"
+              aria-label="Heures correction admin"
+            />
+            <input
+              type="text"
+              value={adminReserveComment}
+              onChange={(e) => setAdminReserveComment(e.target.value)}
+              placeholder="Commentaire correction admin"
+              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)]"
+              aria-label="Commentaire correction admin"
+            />
+            <button
+              type="button"
+              onClick={() => void handleAdminReserveCorrection()}
+              className="rounded-lg border border-[var(--color-accent-violet)]/45 bg-[var(--color-accent-violet)]/20 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--color-accent-violet)]"
+            >
+              Corriger
+            </button>
+          </div>
+          {adminReserveStatus && <p className="mt-2 text-xs text-[var(--color-text-muted)]">{adminReserveStatus}</p>}
         </div>
       )}
 
@@ -272,6 +341,7 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
                     )}
                   </div>
                 </div>
+
               </div>
             );
           })}

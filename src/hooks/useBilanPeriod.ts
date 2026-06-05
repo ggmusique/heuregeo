@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, Dispatch, SetStateAction } from "react";
-import { getWeekNumber } from "../utils/dateUtils";
+import { getWeekNumber, isValidDateIso } from "../utils/dateUtils";
 import { PERIOD_TYPES } from "../constants/bilanPeriods";
 import { computePeriodeIndex, formatPeriodLabel } from "../lib/bilanPeriods";
 import type { Mission } from "../types/entities";
@@ -33,6 +33,7 @@ export function useBilanPeriod({ missions }: { missions: Mission[] }): UseBilanP
     missions.forEach((m) => {
       const mDate = m?.date_mission || m?.date_iso;
       if (!mDate) return;
+      if (!isValidDateIso(mDate)) return;
       const d = new Date(mDate);
       if (bilanPeriodType === PERIOD_TYPES.SEMAINE) {
         periods.add(String(getWeekNumber(d)));

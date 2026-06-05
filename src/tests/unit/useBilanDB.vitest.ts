@@ -39,6 +39,8 @@ function makeBilanContent(overrides: Partial<BilanContent> = {}): BilanContent {
   return {
     titre: "",
     totalE: 0,
+    totalMissionsReel: 0,
+    isSolde: false,
     totalH: 0,
     filteredData: [],
     groupedData: [],
@@ -100,7 +102,7 @@ describe("getStatutPaiement — transformation row DB → booléen", () => {
     expect(statut).toBe(true);
   });
 
-  it("retourne true si paye=false mais reste_a_percevoir ≤ 0.01 (règle quasi-nul)", async () => {
+  it("retourne false si paye=false même avec reste_a_percevoir ≤ 0.01 (paiement manuel)", async () => {
     vi.mocked(bilanRepository.fetchLatestBilanStatus).mockResolvedValue({
       paye: false,
       reste_a_percevoir: 0.005,
@@ -108,7 +110,7 @@ describe("getStatutPaiement — transformation row DB → booléen", () => {
     const { result } = renderHook(() => useBilanDB(makeParams()));
     let statut!: boolean;
     await act(async () => { statut = await result.current.getStatutPaiement(PATRON_ID); });
-    expect(statut).toBe(true);
+    expect(statut).toBe(false);
   });
 
   it("retourne false si paye=false et reste = 50 € (impayé réel)", async () => {

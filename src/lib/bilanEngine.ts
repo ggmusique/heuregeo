@@ -9,9 +9,13 @@
 
 import type { NormalizedBilanPayload, WeeklyAcompteState, StandardAcompteState } from "../types/bilan.ts";
 
-export function computeStatutPaye(paye: boolean, resteAPercevoir: number | string): boolean {
+export function computeStatutPaye(paye: boolean): boolean {
+  return paye === true;
+}
+
+export function computeStatutSolde(resteAPercevoir: number | string): boolean {
   const reste = Math.max(0, parseFloat(resteAPercevoir as string) || 0);
-  return paye === true || reste <= 0.01;
+  return reste <= 0.01;
 }
 
 export function computeImpayePrecedent(bilanRows: Array<{ reste_a_percevoir: number | string }>): number {
@@ -35,7 +39,7 @@ export function normalizeBilanForWrite({
   date_paiement?: string | null;
 } = {}): NormalizedBilanPayload {
   const reste = Math.max(0, parseFloat(reste_a_percevoir as string) || 0);
-  const isPaye = computeStatutPaye(paye, reste);
+  const isPaye = computeStatutPaye(paye) || computeStatutSolde(reste);
   return {
     ca_brut_periode: parseFloat(ca_brut_periode as string) || 0,
     acompte_consomme: parseFloat(acompte_consomme as string) || 0,

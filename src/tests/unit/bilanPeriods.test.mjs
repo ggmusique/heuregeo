@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PERIOD_TYPES } from "../../constants/bilanPeriods.ts";
-import { computePeriodeIndex, formatPeriodLabel } from "../../lib/bilanPeriods.ts";
+import { computePeriodeIndex, computePeriodDates, formatPeriodLabel } from "../../lib/bilanPeriods.ts";
 
 test("computePeriodeIndex gère semaine/mois/année", () => {
   assert.equal(computePeriodeIndex(PERIOD_TYPES.SEMAINE, "12"), 12);
@@ -14,4 +14,11 @@ test("formatPeriodLabel retourne un libellé lisible", () => {
   const monthLabel = formatPeriodLabel(PERIOD_TYPES.MOIS, "2026-04");
   assert.ok(monthLabel.includes("2026"));
   assert.equal(formatPeriodLabel(PERIOD_TYPES.ANNEE, "2026"), "2026");
+});
+
+test("computePeriodDates protège le mode mois contre une période invalide", () => {
+  assert.deepEqual(computePeriodDates(PERIOD_TYPES.MOIS, "2026-13"), {
+    debutPeriode: "",
+    finPeriode: "",
+  });
 });

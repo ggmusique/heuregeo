@@ -155,18 +155,30 @@ export interface MissionWithWeather extends Mission {
   weather?: WeatherData;
 }
 
+export type BilanGroupedPaymentStatus = "paid" | "unpaid" | "partial" | "unknown";
+
 /** Ligne groupée du bilan (par semaine ou par mois). */
 export interface BilanGroupedRow {
   label: string;
+  periodValue?: string;
+  childPeriodValues?: string[];
   h: number;
   e: number;
   missions: Mission[];
+  paymentStatus?: BilanGroupedPaymentStatus;
+  paymentLabel?: string;
+  paymentDate?: string | null;
+  paymentRemaining?: number;
+  paidCount?: number;
+  totalCount?: number;
 }
 
 /** Contenu calculé d'un bilan pour une période et un patron donnés. */
 export interface BilanContent {
   titre: string;
   totalE: number;
+  totalMissionsReel: number;
+  isSolde: boolean;
   totalH: number;
   filteredData: MissionWithWeather[];
   groupedData: BilanGroupedRow[];
@@ -183,5 +195,35 @@ export interface BilanContent {
   selectedPatronId: string | null;
   selectedPatronNom: string;
   fraisKilometriques: BilanKmResult;
+  contractSummary?: {
+    mode: "free" | "pro";
+    quotaHours: number;
+    workedHours: number;
+    contractualExternalHours?: number;
+    surplusHours?: number;
+    payableHours: number;
+    reserveHours: number;
+    quotaOverflowHours: number;
+    surplusRule?: "payable" | "banque" | "les_deux";
+    surplusSplitPct?: number;
+    averageHourlyRate?: number;
+    surplusGrossAmount?: number;
+    acompteAppliedAmount?: number;
+    fraisRemboursablesAmount?: number;
+    fraisDeductiblesAmount?: number;
+    appTotalAmount?: number;
+    externalPaymentLabel?: string;
+    contractType?: "interim" | "formation" | "cdd" | "cdi" | "other";
+    reserveBalanceHours: number;
+  };
+  reserveMovements?: Array<{
+    id: string;
+    date: string;
+    type: string;
+    source: string;
+    deltaHours: number;
+    missionId?: string | null;
+    comment?: string | null;
+  }>;
   lieux?: Lieu[];
 }
