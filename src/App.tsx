@@ -36,6 +36,7 @@ import { UpdatePrompt } from "./components/common/UpdatePrompt";
 import { ProfileCompletionGate } from "./components/auth/ProfileCompletionGate";
 import { AppHeader } from "./components/layout/AppHeader";
 import { AppNavBar } from "./components/layout/AppNavBar";
+import { NavDrawer } from "./components/layout/NavDrawer";
 import { AppModals } from "./components/AppModals";
 import { AgendaPage } from "./components/agenda/AgendaPage";
 import { VueSuivi } from "./components/views/VueSuivi";
@@ -153,6 +154,7 @@ function AppInner({
   darkMode, liveTime, isIOS, loading, setLoading, triggerAlert, customAlert, dismissAlert,
   APP_VERSION,
 }: AppInnerProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showMissionRateEditor, setShowMissionRateEditor] = useState(() => {
     if (typeof window === "undefined") return true;
     return window.localStorage.getItem("showMissionRateEditor") !== "false";
@@ -284,7 +286,7 @@ function AppInner({
         </div>
       )}
 
-      <AppHeader profile={profile} isViewer={isViewer} isPro={isPro} liveTime={liveTime} APP_VERSION={APP_VERSION} />
+      <AppHeader profile={profile} isViewer={isViewer} isPro={isPro} liveTime={liveTime} APP_VERSION={APP_VERSION} onOpenMenu={() => setMenuOpen(true)} />
 
       <main className="relative px-5 -mt-10 pb-32 z-10">
         {activeTab === "saisie" && !isViewer && <VueSaisie {...saisieProps} />}
@@ -350,6 +352,15 @@ function AppInner({
       <AppModals {...modalsProps} />
 
       <AppNavBar activeTab={activeTab} setActiveTab={setActiveTab} proNavItems={proNavItems} />
+
+      <NavDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        proNavItems={proNavItems}
+        isViewer={isViewer}
+      />
     </div>
   );
 }
