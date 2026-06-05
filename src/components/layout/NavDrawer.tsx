@@ -13,13 +13,17 @@ interface Props {
   isViewer: boolean;
 }
 
+// Compense l'encoche (haut) et la barre de geste (bas) iOS
+const asideStyle: React.CSSProperties = {
+  paddingTop: "calc(env(safe-area-inset-top) + 2rem)",
+  paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)",
+};
+
 /**
- * Menu burger : tiroir latéral droit contenant les onglets "secondaires"
- * (tout ce qui n'est pas dans CORE_TAB_KEYS) + la déconnexion pour un viewer.
- * Tient compte de l'encoche et de la barre de geste iOS (safe-area-inset-*).
+ * Menu burger : tiroir latéral droit avec les onglets secondaires
+ * + déconnexion viewer. Se ferme sur Échap ou clic sur le fond.
  */
 export function NavDrawer({ open, onClose, activeTab, setActiveTab, proNavItems, isViewer }: Props) {
-  // Fermeture au clavier (Échap)
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -40,7 +44,6 @@ export function NavDrawer({ open, onClose, activeTab, setActiveTab, proNavItems,
       aria-label="Menu de navigation"
       className="fixed inset-0 z-[600] flex justify-end"
     >
-      {/* Fond cliquable */}
       <button
         type="button"
         aria-label="Fermer le menu"
@@ -48,12 +51,8 @@ export function NavDrawer({ open, onClose, activeTab, setActiveTab, proNavItems,
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
       />
 
-      {/* Panneau du tiroir */}
       <aside
-        style=
-          paddingTop: "calc(env(safe-area-inset-top) + 2rem)",
-          paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)",
-        
+        style={asideStyle}
         className="drawer relative h-full w-[80%] max-w-[320px] ml-auto flex flex-col gap-2 px-5 overflow-y-auto shadow-2xl border-l bg-[var(--color-surface)] border-[var(--color-border-primary)] transition-transform duration-300"
       >
         <div className="flex items-center justify-between mb-2">

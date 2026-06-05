@@ -11,30 +11,27 @@ interface Props {
   onOpenMenu: () => void;
 }
 
+// Compense l'encoche et la barre de statut iOS (safe-area-inset-top)
+const headerStyle: React.CSSProperties = {
+  paddingTop: "calc(env(safe-area-inset-top) + 1.5rem)",
+};
+
 export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION, onOpenMenu }: Props) {
   const { darkMode, setDarkMode } = useDarkMode();
 
   return (
     <header
-      style= paddingTop: "calc(env(safe-area-inset-top) + 1.5rem)" 
-      className={
-        "relative px-4 pb-10 sm:p-6 sm:pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-[var(--color-border-primary)]"
-      }
+      style={headerStyle}
+      className="relative px-4 pb-10 sm:p-6 sm:pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-[var(--color-border-primary)]"
     >
-      <div
-        className={
-          "absolute inset-0 backdrop-blur-xl bg-[var(--color-surface)]"
-        }
-      />
+      <div className="absolute inset-0 backdrop-blur-xl bg-[var(--color-surface)]" />
       <div className="relative z-10 text-center">
         <div className="absolute right-4 top-0 sm:right-6 z-20 flex items-center gap-2">
           <button
             type="button"
             aria-label="Menu"
             onClick={onOpenMenu}
-            className={
-              "w-11 h-11 backdrop-blur-xl rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform border bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text)]"
-            }
+            className="w-11 h-11 backdrop-blur-xl rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform border bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text)]"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                  fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -46,9 +43,7 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION, onO
           <button
             onClick={() => setDarkMode(!darkMode)}
             aria-label="Basculer le thème"
-            className={
-              "w-11 h-11 backdrop-blur-xl rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform border bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text)]"
-            }
+            className="w-11 h-11 backdrop-blur-xl rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform border bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text)]"
           >
             {darkMode ? (
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -70,33 +65,22 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION, onO
         {isViewer && <ViewerBadge patronNom={profile?.nom || ""} />}
         {isPro && !isViewer && (
           <div className="text-center py-1">
-            <span
-              className={
-                "inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border " +
-                "bg-[var(--color-primary)]/15 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
-              }
-            >
+            <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border bg-[var(--color-primary)]/15 border-[var(--color-primary)]/40 text-[var(--color-primary)]">
               ✨ Pro
             </span>
           </div>
         )}
         <div className="flex items-center justify-center gap-2 mb-1">
-          <span
-            className={
-              "text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border " +
-              (darkMode
-                ? "border-[var(--color-primary)]/40 text-[var(--color-primary)]/70"
-                : "border-[var(--color-primary)]/50 text-[var(--color-primary)]/80")
-            }
-          >
+          <span className={
+            "text-[10px] font-mono tracking-[0.2em] uppercase px-3 py-0.5 rounded-full border " +
+            (darkMode
+              ? "border-[var(--color-primary)]/40 text-[var(--color-primary)]/70"
+              : "border-[var(--color-primary)]/50 text-[var(--color-primary)]/80")
+          }>
             v{APP_VERSION} ✓ OTA
           </span>
         </div>
-        <div
-          className={
-            "flex items-center justify-center gap-2 text-[var(--color-text)]"
-          }
-        >
+        <div className="flex items-center justify-center gap-2 text-[var(--color-text)]">
           <span className="text-[17px] font-black tracking-tight">{liveTime}</span>
           <span className="text-[15px] font-medium opacity-80 lowercase">
             {new Date().toLocaleDateString("fr-FR", {

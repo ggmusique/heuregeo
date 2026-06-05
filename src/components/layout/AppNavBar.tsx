@@ -9,11 +9,15 @@ interface Props {
   proNavItems: NavItem[];
 }
 
+// Positionne la navbar au-dessus de la barre de geste iOS (safe-area-inset-bottom)
+const navStyle: React.CSSProperties = {
+  bottom: "calc(env(safe-area-inset-bottom) + 1.5rem)",
+};
+
 /**
  * Barre de navigation du bas. N'affiche que les onglets "core"
  * (Saisie / Dashboard / Suivi). Les autres sont accessibles via le
  * menu burger (NavDrawer).
- * Le positionnement bas tient compte de la barre de geste iOS (safe-area-inset-bottom).
  */
 export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
   const coreItems = proNavItems.filter((item) => CORE_TAB_KEYS.includes(item.key));
@@ -21,14 +25,10 @@ export function AppNavBar({ activeTab, setActiveTab, proNavItems }: Props) {
   return (
     <nav
       data-testid="mobile-navbar"
-      style= bottom: "calc(env(safe-area-inset-bottom) + 1.5rem)" 
+      style={navStyle}
       className="fixed left-6 right-6 z-[100]"
     >
-      <div
-        className={
-          "backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 bg-[var(--color-surface)] border-[var(--color-border-primary)]"
-        }
-      >
+      <div className="backdrop-blur-3xl border p-2 rounded-[35px] shadow-2xl flex gap-1 bg-[var(--color-surface)] border-[var(--color-border-primary)]">
         {coreItems.map((item: NavItem) => {
           const isActive = activeTab === item.key;
           return (
