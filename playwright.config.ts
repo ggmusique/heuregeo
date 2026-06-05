@@ -2,8 +2,14 @@
 import { defineConfig, devices } from "@playwright/test";
 import * as dotenv from "dotenv";
 
-// Charger les variables d'environnement pour les tests E2E
+// Charger les variables d'environnement pour les tests E2E.
+// .env.local est prioritaire (dotenv n'ecrase jamais une cle deja definie dans
+// process.env), puis .env complete les variables manquantes (cles Supabase,
+// identifiants E2E, PLAYWRIGHT_BASE_URL...). Vite lit deja .env de son cote
+// pour l'app ; cette double lecture rend ces variables visibles aussi pour le
+// process Playwright (config + *.setup.ts).
 dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:5173";
 const IS_CI = !!process.env.CI;
@@ -21,10 +27,10 @@ export default defineConfig({
   // 1 retry en CI uniquement
   retries: IS_CI ? 1 : 0,
 
-  // Séquentiel par défaut (tests auth partagés)
+  // Sequentiel par defaut (tests auth partages)
   workers: IS_CI ? 1 : 1,
 
-  // Screenshots de référence (visual regression)
+  // Screenshots de reference (visual regression)
   snapshotDir: "./e2e/screenshots",
 
   // Reporter
@@ -38,26 +44,26 @@ export default defineConfig({
     baseURL: BASE_URL,
     headless: true,
 
-    // Captures seulement en cas d'échec
+    // Captures seulement en cas d'echec
     screenshot: "only-on-failure",
 
-    // Vidéo et trace en cas d'échec seulement (évite la surcharge disque)
+    // Video et trace en cas d'echec seulement (evite la surcharge disque)
     video: "retain-on-failure",
     trace: "retain-on-failure",
 
-    // Locale française pour les sélecteurs de dates et UI
+    // Locale francaise pour les selecteurs de dates et UI
     locale: "fr-FR",
     timezoneId: "Europe/Paris",
   },
 
   projects: [
-    // ── Setup : sessions auth persistantes ─────────────────────────────────
+    // -- Setup : sessions auth persistantes ---------------------------------
     {
       name: "setup",
       testMatch: "**/setup/*.ts",
     },
 
-    // ── Desktop : Chromium (Chrome) ────────────────────────────────────────
+    // -- Desktop : Chromium (Chrome) ----------------------------------------
     {
       name: "desktop-chrome",
       use: {
@@ -68,7 +74,7 @@ export default defineConfig({
       testMatch: ["**/tests/**/*.spec.ts", "**/desktop/**/*.spec.ts"],
     },
 
-    // ── Desktop : Firefox ──────────────────────────────────────────────────
+    // -- Desktop : Firefox --------------------------------------------------
     {
       name: "desktop-firefox",
       use: {
@@ -80,7 +86,7 @@ export default defineConfig({
       testMatch: ["**/desktop/**/*.spec.ts", "**/tests/auth.spec.ts"],
     },
 
-    // ── Mobile : iPhone 15 (WebKit / Safari) ──────────────────────────────
+    // -- Mobile : iPhone 15 (WebKit / Safari) -------------------------------
     {
       name: "mobile-iphone",
       use: {
@@ -91,7 +97,7 @@ export default defineConfig({
       testMatch: ["**/mobile/**/*.spec.ts"],
     },
 
-    // ── Mobile : Pixel 7 (Chrome Android) ─────────────────────────────────
+    // -- Mobile : Pixel 7 (Chrome Android) ----------------------------------
     {
       name: "mobile-pixel",
       use: {
@@ -102,7 +108,7 @@ export default defineConfig({
       testMatch: ["**/mobile/**/*.spec.ts"],
     },
 
-    // ── Tests d'isolation cross-user (Chromium uniquement) ─────────────────
+    // -- Tests d'isolation cross-user (Chromium uniquement) -----------------
     {
       name: "security",
       use: {
@@ -114,7 +120,7 @@ export default defineConfig({
     },
   ],
 
-  // Serveur de dev local (ignoré en CI qui gère son propre serveur)
+  // Serveur de dev local (ignore en CI qui gere son propre serveur)
   webServer: IS_CI
     ? undefined
     : {
