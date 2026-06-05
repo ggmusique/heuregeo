@@ -120,13 +120,18 @@ export default defineConfig({
     },
   ],
 
-  // Serveur de dev local (ignore en CI qui gere son propre serveur)
+  // Serveur local (ignore en CI qui gere son propre serveur).
+  // On sert un BUILD DE PRODUCTION (vite build + vite preview) plutot que le
+  // dev server : pas de compilation a la volee => le premier page.goto charge
+  // en quelques secondes au lieu de risquer le timeout de 30s (cold start
+  // Vite sur Windows). reuseExistingServer reutilise un preview deja lance.
+  // Timeout large pour laisser le build se terminer au premier lancement.
   webServer: IS_CI
     ? undefined
     : {
-        command: "npm run dev",
+        command: "npm run build && npm run preview -- --port 5173 --strictPort",
         url: BASE_URL,
         reuseExistingServer: true,
-        timeout: 60_000,
+        timeout: 180_000,
       },
 });
