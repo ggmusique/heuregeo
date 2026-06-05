@@ -1,10 +1,10 @@
 // e2e/desktop/dashboard.spec.ts
-// ─────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────
 // Tests E2E Desktop : Dashboard — KPI, navigation, responsive
 //
 // Pré-requis : session owner sauvegardée par e2e/setup/auth.setup.ts
 // Projet     : desktop-chrome (+ desktop-firefox via testMatch)
-// ─────────────────────────────────────────────────────────────────────────────
+// ───────────────────────────────────────────────────────────────────
 
 import { test, expect } from "@playwright/test";
 import { waitForNoSpinner } from "../helpers/navigation";
@@ -16,7 +16,7 @@ test.describe("Dashboard", () => {
     await waitForNoSpinner(page);
   });
 
-  // ── Chargement ──────────────────────────────────────────────────────────────
+  // ── Chargement ────────────────────────────────────────────────────────
   test("1. Dashboard charge sans erreur", async ({ page, browserName }, testInfo) => {
     // Pas d'erreur React visible
     await expect(page.locator('[data-testid="error-boundary"], .error-boundary')).not.toBeVisible();
@@ -27,7 +27,7 @@ test.describe("Dashboard", () => {
     await captureScreen(page, `dashboard-loaded-${browserName}`, testInfo);
   });
 
-  // ── Navigation principale ───────────────────────────────────────────────────
+  // ── Navigation principale ────────────────────────────────────────────────
   test("2. Navigation principale visible", async ({ page }) => {
     // Navigation mobile fixe: boutons (pas des liens). Le coeur attendu est
     // Saisie / Dashboard / Suivi (+ Parametres selon le role).
@@ -48,7 +48,7 @@ test.describe("Dashboard", () => {
     ).toBeGreaterThan(0);
   });
 
-  // ── KPI / cartes stats ──────────────────────────────────────────────────────
+  // ── KPI / cartes stats ──────────────────────────────────────────────────
   test("3. Cartes KPI ou contenu principal visible", async ({ page, browserName }, testInfo) => {
     // Attendre que le contenu soit chargé
     await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {
@@ -66,7 +66,7 @@ test.describe("Dashboard", () => {
     await captureScreen(page, `dashboard-kpi-${browserName}`, testInfo);
   });
 
-  // ── Pas d'overflow horizontal ───────────────────────────────────────────────
+  // ── Pas d'overflow horizontal ──────────────────────────────────────────
   test("4. Pas d'overflow horizontal (1280px)", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/");
@@ -79,7 +79,7 @@ test.describe("Dashboard", () => {
     expect(overflow, "Overflow horizontal détecté à 1280px").toBe(false);
   });
 
-  // ── Responsive tablet ───────────────────────────────────────────────────────
+  // ── Responsive tablet ─────────────────────────────────────────────────
   test("5. Pas d'overflow horizontal (768px tablet)", async ({ page }, testInfo) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto("/");
@@ -93,10 +93,14 @@ test.describe("Dashboard", () => {
     await captureScreen(page, "dashboard-tablet-768", testInfo);
   });
 
-  // ── Page Bilan accessible ───────────────────────────────────────────────────
+  // ── Page Bilan accessible ──────────────────────────────────────────────
   test("6. Navigation vers Bilan", async ({ page, browserName }, testInfo) => {
-    const suiviButton = page.getByRole("button", { name: /suivi/i }).first();
-    await expect(suiviButton).toBeVisible({ timeout: 5_000 });
+    // Scope sur la navbar mobile (comme le test 2, qui passe sur tous les
+    // navigateurs) + timeout plus large : Firefox en CI monte le DOM plus
+    // lentement, ce qui faisait échouer la requête page-wide à 5s.
+    const nav = page.locator('[data-testid="mobile-navbar"]');
+    const suiviButton = nav.getByRole("button", { name: /suivi/i }).first();
+    await expect(suiviButton).toBeVisible({ timeout: 10_000 });
     try {
       await suiviButton.click({ timeout: 7_000 });
     } catch {
