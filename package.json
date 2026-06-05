@@ -1,7 +1,7 @@
 {
   "name": "heures-de-geo",
   "private": true,
-  "version": "1.0.197",
+  "version": "1.0.198",
   "type": "module",
   "scripts": {
     "dev": "node scripts/gen-build-info.mjs && vite",
