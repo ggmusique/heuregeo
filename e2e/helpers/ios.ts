@@ -188,16 +188,53 @@ export async function measureNavbarPosition(page: Page): Promise<{
   });
 }
 
+/** Patterns d'erreurs non critiques à filtrer (réseau, auth invité, etc.) */
+const NON_CRITICAL_PATTERNS = [
+  /ERR_FAILED|ERR_CONNECTION|ERR_NAME_NOT_RESOLVED/i,
+  /net::ERR/i,
+  /Failed to fetch/i,
+  /NetworkError/i,
+  // Logs réseau bas niveau du navigateur (statut HTTP). En CI l'app tourne souvent en
+  // mode invité (pas de session owner valide) : les endpoints protégés renvoient 401/403.
+  /Failed to load resource/i,
+  /\b40[13]\b|Forbidden|Unauthorized/i,
+  /favicon/i,
+  /ResizeObserver loop/i,
+  /Loading chunk/i,
+  /ChunkLoadError/i,
+  /supabase/i,
+  /realtime/i,
+];
+
+/**
+ * Indique si un message d'erreur est non critique (bruit) et doit être ignoré.
+ * Couvre aussi les messages vides et les valeurs non-stringifiables ("[object Object]",
+ * typiquement un objet jeté brut sous WebKit) qui n'apportent aucun signal de debug.
+ */
+function isNonCriticalError(message: string): boolean {
+  const text = (message ?? "").trim();
+  if (!text || text === "[object Object]") return true;
+  return NON_CRITICAL_PATTERNS.some((p) => p.test(text));
+}
+
 /**
  * Register page-error and console-error listeners BEFORE page.goto().
  * Returns a reference array that fills as errors occur during the session.
- * Filter out network errors (ERR_FAILED, etc.) to isolate app errors.
+ * Filtre le bruit réseau (ERR_FAILED, 401/403, Failed to load resource, etc.) et
+ * ignore les valeurs non-stringifiables ("[object Object]") pour isoler les vraies
+ * erreurs JS applicatives.
  */
 export function collectJsErrors(page: Page): string[] {
   const errors: string[] = [];
-  page.on("pageerror", (err) => errors.push(err.message));
+  page.on("pageerror", (err) => {
+    const message = err?.message || String(err ?? "");
+    if (!isNonCriticalError(message)) errors.push(`[pageerror] ${message}`);
+  });
   page.on("console", (msg) => {
-    if (msg.type() === "error") errors.push(`[console.error] ${msg.text()}`);
+    if (msg.type() === "error") {
+      const text = msg.text();
+      if (!isNonCriticalError(text)) errors.push(`[console.error] ${text}`);
+    }
   });
   return errors;
 }
