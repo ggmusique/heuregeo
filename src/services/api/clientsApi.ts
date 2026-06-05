@@ -34,6 +34,9 @@ export const createClient = async (clientData: ClientInsert): Promise<Client> =>
 };
 
 export const updateClient = async (clientId: string, updates: ClientUpdate): Promise<Client> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
   const sanitized: ClientUpdate = {
     ...updates,
     ...(updates.nom != null && { nom: sanitizeName(updates.nom) }),
@@ -42,6 +45,7 @@ export const updateClient = async (clientId: string, updates: ClientUpdate): Pro
     .from("clients")
     .update(sanitized)
     .eq("id", clientId)
+    .eq("user_id", user.id)  // défense en profondeur : ownership explicite
     .select()
     .single();
 
@@ -50,10 +54,14 @@ export const updateClient = async (clientId: string, updates: ClientUpdate): Pro
 };
 
 export const deleteClient = async (clientId: string): Promise<void> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
   const { error } = await supabase
     .from("clients")
     .update({ actif: false })
-    .eq("id", clientId);
+    .eq("id", clientId)
+    .eq("user_id", user.id);  // défense en profondeur : ownership explicite
 
   if (error) throw error;
 };
