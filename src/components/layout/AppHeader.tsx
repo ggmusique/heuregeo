@@ -16,8 +16,9 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION, onO
 
   return (
     <header
+      style= paddingTop: "calc(env(safe-area-inset-top) + 1.5rem)" 
       className={
-        "relative px-4 pt-4 pb-10 sm:p-6 sm:pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-[var(--color-border-primary)]"
+        "relative px-4 pb-10 sm:p-6 sm:pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-[var(--color-border-primary)]"
       }
     >
       <div
@@ -26,7 +27,7 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION, onO
         }
       />
       <div className="relative z-10 text-center">
-        <div className="absolute right-4 top-4 sm:right-6 sm:top-6 z-20 flex items-center gap-2">
+        <div className="absolute right-4 top-0 sm:right-6 z-20 flex items-center gap-2">
           <button
             type="button"
             aria-label="Menu"

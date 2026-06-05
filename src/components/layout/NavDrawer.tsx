@@ -16,7 +16,7 @@ interface Props {
 /**
  * Menu burger : tiroir latéral droit contenant les onglets "secondaires"
  * (tout ce qui n'est pas dans CORE_TAB_KEYS) + la déconnexion pour un viewer.
- * Fonctionne sur smartphone, tablette et desktop.
+ * Tient compte de l'encoche et de la barre de geste iOS (safe-area-inset-*).
  */
 export function NavDrawer({ open, onClose, activeTab, setActiveTab, proNavItems, isViewer }: Props) {
   // Fermeture au clavier (Échap)
@@ -50,7 +50,11 @@ export function NavDrawer({ open, onClose, activeTab, setActiveTab, proNavItems,
 
       {/* Panneau du tiroir */}
       <aside
-        className="drawer relative h-full w-[80%] max-w-[320px] ml-auto flex flex-col gap-2 p-5 pt-8 overflow-y-auto shadow-2xl border-l bg-[var(--color-surface)] border-[var(--color-border-primary)] transition-transform duration-300"
+        style=
+          paddingTop: "calc(env(safe-area-inset-top) + 2rem)",
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 1.25rem)",
+        
+        className="drawer relative h-full w-[80%] max-w-[320px] ml-auto flex flex-col gap-2 px-5 overflow-y-auto shadow-2xl border-l bg-[var(--color-surface)] border-[var(--color-border-primary)] transition-transform duration-300"
       >
         <div className="flex items-center justify-between mb-2">
           <span className="text-[13px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">
