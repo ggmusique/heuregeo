@@ -3,7 +3,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 import { usePatrons } from "../../hooks/usePatrons";
 import type { Patron } from "../../types/entities";
 
-// ─── Mocks ────────────────────────────────────────────────────────────────────
+// ─── Mocks ──────────────────────────────────────────────────────────────────
 
 vi.mock("../../services/authService", () => ({
   getCurrentUserOrNull: vi.fn(),
@@ -24,7 +24,7 @@ const triggerAlert = vi.fn();
 
 beforeEach(() => vi.clearAllMocks());
 
-// ─── Factory ──────────────────────────────────────────────────────────────────
+// ─── Factory ────────────────────────────────────────────────────────────────
 
 function makePatron(overrides: Partial<Patron> = {}): Patron {
   return {
@@ -54,7 +54,7 @@ beforeEach(() => {
   vi.mocked(patronsApi.fetchPatrons).mockResolvedValue([]);
 });
 
-// ─── 1. fetchPatrons ──────────────────────────────────────────────────────────
+// ─── 1. fetchPatrons ────────────────────────────────────────────────────────
 
 describe("fetchPatrons", () => {
   it("appelle patronsApi.fetchPatrons avec l'userId et popule patrons", async () => {
@@ -76,22 +76,22 @@ describe("fetchPatrons", () => {
     expect(result.current.loading).toBe(false);
   });
 
-  it("utilisateur non connecté → triggerAlert + throw", async () => {
-    // Le beforeEach a mocké getCurrentUserOrNull → { id: "uid" }
-    // Le montage initial réussit donc sans rejection non capturée dans le useEffect.
+  it("utilisateur non connecté → patrons reste [] sans throw ni alerte", async () => {
+    // Montage initial avec user valide (beforeEach), puis on bascule sur null
+    // et on appelle fetchPatrons() explicitement.
     const { result } = renderHook(() => usePatrons(triggerAlert));
     await act(async () => {});
 
-    // Changer le mock APRÈS le montage, puis appeler fetchPatrons() explicitement :
-    // la rejection est capturée par rejects.toThrow() → pas d'unhandled rejection.
     vi.mocked(authService.getCurrentUserOrNull).mockResolvedValue(null);
+    let returned: Patron[] | undefined;
     await act(async () => {
-      await expect(result.current.fetchPatrons()).rejects.toThrow();
+      returned = await result.current.fetchPatrons();
     });
 
-    expect(triggerAlert).toHaveBeenCalledWith(
-      expect.stringContaining("non connecté")
-    );
+    // Pas d'utilisateur = état attendu → liste vide, pas de throw, pas d'alerte.
+    expect(returned).toEqual([]);
+    expect(result.current.patrons).toEqual([]);
+    expect(triggerAlert).not.toHaveBeenCalled();
   });
 
   it("erreur API → triggerAlert + throw (re-throw)", async () => {
@@ -114,7 +114,7 @@ describe("fetchPatrons", () => {
   });
 });
 
-// ─── 2. createPatron ─────────────────────────────────────────────────────────
+// ─── 2. createPatron ───────────────────────────────────────────────────────
 
 describe("createPatron", () => {
   it("garde nom vide → throw sans appeler l'API", async () => {
@@ -205,7 +205,7 @@ describe("createPatron", () => {
   });
 });
 
-// ─── 3. updatePatron ─────────────────────────────────────────────────────────
+// ─── 3. updatePatron ───────────────────────────────────────────────────────
 
 describe("updatePatron", () => {
   it("garde patronId vide → throw sans appeler l'API", async () => {
@@ -268,7 +268,7 @@ describe("updatePatron", () => {
   });
 });
 
-// ─── 4. deletePatron ─────────────────────────────────────────────────────────
+// ─── 4. deletePatron ───────────────────────────────────────────────────────
 
 describe("deletePatron", () => {
   it("garde patronId vide → throw sans appeler l'API", async () => {
@@ -326,7 +326,7 @@ describe("deletePatron", () => {
   });
 });
 
-// ─── 5. Helpers de lecture ────────────────────────────────────────────────────
+// ─── 5. Helpers de lecture ───────────────────────────────────────────────────
 
 describe("getPatronById / getPatronColor / getPatronNom / patronExists", () => {
   async function renderWithPatrons() {
