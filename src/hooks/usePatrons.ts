@@ -33,7 +33,12 @@ export function usePatrons(triggerAlert?: (msg: string) => void): UsePatronsRetu
       setLoading(true);
 
       const user = await getCurrentUserOrNull();
-      if (!user) throw new Error("Utilisateur non connecté");
+      if (!user) {
+        // Pas d'utilisateur connecté (écran login / chargement initial) :
+        // état attendu, pas une erreur → liste vide, sans throw ni alerte.
+        setPatrons([]);
+        return [];
+      }
 
       const data = await patronsApi.fetchPatrons(user.id);
 
