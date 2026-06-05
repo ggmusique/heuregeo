@@ -13,6 +13,9 @@ dotenv.config({ path: ".env" });
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:5173";
 const IS_CI = !!process.env.CI;
+// Une URL externe (ex: preview Vercel) est fournie => on ne demarre pas de
+// serveur local. Sinon, Playwright build + sert l'app lui-meme (local ET CI).
+const HAS_EXTERNAL_SERVER = !!process.env.PLAYWRIGHT_BASE_URL;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -120,18 +123,19 @@ export default defineConfig({
     },
   ],
 
-  // Serveur local (ignore en CI qui gere son propre serveur).
+  // Serveur d'application pour les tests.
   // On sert un BUILD DE PRODUCTION (vite build + vite preview) plutot que le
   // dev server : pas de compilation a la volee => le premier page.goto charge
-  // en quelques secondes au lieu de risquer le timeout de 30s (cold start
-  // Vite sur Windows). reuseExistingServer reutilise un preview deja lance.
-  // Timeout large pour laisser le build se terminer au premier lancement.
-  webServer: IS_CI
+  // en quelques secondes au lieu de risquer le timeout (cold start Vite).
+  // - Si PLAYWRIGHT_BASE_URL est fourni (preview deployee) : on ne lance rien.
+  // - Sinon : Playwright build + sert l'app, en local ET en CI.
+  // reuseExistingServer seulement hors CI (en CI on veut un serveur neuf).
+  webServer: HAS_EXTERNAL_SERVER
     ? undefined
     : {
         command: "npm run build && npm run preview -- --port 5173 --strictPort",
         url: BASE_URL,
-        reuseExistingServer: true,
+        reuseExistingServer: !IS_CI,
         timeout: 180_000,
       },
 });
