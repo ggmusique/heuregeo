@@ -195,6 +195,19 @@ export const BilanTab = ({
     return calculateWeeklyBilan({ workedHours }, perms.contract);
   }, [bilan.bilanContent?.contractSummary, bilan.bilanContent?.totalH, perms.contract]);
 
+  // Garde d'activation contrat : masque la carte "Heure payable" pour les semaines
+  // antérieures à contract_active_since (date d'activation du contrat Pro).
+  const isPreActivationWeek = useMemo(() => {
+    const activeSince = profile?.features?.contract_active_since ?? null;
+    if (!activeSince) return false;
+    if (bilan.bilanPeriodType !== "semaine") return false;
+    if (!bilan.bilanPeriodValue) return false;
+    const { finPeriode } = computePeriodDates(bilan.bilanPeriodType, String(bilan.bilanPeriodValue));
+    return finPeriode < activeSince;
+  }, [profile?.features?.contract_active_since, bilan.bilanPeriodType, bilan.bilanPeriodValue]);
+
+  const effectiveIsProContractEnabled = isProContractEnabled && !isPreActivationWeek;
+
   useEffect(() => {
     if (bilan.bilanPeriodType !== "semaine") return;
     if (!perms.contract.source.isPro) return;
@@ -378,7 +391,8 @@ export const BilanTab = ({
         periodOptions={periodOptions}
         selectedPeriodValue={String(bilan.bilanPeriodValue)}
         onSelectPeriod={(periodValue) => bilan.handleWeekChange(periodValue)}
-        isProContractEnabled={isProContractEnabled}
+        isProContractEnabled={effectiveIsProContractEnabled}
+        contractActiveSince={profile?.features?.contract_active_since ?? undefined}
         contractMetrics={contractMetrics}
         bilanContent={bilan.bilanContent}
         bilanPeriodType={bilan.bilanPeriodType}
