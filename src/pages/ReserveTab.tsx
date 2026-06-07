@@ -29,6 +29,22 @@ function actionToMovementType(action: ReserveAction): ReserveMovementType {
   return "manual_add";
 }
 
+/** Libellés lisibles pour les types de mouvement de la banque d'heures. */
+const MOVEMENT_TYPE_LABELS: Record<string, string> = {
+  manual_add: "Ajout manuel",
+  manual_consume: "Consommation manuelle",
+  admin_correction: "Correction admin",
+  weekly_settlement: "Régularisation hebdo",
+  carry_over: "Report",
+  overtime_to_reserve: "Heures supp. → banque",
+  deficit_cover: "Comblement du déficit",
+  planned_week: "Semaine planifiée",
+};
+
+function movementTypeLabel(type: string): string {
+  return MOVEMENT_TYPE_LABELS[type] ?? type;
+}
+
 export function ReserveTab({ patronId, patronName, quotaHours = 0, hourlyRate = 0 }: ReserveTabProps) {
   const { loading, saving, error, movements, balanceHours, addMovement, removeMovement } = useReserve(patronId);
 
@@ -342,7 +358,7 @@ export function ReserveTab({ patronId, patronName, quotaHours = 0, hourlyRate = 
                     <p className="text-[10px] text-[var(--color-text-muted)]">
                       {new Date(movement.movement_date).toLocaleString("fr-BE")}
                     </p>
-                    <p className="text-xs font-black text-[var(--color-text)]">{movement.movement_type}</p>
+                    <p className="text-xs font-black text-[var(--color-text)]">{movementTypeLabel(movement.movement_type)}</p>
                     <p className="text-xs text-[var(--color-text-muted)]">{movement.comment || "-"}</p>
                     <p className={"text-sm font-black " + (isPositive ? "text-[var(--color-accent-green)]" : "text-[var(--color-accent-amber)")}>
                       {isPositive ? "+" : ""}{formatHeures(Number(movement.delta_hours))}

@@ -1,9 +1,6 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Banknote, Check, ChevronDown, Clock3, MapPin, PiggyBank, TrendingUp } from "lucide-react";
-import {
-  computeDeficit,
-  computeMaxWithdrawal,
-} from "../../features/contracts/reserve/reserveWithdrawal";
+﻿import React, { useMemo, useState } from "react";
+import { Banknote, Check, ChevronDown, Clock3, MapPin, PiggyBank, TrendingUp } from "lucide-react";
+import { DeficitCoverBanner } from "./DeficitCoverBanner";
 import { WeatherIcon } from "../common/WeatherIcon";
 import { formatDateFR, formatEuro } from "../../utils/formatters";
 import type { FraisDivers } from "../../types/entities";
@@ -185,13 +182,6 @@ export function RapportBilanVisualV1({
   const [showAcompteDetails, setShowAcompteDetails] = useState(false);
   const [showFraisDetails, setShowFraisDetails] = useState(false);
   const [expandedSummaryKey, setExpandedSummaryKey] = useState<string | null>(null);
-  const [withdrawalHours, setWithdrawalHours] = useState(0);
-  const [withdrawing, setWithdrawing] = useState(false);
-  const [localWithdrawnHours, setLocalWithdrawnHours] = useState(0);
-
-  useEffect(() => {
-    setLocalWithdrawnHours(0);
-  }, [reserveWithdrawnHoursThisWeek]);
 
   const activePeriodOptions = periodOptions && periodOptions.length > 0 ? periodOptions : PERIOD_OPTIONS;
   const activePeriodValue = selectedPeriodValue || activePeriodOptions[0]?.value || PERIOD_OPTIONS[0].value;
@@ -261,14 +251,6 @@ export function RapportBilanVisualV1({
   const showReserveKpi = isProContractEnabled;
   const contractualExternalHours = Math.max(0, Math.min(resolvedContractMetrics.workedHours, resolvedContractMetrics.quotaHours));
   const overtimeHours = Math.max(0, resolvedContractMetrics.quotaOverflowHours);
-
-  // Calculs déficit contrat
-  const contractDeficit = computeDeficit(resolvedContractMetrics.workedHours, resolvedContractMetrics.quotaHours);
-  const deficitRestant = Math.max(0, contractDeficit - (reserveWithdrawnHoursThisWeek + localWithdrawnHours));
-  const maxWithdrawal = computeMaxWithdrawal(deficitRestant, reserveBalanceHours);
-  const showDeficitCard = isWeekView && isProContractEnabled && deficitRestant > 0;
-  const isBankEmpty = reserveBalanceHours <= 0;
-  const deficitProgressPct = Math.min(100, Math.round((resolvedContractMetrics.workedHours / Math.max(1, resolvedContractMetrics.quotaHours)) * 100));
 
   // Garde d'activation : la semaine du bilan doit être >= contract_active_since
   // On utilise la date ISO de la première mission de la période comme référence de la semaine.
@@ -405,7 +387,7 @@ export function RapportBilanVisualV1({
         </div>
       </header>
 
-      <div className="grid gap-3 lg:grid-cols-12 lg:gap-4 xl:gap-5">
+      <div className="grid gap-3 lg:grid-cols-12 lg:gap-4 xl:gap-5 lg:items-start">
         <div className="grid grid-cols-2 gap-2.5 lg:col-span-8 lg:grid-cols-4 lg:gap-3 xl:gap-4">
 
           {/* 1. Heure semaine */}
@@ -425,14 +407,14 @@ export function RapportBilanVisualV1({
           {/* 3. Heure payable — carte héro amber gold
                Double garde : contrat activé ET semaine >= date d'activation */}
           {isProContractEnabled && isContractWeekActive && resolvedContractMetrics.payableHours > 0 && (
-          <article className="group relative col-span-2 lg:col-span-1 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-amber)]/30 bg-[var(--color-surface)] p-3.5 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-amber)_10%,transparent),0_10px_30px_-16px_color-mix(in_srgb,var(--color-accent-amber)_30%,transparent)] transform-gpu [will-change:transform] transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-[var(--color-accent-amber)]/68 hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-amber)_26%,transparent),0_28px_60px_-18px_color-mix(in_srgb,var(--color-accent-amber)_62%,transparent)] active:translate-y-0.5 lg:min-h-[9rem] lg:p-4 xl:min-h-[10rem]">
+          <article className="group relative col-span-2 lg:col-span-1 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-amber)]/30 bg-[var(--color-surface)] p-3 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-amber)_10%,transparent),0_10px_30px_-16px_color-mix(in_srgb,var(--color-accent-amber)_30%,transparent)] transform-gpu [will-change:transform] transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-[var(--color-accent-amber)]/68 hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-amber)_26%,transparent),0_28px_60px_-18px_color-mix(in_srgb,var(--color-accent-amber)_62%,transparent)] active:translate-y-0.5 lg:min-h-[9rem] lg:p-4 xl:min-h-[10rem]">
             {/* Always-on amber halo — visible en permanence */}
             <div className="pointer-events-none absolute inset-0 opacity-[0.58] transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_8%_0%,color-mix(in_srgb,var(--color-accent-amber)_38%,transparent),transparent_62%)]" />
             </div>
             {/* Top accent bar lumineux */}
             <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-accent-amber)] to-transparent opacity-85" aria-hidden="true" />
-            <div className="relative mb-4 flex items-start justify-between gap-2">
+            <div className="relative mb-2 lg:mb-4 flex items-start justify-between gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-accent-amber)]/18 text-[var(--color-accent-amber)] shadow-[0_0_16px_color-mix(in_srgb,var(--color-accent-amber)_35%,transparent)]">
                 <Clock3 size={17} />
               </div>
@@ -440,7 +422,7 @@ export function RapportBilanVisualV1({
             <p className="relative text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">Heure payable</p>
             <p
               aria-label={`Heure payable ${Math.round(resolvedContractMetrics.payableHours * 10) / 10}h`}
-              className="relative mt-1 text-3xl font-black leading-none text-[var(--color-text)] [text-shadow:0_0_28px_color-mix(in_srgb,var(--color-accent-amber)_52%,transparent)] motion-safe:animate-[pulse_6s_ease-in-out_infinite] lg:text-[2.2rem]"
+              className="relative mt-1 text-2xl font-black leading-none text-[var(--color-text)] [text-shadow:0_0_28px_color-mix(in_srgb,var(--color-accent-amber)_52%,transparent)] motion-safe:animate-[pulse_6s_ease-in-out_infinite] lg:text-[2.2rem]"
             >
               {Math.round(resolvedContractMetrics.payableHours * 10) / 10}h
             </p>
@@ -465,98 +447,6 @@ export function RapportBilanVisualV1({
               compact
             />
           ))}
-
-          {/* ─── Déficit contrat ─────────────────────────────────────────── */}
-          {showDeficitCard && (
-            <article className="col-span-2 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-red)]/30 bg-[var(--color-surface)] p-3.5 transform-gpu [will-change:transform] transition-[transform,box-shadow,border-color,opacity] duration-200 ease-out animate-in fade-in zoom-in-95 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-red)_8%,transparent),0_8px_24px_-14px_color-mix(in_srgb,var(--color-accent-red)_22%,transparent)] lg:col-span-2 lg:p-4">
-              {/* Halo radial */}
-              <div
-                className="pointer-events-none absolute inset-0 opacity-[0.38] bg-[radial-gradient(ellipse_88%_60%_at_10%_0%,color-mix(in_srgb,var(--color-accent-red)_28%,transparent),transparent_65%)]"
-                aria-hidden="true"
-              />
-
-              <div className="relative flex items-start gap-2.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-accent-red)]/15 text-[var(--color-accent-red)]">
-                  <AlertTriangle size={16} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">Déficit contrat</p>
-                  <p className="mt-0.5 text-2xl font-black leading-none text-[var(--color-accent-red)]">
-                    -{Math.round(deficitRestant * 10) / 10}h
-                  </p>
-                  <p className="mt-1 text-[11px] text-[var(--color-text-dim)]">
-                    {Math.round(resolvedContractMetrics.workedHours * 10) / 10}h travaillées sur {Math.round(resolvedContractMetrics.quotaHours * 10) / 10}h contractuelles
-                  </p>
-                  {/* Barre de progression */}
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-hover)]">
-                    <div
-                      className="h-full rounded-full bg-[var(--color-accent-red)] transition-[width] duration-300"
-                      style={{ width: `${deficitProgressPct}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Banque */}
-              <div className="relative mt-3">
-                {isBankEmpty ? (
-                  <p className="text-[11px] text-[var(--color-text-muted)]">
-                    🏦 Banque vide — aucune heure disponible
-                  </p>
-                ) : (
-                  <div className="space-y-2.5">
-                    <p className="text-[11px] text-[var(--color-text-dim)]">
-                      Banque : <span className="font-black text-[var(--color-accent-green)]">{Math.round(reserveBalanceHours * 10) / 10}h disponibles</span>
-                    </p>
-
-                    {/* Slider */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">
-                        Heures à piocher
-                      </label>
-                      <input
-                        type="range"
-                        min={0}
-                        max={maxWithdrawal}
-                        step={0.25}
-                        value={withdrawalHours}
-                        onChange={(e) => setWithdrawalHours(Number(e.target.value))}
-                        className="w-full accent-[var(--color-accent-red)]"
-                        aria-label="Heures à piocher dans la banque"
-                      />
-                      <div className="flex justify-between text-[10px] text-[var(--color-text-dim)]">
-                        <span>0h</span>
-                        <span className="font-black">{withdrawalHours > 0 ? `${Math.round(withdrawalHours * 10) / 10}h` : "—"}</span>
-                        <span>{Math.round(maxWithdrawal * 10) / 10}h</span>
-                      </div>
-                    </div>
-
-                    {/* Bouton combler */}
-                    {onWithdrawFromReserve && (
-                      <button
-                        type="button"
-                        disabled={withdrawalHours <= 0 || withdrawing || !onWithdrawFromReserve}
-                        onClick={async () => {
-                          if (withdrawalHours <= 0 || withdrawing) return;
-                          setWithdrawing(true);
-                          try {
-                            await onWithdrawFromReserve(withdrawalHours);
-                            setLocalWithdrawnHours((prev) => prev + withdrawalHours);
-                            setWithdrawalHours(0);
-                          } finally {
-                            setWithdrawing(false);
-                          }
-                        }}
-                        className="w-full rounded-[var(--radius-pill)] border border-[var(--color-accent-red)]/45 bg-[var(--color-accent-red)]/12 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--color-accent-red)] transition-opacity disabled:opacity-40"
-                      >
-                        {withdrawing ? "En cours..." : `Combler ${Math.round(withdrawalHours * 10) / 10}h`}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </article>
-          )}
         </div>
 
         <section className="group relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-primary)] bg-[var(--color-surface)] p-3.5 shadow-modal lg:col-span-4 lg:p-4">
@@ -588,6 +478,20 @@ export function RapportBilanVisualV1({
                 </>
               )}
             </div>
+
+            {/* Comblement du déficit contrat depuis la banque — tout-ou-rien, masqué si semaine payée */}
+            {isWeekView && isProContractEnabled && (
+              <DeficitCoverBanner
+                periodLabel={displayTitle}
+                workedHours={resolvedContractMetrics.workedHours}
+                quotaHours={resolvedContractMetrics.quotaHours}
+                balanceHours={reserveBalanceHours}
+                alreadyWithdrawnHours={reserveWithdrawnHoursThisWeek}
+                isPaid={bilanPaye}
+                isViewer={isViewer}
+                onCover={onWithdrawFromReserve}
+              />
+            )}
 
             {showReserveKpi && (
               <div className="rounded-[var(--radius-lg)] border border-[var(--color-accent-green)]/35 bg-[var(--color-accent-green)]/8 p-3">
@@ -996,7 +900,7 @@ function PremiumKpi({
     <article
       className={
         "group relative overflow-hidden rounded-[var(--radius-xl)] border bg-[var(--color-surface)] transform-gpu [will-change:transform] transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 " +
-        (compact ? "p-3 lg:min-h-[7.2rem] lg:p-3.5" : "p-4 lg:min-h-[11rem] lg:p-5 xl:min-h-[12rem]") +
+        (compact ? "p-2.5 lg:min-h-[7.2rem] lg:p-3.5" : "p-4 lg:min-h-[11rem] lg:p-5 xl:min-h-[12rem]") +
         " " +
         cfg.borderCls +
         " " +
@@ -1018,8 +922,8 @@ function PremiumKpi({
       {/* Icône avec glow */}
       <div
         className={
-          "relative mb-3 flex items-center justify-center rounded-[var(--radius-lg)] transition-[transform,background-color,box-shadow] duration-300 group-hover:scale-110 " +
-          (compact ? "h-8 w-8" : "h-10 w-10") +
+          "relative mb-2 lg:mb-3 flex items-center justify-center rounded-[var(--radius-lg)] transition-[transform,background-color,box-shadow] duration-300 group-hover:scale-110 " +
+          (compact ? "h-7 w-7 lg:h-8 lg:w-8" : "h-10 w-10") +
           " " +
           cfg.iconCls
         }
@@ -1030,7 +934,7 @@ function PremiumKpi({
       <p
         className={
           "relative mt-1 font-black leading-none text-[var(--color-text)] motion-safe:animate-[pulse_7.5s_ease-in-out_infinite] " +
-          (compact ? "text-xl lg:text-2xl" : "text-3xl lg:text-[2.2rem] xl:text-[2.5rem]") +
+          (compact ? "text-lg lg:text-2xl" : "text-3xl lg:text-[2.2rem] xl:text-[2.5rem]") +
           " " +
           cfg.valueCls
         }

@@ -18,7 +18,7 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION, onO
   return (
     <header
       className={
-        "relative px-4 pt-4 pb-10 sm:p-6 sm:pb-14 rounded-b-[60px] overflow-hidden shadow-modal border-b border-[var(--color-border-primary)]"
+        "relative px-4 pt-[calc(env(safe-area-inset-top)_+_1rem)] pb-10 sm:px-6 sm:pt-[calc(env(safe-area-inset-top)_+_1.5rem)] sm:pb-14 rounded-b-[60px] overflow-hidden shadow-modal border-b border-[var(--color-border-primary)]"
       }
     >
       <div
@@ -27,7 +27,7 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION, onO
         }
       />
       <div className="relative z-10 text-center">
-        <div className="absolute right-4 top-4 sm:right-6 sm:top-6 z-20 flex items-center gap-2">
+        <div className="absolute right-4 top-[calc(env(safe-area-inset-top)_+_0.5rem)] sm:right-6 sm:top-[calc(env(safe-area-inset-top)_+_1rem)] z-20 flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
