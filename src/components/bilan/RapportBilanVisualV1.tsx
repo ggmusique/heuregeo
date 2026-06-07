@@ -407,14 +407,14 @@ export function RapportBilanVisualV1({
           {/* 3. Heure payable — carte héro amber gold
                Double garde : contrat activé ET semaine >= date d'activation */}
           {isProContractEnabled && isContractWeekActive && resolvedContractMetrics.payableHours > 0 && (
-          <article className="group relative col-span-2 lg:col-span-1 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-amber)]/30 bg-[var(--color-surface)] p-3.5 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-amber)_10%,transparent),0_10px_30px_-16px_color-mix(in_srgb,var(--color-accent-amber)_30%,transparent)] transform-gpu [will-change:transform] transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-[var(--color-accent-amber)]/68 hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-amber)_26%,transparent),0_28px_60px_-18px_color-mix(in_srgb,var(--color-accent-amber)_62%,transparent)] active:translate-y-0.5 lg:min-h-[9rem] lg:p-4 xl:min-h-[10rem]">
+          <article className="group relative col-span-2 lg:col-span-1 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-amber)]/30 bg-[var(--color-surface)] p-3 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-amber)_10%,transparent),0_10px_30px_-16px_color-mix(in_srgb,var(--color-accent-amber)_30%,transparent)] transform-gpu [will-change:transform] transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 hover:border-[var(--color-accent-amber)]/68 hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-amber)_26%,transparent),0_28px_60px_-18px_color-mix(in_srgb,var(--color-accent-amber)_62%,transparent)] active:translate-y-0.5 lg:min-h-[9rem] lg:p-4 xl:min-h-[10rem]">
             {/* Always-on amber halo — visible en permanence */}
             <div className="pointer-events-none absolute inset-0 opacity-[0.58] transition-opacity duration-300 group-hover:opacity-100" aria-hidden="true">
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_65%_at_8%_0%,color-mix(in_srgb,var(--color-accent-amber)_38%,transparent),transparent_62%)]" />
             </div>
             {/* Top accent bar lumineux */}
             <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-accent-amber)] to-transparent opacity-85" aria-hidden="true" />
-            <div className="relative mb-4 flex items-start justify-between gap-2">
+            <div className="relative mb-2 lg:mb-4 flex items-start justify-between gap-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-accent-amber)]/18 text-[var(--color-accent-amber)] shadow-[0_0_16px_color-mix(in_srgb,var(--color-accent-amber)_35%,transparent)]">
                 <Clock3 size={17} />
               </div>
@@ -422,7 +422,7 @@ export function RapportBilanVisualV1({
             <p className="relative text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">Heure payable</p>
             <p
               aria-label={`Heure payable ${Math.round(resolvedContractMetrics.payableHours * 10) / 10}h`}
-              className="relative mt-1 text-3xl font-black leading-none text-[var(--color-text)] [text-shadow:0_0_28px_color-mix(in_srgb,var(--color-accent-amber)_52%,transparent)] motion-safe:animate-[pulse_6s_ease-in-out_infinite] lg:text-[2.2rem]"
+              className="relative mt-1 text-2xl font-black leading-none text-[var(--color-text)] [text-shadow:0_0_28px_color-mix(in_srgb,var(--color-accent-amber)_52%,transparent)] motion-safe:animate-[pulse_6s_ease-in-out_infinite] lg:text-[2.2rem]"
             >
               {Math.round(resolvedContractMetrics.payableHours * 10) / 10}h
             </p>
@@ -900,7 +900,7 @@ function PremiumKpi({
     <article
       className={
         "group relative overflow-hidden rounded-[var(--radius-xl)] border bg-[var(--color-surface)] transform-gpu [will-change:transform] transition-[transform,box-shadow,border-color] duration-300 ease-out hover:-translate-y-1 " +
-        (compact ? "p-3 lg:min-h-[7.2rem] lg:p-3.5" : "p-4 lg:min-h-[11rem] lg:p-5 xl:min-h-[12rem]") +
+        (compact ? "p-2.5 lg:min-h-[7.2rem] lg:p-3.5" : "p-4 lg:min-h-[11rem] lg:p-5 xl:min-h-[12rem]") +
         " " +
         cfg.borderCls +
         " " +
@@ -922,8 +922,8 @@ function PremiumKpi({
       {/* Icône avec glow */}
       <div
         className={
-          "relative mb-3 flex items-center justify-center rounded-[var(--radius-lg)] transition-[transform,background-color,box-shadow] duration-300 group-hover:scale-110 " +
-          (compact ? "h-8 w-8" : "h-10 w-10") +
+          "relative mb-2 lg:mb-3 flex items-center justify-center rounded-[var(--radius-lg)] transition-[transform,background-color,box-shadow] duration-300 group-hover:scale-110 " +
+          (compact ? "h-7 w-7 lg:h-8 lg:w-8" : "h-10 w-10") +
           " " +
           cfg.iconCls
         }
@@ -934,7 +934,7 @@ function PremiumKpi({
       <p
         className={
           "relative mt-1 font-black leading-none text-[var(--color-text)] motion-safe:animate-[pulse_7.5s_ease-in-out_infinite] " +
-          (compact ? "text-xl lg:text-2xl" : "text-3xl lg:text-[2.2rem] xl:text-[2.5rem]") +
+          (compact ? "text-lg lg:text-2xl" : "text-3xl lg:text-[2.2rem] xl:text-[2.5rem]") +
           " " +
           cfg.valueCls
         }
