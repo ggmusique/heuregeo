@@ -434,7 +434,7 @@ export function RapportBilanVisualV1({
           )}
 
           {/* 4. Total brut */}
-          <PremiumKpi label="Total brut" value={formatEuro(totalGross)} icon={<Banknote size={18} />} tone="green" className="col-span-2 lg:col-span-1" compact />
+          <PremiumKpi label="Total brut" value={formatEuro(totalGross)} icon={<Banknote size={18} />} tone="green" className="lg:col-span-1" compact />
 
           {secondaryKpis.map((kpi) => (
             <PremiumKpi
