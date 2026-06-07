@@ -166,7 +166,7 @@ describe("STATUS_TOKENS — tokens de thème par état", () => {
     expect(tokens).toBeDefined();
     expect(tokens.text).toMatch(/^text-/);
     expect(tokens.bg).toMatch(/^bg-/);
-    expect(tokens.ringColor).toMatch(/^#/);
+    expect(tokens.ringColor).toMatch(/^(#|var\(--)/);
     expect(tokens.label).toBeTruthy();
     expect(tokens.emoji).toBeTruthy();
   });

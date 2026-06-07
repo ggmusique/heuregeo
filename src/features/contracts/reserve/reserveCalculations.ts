@@ -24,16 +24,17 @@ export function computeWeeklySettlementDelta(input: ReserveSyncWeeklyInput): num
   const workedHours = Math.max(0, sanitizeHours(input.workedHours));
   const quotaHours = Math.max(0, sanitizeHours(input.quotaHours));
 
-  const missingToQuota = Math.max(0, quotaHours - workedHours);
+  // Seul le surplus (heures au-dessus du quota) peut alimenter la reserve.
+  // Une semaine sous le quota ne banque rien (delta = 0).
   const overflowHours = Math.max(0, workedHours - quotaHours);
 
   if (input.overflowRule === "to_reserve") {
     const splitPct = clampPct(input.surplusSplitPct);
     const surplusBanque = overflowHours * (1 - splitPct / 100);
-    return sanitizeHours(missingToQuota + surplusBanque);
+    return sanitizeHours(surplusBanque);
   }
 
-  return sanitizeHours(missingToQuota);
+  return 0;
 }
 
 export function buildWeeklySettlementKey(patronId: string | null, weekValue: string): string {
