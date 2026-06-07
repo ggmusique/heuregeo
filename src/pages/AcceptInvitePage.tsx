@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "../services/supabase";
 import { verifyInviteToken, activatePatronAccess } from "../services/api/patronAccessApi";
+import { Button } from "../components/ui/Button";
 
 type InviteInfo = {
   invitation_id: string;
@@ -146,10 +147,6 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
     "text-sm font-medium text-[var(--color-text)] " +
     "focus:outline-none focus:border-[var(--color-border-primary)] focus:ring-1 focus:ring-[var(--color-border-primary)] " +
     "transition-colors placeholder:text-[var(--color-text-dim)]";
-  const btnPrimaryCls =
-    "w-full py-3 px-6 rounded-xl bg-gradient-to-r from-[var(--color-accent-violet)] to-[var(--color-primary)] " +
-    "text-white font-bold text-sm tracking-wide hover:opacity-90 transition-opacity " +
-    "disabled:opacity-50 disabled:cursor-not-allowed";
 
 
   if (state === "loading" || state === "activating") {
@@ -195,9 +192,9 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
             <div className="text-4xl">❌</div>
             <h1 className="text-xl font-black tracking-tight">Erreur</h1>
             <p className="text-[var(--color-text-muted)] text-sm">{errorMsg}</p>
-            <button onClick={handleGoToApp} className={btnPrimaryCls}>
+            <Button variant="primary" fullWidth onClick={handleGoToApp}>
               Retour à l&apos;accueil
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -218,9 +215,9 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
                 Vous êtes connecté. Cliquez sur le bouton ci-dessous pour activer votre accès patron.
               </p>
             )}
-            <button onClick={handleConfirmActivate} className={btnPrimaryCls}>
-              Activer mon accès &rarr;
-            </button>
+            <Button variant="primary" fullWidth onClick={handleConfirmActivate}>
+              Activer mon accès →
+            </Button>
           </div>
         </div>
       </div>
@@ -238,9 +235,9 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
             <p className="text-[var(--color-text-muted)] text-sm">
               Votre accès a été activé avec succès. Vous pouvez maintenant consulter vos heures et bilans.
             </p>
-            <button onClick={handleGoToApp} className={btnPrimaryCls}>
+            <Button variant="primary" fullWidth onClick={handleGoToApp}>
               Accéder à l&apos;application →
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -272,19 +269,16 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
         {!forcedAuthMode && (
         <div className="flex gap-1 mb-5 bg-[var(--color-surface-2)] rounded-xl p-1">
           {(["signup", "login"] as const).map((m) => (
-            <button
+            <Button
               key={m}
               type="button"
+              variant={authMode === m ? "primary" : "ghost"}
+              size="sm"
+              className="flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg"
               onClick={() => { setAuthMode(m); setAuthMsg(""); }}
-              className={
-                "flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all " +
-                (authMode === m
-                  ? "bg-[var(--color-accent-violet)] text-white shadow"
-                  : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]")
-              }
             >
               {m === "signup" ? "Créer un compte" : "Se connecter"}
-            </button>
+            </Button>
           ))}
         </div>
         )}
@@ -332,13 +326,9 @@ export function AcceptInvitePage({ token }: AcceptInvitePageProps) {
             </p>
           )}
 
-          <button type="submit" disabled={authLoading || !email || !password} className={btnPrimaryCls}>
-            {authLoading
-              ? "…"
-              : authMode === "signup"
-              ? "Créer mon compte et activer"
-              : "Me connecter et activer"}
-          </button>
+          <Button type="submit" variant="primary" fullWidth loading={authLoading || !email || !password} disabled={!email || !password}>
+            {authMode === "signup" ? "Créer mon compte et activer" : "Me connecter et activer"}
+          </Button>
         </form>
       </div>
     </div>

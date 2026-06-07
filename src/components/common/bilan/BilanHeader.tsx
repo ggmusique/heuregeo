@@ -1,6 +1,7 @@
 import React from "react";
 import { formatEuro, formatHeures } from "../../../utils/formatters";
 import { BilanContent } from "../../../hooks/useBilan";
+import { Button } from "../../ui/Button";
 
 interface BilanHeaderProps {
   bilanContent: BilanContent;
@@ -91,44 +92,29 @@ export const BilanHeader = ({
             PAYÉ ✓
           </div>
         ) : (
-          <button
-            onClick={onMarquerPaye}
-            className="bg-[var(--color-accent-green)]/15 hover:bg-[var(--color-accent-green)]/25 px-6 py-3 rounded-2xl font-black uppercase text-sm text-[var(--color-accent-green)] border border-[var(--color-accent-green)]/30 active:scale-95 transition-[background,transform] duration-150"
-          >
+          <Button variant="success" size="md" onClick={onMarquerPaye}>
             MARQUER COMME PAYÉ
-          </button>
+          </Button>
         )}
 
         <div className="flex flex-wrap gap-3 justify-center md:justify-end">
 
-          <button
-            onClick={onExportExcel}
-            className="px-5 py-2.5 bg-[var(--color-accent-green)]/15 hover:bg-[var(--color-accent-green)]/25 rounded-xl text-sm font-black text-[var(--color-accent-green)] amount-safe border border-[var(--color-accent-green)]/30 transition-[background] duration-150 active:scale-95"
-          >
+          <Button variant="success" size="sm" onClick={onExportExcel}>
             Excel
-          </button>
+          </Button>
 
-          <button
-            onClick={onExportPDF}
-            className="px-5 py-2.5 bg-[var(--color-accent-red)]/15 hover:bg-[var(--color-accent-red)]/25 rounded-xl text-sm font-black text-[var(--color-accent-red)] border border-[var(--color-accent-red)]/30 transition-[background] duration-150 active:scale-95"
-          >
+          <Button variant="danger" size="sm" onClick={onExportPDF}>
             PDF
-          </button>
+          </Button>
 
-          <button
-            onClick={onExportCSV}
-            className="px-5 py-2.5 bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-hover)] rounded-xl text-sm font-black text-[var(--color-text-muted)] hover:text-[var(--color-text)] border border-[var(--color-border)] transition-[background,color] duration-150 active:scale-95"
-          >
+          <Button variant="ghost" size="sm" onClick={onExportCSV}>
             CSV Missions
-          </button>
+          </Button>
 
           {hasFrais && bilanPeriodType === "semaine" && (
-            <button
-              onClick={onExportCSVWithFrais}
-              className="px-5 py-2.5 bg-[var(--color-accent-cyan)]/15 hover:bg-[var(--color-accent-cyan)]/25 rounded-xl text-sm font-black text-[var(--color-accent-cyan)] amount-safe border border-[var(--color-accent-cyan)]/30 transition-[background] duration-150 active:scale-95"
-            >
+            <Button variant="secondary" size="sm" onClick={onExportCSVWithFrais}>
               CSV + Frais
-            </button>
+            </Button>
           )}
         </div>
       </div>

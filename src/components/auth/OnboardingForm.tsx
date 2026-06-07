@@ -99,7 +99,7 @@ export const OnboardingForm = ({ onSave, saving }: Props) => {
           <button
             onClick={handleSubmit}
             disabled={!isValid || saving}
-            className={`w-full py-4 rounded-2xl font-black uppercase text-[12px] tracking-wider transition-all mt-2 ${
+            className={`w-full py-4 rounded-2xl font-black uppercase text-[12px] tracking-wider transition-[opacity,transform,background-color,color] duration-150 mt-2 ${
               isValid && !saving
                 ? 'bg-[var(--color-accent-violet)] text-white active:scale-95'
                 : 'bg-[var(--color-surface-offset)] text-[var(--color-text-dim)] cursor-not-allowed'

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { getWeekNumber } from "../utils/dateUtils";
 import { AgendaWeekView } from "../components/agenda/AgendaWeekView";
 import { AgendaEvent } from "../types/entities";
+import { Button } from "../components/ui/Button";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -221,54 +222,39 @@ export function AgendaTab({
 
         {/* ── Barre de navigation ──────────────────────────────────────────── */}
         <div className={`flex items-center justify-between px-3 py-2.5 rounded-[24px] border-2 ${card}`}>
-          <button
-            onClick={handlePrev}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-xl font-black transition-all bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-offset)]"
-          >
+          <Button variant="ghost" size="sm" onClick={handlePrev} className="w-9 h-9 p-0">
             ‹
-          </button>
+          </Button>
 
           <div className="flex flex-col items-center gap-1.5">
             <p className={`text-[14px] font-black uppercase tracking-wider ${text}`}>{navTitle}</p>
 
             {/* Toggle Mois / Semaine */}
             <div className="flex rounded-xl overflow-hidden border border-[var(--color-border)]">
-              <button
+              <Button
+                variant={view === "month" ? "primary" : "ghost"}
+                size="sm"
                 onClick={() => setView("month")}
-                className={`px-3 py-1 text-[9px] font-black uppercase transition-all ${
-                  view === "month"
-                    ? "bg-[var(--color-accent-violet)] text-white"
-                    : "text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
-                }`}
               >
                 Mois
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={view === "week" ? "primary" : "ghost"}
+                size="sm"
                 onClick={() => setView("week")}
-                className={`px-3 py-1 text-[9px] font-black uppercase transition-all ${
-                  view === "week"
-                    ? "bg-[var(--color-accent-violet)] text-white"
-                    : "text-[var(--color-text-dim)] hover:text-[var(--color-text)]"
-                }`}
               >
                 Semaine
-              </button>
+              </Button>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={onGoToToday}
-              className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase transition-all bg-[var(--color-accent-green)]/20 text-[var(--color-accent-green)] border border-[var(--color-accent-green)]/30 hover:bg-[var(--color-accent-green)]/30"
-            >
+            <Button variant="secondary" size="sm" onClick={onGoToToday} className="px-2.5 py-1">
               Auj.
-            </button>
-            <button
-              onClick={handleNext}
-              className="w-9 h-9 rounded-full flex items-center justify-center text-xl font-black transition-all bg-[var(--color-surface-hover)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-offset)]"
-            >
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleNext} className="w-9 h-9 p-0">
               ›
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -442,12 +428,9 @@ export function AgendaTab({
                   weekday: "long", day: "numeric", month: "long",
                 })}
               </p>
-              <button
-                onClick={() => onOpenForDate?.(selectedIso ?? "")}
-                className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 text-xl flex items-center justify-center hover:bg-emerald-500/30 transition-all font-black"
-              >
+              <Button variant="success" size="sm" onClick={() => onOpenForDate?.(selectedIso ?? "")} className="w-8 h-8 p-0">
                 +
-              </button>
+              </Button>
             </div>
 
             {loading && <p className={`text-[12px] ${muted}`}>Chargement…</p>}
@@ -506,12 +489,9 @@ export function AgendaTab({
 
         {/* Bouton créer (vue mois, aucun jour sélectionné) */}
         {view === "month" && !selectedDay && (
-          <button
-            onClick={() => onOpenForDate?.(todayIso)}
-            className="w-full py-4 rounded-2xl font-black uppercase text-[12px] tracking-wider bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-lg active:scale-95 transition-all"
-          >
+          <Button variant="success" fullWidth size="lg" onClick={() => onOpenForDate?.(todayIso)}>
             + Nouvel événement
-          </button>
+          </Button>
         )}
 
       </div>

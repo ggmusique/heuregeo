@@ -1,0 +1,4785 @@
+﻿-- =============================================
+-- Migration : ajout du rÃ´le viewer dans profiles
+-- =============================================
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'owner',
+  ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS patron_id uuid REFERENCES public.patrons(id) ON DELETE SET NULL;
+
+CREATE POLICY "Viewer peut lire les missions de son patron"
+  ON public.missions FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role = 'viewer'
+        AND p.patron_id = missions.patron_id
+    )
+  );
+
+CREATE POLICY "Viewer peut lire les frais divers de son patron"
+  ON public.frais_divers FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role = 'viewer'
+        AND p.patron_id = frais_divers.patron_id
+    )
+  );
+
+CREATE POLICY "Viewer peut lire les frais km de son patron"
+  ON public.frais_km FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role = 'viewer'
+        AND p.patron_id = frais_km.patron_id
+    )
+  );
+
+CREATE POLICY "Viewer peut lire les acomptes de son patron"
+  ON public.acomptes FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role = 'viewer'
+        AND p.patron_id = acomptes.patron_id
+    )
+  );
+
+CREATE POLICY "Viewer peut lire les bilans de son patron"
+  ON public.bilans_status_v2 FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role = 'viewer'
+        AND p.patron_id = bilans_status_v2.patron_id
+    )
+  );
+-- Migration: Ajouter user_id aux tables patrons et clients
+-- Date: 2026-02-21
+-- âš ï¸ Ã€ exÃ©cuter dans Supabase SQL Editor APRÃˆS avoir mergÃ© la PR
+
+-- 1. Backup de sÃ©curitÃ© (dÃ©jÃ  fait manuellement: patrons_backup_20260221)
+
+-- 2. Ajouter user_id Ã  patrons
+ALTER TABLE patrons ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
+
+-- 3. Ajouter user_id Ã  clients  
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
+
+-- 4. Mettre Ã  jour les donnÃ©es existantes (remplacer 'VOTRE_USER_ID' par votre vrai user id)
+-- UPDATE patrons SET user_id = 'VOTRE_USER_ID' WHERE user_id IS NULL;
+-- UPDATE clients SET user_id = 'VOTRE_USER_ID' WHERE user_id IS NULL;
+
+-- 5. Supprimer toutes les politiques RLS existantes sur patrons
+DROP POLICY IF EXISTS "Ajout public" ON patrons;
+DROP POLICY IF EXISTS "Lecture publique" ON patrons;
+DROP POLICY IF EXISTS "Update public" ON patrons;
+DROP POLICY IF EXISTS "Suppression public" ON patrons;
+
+-- 6. Nouvelles politiques RLS pour patrons
+CREATE POLICY "patrons_select_own" ON patrons FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "patrons_insert_own" ON patrons FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "patrons_update_own" ON patrons FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "patrons_delete_own" ON patrons FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- 7. Activer RLS sur patrons si pas encore fait
+ALTER TABLE patrons ENABLE ROW LEVEL SECURITY;
+
+-- 8. Supprimer toutes les politiques RLS existantes sur clients
+DROP POLICY IF EXISTS "Ajout public" ON clients;
+DROP POLICY IF EXISTS "Lecture publique" ON clients;
+DROP POLICY IF EXISTS "Update public" ON clients;
+DROP POLICY IF EXISTS "Suppression public" ON clients;
+
+-- 9. Nouvelles politiques RLS pour clients
+CREATE POLICY "clients_select_own" ON clients FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "clients_insert_own" ON clients FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "clients_update_own" ON clients FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "clients_delete_own" ON clients FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- 10. Activer RLS sur clients si pas encore fait
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+-- =============================================
+-- Migration: UNIQUE constraint on bilans_status_v2
+-- Prevents duplicate rows for (periode_type, periode_value, patron_id)
+-- which caused payment status read bugs.
+-- =============================================
+
+-- Remove any existing duplicates before adding the constraint:
+-- For each group (periode_type, periode_value, patron_id), keep the
+-- most recent row (created_at DESC) and delete the others.
+DELETE FROM public.bilans_status_v2
+WHERE id NOT IN (
+  SELECT DISTINCT ON (periode_type, periode_value, patron_id) id
+  FROM public.bilans_status_v2
+  ORDER BY periode_type, periode_value, patron_id, created_at DESC
+);
+
+-- Add UNIQUE constraint
+ALTER TABLE public.bilans_status_v2
+  ADD CONSTRAINT bilans_status_v2_periode_patron_unique
+  UNIQUE (periode_type, periode_value, patron_id);
+-- Migration: create frais_km table
+-- Purpose: store per-mission km expenses computed by "Recalculer KM" button
+-- Unique key: mission_id (upsert on conflict)
+
+CREATE TABLE IF NOT EXISTS frais_km (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  patron_id      uuid,
+  mission_id     uuid NOT NULL UNIQUE,
+  date_frais     date NOT NULL,
+  country_code   text NOT NULL DEFAULT 'FR',
+  distance_km    numeric(10, 4) NOT NULL,
+  rate_per_km    numeric(10, 4) NOT NULL,
+  amount         numeric(10, 4) NOT NULL,
+  source         text NOT NULL DEFAULT 'auto',
+  created_at     timestamptz NOT NULL DEFAULT now(),
+  updated_at     timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE frais_km ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "frais_km_select_own" ON frais_km;
+CREATE POLICY "frais_km_select_own" ON frais_km
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "frais_km_insert_own" ON frais_km;
+CREATE POLICY "frais_km_insert_own" ON frais_km
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "frais_km_update_own" ON frais_km;
+CREATE POLICY "frais_km_update_own" ON frais_km
+  FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "frais_km_delete_own" ON frais_km;
+CREATE POLICY "frais_km_delete_own" ON frais_km
+  FOR DELETE USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS frais_km_user_date_idx ON frais_km (user_id, date_frais);
+-- Ticket 7: migration douce date_iso -> date_mission
+-- 1) Ajouter la colonne date (type date natif)
+alter table missions add column if not exists date_mission date;
+
+-- 2) Backfill depuis date_iso pour les lignes existantes
+update missions
+  set date_mission = date_iso::date
+  where date_mission is null
+    and date_iso is not null;
+
+-- 3) Index composite pour les filtres par pÃ©riode
+create index if not exists missions_user_date_mission_idx
+  on missions(user_id, date_mission);
+-- =============================================
+-- FIX: bilans_status_v2 integrity
+-- Objectives:
+--   A) Detect & remove duplicate rows
+--   B) Ensure UNIQUE constraint (idempotent)
+--   C) Fix paye/reste_a_percevoir coherence
+--   D) Fix RLS policies (patron-owner based)
+--   E) Create acompte_allocations table (IF NOT EXISTS)
+--   F) Create/replace apply_acompte function
+-- =============================================
+
+-- =============================================
+-- A) DETECT DUPLICATES (diagnostic query)
+-- =============================================
+-- Run this first to check for duplicates:
+--
+-- SELECT periode_type, periode_value, patron_id, COUNT(*)
+-- FROM public.bilans_status_v2
+-- GROUP BY 1,2,3 HAVING COUNT(*) > 1;
+
+-- =============================================
+-- B) DEDUPLICATE + UNIQUE CONSTRAINT
+-- =============================================
+
+-- Keep only the most recently updated row per (periode_type, periode_value, patron_id).
+-- Uses COALESCE to fall back to created_at then id when updated_at is absent.
+DELETE FROM public.bilans_status_v2
+WHERE id NOT IN (
+  SELECT DISTINCT ON (periode_type, periode_value, patron_id) id
+  FROM public.bilans_status_v2
+  ORDER BY
+    periode_type,
+    periode_value,
+    patron_id,
+    COALESCE(updated_at, created_at, '1970-01-01'::timestamptz) DESC,
+    id DESC
+);
+
+-- Add UNIQUE constraint only if it does not already exist.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'bilans_status_v2_periode_patron_unique'
+      AND conrelid = 'public.bilans_status_v2'::regclass
+  ) THEN
+    ALTER TABLE public.bilans_status_v2
+      ADD CONSTRAINT bilans_status_v2_periode_patron_unique
+      UNIQUE (periode_type, periode_value, patron_id);
+  END IF;
+END $$;
+
+-- =============================================
+-- C) COHERENCE FIX
+-- =============================================
+
+-- If paye = true the remaining amount must be 0.
+UPDATE public.bilans_status_v2
+SET reste_a_percevoir = 0
+WHERE paye = true
+  AND (reste_a_percevoir IS NULL OR reste_a_percevoir <> 0);
+
+-- If reste_a_percevoir = 0 AND ca_brut_periode > 0 AND acompte_consomme >= ca_brut_periode,
+-- the row should logically be marked paid (normalize stale data).
+UPDATE public.bilans_status_v2
+SET paye = true,
+    date_paiement = COALESCE(date_paiement, now())
+WHERE paye IS DISTINCT FROM true
+  AND reste_a_percevoir = 0
+  AND ca_brut_periode > 0
+  AND acompte_consomme >= ca_brut_periode;
+
+-- =============================================
+-- D) RLS POLICIES
+-- =============================================
+
+-- Ensure RLS is enabled.
+ALTER TABLE public.bilans_status_v2 ENABLE ROW LEVEL SECURITY;
+
+-- Drop old policies (by common names used in the project) to avoid conflicts.
+DO $$
+DECLARE
+  pol_name text;
+BEGIN
+  FOR pol_name IN
+    SELECT policyname FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'bilans_status_v2'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.bilans_status_v2', pol_name);
+  END LOOP;
+END $$;
+
+-- SELECT: any authenticated user can read rows whose patron they own
+--         (or whose user_id matches theirs â€“ covers the global patron case).
+CREATE POLICY "bilans_status_v2_select"
+  ON public.bilans_status_v2
+  FOR SELECT
+  TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR patron_id IN (
+      SELECT id FROM public.patrons WHERE user_id = auth.uid()
+    )
+  );
+
+-- INSERT: authenticated user inserts their own rows for patrons they own.
+CREATE POLICY "bilans_status_v2_insert"
+  ON public.bilans_status_v2
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    user_id = auth.uid()
+    AND (
+      patron_id IN (SELECT id FROM public.patrons WHERE user_id = auth.uid())
+    )
+  );
+
+-- UPDATE: allow when the row belongs to a patron the current user owns,
+--         regardless of which user originally wrote the row (avoids blocking
+--         upsert conflict-resolution when user_id on the row differs).
+CREATE POLICY "bilans_status_v2_update"
+  ON public.bilans_status_v2
+  FOR UPDATE
+  TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR patron_id IN (
+      SELECT id FROM public.patrons WHERE user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR patron_id IN (
+      SELECT id FROM public.patrons WHERE user_id = auth.uid()
+    )
+  );
+
+-- DELETE: same as UPDATE.
+CREATE POLICY "bilans_status_v2_delete"
+  ON public.bilans_status_v2
+  FOR DELETE
+  TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR patron_id IN (
+      SELECT id FROM public.patrons WHERE user_id = auth.uid()
+    )
+  );
+
+-- =============================================
+-- E) acompte_allocations TABLE
+-- =============================================
+
+CREATE TABLE IF NOT EXISTS public.acompte_allocations (
+  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  acompte_id       uuid        NOT NULL REFERENCES public.acomptes(id) ON DELETE CASCADE,
+  bilan_id bigint REFERENCES public.bilans_status_v2(id) ON DELETE SET NULL,
+  montant_applique numeric(12, 2) NOT NULL DEFAULT 0,
+  applied_at       timestamptz NOT NULL DEFAULT now()
+);
+
+-- Index for fast lookup by acompte.
+CREATE INDEX IF NOT EXISTS acompte_allocations_acompte_id_idx
+  ON public.acompte_allocations (acompte_id);
+
+-- RLS for acompte_allocations (read/write tied to acompte ownership).
+ALTER TABLE public.acompte_allocations ENABLE ROW LEVEL SECURITY;
+
+DO $$
+DECLARE pol_name text;
+BEGIN
+  FOR pol_name IN
+    SELECT policyname FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'acompte_allocations'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.acompte_allocations', pol_name);
+  END LOOP;
+END $$;
+
+CREATE POLICY "acompte_allocations_select"
+  ON public.acompte_allocations
+  FOR SELECT TO authenticated
+  USING (
+    acompte_id IN (SELECT id FROM public.acomptes WHERE user_id = auth.uid())
+    OR bilan_id IN (
+      SELECT b.id FROM public.bilans_status_v2 b
+      JOIN public.patrons p ON p.id = b.patron_id
+      WHERE p.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "acompte_allocations_insert"
+  ON public.acompte_allocations
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    acompte_id IN (SELECT id FROM public.acomptes WHERE user_id = auth.uid())
+  );
+
+CREATE POLICY "acompte_allocations_update"
+  ON public.acompte_allocations
+  FOR UPDATE TO authenticated
+  USING (
+    acompte_id IN (SELECT id FROM public.acomptes WHERE user_id = auth.uid())
+  )
+  WITH CHECK (
+    acompte_id IN (SELECT id FROM public.acomptes WHERE user_id = auth.uid())
+  );
+
+CREATE POLICY "acompte_allocations_delete"
+  ON public.acompte_allocations
+  FOR DELETE TO authenticated
+  USING (
+    acompte_id IN (SELECT id FROM public.acomptes WHERE user_id = auth.uid())
+  );
+
+-- =============================================
+-- F) apply_acompte FUNCTION
+-- =============================================
+-- Distributes an acompte across unpaid bilans_status_v2 rows,
+-- oldest first, for the same patron.
+-- SECURITY DEFINER bypasses RLS so the function can update any row.
+
+CREATE OR REPLACE FUNCTION public.apply_acompte(p_acompte_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_montant      numeric;
+  v_patron_id    uuid;
+  v_reste        numeric;
+  bilan_row      record;
+  v_ca           numeric;
+  v_consomme     numeric;
+  v_reste_du     numeric;
+  v_montant_app  numeric;
+BEGIN
+  -- Fetch the acompte details.
+  SELECT montant, patron_id
+  INTO v_montant, v_patron_id
+  FROM public.acomptes
+  WHERE id = p_acompte_id;
+
+  -- Nothing to do if the acompte doesn't exist or has no amount.
+  IF v_montant IS NULL OR v_montant <= 0 THEN
+    RETURN;
+  END IF;
+
+  v_reste := v_montant;
+
+  -- Iterate over unpaid bilans ordered from oldest to newest.
+  FOR bilan_row IN
+    SELECT id, ca_brut_periode, acompte_consomme, periode_index
+    FROM public.bilans_status_v2
+    WHERE patron_id = v_patron_id
+      AND periode_type = 'semaine'
+      AND (paye IS NULL OR paye = false)
+      AND ca_brut_periode > 0
+    ORDER BY periode_index ASC
+  LOOP
+    EXIT WHEN v_reste <= 0;
+
+    v_ca       := COALESCE(bilan_row.ca_brut_periode, 0);
+    v_consomme := COALESCE(bilan_row.acompte_consomme, 0);
+    v_reste_du := GREATEST(0, v_ca - v_consomme);
+
+    CONTINUE WHEN v_reste_du <= 0;
+
+    -- How much of this acompte applies to this bilan.
+    v_montant_app := LEAST(v_reste, v_reste_du);
+
+    IF v_reste >= v_reste_du THEN
+      -- Fully covers this bilan.
+      UPDATE public.bilans_status_v2
+      SET paye             = true,
+          date_paiement    = now(),
+          acompte_consomme = v_ca,
+          reste_a_percevoir = 0
+      WHERE id = bilan_row.id;
+    ELSE
+      -- Partially covers this bilan.
+      UPDATE public.bilans_status_v2
+      SET acompte_consomme  = v_consomme + v_reste,
+          reste_a_percevoir = v_ca - (v_consomme + v_reste)
+      WHERE id = bilan_row.id;
+    END IF;
+
+    -- Record the allocation.
+    INSERT INTO public.acompte_allocations
+      (acompte_id, bilan_id, montant_applique, applied_at)
+    VALUES
+      (p_acompte_id, bilan_row.id, v_montant_app, now());
+
+    v_reste := v_reste - v_montant_app;
+  END LOOP;
+END;
+$$;
+
+-- Grant execute to authenticated users (the function is SECURITY DEFINER,
+-- so it runs as the owner â€“ no RLS bypass by callers is needed).
+GRANT EXECUTE ON FUNCTION public.apply_acompte(uuid) TO authenticated;
+-- =============================================
+-- FIX: apply_acompte idempotency + schema alignment
+-- Objectives:
+--   A) Migrate acompte_allocations to schema expected by the UI
+--      (columns: amount, patron_id, periode_index, user_id)
+--   B) Replace apply_acompte with idempotent version that:
+--      1. Deletes existing allocations for the acompte (idempotency)
+--      2. Allocates across unpaid bilans_status_v2 oldest-first
+--      3. Never exceeds acompte.montant (safety assertion)
+-- =============================================
+
+-- =============================================
+-- A) ALTER acompte_allocations schema
+-- =============================================
+
+-- Rename montant_applique -> amount if the old column exists and amount doesn't
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'montant_applique'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'amount'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      RENAME COLUMN montant_applique TO amount;
+  END IF;
+END $$;
+
+-- Add amount column if it doesn't exist yet (fresh installs that never had montant_applique)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'amount'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN amount numeric(12, 2) NOT NULL DEFAULT 0;
+  END IF;
+END $$;
+
+-- Add patron_id column if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'patron_id'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN patron_id uuid;
+  END IF;
+END $$;
+
+-- Add periode_index column if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'periode_index'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN periode_index integer;
+  END IF;
+END $$;
+
+-- Add user_id column if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN user_id uuid;
+  END IF;
+END $$;
+
+-- Backfill patron_id and periode_index from joined tables for existing rows
+UPDATE public.acompte_allocations aa
+SET
+  patron_id    = ac.patron_id,
+  user_id      = ac.user_id,
+  periode_index = b.periode_index
+FROM public.acomptes ac
+JOIN public.bilans_status_v2 b ON b.id = aa.bilan_id
+WHERE aa.acompte_id = ac.id
+  AND aa.patron_id IS NULL;
+
+-- Index for fast patron + periode_index lookups (used by UI queries)
+CREATE INDEX IF NOT EXISTS acompte_allocations_patron_periode_idx
+  ON public.acompte_allocations (patron_id, periode_index);
+
+-- =============================================
+-- B) apply_acompte â€“ idempotent, capped version
+-- =============================================
+-- Distributes an acompte across unpaid bilans_status_v2 rows,
+-- oldest first (by periode_index ASC), for the same patron.
+--
+-- Idempotency: existing allocations for this acompte are deleted first,
+-- and acompte_consomme on any previously touched bilans is rolled back
+-- before re-allocating, so calling this function twice gives the same result.
+--
+-- Safety: raises an exception if the total allocated would exceed montant.
+--
+-- SECURITY DEFINER bypasses RLS so the function can update any row it owns.
+
+CREATE OR REPLACE FUNCTION public.apply_acompte(p_acompte_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_montant      numeric;
+  v_patron_id    uuid;
+  v_user_id      uuid;
+  v_reste        numeric;
+  bilan_row      record;
+  v_besoin       numeric;
+  v_alloue       numeric;
+  v_total_check  numeric;
+BEGIN
+  -- 1) Read the acompte
+  SELECT montant, patron_id, user_id
+  INTO v_montant, v_patron_id, v_user_id
+  FROM public.acomptes
+  WHERE id = p_acompte_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'apply_acompte: acompte % not found', p_acompte_id;
+  END IF;
+
+  IF v_montant IS NULL OR v_montant <= 0 THEN
+    RETURN;
+  END IF;
+
+  -- 2) Idempotency: roll back any previous application of this acompte.
+  --    For each bilan that was previously touched by this acompte,
+  --    add back the amount that was taken from it.
+  UPDATE public.bilans_status_v2 b
+  SET
+    acompte_consomme  = GREATEST(0, COALESCE(b.acompte_consomme, 0) - aa.amount),
+    -- Restore reste_a_percevoir: add back the previously allocated amount, capped at ca_brut_periode
+    reste_a_percevoir = LEAST(
+                          b.ca_brut_periode,
+                          COALESCE(b.reste_a_percevoir, 0) + aa.amount
+                        ),
+    paye              = false,
+    date_paiement     = NULL
+  FROM public.acompte_allocations aa
+  WHERE aa.acompte_id = p_acompte_id
+    AND aa.bilan_id   = b.id;
+
+  -- Delete stale allocations for this acompte
+  DELETE FROM public.acompte_allocations
+  WHERE acompte_id = p_acompte_id;
+
+  -- 3) Allocate across unpaid bilans, oldest first
+  v_reste := v_montant;
+
+  FOR bilan_row IN
+    SELECT id, ca_brut_periode, acompte_consomme, reste_a_percevoir, periode_index
+    FROM public.bilans_status_v2
+    WHERE patron_id   = v_patron_id
+      AND periode_type = 'semaine'
+      AND (paye IS NULL OR paye = false)
+      AND ca_brut_periode > 0
+    ORDER BY periode_index ASC
+  LOOP
+    EXIT WHEN v_reste <= 0;
+
+    v_besoin := GREATEST(0, COALESCE(bilan_row.reste_a_percevoir, bilan_row.ca_brut_periode - COALESCE(bilan_row.acompte_consomme, 0)));
+
+    CONTINUE WHEN v_besoin <= 0;
+
+    v_alloue := LEAST(v_reste, v_besoin);
+
+    IF v_alloue >= v_besoin THEN
+      -- Fully covers remaining debt on this bilan
+      UPDATE public.bilans_status_v2
+      SET acompte_consomme  = COALESCE(acompte_consomme, 0) + v_alloue,
+          reste_a_percevoir = 0,
+          paye              = true,
+          date_paiement     = now()
+      WHERE id = bilan_row.id;
+    ELSE
+      -- Partially covers
+      UPDATE public.bilans_status_v2
+      SET acompte_consomme  = COALESCE(acompte_consomme, 0) + v_alloue,
+          reste_a_percevoir = v_besoin - v_alloue
+      WHERE id = bilan_row.id;
+    END IF;
+
+    -- Record the allocation with denormalised patron_id / periode_index for fast UI queries
+    INSERT INTO public.acompte_allocations
+      (acompte_id, bilan_id, amount, patron_id, user_id, periode_index, applied_at)
+    VALUES
+      (p_acompte_id, bilan_row.id, v_alloue, v_patron_id, v_user_id, bilan_row.periode_index, now());
+
+    v_reste := v_reste - v_alloue;
+  END LOOP;
+
+  -- 4) Safety assertion: total allocated must never exceed montant
+  SELECT COALESCE(SUM(amount), 0)
+  INTO v_total_check
+  FROM public.acompte_allocations
+  WHERE acompte_id = p_acompte_id;
+
+  IF v_total_check > v_montant THEN
+    RAISE EXCEPTION 'apply_acompte: allocation % exceeds montant % for acompte %',
+      v_total_check, v_montant, p_acompte_id;
+  END IF;
+END;
+$$;
+
+-- Grant execute to authenticated users
+GRANT EXECUTE ON FUNCTION public.apply_acompte(uuid) TO authenticated;
+-- =============================================
+-- FIX: apply_acompte must allocate on real debt (reste_a_percevoir)
+-- + backward-compatible schema guards for acompte_allocations.
+--
+-- Problem:
+--   Some environments still have legacy column `montant_applique`
+--   instead of `amount`, which breaks apply_acompte at runtime.
+--
+-- This migration:
+--   1) aligns acompte_allocations schema (rename/add needed columns)
+--   2) recreates apply_acompte(uuid) with debt-based selection
+-- =============================================
+
+-- 0) Schema guard: montant_applique -> amount
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'montant_applique'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'amount'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      RENAME COLUMN montant_applique TO amount;
+  END IF;
+END $$;
+
+-- 1) Ensure expected columns exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'amount'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN amount numeric(12, 2) NOT NULL DEFAULT 0;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'patron_id'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN patron_id uuid;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'user_id'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN user_id uuid;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'acompte_allocations'
+      AND column_name = 'periode_index'
+  ) THEN
+    ALTER TABLE public.acompte_allocations
+      ADD COLUMN periode_index integer;
+  END IF;
+END $$;
+
+-- 2) Backfill denormalized fields for old rows
+-- 2) Backfill denormalized fields for old rows
+UPDATE public.acompte_allocations
+SET
+  patron_id     = COALESCE(acompte_allocations.patron_id, ac.patron_id),
+  user_id       = COALESCE(acompte_allocations.user_id, ac.user_id),
+  periode_index = COALESCE(acompte_allocations.periode_index, b.periode_index)
+FROM public.acomptes ac,
+     public.bilans_status_v2 b
+WHERE acompte_allocations.acompte_id = ac.id
+  AND b.id = acompte_allocations.bilan_id
+  AND (
+    acompte_allocations.patron_id IS NULL
+    OR acompte_allocations.user_id IS NULL
+    OR acompte_allocations.periode_index IS NULL
+  );
+
+CREATE INDEX IF NOT EXISTS acompte_allocations_patron_periode_idx
+  ON public.acompte_allocations (patron_id, periode_index);
+
+CREATE OR REPLACE FUNCTION public.apply_acompte(p_acompte_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_montant      numeric;
+  v_patron_id    uuid;
+  v_user_id      uuid;
+  v_reste        numeric;
+  bilan_row      record;
+  v_besoin       numeric;
+  v_alloue       numeric;
+  v_total_check  numeric;
+BEGIN
+  SELECT montant, patron_id, user_id
+  INTO v_montant, v_patron_id, v_user_id
+  FROM public.acomptes
+  WHERE id = p_acompte_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'apply_acompte: acompte % not found', p_acompte_id;
+  END IF;
+
+  IF v_montant IS NULL OR v_montant <= 0 THEN
+    RETURN;
+  END IF;
+
+  UPDATE public.bilans_status_v2 b
+  SET
+    acompte_consomme  = GREATEST(0, COALESCE(b.acompte_consomme, 0) - aa.amount),
+    reste_a_percevoir = LEAST(
+                          b.ca_brut_periode,
+                          COALESCE(b.reste_a_percevoir, 0) + aa.amount
+                        ),
+    paye              = false,
+    date_paiement     = NULL
+  FROM public.acompte_allocations aa
+  WHERE aa.acompte_id = p_acompte_id
+    AND aa.bilan_id   = b.id;
+
+  DELETE FROM public.acompte_allocations
+  WHERE acompte_id = p_acompte_id;
+
+  v_reste := v_montant;
+
+  FOR bilan_row IN
+    SELECT id, ca_brut_periode, acompte_consomme, reste_a_percevoir, periode_index
+    FROM public.bilans_status_v2
+    WHERE user_id       = v_user_id
+      AND patron_id     = v_patron_id
+      AND periode_type  = 'semaine'
+      AND ca_brut_periode > 0
+      AND GREATEST(
+            0,
+            COALESCE(reste_a_percevoir, ca_brut_periode - COALESCE(acompte_consomme, 0))
+          ) > 0.01
+    ORDER BY periode_index ASC
+  LOOP
+    EXIT WHEN v_reste <= 0;
+
+    v_besoin := GREATEST(
+      0,
+      COALESCE(
+        bilan_row.reste_a_percevoir,
+        bilan_row.ca_brut_periode - COALESCE(bilan_row.acompte_consomme, 0)
+      )
+    );
+
+    CONTINUE WHEN v_besoin <= 0;
+
+    v_alloue := LEAST(v_reste, v_besoin);
+
+    IF v_alloue >= v_besoin THEN
+      UPDATE public.bilans_status_v2
+      SET acompte_consomme  = COALESCE(acompte_consomme, 0) + v_alloue,
+          reste_a_percevoir = 0,
+          paye              = true,
+          date_paiement     = now()
+      WHERE id = bilan_row.id;
+    ELSE
+      UPDATE public.bilans_status_v2
+      SET acompte_consomme  = COALESCE(acompte_consomme, 0) + v_alloue,
+          reste_a_percevoir = v_besoin - v_alloue,
+          paye              = false,
+          date_paiement     = NULL
+      WHERE id = bilan_row.id;
+    END IF;
+
+    INSERT INTO public.acompte_allocations
+      (acompte_id, bilan_id, amount, patron_id, user_id, periode_index, applied_at)
+    VALUES
+      (p_acompte_id, bilan_row.id, v_alloue, v_patron_id, v_user_id, bilan_row.periode_index, now());
+
+    v_reste := v_reste - v_alloue;
+  END LOOP;
+
+  SELECT COALESCE(SUM(amount), 0)
+  INTO v_total_check
+  FROM public.acompte_allocations
+  WHERE acompte_id = p_acompte_id;
+
+  IF v_total_check > v_montant THEN
+    RAISE EXCEPTION 'apply_acompte: allocation % exceeds montant % for acompte %',
+      v_total_check, v_montant, p_acompte_id;
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.apply_acompte(uuid) TO authenticated;
+-- Ensure authenticated users can read their own acompte allocations directly by user_id.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'acompte_allocations'
+      AND policyname = 'acompte_allocations_select_user_id'
+  ) THEN
+    CREATE POLICY "acompte_allocations_select_user_id"
+      ON public.acompte_allocations
+      FOR SELECT TO authenticated
+      USING (auth.uid() = user_id);
+  END IF;
+END $$;
+-- apply_acompte: strict idempotence + safe candidate selection + row locks
+-- Source of truth: apply_acompte + acompte_allocations
+
+CREATE OR REPLACE FUNCTION public.apply_acompte(p_acompte_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_montant      numeric;
+  v_patron_id    uuid;
+  v_user_id      uuid;
+  v_reste        numeric;
+  v_besoin       numeric;
+  v_alloue       numeric;
+  v_total_check  numeric;
+  v_now          timestamptz := now();
+  bilan_row      record;
+  deleted_alloc  record;
+BEGIN
+  SELECT montant, patron_id, user_id
+  INTO v_montant, v_patron_id, v_user_id
+  FROM public.acomptes
+  WHERE id = p_acompte_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'apply_acompte: acompte % not found', p_acompte_id;
+  END IF;
+
+  IF v_montant IS NULL OR v_montant <= 0 THEN
+    RAISE NOTICE 'apply_acompte: acompte % montant <= 0, skip', p_acompte_id;
+    RETURN;
+  END IF;
+
+  -- Normalize inconsistent rows: paid rows must have zero remaining
+  UPDATE public.bilans_status_v2 b
+  SET reste_a_percevoir = 0
+  WHERE b.patron_id = v_patron_id
+    AND b.periode_type = 'semaine'
+    AND COALESCE(b.paye, false) = true
+    AND COALESCE(b.reste_a_percevoir, 0) > 0;
+
+  -- STRICT idempotence: start by deleting previous allocations for this acompte.
+  -- Then rollback their effect on bilans before recomputing.
+  FOR deleted_alloc IN
+    DELETE FROM public.acompte_allocations aa
+    WHERE aa.acompte_id = p_acompte_id
+    RETURNING aa.bilan_id, aa.amount
+  LOOP
+    UPDATE public.bilans_status_v2 b
+    SET
+      acompte_consomme  = GREATEST(0, COALESCE(b.acompte_consomme, 0) - deleted_alloc.amount),
+      reste_a_percevoir = GREATEST(0, COALESCE(b.reste_a_percevoir, 0) + deleted_alloc.amount),
+      paye              = false,
+      date_paiement     = NULL
+    WHERE b.id = deleted_alloc.bilan_id
+      AND COALESCE(b.paye, false) = false;
+  END LOOP;
+
+  v_reste := v_montant;
+
+  FOR bilan_row IN
+    SELECT b.id, b.periode_index, COALESCE(b.reste_a_percevoir, 0) AS reste_a_percevoir
+    FROM public.bilans_status_v2 b
+    WHERE b.periode_type = 'semaine'
+      AND b.patron_id = v_patron_id
+      AND COALESCE(b.paye, false) = false
+      AND COALESCE(b.reste_a_percevoir, 0) > 0
+    ORDER BY b.periode_index ASC
+    FOR UPDATE
+  LOOP
+    EXIT WHEN v_reste <= 0;
+
+    v_besoin := COALESCE(bilan_row.reste_a_percevoir, 0);
+    CONTINUE WHEN v_besoin <= 0;
+
+    v_alloue := LEAST(v_besoin, v_reste);
+
+    IF v_alloue >= v_besoin THEN
+      UPDATE public.bilans_status_v2
+      SET
+        acompte_consomme  = COALESCE(acompte_consomme, 0) + v_alloue,
+        reste_a_percevoir = 0,
+        paye              = true,
+        date_paiement     = v_now
+      WHERE id = bilan_row.id;
+    ELSE
+      UPDATE public.bilans_status_v2
+      SET
+        acompte_consomme  = COALESCE(acompte_consomme, 0) + v_alloue,
+        reste_a_percevoir = v_besoin - v_alloue,
+        paye              = false,
+        date_paiement     = NULL
+      WHERE id = bilan_row.id;
+    END IF;
+
+    INSERT INTO public.acompte_allocations
+      (acompte_id, bilan_id, amount, patron_id, user_id, periode_type, periode_index, created_at)
+    VALUES
+      (p_acompte_id, bilan_row.id, v_alloue, v_patron_id, v_user_id, 'semaine', bilan_row.periode_index, v_now);
+
+    v_reste := v_reste - v_alloue;
+  END LOOP;
+
+  SELECT COALESCE(SUM(amount), 0)
+  INTO v_total_check
+  FROM public.acompte_allocations
+  WHERE acompte_id = p_acompte_id;
+
+  IF v_total_check > v_montant THEN
+    RAISE EXCEPTION 'apply_acompte: allocation % exceeds montant % for acompte %',
+      v_total_check, v_montant, p_acompte_id;
+  END IF;
+
+  RAISE NOTICE 'apply_acompte done: acompte %, montant %, alloue %, reste %',
+    p_acompte_id, v_montant, v_total_check, GREATEST(0, v_montant - v_total_check);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.apply_acompte(uuid) TO authenticated;
+
+CREATE INDEX IF NOT EXISTS acompte_allocations_acompte_created_idx
+  ON public.acompte_allocations (acompte_id, created_at);
+-- Add date_fin to agenda_events to support multi-day events (congÃ©s)
+alter table agenda_events
+  add column if not exists date_fin date;
+-- Agenda events table for Pro users
+create table if not exists agenda_events (
+  id             uuid primary key default gen_random_uuid(),
+  user_id        uuid not null references auth.users(id) on delete cascade,
+  date_iso       date not null,
+  type           text not null check (type in ('rdv', 'conge', 'note')),
+  titre          text not null,
+  description    text,
+  heure_debut    time,
+  heure_fin      time,
+  rappel_minutes int,
+  created_at     timestamptz default now(),
+  updated_at     timestamptz default now()
+);
+
+alter table agenda_events enable row level security;
+
+drop policy if exists "agenda_select_own" on agenda_events;
+create policy "agenda_select_own" on agenda_events
+  for select using (auth.uid() = user_id);
+
+drop policy if exists "agenda_insert_own" on agenda_events;
+create policy "agenda_insert_own" on agenda_events
+  for insert with check (auth.uid() = user_id);
+
+drop policy if exists "agenda_update_own" on agenda_events;
+create policy "agenda_update_own" on agenda_events
+  for update using (auth.uid() = user_id);
+
+drop policy if exists "agenda_delete_own" on agenda_events;
+create policy "agenda_delete_own" on agenda_events
+  for delete using (auth.uid() = user_id);
+
+create index if not exists agenda_events_user_date on agenda_events(user_id, date_iso);
+-- Add billing fields to patrons table (all optional)
+alter table patrons
+  add column if not exists adresse     text,
+  add column if not exists code_postal text,
+  add column if not exists ville       text,
+  add column if not exists telephone   text,
+  add column if not exists email       text,
+  add column if not exists siret       text;
+-- ============================================================
+-- Migration : AccÃ¨s Patron â€” Policies RLS
+-- Date      : 2026-05-11
+-- PrÃ©requis : colonnes owner_id, patron_id, status, role
+--             dÃ©jÃ  prÃ©sentes dans public.profiles
+-- ============================================================
+
+-- â”€â”€â”€ 0. Extensions nÃ©cessaires (crypto pour uuid) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- â”€â”€â”€ 1. profiles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- L'ouvrier voit ses propres profils + ceux des patrons qu'il a invitÃ©s
+-- Le patron voit son propre profil
+
+DROP POLICY IF EXISTS "patron_see_own_profiles" ON public.profiles;
+CREATE POLICY "patron_see_own_profiles" ON public.profiles
+  FOR SELECT USING (
+    id = auth.uid()
+    OR owner_id = auth.uid()
+  );
+
+-- L'ouvrier peut mettre Ã  jour les profils patrons qu'il possÃ¨de (toggle features)
+DROP POLICY IF EXISTS "owner_update_patron_profiles" ON public.profiles;
+CREATE POLICY "owner_update_patron_profiles" ON public.profiles
+  FOR UPDATE USING (
+    owner_id = auth.uid()
+  );
+
+-- â”€â”€â”€ 2. missions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Le patron actif voit les missions liÃ©es Ã  son patron_id chez son ouvrier
+
+DROP POLICY IF EXISTS "patron_read_missions" ON public.missions;
+CREATE POLICY "patron_read_missions" ON public.missions
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR (
+      patron_id IN (
+        SELECT patron_id FROM public.profiles
+        WHERE id = auth.uid()
+          AND role = 'patron'
+          AND status = 'active'
+      )
+      AND user_id IN (
+        SELECT owner_id FROM public.profiles
+        WHERE id = auth.uid()
+          AND role = 'patron'
+          AND status = 'active'
+      )
+    )
+  );
+
+-- â”€â”€â”€ 3. bilans_status_v2 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DROP POLICY IF EXISTS "patron_read_bilans" ON public.bilans_status_v2;
+CREATE POLICY "patron_read_bilans" ON public.bilans_status_v2
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR (
+      patron_id IN (
+        SELECT patron_id FROM public.profiles
+        WHERE id = auth.uid()
+          AND role = 'patron'
+          AND status = 'active'
+      )
+      AND user_id IN (
+        SELECT owner_id FROM public.profiles
+        WHERE id = auth.uid()
+          AND role = 'patron'
+          AND status = 'active'
+      )
+    )
+  );
+
+-- â”€â”€â”€ 4. clients â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DROP POLICY IF EXISTS "patron_read_clients" ON public.clients;
+CREATE POLICY "patron_read_clients" ON public.clients
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR user_id IN (
+      SELECT owner_id FROM public.profiles
+      WHERE id = auth.uid()
+        AND role = 'patron'
+        AND status = 'active'
+    )
+  );
+
+-- â”€â”€â”€ 5. lieux â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DROP POLICY IF EXISTS "patron_read_lieux" ON public.lieux;
+CREATE POLICY "patron_read_lieux" ON public.lieux
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR user_id IN (
+      SELECT owner_id FROM public.profiles
+      WHERE id = auth.uid()
+        AND role = 'patron'
+        AND status = 'active'
+    )
+  );
+
+-- â”€â”€â”€ 6. frais_km â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DROP POLICY IF EXISTS "patron_read_frais_km" ON public.frais_km;
+CREATE POLICY "patron_read_frais_km" ON public.frais_km
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR (
+      patron_id IN (
+        SELECT patron_id FROM public.profiles
+        WHERE id = auth.uid()
+          AND role = 'patron'
+          AND status = 'active'
+      )
+      AND user_id IN (
+        SELECT owner_id FROM public.profiles
+        WHERE id = auth.uid()
+          AND role = 'patron'
+          AND status = 'active'
+      )
+    )
+  );
+
+-- â”€â”€â”€ 7. frais_divers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DROP POLICY IF EXISTS "patron_read_frais_divers" ON public.frais_divers;
+CREATE POLICY "patron_read_frais_divers" ON public.frais_divers
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR (
+      patron_id IN (
+        SELECT patron_id FROM public.profiles
+        WHERE id = auth.uid()
+          AND role = 'patron'
+          AND status = 'active'
+      )
+      AND user_id IN (
+        SELECT owner_id FROM public.profiles
+        WHERE id = auth.uid()
+          AND role = 'patron'
+          AND status = 'active'
+      )
+    )
+  );
+
+-- â”€â”€â”€ 8. acomptes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DROP POLICY IF EXISTS "patron_read_acomptes" ON public.acomptes;
+CREATE POLICY "patron_read_acomptes" ON public.acomptes
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR (
+      patron_id IN (
+        SELECT patron_id FROM public.profiles
+        WHERE id = auth.uid()
+          AND role = 'patron'
+          AND status = 'active'
+      )
+      AND user_id IN (
+        SELECT owner_id FROM public.profiles
+        WHERE id = auth.uid()
+          AND role = 'patron'
+          AND status = 'active'
+      )
+    )
+  );
+
+-- â”€â”€â”€ 9. agenda_events (conditionnÃ© Ã  features.access_agenda) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DROP POLICY IF EXISTS "patron_read_agenda" ON public.agenda_events;
+CREATE POLICY "patron_read_agenda" ON public.agenda_events
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role = 'patron'
+        AND p.status = 'active'
+        AND (p.features->>'access_agenda')::boolean = true
+        AND agenda_events.user_id = p.owner_id
+    )
+  );
+
+-- â”€â”€â”€ 10. Fonction helper : gÃ©nÃ©rer un token d'invitation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+CREATE OR REPLACE FUNCTION public.generate_invite_token()
+RETURNS text LANGUAGE sql SECURITY DEFINER AS $$
+  SELECT encode(gen_random_bytes(32), 'hex');
+$$;
+-- ============================================================
+-- Migration : Table patron_invitations
+-- Date      : 2026-05-11
+-- ============================================================
+
+-- â”€â”€â”€ 0. Nettoyage des donnÃ©es temporaires â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DELETE FROM public.profiles
+WHERE role = 'patron'
+  AND status = 'pending'
+  AND id NOT IN (SELECT id FROM auth.users);
+
+-- â”€â”€â”€ 1. CrÃ©er la table patron_invitations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+CREATE TABLE IF NOT EXISTS public.patron_invitations (
+  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  owner_id      uuid        NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  patron_id     uuid        NOT NULL,
+  patron_email  text        NOT NULL,
+  invite_token  text        NOT NULL UNIQUE,
+  invite_expires timestamptz NOT NULL,
+  status        text        NOT NULL DEFAULT 'pending'
+                            CHECK (status IN ('pending', 'accepted', 'expired')),
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_patron_invitations_token
+  ON public.patron_invitations (invite_token)
+  WHERE status = 'pending';
+
+CREATE INDEX IF NOT EXISTS idx_patron_invitations_owner
+  ON public.patron_invitations (owner_id);
+
+-- â”€â”€â”€ 2. RLS sur patron_invitations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ALTER TABLE public.patron_invitations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "owner_manage_invitations" ON public.patron_invitations;
+CREATE POLICY "owner_manage_invitations" ON public.patron_invitations
+  FOR ALL USING (owner_id = auth.uid());
+
+-- â”€â”€â”€ 3. Fonction RPC : vÃ©rifier un token â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DROP FUNCTION IF EXISTS public.verify_patron_invite_token(text);
+CREATE OR REPLACE FUNCTION public.verify_patron_invite_token(p_token text)
+RETURNS TABLE (
+  invitation_id   uuid,
+  owner_id        uuid,
+  patron_id       uuid,
+  patron_email    text,
+  invite_expires  timestamptz
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    id              AS invitation_id,
+    owner_id,
+    patron_id,
+    patron_email,
+    invite_expires
+  FROM public.patron_invitations
+  WHERE invite_token = p_token
+    AND status = 'pending'
+    AND invite_expires > now()
+  LIMIT 1;
+$$;
+
+-- â”€â”€â”€ 4. Fonction RPC : activer une invitation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DROP FUNCTION IF EXISTS public.activate_patron_invite(text);
+CREATE OR REPLACE FUNCTION public.activate_patron_invite(p_token text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_inv       public.patron_invitations%ROWTYPE;
+  v_features  jsonb;
+BEGIN
+  SELECT * INTO v_inv
+  FROM public.patron_invitations
+  WHERE invite_token = p_token
+    AND status = 'pending'
+    AND invite_expires > now()
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitation invalide ou expirÃ©e';
+  END IF;
+
+  v_features := jsonb_build_object(
+    'access_agenda',    false,
+    'access_dashboard', false
+  );
+
+  SELECT features INTO v_features
+  FROM public.profiles
+  WHERE id       = auth.uid()
+    AND role     = 'patron'
+    AND owner_id = v_inv.owner_id
+    AND patron_id = v_inv.patron_id
+  LIMIT 1;
+
+  IF v_features IS NULL THEN
+    v_features := jsonb_build_object(
+      'access_agenda',    false,
+      'access_dashboard', false
+    );
+  END IF;
+
+  INSERT INTO public.profiles (id, role, status, owner_id, patron_id, features, is_admin)
+  VALUES (
+    auth.uid(),
+    'patron',
+    'active',
+    v_inv.owner_id,
+    v_inv.patron_id,
+    v_features,
+    false
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET role      = 'patron',
+        status    = 'active',
+        owner_id  = v_inv.owner_id,
+        patron_id = v_inv.patron_id,
+        features  = EXCLUDED.features;
+
+  UPDATE public.patron_invitations
+  SET status     = 'accepted',
+      updated_at = now()
+  WHERE id = v_inv.id;
+END;
+$$;
+-- ============================================================
+-- Migration : RPC vÃ©rification d'existence d'un compte email
+-- Date      : 2026-05-13
+-- Objectif  : Permettre Ã  la page d'acceptation d'invitation
+--             de savoir si l'email de l'invitation correspond
+--             Ã  un compte Supabase Auth existant, sans exposer
+--             les donnÃ©es utilisateurs.
+-- ============================================================
+
+CREATE OR REPLACE FUNCTION public.patron_email_has_account(p_email text)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE email = lower(trim(p_email))
+  );
+$$;
+
+-- Accessible aux utilisateurs anonymes (page d'invitation sans session)
+GRANT EXECUTE ON FUNCTION public.patron_email_has_account(text) TO anon, authenticated;
+-- ============================================================
+-- Migration : RÃ´le dynamique dans les invitations
+-- Date      : 2026-05-15
+-- Objectif  : Supporter 'patron' et 'viewer' dans le flux d'invitation
+-- ============================================================
+
+-- â”€â”€â”€ 1. Ajouter la colonne invite_role â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ALTER TABLE public.patron_invitations
+  ADD COLUMN IF NOT EXISTS invite_role text NOT NULL DEFAULT 'patron'
+    CHECK (invite_role IN ('patron', 'viewer'));
+
+-- â”€â”€â”€ 2. Mettre Ã  jour verify_patron_invite_token â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Retourne dÃ©sormais aussi invite_role afin que AcceptInvitePage puisse
+-- savoir quel rÃ´le sera crÃ©Ã© Ã  l'activation.
+
+DROP FUNCTION IF EXISTS public.verify_patron_invite_token(text);
+CREATE OR REPLACE FUNCTION public.verify_patron_invite_token(p_token text)
+RETURNS TABLE (
+  invitation_id   uuid,
+  owner_id        uuid,
+  patron_id       uuid,
+  patron_email    text,
+  invite_expires  timestamptz,
+  invite_role     text
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    id              AS invitation_id,
+    owner_id,
+    patron_id,
+    patron_email,
+    invite_expires,
+    invite_role
+  FROM public.patron_invitations
+  WHERE invite_token = p_token
+    AND status = 'pending'
+    AND invite_expires > now()
+  LIMIT 1;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.verify_patron_invite_token(text) TO anon, authenticated;
+
+-- â”€â”€â”€ 3. Mettre Ã  jour activate_patron_invite â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Utilise v_inv.invite_role au lieu du rÃ´le 'patron' hardcodÃ©.
+
+DROP FUNCTION IF EXISTS public.activate_patron_invite(text);
+CREATE OR REPLACE FUNCTION public.activate_patron_invite(p_token text)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_inv       public.patron_invitations%ROWTYPE;
+  v_features  jsonb;
+BEGIN
+  SELECT * INTO v_inv
+  FROM public.patron_invitations
+  WHERE invite_token = p_token
+    AND status = 'pending'
+    AND invite_expires > now()
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitation invalide ou expirÃ©e';
+  END IF;
+
+  v_features := jsonb_build_object(
+    'access_agenda',    false,
+    'access_dashboard', false
+  );
+
+  -- RÃ©cupÃ©rer les features existantes si une ligne de profil existe dÃ©jÃ 
+  SELECT features INTO v_features
+  FROM public.profiles
+  WHERE id        = auth.uid()
+    AND role      = v_inv.invite_role
+    AND owner_id  = v_inv.owner_id
+    AND patron_id = v_inv.patron_id
+  LIMIT 1;
+
+  IF v_features IS NULL THEN
+    v_features := jsonb_build_object(
+      'access_agenda',    false,
+      'access_dashboard', false
+    );
+  END IF;
+
+  INSERT INTO public.profiles (id, role, status, owner_id, patron_id, features, is_admin)
+  VALUES (
+    auth.uid(),
+    v_inv.invite_role,   -- â† dynamique : 'patron' ou 'viewer'
+    'active',
+    v_inv.owner_id,
+    v_inv.patron_id,
+    v_features,
+    false
+  )
+  ON CONFLICT (id) DO UPDATE
+    SET role      = v_inv.invite_role,
+        status    = 'active',
+        owner_id  = v_inv.owner_id,
+        patron_id = v_inv.patron_id,
+        features  = EXCLUDED.features;
+
+  UPDATE public.patron_invitations
+  SET status     = 'accepted',
+      updated_at = now()
+  WHERE id = v_inv.id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.activate_patron_invite(text) TO authenticated;
+-- ============================================================
+-- Migration : AccÃ¨s patron aux bilans
+-- Date      : 2026-05-15
+-- Objectif  : Aligner la policy SELECT de bilans_status_v2
+--             avec le pattern patron des autres tables
+-- ============================================================
+
+
+DROP POLICY IF EXISTS "bilans_status_v2_select" ON public.bilans_status_v2;
+
+
+CREATE POLICY "bilans_status_v2_select" ON public.bilans_status_v2
+  FOR SELECT USING (
+    -- L'ouvrier voit ses propres bilans
+    user_id = auth.uid()
+    OR
+    -- Le patron voit les bilans de son ouvrier
+    (
+      patron_id IN (
+        SELECT profiles.patron_id FROM profiles
+        WHERE profiles.id       = auth.uid()
+          AND profiles.role     = 'patron'
+          AND profiles.status   = 'active'
+      )
+      AND
+      user_id IN (
+        SELECT profiles.owner_id FROM profiles
+        WHERE profiles.id       = auth.uid()
+          AND profiles.role     = 'patron'
+          AND profiles.status   = 'active'
+      )
+    )
+  );
+-- ============================================================
+-- Migration : AccÃ¨s Viewer â€” Policy RLS table clients
+-- Date      : 2026-05-15
+-- PrÃ©requis : role 'viewer', status 'active', owner_id dans profiles
+-- ============================================================
+
+-- Le viewer peut lire les clients appartenant Ã  son ouvrier (owner)
+DROP POLICY IF EXISTS "viewer_read_clients" ON public.clients;
+CREATE POLICY "viewer_read_clients" ON public.clients
+  FOR SELECT USING (
+    user_id IN (
+      SELECT owner_id FROM public.profiles
+      WHERE id = auth.uid()
+        AND role = 'viewer'
+        AND status = 'active'
+    )
+  );
+CREATE POLICY "patrons_select_viewer"
+ON patrons
+FOR SELECT
+TO authenticated
+USING (
+  id IN (
+    SELECT patron_id
+    FROM profiles
+    WHERE id = auth.uid()
+      AND patron_id IS NOT NULL
+  )
+);
+-- ============================================================
+-- Migration : Normaliser les features des profils viewer
+-- Date      : 2026-05-15
+-- Raison    : Les viewers activÃ©s avant la migration invite_role
+--             ont des features de type ouvrier (plan, bilan_moisâ€¦)
+--             au lieu de {access_agenda, access_dashboard}.
+--             On normalise en prÃ©servant les clÃ©s access_* existantes.
+-- ============================================================
+
+UPDATE public.profiles
+SET features = jsonb_build_object(
+  'access_agenda',    COALESCE((features->>'access_agenda')::boolean, false),
+  'access_dashboard', COALESCE((features->>'access_dashboard')::boolean, false)
+)
+WHERE role IN ('viewer', 'patron')
+  AND (
+    features ? 'plan'
+    OR features ? 'bilan_mois'
+    OR features ? 'export_pdf'
+    OR NOT (features ? 'access_agenda' OR features ? 'access_dashboard')
+  );
+-- Activer access_dashboard pour le viewer existant
+-- (features normalisÃ©es mais dashboard encore Ã  false)
+UPDATE public.profiles
+SET features = jsonb_build_object(
+  'access_agenda',    COALESCE((features->>'access_agenda')::boolean, false),
+  'access_dashboard', true
+)
+WHERE role = 'viewer'
+  AND status = 'active';
+-- ============================================================
+-- Migration: SystÃ¨me d'invitation in-app
+-- 2026-05-16
+-- ============================================================
+
+-- â”€â”€â”€ 1. Ajouter invite_code et profile_complete Ã  profiles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS invite_code   varchar(8),
+  ADD COLUMN IF NOT EXISTS profile_complete boolean NOT NULL DEFAULT false;
+
+-- GÃ©nÃ©rer un invite_code unique pour chaque ligne "profil principal"
+-- (owner_id IS NULL = profil principal, pas une liaison patron/viewer)
+DO $$
+DECLARE
+  rec RECORD;
+  new_code varchar(8);
+  ok boolean;
+BEGIN
+  FOR rec IN
+    SELECT id FROM public.profiles WHERE invite_code IS NULL AND owner_id IS NULL
+  LOOP
+    ok := false;
+    WHILE NOT ok LOOP
+      new_code := upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 8));
+      IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE invite_code = new_code) THEN
+        ok := true;
+      END IF;
+    END LOOP;
+    UPDATE public.profiles SET invite_code = new_code WHERE id = rec.id;
+  END LOOP;
+END;
+$$;
+
+-- Contrainte d'unicitÃ© sur invite_code (NULL exclus = lignes patron/viewer)
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_invite_code_unique
+  ON public.profiles(invite_code)
+  WHERE invite_code IS NOT NULL;
+
+-- Marquer comme "complet" les profils existants ayant dÃ©jÃ  prenom + nom
+UPDATE public.profiles
+SET profile_complete = true
+WHERE owner_id IS NULL
+  AND prenom IS NOT NULL AND prenom <> ''
+  AND nom    IS NOT NULL AND nom    <> '';
+
+-- â”€â”€â”€ 2. Trigger: gÃ©nÃ¨re invite_code Ã  chaque nouvel utilisateur â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+CREATE OR REPLACE FUNCTION public.generate_invite_code_trigger()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  new_code varchar(8);
+  ok boolean;
+BEGIN
+  -- Seulement pour les profils principaux (pas les liaisons patron/viewer)
+  IF NEW.owner_id IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.invite_code IS NOT NULL AND NEW.invite_code <> '' THEN
+    RETURN NEW;
+  END IF;
+  ok := false;
+  WHILE NOT ok LOOP
+    new_code := upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 8));
+    IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE invite_code = new_code) THEN
+      ok := true;
+    END IF;
+  END LOOP;
+  NEW.invite_code := new_code;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_generate_invite_code ON public.profiles;
+CREATE TRIGGER trg_generate_invite_code
+  BEFORE INSERT ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.generate_invite_code_trigger();
+
+-- â”€â”€â”€ 3. Ã‰tendre patron_invitations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+ALTER TABLE public.patron_invitations
+  ADD COLUMN IF NOT EXISTS initiated_by  text NOT NULL DEFAULT 'owner'
+    CONSTRAINT patron_inv_initiated_by_check CHECK (initiated_by IN ('owner', 'patron')),
+  ADD COLUMN IF NOT EXISTS method        text NOT NULL DEFAULT 'email'
+    CONSTRAINT patron_inv_method_check    CHECK (method IN ('email', 'in_app')),
+  ADD COLUMN IF NOT EXISTS patron_user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- â”€â”€â”€ 4. Ajouter linked_user_id Ã  patrons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Permet de retrouver une entrÃ©e patrons crÃ©Ã©e via une invitation in-app
+
+ALTER TABLE public.patrons
+  ADD COLUMN IF NOT EXISTS linked_user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS patrons_linked_user_id_owner_unique
+  ON public.patrons(user_id, linked_user_id)
+  WHERE linked_user_id IS NOT NULL;
+
+-- â”€â”€â”€ 5. RLS: le patron peut voir les invitations in-app qui le ciblent â”€â”€â”€â”€â”€â”€â”€
+
+DROP POLICY IF EXISTS "patron_see_inapp_invitations" ON public.patron_invitations;
+CREATE POLICY "patron_see_inapp_invitations"
+  ON public.patron_invitations
+  FOR SELECT
+  TO authenticated
+  USING (patron_user_id = auth.uid());
+
+-- â”€â”€â”€ 6. RPC: search_by_invite_code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+CREATE OR REPLACE FUNCTION public.search_by_invite_code(p_code text)
+RETURNS TABLE(found_user_id uuid, found_prenom text, found_nom text)
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT p.id, p.prenom, p.nom
+    FROM public.profiles p
+    WHERE upper(p.invite_code) = upper(trim(p_code))
+      AND p.id <> auth.uid()
+      AND p.owner_id IS NULL       -- seulement les profils principaux
+    LIMIT 1;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.search_by_invite_code(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.search_by_invite_code(text) TO authenticated;
+
+-- â”€â”€â”€ 7. RPC: create_inapp_invitation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+CREATE OR REPLACE FUNCTION public.create_inapp_invitation(
+  p_target_invite_code text,
+  p_initiated_by       text,    -- 'owner' | 'patron'
+  p_access_agenda      boolean DEFAULT false,
+  p_access_dashboard   boolean DEFAULT false
+)
+RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_id      uuid := auth.uid();
+  v_target_id      uuid;
+  v_target_prenom  text;
+  v_target_nom     text;
+  v_caller_prenom  text;
+  v_caller_nom     text;
+  v_owner_id       uuid;
+  v_patron_user_id uuid;
+  v_patron_id      uuid;
+  v_patron_name    text;
+  v_inv_id         uuid;
+BEGIN
+  -- Validation
+  IF p_initiated_by NOT IN ('owner', 'patron') THEN
+    RAISE EXCEPTION 'initiated_by doit Ãªtre "owner" ou "patron"';
+  END IF;
+
+  -- Trouver l'utilisateur cible par son invite_code
+  SELECT p.id, p.prenom, p.nom
+    INTO v_target_id, v_target_prenom, v_target_nom
+    FROM public.profiles p
+   WHERE upper(p.invite_code) = upper(trim(p_target_invite_code))
+     AND p.owner_id IS NULL
+   LIMIT 1;
+
+  IF v_target_id IS NULL THEN
+    RAISE EXCEPTION 'Code invalide : aucun utilisateur trouvÃ©';
+  END IF;
+
+  IF v_target_id = v_caller_id THEN
+    RAISE EXCEPTION 'Vous ne pouvez pas vous inviter vous-mÃªme';
+  END IF;
+
+  -- RÃ©cupÃ©rer le nom de l'appelant
+  SELECT prenom, nom INTO v_caller_prenom, v_caller_nom
+    FROM public.profiles WHERE id = v_caller_id AND owner_id IS NULL;
+
+  -- DÃ©terminer owner / patron selon qui initie
+  IF p_initiated_by = 'owner' THEN
+    -- Appelant = ouvrier, cible = patron
+    v_owner_id       := v_caller_id;
+    v_patron_user_id := v_target_id;
+    v_patron_name    := trim(COALESCE(v_target_prenom, '') || ' ' || COALESCE(v_target_nom, ''));
+  ELSE
+    -- Appelant = patron, cible = ouvrier
+    v_owner_id       := v_target_id;
+    v_patron_user_id := v_caller_id;
+    v_patron_name    := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+  END IF;
+
+  IF v_patron_name = '' THEN v_patron_name := 'InvitÃ©'; END IF;
+
+  -- VÃ©rifier si une invitation in-app pending existe dÃ©jÃ  entre ces deux
+  SELECT id INTO v_inv_id
+    FROM public.patron_invitations
+   WHERE owner_id       = v_owner_id
+     AND patron_user_id = v_patron_user_id
+     AND status         = 'pending'
+     AND method         = 'in_app'
+   LIMIT 1;
+
+  IF FOUND THEN
+    -- Renvoyer l'ID existant (idempotent)
+    RETURN v_inv_id;
+  END IF;
+
+  -- Trouver ou crÃ©er l'entrÃ©e patrons correspondant Ã  ce patron
+  SELECT id INTO v_patron_id
+    FROM public.patrons
+   WHERE user_id = v_owner_id
+     AND linked_user_id = v_patron_user_id
+   LIMIT 1;
+
+  IF v_patron_id IS NULL THEN
+    INSERT INTO public.patrons (user_id, nom, actif, linked_user_id)
+    VALUES (v_owner_id, v_patron_name, true, v_patron_user_id)
+    RETURNING id INTO v_patron_id;
+  END IF;
+
+  -- CrÃ©er l'invitation
+  INSERT INTO public.patron_invitations (
+    owner_id, patron_id, patron_user_id,
+    invite_token, invite_expires,
+    access_agenda, access_dashboard,
+    initiated_by, method, status
+  ) VALUES (
+    v_owner_id, v_patron_id, v_patron_user_id,
+    gen_random_uuid()::text,
+    now() + interval '30 days',
+    p_access_agenda, p_access_dashboard,
+    p_initiated_by, 'in_app', 'pending'
+  )
+  RETURNING id INTO v_inv_id;
+
+  RETURN v_inv_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) TO authenticated;
+
+-- â”€â”€â”€ 8. RPC: accept_inapp_invitation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+CREATE OR REPLACE FUNCTION public.accept_inapp_invitation(p_invitation_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_inv     patron_invitations%ROWTYPE;
+  v_features jsonb;
+BEGIN
+  SELECT * INTO v_inv FROM public.patron_invitations WHERE id = p_invitation_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitation introuvable';
+  END IF;
+
+  IF v_inv.status <> 'pending' THEN
+    RAISE EXCEPTION 'Invitation dÃ©jÃ  traitÃ©e (statut : %)', v_inv.status;
+  END IF;
+
+  -- Autorisation : uniquement le patron cible ou l'ouvrier Ã©metteur
+  IF auth.uid() <> v_inv.patron_user_id AND auth.uid() <> v_inv.owner_id THEN
+    RAISE EXCEPTION 'Non autorisÃ©';
+  END IF;
+
+  v_features := jsonb_build_object(
+    'access_agenda',    v_inv.access_agenda,
+    'access_dashboard', v_inv.access_dashboard
+  );
+
+  -- Mettre Ã  jour le profil principal du patron pour le lier Ã  cet ouvrier
+  UPDATE public.profiles
+     SET owner_id  = v_inv.owner_id,
+         patron_id = v_inv.patron_id,
+         role      = COALESCE(v_inv.invite_role, 'patron'),
+         status    = 'active',
+         features  = COALESCE(features, '{}'::jsonb) || v_features,
+         updated_at = now()
+   WHERE id       = v_inv.patron_user_id
+     AND owner_id IS NULL;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Profil du patron introuvable';
+  END IF;
+
+  -- Marquer l'invitation comme acceptÃ©e
+  UPDATE public.patron_invitations
+     SET status = 'accepted', updated_at = now()
+   WHERE id = p_invitation_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.accept_inapp_invitation(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.accept_inapp_invitation(uuid) TO authenticated;
+
+-- â”€â”€â”€ 9. RPC: refuse_inapp_invitation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+CREATE OR REPLACE FUNCTION public.refuse_inapp_invitation(p_invitation_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.patron_invitations
+     SET status = 'refused', updated_at = now()
+   WHERE id     = p_invitation_id
+     AND (patron_user_id = auth.uid() OR owner_id = auth.uid())
+     AND status = 'pending';
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitation introuvable ou non autorisÃ©e';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.refuse_inapp_invitation(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.refuse_inapp_invitation(uuid) TO authenticated;
+
+-- â”€â”€â”€ 10. RLS pour invite_code (lecture seule via search_by_invite_code) â”€â”€â”€â”€â”€â”€
+-- La lecture directe de la colonne invite_code est protÃ©gÃ©e par RLS existant
+-- L'accÃ¨s public se fait UNIQUEMENT via la fonction SECURITY DEFINER ci-dessus
+
+-- â”€â”€â”€ 11. RLS: mise Ã  jour de profile_complete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- L'utilisateur peut mettre Ã  jour son propre profile_complete
+-- (couvert par la policy existante "own_profile_update" ou Ã©quivalente)
+
+-- VÃ©rifier qu'il existe bien une policy permettant l'UPDATE sur profiles par l'utilisateur
+-- (profiles_update_own ou similaire â€” dÃ©jÃ  en place depuis les migrations prÃ©cÃ©dentes)
+-- Migration: backfill invite_code for profiles that predate the trigger.
+-- Only applies to "main" profiles (owner_id IS NULL) without a code.
+UPDATE profiles
+SET invite_code = upper(substr(md5(id::text || random()::text), 1, 8))
+WHERE owner_id IS NULL
+  AND (invite_code IS NULL OR invite_code = '');
+-- Fix: search_by_invite_code Ã©chouait quand auth.uid() retourne NULL dans le
+-- contexte SECURITY DEFINER â†’ la comparaison uuid <> NULL = NULL (filtre tout).
+-- Solution : retirer la condition du RPC et la gÃ©rer dans create_inapp_invitation.
+
+CREATE OR REPLACE FUNCTION public.search_by_invite_code(p_code text)
+  RETURNS TABLE(found_user_id uuid, found_prenom text, found_nom text)
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO 'public'
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT p.id, p.prenom::text, p.nom::text
+    FROM public.profiles p
+    WHERE upper(p.invite_code) = upper(trim(p_code))
+      AND p.owner_id IS NULL   -- seulement les profils principaux
+    LIMIT 1;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.search_by_invite_code(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.search_by_invite_code(text) TO authenticated;
+-- Fix complet du systÃ¨me d'invite_code :
+-- 1. Backfill invite_code pour tous les profils owner/patron sans code
+-- 2. Mettre Ã  jour le trigger pour couvrir owner ET patron (pas seulement owner_id IS NULL)
+-- 3. Mettre Ã  jour le RPC pour chercher dans tous les profils avec un code
+
+-- â”€â”€â”€ 1. Backfill â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Profils owner/patron rÃ©els qui n'ont pas encore de code
+UPDATE profiles
+SET invite_code = upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 8))
+WHERE role IN ('owner', 'patron')
+  AND (invite_code IS NULL OR invite_code = '');
+
+-- â”€â”€â”€ 2. Trigger Ã©tendu â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- GÃ©nÃ¨re un code pour tout INSERT dont le rÃ´le est 'owner' ou 'patron'
+CREATE OR REPLACE FUNCTION public.generate_invite_code_trigger()
+  RETURNS trigger
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+AS $$
+DECLARE
+  new_code varchar(8);
+BEGIN
+  -- GÃ©nÃ©rer un code seulement pour les vrais utilisateurs (owner ou patron)
+  IF NEW.role NOT IN ('owner', 'patron') THEN
+    RETURN NEW;
+  END IF;
+  -- Ne pas Ã©craser un code dÃ©jÃ  fourni
+  IF NEW.invite_code IS NOT NULL AND NEW.invite_code <> '' THEN
+    RETURN NEW;
+  END IF;
+  -- GÃ©nÃ©rer un code unique
+  LOOP
+    new_code := upper(substring(replace(gen_random_uuid()::text, '-', ''), 1, 8));
+    EXIT WHEN NOT EXISTS (SELECT 1 FROM public.profiles WHERE invite_code = new_code);
+  END LOOP;
+  NEW.invite_code := new_code;
+  RETURN NEW;
+END;
+$$;
+
+-- â”€â”€â”€ 3. RPC sans restriction owner_id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- On cherche par invite_code sans filtrer owner_id car :
+-- - seuls les vrais users (owner/patron) ont des codes (via trigger + backfill)
+-- - les sous-profils (viewer) n'ont pas de code
+CREATE OR REPLACE FUNCTION public.search_by_invite_code(p_code text)
+  RETURNS TABLE(found_user_id uuid, found_prenom text, found_nom text)
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path TO 'public'
+AS $$
+BEGIN
+  RETURN QUERY
+    SELECT p.id, p.prenom::text, p.nom::text
+    FROM public.profiles p
+    WHERE upper(p.invite_code) = upper(trim(p_code))
+    LIMIT 1;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.search_by_invite_code(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.search_by_invite_code(text) TO authenticated;
+-- Fix: supprimer les filtres AND p.owner_id IS NULL dans create_inapp_invitation
+-- Ces filtres bloquaient les utilisateurs dont owner_id n'est pas NULL
+-- (ex. Michel avec owner_id = uuid_patron, Geoffrey avec owner_id = self)
+
+CREATE OR REPLACE FUNCTION public.create_inapp_invitation(
+  p_target_invite_code text,
+  p_initiated_by       text,    -- 'owner' | 'patron'
+  p_access_agenda      boolean DEFAULT false,
+  p_access_dashboard   boolean DEFAULT false
+)
+RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_id      uuid := auth.uid();
+  v_target_id      uuid;
+  v_target_prenom  text;
+  v_target_nom     text;
+  v_caller_prenom  text;
+  v_caller_nom     text;
+  v_owner_id       uuid;
+  v_patron_user_id uuid;
+  v_patron_id      uuid;
+  v_patron_name    text;
+  v_inv_id         uuid;
+BEGIN
+  -- Validation
+  IF p_initiated_by NOT IN ('owner', 'patron') THEN
+    RAISE EXCEPTION 'initiated_by doit Ãªtre "owner" ou "patron"';
+  END IF;
+
+  -- Trouver l'utilisateur cible par son invite_code (sans filtre owner_id)
+  SELECT p.id, p.prenom, p.nom
+    INTO v_target_id, v_target_prenom, v_target_nom
+    FROM public.profiles p
+   WHERE upper(p.invite_code) = upper(trim(p_target_invite_code))
+   LIMIT 1;
+
+  IF v_target_id IS NULL THEN
+    RAISE EXCEPTION 'Code invalide : aucun utilisateur trouvÃ©';
+  END IF;
+
+  IF v_target_id = v_caller_id THEN
+    RAISE EXCEPTION 'Vous ne pouvez pas vous inviter vous-mÃªme';
+  END IF;
+
+  -- RÃ©cupÃ©rer le nom de l'appelant (sans filtre owner_id)
+  SELECT prenom, nom INTO v_caller_prenom, v_caller_nom
+    FROM public.profiles WHERE id = v_caller_id;
+
+  -- DÃ©terminer owner / patron selon qui initie
+  IF p_initiated_by = 'owner' THEN
+    -- Appelant = ouvrier, cible = patron
+    v_owner_id       := v_caller_id;
+    v_patron_user_id := v_target_id;
+    v_patron_name    := trim(COALESCE(v_target_prenom, '') || ' ' || COALESCE(v_target_nom, ''));
+  ELSE
+    -- Appelant = patron, cible = ouvrier
+    v_owner_id       := v_target_id;
+    v_patron_user_id := v_caller_id;
+    v_patron_name    := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+  END IF;
+
+  IF v_patron_name = '' THEN v_patron_name := 'InvitÃ©'; END IF;
+
+  -- VÃ©rifier si une invitation in-app pending existe dÃ©jÃ  entre ces deux
+  SELECT id INTO v_inv_id
+    FROM public.patron_invitations
+   WHERE owner_id       = v_owner_id
+     AND patron_user_id = v_patron_user_id
+     AND status         = 'pending'
+     AND method         = 'in_app'
+   LIMIT 1;
+
+  IF FOUND THEN
+    -- Renvoyer l'ID existant (idempotent)
+    RETURN v_inv_id;
+  END IF;
+
+  -- Trouver ou crÃ©er l'entrÃ©e patrons correspondant Ã  ce patron
+  SELECT id INTO v_patron_id
+    FROM public.patrons
+   WHERE user_id = v_owner_id
+     AND linked_user_id = v_patron_user_id
+   LIMIT 1;
+
+  IF v_patron_id IS NULL THEN
+    INSERT INTO public.patrons (user_id, nom, actif, linked_user_id)
+    VALUES (v_owner_id, v_patron_name, true, v_patron_user_id)
+    RETURNING id INTO v_patron_id;
+  END IF;
+
+  -- CrÃ©er l'invitation
+  INSERT INTO public.patron_invitations (
+    owner_id, patron_id, patron_user_id,
+    invite_token, invite_expires,
+    access_agenda, access_dashboard,
+    initiated_by, method, status
+  ) VALUES (
+    v_owner_id, v_patron_id, v_patron_user_id,
+    gen_random_uuid()::text,
+    now() + interval '30 days',
+    p_access_agenda, p_access_dashboard,
+    p_initiated_by, 'in_app', 'pending'
+  )
+  RETURNING id INTO v_inv_id;
+
+  RETURN v_inv_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) TO authenticated;
+-- RPC: cancel_inapp_invitation
+-- Autorise l'annulation par l'ouvrier (owner_id) OU le patron (patron_user_id)
+-- SECURITY DEFINER pour contourner la RLS qui bloque le patron sur UPDATE
+
+CREATE OR REPLACE FUNCTION public.cancel_inapp_invitation(p_invitation_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.patron_invitations
+    SET status     = 'cancelled',
+        updated_at = now()
+  WHERE id     = p_invitation_id
+    AND status  = 'pending'
+    AND (owner_id = auth.uid() OR patron_user_id = auth.uid());
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitation introuvable ou dÃ©jÃ  traitÃ©e';
+  END IF;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.cancel_inapp_invitation(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.cancel_inapp_invitation(uuid) TO authenticated;
+-- ============================================================
+-- MIGRATION: RLS Security Audit Fixes
+-- Date: 2026-05-20
+-- Auteur: audit complet de toutes les policies RLS
+--
+-- CORRECTIONS:
+--   1. [CRITIQUE] DROP patron_invitations.public_read_invite_by_token (qual=true)
+--   2. [HIGH] Ajouter SELECT viewer pour bilans_status_v2
+--   3. [HIGH] Ajouter SELECT viewer pour lieux
+--   4. [HIGH] Etendre patron_read_agenda pour couvrir role='viewer'
+--   5. [HIGH] Ajouter INSERT/UPDATE/DELETE owner pour acomptes
+--   6. [MEDIUM] Fixer owner_insert_patron_profiles pour role='viewer'
+--   7. [INFO] Supprimer les doublons viewer sur acomptes, frais_divers, frais_km, missions
+-- ============================================================
+
+
+-- ============================================================
+-- 1. [CRITIQUE] patron_invitations.public_read_invite_by_token
+--    QUAL = true â†’ toute personne anonyme peut lire TOUTES les invitations.
+--    La vÃ©rification du token passe par verify_patron_invite_token (SECURITY DEFINER).
+--    Cette policy est inutile et expose tokens + emails + owner_ids.
+-- ============================================================
+DROP POLICY IF EXISTS "public_read_invite_by_token" ON public.patron_invitations;
+
+
+-- ============================================================
+-- 2. [HIGH] Viewer SELECT pour bilans_status_v2
+--    Un viewer (role='viewer', status='active') peut lire les bilans
+--    de son owner (son patron = owner_id dans profiles).
+-- ============================================================
+DROP POLICY IF EXISTS "viewer_select_bilans" ON public.bilans_status_v2;
+CREATE POLICY "viewer_select_bilans"
+  ON public.bilans_status_v2
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role = 'viewer'
+        AND p.status = 'active'
+        AND bilans_status_v2.user_id = p.owner_id
+    )
+  );
+
+
+-- ============================================================
+-- 3. [HIGH] Viewer SELECT pour lieux
+--    NÃ©cessaire pour le Dashboard viewer (calcul km, affichage des lieux).
+-- ============================================================
+DROP POLICY IF EXISTS "viewer_read_lieux" ON public.lieux;
+CREATE POLICY "viewer_read_lieux"
+  ON public.lieux
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role = 'viewer'
+        AND p.status = 'active'
+        AND lieux.user_id = p.owner_id
+    )
+  );
+
+
+-- ============================================================
+-- 4. [HIGH] agenda_events : Ã©tendre Ã  role='viewer' avec access_agenda
+--    La policy patron_read_agenda ne couvre que role='patron'.
+--    On la remplace pour couvrir aussi role='viewer'.
+-- ============================================================
+DROP POLICY IF EXISTS "patron_read_agenda" ON public.agenda_events;
+CREATE POLICY "patron_viewer_read_agenda"
+  ON public.agenda_events
+  FOR SELECT
+  TO authenticated
+  USING (
+    user_id = auth.uid()
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid()
+        AND p.role IN ('patron', 'viewer')
+        AND p.status = 'active'
+        AND ((p.features ->> 'access_agenda')::boolean = true)
+        AND agenda_events.user_id = p.owner_id
+    )
+  );
+
+
+-- ============================================================
+-- 5. [HIGH] Acomptes : policies INSERT / UPDATE / DELETE manquantes pour l'owner
+--    acomptesApi.ts appelle directement insert() et delete() sur la table.
+--    Sans ces policies, les opÃ©rations sont bloquÃ©es par RLS.
+-- ============================================================
+DROP POLICY IF EXISTS "acomptes_insert_own" ON public.acomptes;
+CREATE POLICY "acomptes_insert_own"
+  ON public.acomptes
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "acomptes_update_own" ON public.acomptes;
+CREATE POLICY "acomptes_update_own"
+  ON public.acomptes
+  FOR UPDATE
+  TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "acomptes_delete_own" ON public.acomptes;
+CREATE POLICY "acomptes_delete_own"
+  ON public.acomptes
+  FOR DELETE
+  TO authenticated
+  USING (user_id = auth.uid());
+
+
+-- ============================================================
+-- 6. [MEDIUM] profiles.owner_insert_patron_profiles
+--    WITH CHECK = role = 'patron' uniquement â†’ impossible d'insÃ©rer role='viewer'.
+--    On Ã©tend Ã  IN ('patron','viewer').
+--    Note: l'activation passe par activate_patron_invite (SECURITY DEFINER)
+--    qui bypass dÃ©jÃ  RLS, mais cette policy doit rester cohÃ©rente.
+-- ============================================================
+DROP POLICY IF EXISTS "owner_insert_patron_profiles" ON public.profiles;
+CREATE POLICY "owner_insert_patron_profiles"
+  ON public.profiles
+  FOR INSERT
+  TO public
+  WITH CHECK (
+    owner_id = auth.uid()
+    AND role IN ('patron', 'viewer')
+  );
+
+
+-- ============================================================
+-- 7. [INFO] Suppression des doublons viewer
+--    Pas de risque sÃ©curitÃ©, mais ils alourdissent les plans d'exÃ©cution
+--    et rendent la base difficile Ã  maintenir.
+-- ============================================================
+
+-- acomptes : "Viewer peut lire les acomptes de son patron" est un doublon de viewer_select_acomptes
+DROP POLICY IF EXISTS "Viewer peut lire les acomptes de son patron" ON public.acomptes;
+
+-- frais_divers : 3 policies identiques â†’ on garde viewer_read_frais_divers_by_patron, on drop les 2 autres
+DROP POLICY IF EXISTS "Viewer peut lire les frais divers de son patron" ON public.frais_divers;
+DROP POLICY IF EXISTS "viewer_select_frais" ON public.frais_divers;
+
+-- frais_km : 2 policies identiques â†’ on garde viewer_read_frais_km_by_patron, on drop l'autre
+DROP POLICY IF EXISTS "Viewer peut lire les frais km de son patron" ON public.frais_km;
+
+-- missions : 2 policies identiques â†’ on garde viewer_select_missions, on drop l'autre
+DROP POLICY IF EXISTS "Viewer peut lire les missions de son patron" ON public.missions;
+-- ============================================================
+-- MIGRATION: Fix frais_divers user_id NULL
+-- Date: 2026-05-20
+--
+-- ProblÃ¨me : user_id Ã©tait NULL sur tous les frais existants
+-- (pas de valeur par dÃ©faut sur la colonne), rendant les frais
+-- invisibles via la policy frais_divers_select_own (auth.uid() = user_id).
+--
+-- Corrections :
+--   1. Patcher les lignes existantes avec user_id = owner depuis patrons
+--   2. Ajouter DEFAULT auth.uid() pour que les futurs inserts fonctionnent
+--      mÃªme sans passer user_id explicitement
+-- ============================================================
+
+-- 1. Patcher les frais sans user_id dont on peut infÃ©rer le propriÃ©taire via patrons
+UPDATE public.frais_divers f
+SET user_id = p.user_id
+FROM public.patrons p
+WHERE f.patron_id = p.id
+  AND f.user_id IS NULL;
+
+-- 2. Ajouter DEFAULT auth.uid() pour sÃ©curiser les futurs inserts
+ALTER TABLE public.frais_divers
+  ALTER COLUMN user_id SET DEFAULT auth.uid();
+-- =============================================================================
+-- Fix all in-app invitation RPCs + add inviter_name for display
+-- =============================================================================
+-- 1. accept_inapp_invitation : supprime AND owner_id IS NULL (bloquait Michel)
+-- 2. refuse_inapp_invitation : SELECT first + auth check explicite
+-- 3. cancel_inapp_invitation : SELECT first + auth check explicite
+-- 4. Ajout colonne inviter_name pour afficher le nom sans requÃªte profil
+-- 5. create_inapp_invitation  : stocke inviter_name Ã  la crÃ©ation
+-- =============================================================================
+
+-- â”€â”€â”€ 1. Colonne inviter_name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ALTER TABLE public.patron_invitations
+  ADD COLUMN IF NOT EXISTS inviter_name text;
+
+-- Backfill : invitation existante 8afd9e17 (Geoffrey â†’ Michel, initiated_by='owner')
+UPDATE public.patron_invitations pi
+   SET inviter_name = (
+     SELECT trim(COALESCE(p.prenom, '') || ' ' || COALESCE(p.nom, ''))
+       FROM public.profiles p
+      WHERE p.id = pi.owner_id
+   )
+ WHERE pi.method = 'in_app'
+   AND pi.inviter_name IS NULL
+   AND pi.initiated_by = 'owner';
+
+-- Backfill pour invitations patron-initiated (inviter = patron_user_id)
+UPDATE public.patron_invitations pi
+   SET inviter_name = (
+     SELECT trim(COALESCE(p.prenom, '') || ' ' || COALESCE(p.nom, ''))
+       FROM public.profiles p
+      WHERE p.id = pi.patron_user_id
+   )
+ WHERE pi.method = 'in_app'
+   AND pi.inviter_name IS NULL
+   AND pi.initiated_by = 'patron';
+
+-- â”€â”€â”€ 2. create_inapp_invitation (stocke inviter_name) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+CREATE OR REPLACE FUNCTION public.create_inapp_invitation(
+  p_target_invite_code text,
+  p_initiated_by       text,    -- 'owner' | 'patron'
+  p_access_agenda      boolean DEFAULT false,
+  p_access_dashboard   boolean DEFAULT false
+)
+RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_id      uuid := auth.uid();
+  v_target_id      uuid;
+  v_target_prenom  text;
+  v_target_nom     text;
+  v_caller_prenom  text;
+  v_caller_nom     text;
+  v_owner_id       uuid;
+  v_patron_user_id uuid;
+  v_patron_id      uuid;
+  v_patron_name    text;
+  v_inviter_name   text;
+  v_inv_id         uuid;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  IF p_initiated_by NOT IN ('owner', 'patron') THEN
+    RAISE EXCEPTION 'initiated_by doit Ãªtre "owner" ou "patron"';
+  END IF;
+
+  -- Trouver l'utilisateur cible par son invite_code
+  SELECT p.id, p.prenom, p.nom
+    INTO v_target_id, v_target_prenom, v_target_nom
+    FROM public.profiles p
+   WHERE upper(p.invite_code) = upper(trim(p_target_invite_code))
+   LIMIT 1;
+
+  IF v_target_id IS NULL THEN
+    RAISE EXCEPTION 'Code invalide : aucun utilisateur trouvÃ©';
+  END IF;
+
+  IF v_target_id = v_caller_id THEN
+    RAISE EXCEPTION 'Vous ne pouvez pas vous inviter vous-mÃªme';
+  END IF;
+
+  -- RÃ©cupÃ©rer le nom de l'appelant
+  SELECT prenom, nom INTO v_caller_prenom, v_caller_nom
+    FROM public.profiles WHERE id = v_caller_id;
+
+  -- DÃ©terminer owner / patron selon qui initie
+  IF p_initiated_by = 'owner' THEN
+    -- Appelant = ouvrier, cible = patron
+    v_owner_id       := v_caller_id;
+    v_patron_user_id := v_target_id;
+    v_patron_name    := trim(COALESCE(v_target_prenom, '') || ' ' || COALESCE(v_target_nom, ''));
+    v_inviter_name   := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+  ELSE
+    -- Appelant = patron, cible = ouvrier
+    v_owner_id       := v_target_id;
+    v_patron_user_id := v_caller_id;
+    v_patron_name    := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+    v_inviter_name   := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+  END IF;
+
+  IF v_patron_name    = '' THEN v_patron_name  := 'InvitÃ©'; END IF;
+  IF v_inviter_name   = '' THEN v_inviter_name := 'InvitÃ©'; END IF;
+
+  -- Idempotence : invitation pending existante ?
+  SELECT id INTO v_inv_id
+    FROM public.patron_invitations
+   WHERE owner_id       = v_owner_id
+     AND patron_user_id = v_patron_user_id
+     AND status         = 'pending'
+     AND method         = 'in_app'
+   LIMIT 1;
+
+  IF FOUND THEN
+    RETURN v_inv_id;
+  END IF;
+
+  -- Trouver ou crÃ©er l'entrÃ©e patrons
+  SELECT id INTO v_patron_id
+    FROM public.patrons
+   WHERE user_id = v_owner_id
+     AND linked_user_id = v_patron_user_id
+   LIMIT 1;
+
+  IF v_patron_id IS NULL THEN
+    INSERT INTO public.patrons (user_id, nom, actif, linked_user_id)
+    VALUES (v_owner_id, v_patron_name, true, v_patron_user_id)
+    RETURNING id INTO v_patron_id;
+  END IF;
+
+  -- CrÃ©er l'invitation avec le nom de l'invitant
+  INSERT INTO public.patron_invitations (
+    owner_id, patron_id, patron_user_id,
+    invite_token, invite_expires,
+    access_agenda, access_dashboard,
+    initiated_by, method, status,
+    inviter_name
+  ) VALUES (
+    v_owner_id, v_patron_id, v_patron_user_id,
+    gen_random_uuid()::text,
+    now() + interval '30 days',
+    p_access_agenda, p_access_dashboard,
+    p_initiated_by, 'in_app', 'pending',
+    v_inviter_name
+  )
+  RETURNING id INTO v_inv_id;
+
+  RETURN v_inv_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) TO authenticated;
+
+-- â”€â”€â”€ 3. accept_inapp_invitation (fix AND owner_id IS NULL) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+CREATE OR REPLACE FUNCTION public.accept_inapp_invitation(p_invitation_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_id uuid := auth.uid();
+  v_inv       patron_invitations%ROWTYPE;
+  v_features  jsonb;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  SELECT * INTO v_inv FROM public.patron_invitations WHERE id = p_invitation_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitation introuvable';
+  END IF;
+
+  IF v_inv.status <> 'pending' THEN
+    RAISE EXCEPTION 'Invitation dÃ©jÃ  traitÃ©e (statut : %)', v_inv.status;
+  END IF;
+
+  -- Seul le patron cible ou l'ouvrier Ã©metteur peut accepter
+  IF v_caller_id <> v_inv.patron_user_id AND v_caller_id <> v_inv.owner_id THEN
+    RAISE EXCEPTION 'Non autorisÃ©';
+  END IF;
+
+  v_features := jsonb_build_object(
+    'access_agenda',    v_inv.access_agenda,
+    'access_dashboard', v_inv.access_dashboard
+  );
+
+  -- Mettre Ã  jour le profil du patron pour le lier Ã  cet ouvrier
+  -- Pas de filtre AND owner_id IS NULL : le patron peut avoir eu un accÃ¨s
+  -- rÃ©voquÃ© prÃ©cÃ©demment (status='revoked') et accepte maintenant un nouveau lien
+  UPDATE public.profiles
+     SET owner_id   = v_inv.owner_id,
+         patron_id  = v_inv.patron_id,
+         role       = COALESCE(v_inv.invite_role, 'patron'),
+         status     = 'active',
+         features   = COALESCE(features, '{}'::jsonb) || v_features,
+         updated_at = now()
+   WHERE id = v_inv.patron_user_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Profil du patron introuvable (id=%)', v_inv.patron_user_id;
+  END IF;
+
+  -- Marquer l'invitation comme acceptÃ©e
+  UPDATE public.patron_invitations
+     SET status = 'accepted', updated_at = now()
+   WHERE id = p_invitation_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.accept_inapp_invitation(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.accept_inapp_invitation(uuid) TO authenticated;
+
+-- â”€â”€â”€ 4. refuse_inapp_invitation (SELECT first + auth check explicite) â”€â”€â”€â”€â”€â”€â”€â”€
+CREATE OR REPLACE FUNCTION public.refuse_inapp_invitation(p_invitation_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_id uuid := auth.uid();
+  v_inv       patron_invitations%ROWTYPE;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  SELECT * INTO v_inv FROM public.patron_invitations WHERE id = p_invitation_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitation introuvable';
+  END IF;
+
+  IF v_inv.status <> 'pending' THEN
+    RAISE EXCEPTION 'Invitation dÃ©jÃ  traitÃ©e (statut : %)', v_inv.status;
+  END IF;
+
+  IF v_caller_id <> v_inv.patron_user_id AND v_caller_id <> v_inv.owner_id THEN
+    RAISE EXCEPTION 'Non autorisÃ©';
+  END IF;
+
+  UPDATE public.patron_invitations
+     SET status = 'refused', updated_at = now()
+   WHERE id = p_invitation_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.refuse_inapp_invitation(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.refuse_inapp_invitation(uuid) TO authenticated;
+
+-- â”€â”€â”€ 5. cancel_inapp_invitation (SELECT first + auth check explicite) â”€â”€â”€â”€â”€â”€â”€â”€
+CREATE OR REPLACE FUNCTION public.cancel_inapp_invitation(p_invitation_id uuid)
+RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_id uuid := auth.uid();
+  v_inv       patron_invitations%ROWTYPE;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  SELECT * INTO v_inv FROM public.patron_invitations WHERE id = p_invitation_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitation introuvable';
+  END IF;
+
+  IF v_inv.status <> 'pending' THEN
+    RAISE EXCEPTION 'Invitation dÃ©jÃ  traitÃ©e (statut : %)', v_inv.status;
+  END IF;
+
+  IF v_caller_id <> v_inv.patron_user_id AND v_caller_id <> v_inv.owner_id THEN
+    RAISE EXCEPTION 'Non autorisÃ©';
+  END IF;
+
+  UPDATE public.patron_invitations
+     SET status = 'cancelled', updated_at = now()
+   WHERE id = p_invitation_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.cancel_inapp_invitation(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.cancel_inapp_invitation(uuid) TO authenticated;
+-- =============================================================================
+-- Cleanup patron doublon + fix create_inapp_invitation pour Ã©viter les doublons
+-- =============================================================================
+-- Contexte : create_inapp_invitation a crÃ©Ã© un doublon "Michel Lamproye"
+-- (489e79b6) car le patron original (8ac96ed0) avait linked_user_id = NULL.
+-- Ce script :
+--   1. Rattache l'invitation au bon patron (8ac96ed0, 5 missions)
+--   2. Met linked_user_id sur le patron original
+--   3. Supprime le doublon (489e79b6, 0 missions)
+--   4. Corrige create_inapp_invitation pour chercher d'abord par nom
+-- =============================================================================
+
+-- â”€â”€â”€ 1. Rattacher l'invitation au patron original (avec les missions) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+UPDATE public.patron_invitations
+   SET patron_id = '8ac96ed0-1ff8-4532-b38d-be4da8b5818e'
+ WHERE patron_id = '489e79b6-cd83-4379-a794-c72a520fe3f0';
+
+-- â”€â”€â”€ 2. Supprimer le doublon EN PREMIER (libÃ¨re la clÃ© unique) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+DELETE FROM public.patrons
+ WHERE id = '489e79b6-cd83-4379-a794-c72a520fe3f0';
+
+-- â”€â”€â”€ 3. Lier le patron original Ã  Michel APRÃˆS la suppression â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+UPDATE public.patrons
+   SET linked_user_id = 'a2078de7-1423-4613-b7df-b0a23c0c5253'
+ WHERE id = '8ac96ed0-1ff8-4532-b38d-be4da8b5818e'
+   AND linked_user_id IS NULL;
+
+-- â”€â”€â”€ 4. Corriger create_inapp_invitation : cherche patron existant par nom â”€â”€â”€
+-- Si un patron avec le mÃªme nom et linked_user_id IS NULL existe dÃ©jÃ  sous
+-- cet owner, on le rÃ©utilise et on lui attribue linked_user_id au lieu de
+-- crÃ©er un doublon.
+CREATE OR REPLACE FUNCTION public.create_inapp_invitation(
+  p_target_invite_code text,
+  p_initiated_by       text,
+  p_access_agenda      boolean DEFAULT false,
+  p_access_dashboard   boolean DEFAULT false
+)
+RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_id      uuid := auth.uid();
+  v_target_id      uuid;
+  v_target_prenom  text;
+  v_target_nom     text;
+  v_caller_prenom  text;
+  v_caller_nom     text;
+  v_owner_id       uuid;
+  v_patron_user_id uuid;
+  v_patron_id      uuid;
+  v_patron_name    text;
+  v_inviter_name   text;
+  v_inv_id         uuid;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  IF p_initiated_by NOT IN ('owner', 'patron') THEN
+    RAISE EXCEPTION 'initiated_by doit Ãªtre "owner" ou "patron"';
+  END IF;
+
+  -- Trouver l'utilisateur cible par son invite_code
+  SELECT p.id, p.prenom, p.nom
+    INTO v_target_id, v_target_prenom, v_target_nom
+    FROM public.profiles p
+   WHERE upper(p.invite_code) = upper(trim(p_target_invite_code))
+   LIMIT 1;
+
+  IF v_target_id IS NULL THEN
+    RAISE EXCEPTION 'Code invalide : aucun utilisateur trouvÃ©';
+  END IF;
+
+  IF v_target_id = v_caller_id THEN
+    RAISE EXCEPTION 'Vous ne pouvez pas vous inviter vous-mÃªme';
+  END IF;
+
+  -- RÃ©cupÃ©rer le nom de l'appelant
+  SELECT prenom, nom INTO v_caller_prenom, v_caller_nom
+    FROM public.profiles WHERE id = v_caller_id;
+
+  -- DÃ©terminer owner / patron selon qui initie
+  IF p_initiated_by = 'owner' THEN
+    v_owner_id       := v_caller_id;
+    v_patron_user_id := v_target_id;
+    v_patron_name    := trim(COALESCE(v_target_prenom, '') || ' ' || COALESCE(v_target_nom, ''));
+    v_inviter_name   := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+  ELSE
+    v_owner_id       := v_target_id;
+    v_patron_user_id := v_caller_id;
+    v_patron_name    := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+    v_inviter_name   := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+  END IF;
+
+  IF v_patron_name  = '' THEN v_patron_name  := 'InvitÃ©'; END IF;
+  IF v_inviter_name = '' THEN v_inviter_name := 'InvitÃ©'; END IF;
+
+  -- Idempotence : invitation pending existante ?
+  SELECT id INTO v_inv_id
+    FROM public.patron_invitations
+   WHERE owner_id       = v_owner_id
+     AND patron_user_id = v_patron_user_id
+     AND status         = 'pending'
+     AND method         = 'in_app'
+   LIMIT 1;
+
+  IF FOUND THEN
+    RETURN v_inv_id;
+  END IF;
+
+  -- â”€â”€ Trouver ou crÃ©er l'entrÃ©e patrons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  -- 1. Cherche par linked_user_id (lien auth dÃ©jÃ  Ã©tabli)
+  SELECT id INTO v_patron_id
+    FROM public.patrons
+   WHERE user_id        = v_owner_id
+     AND linked_user_id = v_patron_user_id
+   LIMIT 1;
+
+  -- 2. Sinon cherche par nom exact parmi les patrons sans lien auth
+  --    (Ã©vite de crÃ©er un doublon quand le patron existait avant le systÃ¨me in-app)
+  IF v_patron_id IS NULL THEN
+    SELECT id INTO v_patron_id
+      FROM public.patrons
+     WHERE user_id        = v_owner_id
+       AND linked_user_id IS NULL
+       AND lower(trim(nom)) = lower(trim(v_patron_name))
+     LIMIT 1;
+
+    -- Lier ce patron existant Ã  l'utilisateur auth pour les prochaines fois
+    IF v_patron_id IS NOT NULL THEN
+      UPDATE public.patrons
+         SET linked_user_id = v_patron_user_id
+       WHERE id = v_patron_id;
+    END IF;
+  END IF;
+
+  -- 3. Toujours pas trouvÃ© â†’ crÃ©er
+  IF v_patron_id IS NULL THEN
+    INSERT INTO public.patrons (user_id, nom, actif, linked_user_id)
+    VALUES (v_owner_id, v_patron_name, true, v_patron_user_id)
+    RETURNING id INTO v_patron_id;
+  END IF;
+
+  -- CrÃ©er l'invitation
+  INSERT INTO public.patron_invitations (
+    owner_id, patron_id, patron_user_id,
+    invite_token, invite_expires,
+    access_agenda, access_dashboard,
+    initiated_by, method, status,
+    inviter_name
+  ) VALUES (
+    v_owner_id, v_patron_id, v_patron_user_id,
+    gen_random_uuid()::text,
+    now() + interval '30 days',
+    p_access_agenda, p_access_dashboard,
+    p_initiated_by, 'in_app', 'pending',
+    v_inviter_name
+  )
+  RETURNING id INTO v_inv_id;
+
+  RETURN v_inv_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) TO authenticated;
+-- =============================================================================
+-- Migration 20260521020000 : target_name + rÃ©paration profil Michel
+-- =============================================================================
+-- ProblÃ¨mes corrigÃ©s :
+--  1. patron_id = NULL sur le profil de Michel (FK ON DELETE SET NULL causÃ© par
+--     la suppression du doublon 489e79b6 dans la migration prÃ©cÃ©dente alors que
+--     Michel avait acceptÃ© 8afd9e17 avec ce patron_id).
+--  2. Colonne target_name absente : impossible d'afficher le nom de l'ouvrier
+--     cÃ´tÃ© patron dans les invitations envoyÃ©es (on ne stockait que inviter_name).
+-- =============================================================================
+
+-- â”€â”€â”€ 1. Colonne target_name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ALTER TABLE public.patron_invitations
+  ADD COLUMN IF NOT EXISTS target_name text;
+
+-- â”€â”€â”€ 2. RÃ©parer profil Michel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- patron_id est tombÃ© Ã  NULL car create_inapp_invitation avait crÃ©Ã© le doublon
+-- 489e79b6 (supprimÃ© migration 20260521010000) et Michel l'avait acceptÃ©.
+UPDATE public.profiles
+   SET patron_id = '8ac96ed0-1ff8-4532-b38d-be4da8b5818e'
+ WHERE id       = 'a2078de7-1423-4613-b7df-b0a23c0c5253'
+   AND patron_id IS NULL
+   AND owner_id  = 'e81058de-cf30-49a1-850f-c9cf5099f21d'
+   AND status    = 'active';
+
+-- â”€â”€â”€ 3. Backfill target_name : toutes les invitations in_app existantes â”€â”€â”€â”€â”€â”€â”€â”€
+-- target_name = nom de l'ouvrier (owner_id â†’ profiles)
+UPDATE public.patron_invitations pi
+   SET target_name = (
+     SELECT trim(COALESCE(pr.prenom, '') || ' ' || COALESCE(pr.nom, ''))
+       FROM public.profiles pr
+      WHERE pr.id = pi.owner_id
+   )
+ WHERE pi.target_name IS NULL
+   AND pi.method = 'in_app';
+
+-- â”€â”€â”€ 4. create_inapp_invitation : ajouter target_name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+CREATE OR REPLACE FUNCTION public.create_inapp_invitation(
+  p_target_invite_code text,
+  p_initiated_by       text,
+  p_access_agenda      boolean DEFAULT false,
+  p_access_dashboard   boolean DEFAULT false
+) RETURNS uuid
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = public
+AS $$
+DECLARE
+  v_caller_id      uuid := auth.uid();
+  v_target_id      uuid;
+  v_target_prenom  text;
+  v_target_nom     text;
+  v_caller_prenom  text;
+  v_caller_nom     text;
+  v_owner_id       uuid;
+  v_patron_user_id uuid;
+  v_patron_id      uuid;
+  v_patron_name    text;
+  v_inviter_name   text;
+  v_target_name    text;
+  v_inv_id         uuid;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  IF p_initiated_by NOT IN ('owner', 'patron') THEN
+    RAISE EXCEPTION 'initiated_by doit Ãªtre "owner" ou "patron"';
+  END IF;
+
+  -- Trouver l'utilisateur cible par son invite_code
+  SELECT p.id, p.prenom, p.nom
+    INTO v_target_id, v_target_prenom, v_target_nom
+    FROM public.profiles p
+   WHERE upper(p.invite_code) = upper(trim(p_target_invite_code))
+   LIMIT 1;
+
+  IF v_target_id IS NULL THEN
+    RAISE EXCEPTION 'Code invalide : aucun utilisateur trouvÃ©';
+  END IF;
+
+  IF v_target_id = v_caller_id THEN
+    RAISE EXCEPTION 'Vous ne pouvez pas vous inviter vous-mÃªme';
+  END IF;
+
+  -- RÃ©cupÃ©rer le nom de l'appelant
+  SELECT prenom, nom INTO v_caller_prenom, v_caller_nom
+    FROM public.profiles WHERE id = v_caller_id;
+
+  -- Noms cible et invitant
+  v_target_name  := trim(COALESCE(v_target_prenom, '') || ' ' || COALESCE(v_target_nom, ''));
+  v_inviter_name := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+
+  -- DÃ©terminer owner / patron selon qui initie
+  IF p_initiated_by = 'owner' THEN
+    -- L'ouvrier (caller) invite le patron (target)
+    v_owner_id       := v_caller_id;
+    v_patron_user_id := v_target_id;
+    v_patron_name    := v_target_name;
+  ELSE
+    -- Le patron (caller) invite l'ouvrier (target)
+    v_owner_id       := v_target_id;
+    v_patron_user_id := v_caller_id;
+    v_patron_name    := v_inviter_name;
+  END IF;
+
+  IF v_patron_name  = '' THEN v_patron_name  := 'InvitÃ©'; END IF;
+  IF v_inviter_name = '' THEN v_inviter_name := 'InvitÃ©'; END IF;
+  IF v_target_name  = '' THEN v_target_name  := 'InvitÃ©'; END IF;
+
+  -- Idempotence : invitation pending existante ?
+  SELECT id INTO v_inv_id
+    FROM public.patron_invitations
+   WHERE owner_id       = v_owner_id
+     AND patron_user_id = v_patron_user_id
+     AND status         = 'pending'
+     AND method         = 'in_app'
+   LIMIT 1;
+
+  IF FOUND THEN
+    RETURN v_inv_id;
+  END IF;
+
+  -- â”€â”€ Trouver ou crÃ©er l'entrÃ©e patrons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  -- 1. Cherche par linked_user_id (lien auth dÃ©jÃ  Ã©tabli)
+  SELECT id INTO v_patron_id
+    FROM public.patrons
+   WHERE user_id        = v_owner_id
+     AND linked_user_id = v_patron_user_id
+   LIMIT 1;
+
+  -- 2. Sinon cherche par nom exact parmi les patrons sans lien auth
+  IF v_patron_id IS NULL THEN
+    SELECT id INTO v_patron_id
+      FROM public.patrons
+     WHERE user_id        = v_owner_id
+       AND linked_user_id IS NULL
+       AND lower(trim(nom)) = lower(trim(v_patron_name))
+     LIMIT 1;
+
+    IF v_patron_id IS NOT NULL THEN
+      UPDATE public.patrons
+         SET linked_user_id = v_patron_user_id
+       WHERE id = v_patron_id;
+    END IF;
+  END IF;
+
+  -- 3. Toujours pas trouvÃ© â†’ crÃ©er
+  IF v_patron_id IS NULL THEN
+    INSERT INTO public.patrons (user_id, nom, actif, linked_user_id)
+    VALUES (v_owner_id, v_patron_name, true, v_patron_user_id)
+    RETURNING id INTO v_patron_id;
+  END IF;
+
+  -- CrÃ©er l'invitation
+  INSERT INTO public.patron_invitations (
+    owner_id, patron_id, patron_user_id,
+    invite_token, invite_expires,
+    access_agenda, access_dashboard,
+    initiated_by, method, status,
+    inviter_name, target_name
+  ) VALUES (
+    v_owner_id, v_patron_id, v_patron_user_id,
+    gen_random_uuid()::text,
+    now() + interval '30 days',
+    p_access_agenda, p_access_dashboard,
+    p_initiated_by, 'in_app', 'pending',
+    v_inviter_name, v_target_name
+  )
+  RETURNING id INTO v_inv_id;
+
+  RETURN v_inv_id;
+END;
+$$;
+-- =============================================================================
+-- Migration 20260521030000 : support multi-ouvrier pour les patrons
+-- =============================================================================
+-- ProblÃ¨me racine : accept_inapp_invitation Ã©crasait profiles.owner_id et
+-- profiles.patron_id Ã  chaque invitation acceptÃ©e, effaÃ§ant le lien prÃ©cÃ©dent.
+--
+-- Solution :
+--  1. accept_inapp_invitation : ne touche owner_id / patron_id QUE si null
+--     (premier lien). Les liens suivants sont enregistrÃ©s dans patron_invitations
+--     (status='accepted') et accessibles via switch_patron_context.
+--  2. switch_patron_context(invitation_id) : met Ã  jour profiles pour pointer
+--     sur l'ouvrier sÃ©lectionnÃ© â†’ le RLS (qui lit profiles.owner_id et
+--     profiles.patron_id) fonctionnera correctement.
+-- =============================================================================
+
+-- â”€â”€â”€ 1. accept_inapp_invitation : ne pas Ã©craser le lien existant â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+CREATE OR REPLACE FUNCTION public.accept_inapp_invitation(
+  p_invitation_id uuid
+) RETURNS void
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = public
+AS $$
+DECLARE
+  v_caller_id uuid := auth.uid();
+  v_inv       patron_invitations%ROWTYPE;
+  v_features  jsonb;
+  v_has_link  boolean;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  SELECT * INTO v_inv FROM public.patron_invitations WHERE id = p_invitation_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitation introuvable';
+  END IF;
+
+  IF v_inv.status <> 'pending' THEN
+    RAISE EXCEPTION 'Invitation dÃ©jÃ  traitÃ©e (statut : %)', v_inv.status;
+  END IF;
+
+  -- Seul le destinataire peut accepter :
+  --   initiated_by='patron' â†’ destinataire = owner (ouvrier)
+  --   initiated_by='owner'  â†’ destinataire = patron
+  IF v_inv.initiated_by = 'patron' AND v_caller_id <> v_inv.owner_id THEN
+    RAISE EXCEPTION 'Non autorisÃ©';
+  END IF;
+  IF v_inv.initiated_by = 'owner' AND v_caller_id <> v_inv.patron_user_id THEN
+    RAISE EXCEPTION 'Non autorisÃ©';
+  END IF;
+
+  v_features := jsonb_build_object(
+    'access_agenda',    v_inv.access_agenda,
+    'access_dashboard', v_inv.access_dashboard
+  );
+
+  -- VÃ©rifier si le profil patron a dÃ©jÃ  un lien actif
+  SELECT (owner_id IS NOT NULL AND patron_id IS NOT NULL)
+    INTO v_has_link
+    FROM public.profiles
+   WHERE id = v_inv.patron_user_id;
+
+  -- Mettre Ã  jour le profil du patron :
+  --   - status et features toujours mis Ã  jour
+  --   - owner_id / patron_id seulement si pas encore de lien (premier accÃ¨s)
+  --     â†’ les accÃ¨s suivants se gÃ¨rent via switch_patron_context
+  UPDATE public.profiles
+     SET owner_id   = CASE WHEN NOT v_has_link THEN v_inv.owner_id  ELSE owner_id  END,
+         patron_id  = CASE WHEN NOT v_has_link THEN v_inv.patron_id ELSE patron_id END,
+         role       = COALESCE(v_inv.invite_role, 'patron'),
+         status     = 'active',
+         features   = COALESCE(features, '{}'::jsonb) || v_features,
+         updated_at = now()
+   WHERE id = v_inv.patron_user_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Profil du patron introuvable (id=%)', v_inv.patron_user_id;
+  END IF;
+
+  -- Marquer l'invitation comme acceptÃ©e
+  UPDATE public.patron_invitations
+     SET status = 'accepted', updated_at = now()
+   WHERE id = p_invitation_id;
+END;
+$$;
+
+-- â”€â”€â”€ 2. switch_patron_context : changer l'ouvrier actif pour un patron â”€â”€â”€â”€â”€â”€â”€â”€
+-- Quand un patron a plusieurs ouvriers, il choisit lequel afficher.
+-- Cette fonction met Ã  jour profiles.owner_id / patron_id vers l'invitation
+-- sÃ©lectionnÃ©e â†’ le RLS des tables (missions, acomptes, fraisâ€¦) se base sur
+-- ces deux colonnes pour filtrer les donnÃ©es.
+CREATE OR REPLACE FUNCTION public.switch_patron_context(
+  p_invitation_id uuid
+) RETURNS void
+  LANGUAGE plpgsql
+  SECURITY DEFINER
+  SET search_path = public
+AS $$
+DECLARE
+  v_caller_id uuid := auth.uid();
+  v_inv       patron_invitations%ROWTYPE;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  SELECT * INTO v_inv
+    FROM public.patron_invitations
+   WHERE id = p_invitation_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Invitation introuvable';
+  END IF;
+
+  -- Seul le patron destinataire peut switcher
+  IF v_inv.patron_user_id <> v_caller_id THEN
+    RAISE EXCEPTION 'Non autorisÃ©';
+  END IF;
+
+  IF v_inv.status <> 'accepted' THEN
+    RAISE EXCEPTION 'Invitation non acceptÃ©e (statut : %)', v_inv.status;
+  END IF;
+
+  UPDATE public.profiles
+     SET owner_id   = v_inv.owner_id,
+         patron_id  = v_inv.patron_id,
+         features   = COALESCE(features, '{}'::jsonb) || jsonb_build_object(
+                        'access_agenda',    v_inv.access_agenda,
+                        'access_dashboard', v_inv.access_dashboard
+                      ),
+         updated_at = now()
+   WHERE id = v_caller_id;
+END;
+$$;
+-- =============================================================================
+-- Migration 20260517040000 : Ã©viter les doublons dans la table patrons
+-- =============================================================================
+-- ProblÃ¨me : create_inapp_invitation cherche le patron par
+--   (user_id = ouvrier, linked_user_id = patron_user_id).
+-- Si l'ouvrier avait saisi le patron manuellement (linked_user_id IS NULL),
+-- la recherche retourne NULL et un second enregistrement est insÃ©rÃ©.
+--
+-- Solution :
+--   1. Chercher d'abord par (user_id, linked_user_id)          â†’ correspondance exacte
+--   2. Si non trouvÃ©, chercher par (user_id, nom ILIKE, linked_user_id IS NULL)
+--      â†’ rattacher l'entrÃ©e existante en mettant Ã  jour linked_user_id
+--   3. Seulement si aucune correspondance : insÃ©rer un nouveau patron
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.create_inapp_invitation(
+  p_target_invite_code text,
+  p_initiated_by       text,    -- 'owner' | 'patron'
+  p_access_agenda      boolean DEFAULT false,
+  p_access_dashboard   boolean DEFAULT false
+)
+RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_id      uuid := auth.uid();
+  v_target_id      uuid;
+  v_target_prenom  text;
+  v_target_nom     text;
+  v_caller_prenom  text;
+  v_caller_nom     text;
+  v_owner_id       uuid;
+  v_patron_user_id uuid;
+  v_patron_id      uuid;
+  v_patron_name    text;
+  v_inviter_name   text;
+  v_inv_id         uuid;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  IF p_initiated_by NOT IN ('owner', 'patron') THEN
+    RAISE EXCEPTION 'initiated_by doit Ãªtre "owner" ou "patron"';
+  END IF;
+
+  -- Trouver l'utilisateur cible par son invite_code
+  SELECT p.id, p.prenom, p.nom
+    INTO v_target_id, v_target_prenom, v_target_nom
+    FROM public.profiles p
+   WHERE upper(p.invite_code) = upper(trim(p_target_invite_code))
+   LIMIT 1;
+
+  IF v_target_id IS NULL THEN
+    RAISE EXCEPTION 'Code invalide : aucun utilisateur trouvÃ©';
+  END IF;
+
+  IF v_target_id = v_caller_id THEN
+    RAISE EXCEPTION 'Vous ne pouvez pas vous inviter vous-mÃªme';
+  END IF;
+
+  -- RÃ©cupÃ©rer le nom de l'appelant
+  SELECT prenom, nom INTO v_caller_prenom, v_caller_nom
+    FROM public.profiles WHERE id = v_caller_id;
+
+  -- DÃ©terminer owner / patron selon qui initie
+  IF p_initiated_by = 'owner' THEN
+    -- Appelant = ouvrier, cible = patron
+    v_owner_id       := v_caller_id;
+    v_patron_user_id := v_target_id;
+    v_patron_name    := trim(COALESCE(v_target_prenom, '') || ' ' || COALESCE(v_target_nom, ''));
+    v_inviter_name   := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+  ELSE
+    -- Appelant = patron, cible = ouvrier
+    v_owner_id       := v_target_id;
+    v_patron_user_id := v_caller_id;
+    v_patron_name    := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+    v_inviter_name   := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+  END IF;
+
+  IF v_patron_name  = '' THEN v_patron_name  := 'InvitÃ©'; END IF;
+  IF v_inviter_name = '' THEN v_inviter_name := 'InvitÃ©'; END IF;
+
+  -- Idempotence : invitation pending existante ?
+  SELECT id INTO v_inv_id
+    FROM public.patron_invitations
+   WHERE owner_id       = v_owner_id
+     AND patron_user_id = v_patron_user_id
+     AND status         = 'pending'
+     AND method         = 'in_app'
+   LIMIT 1;
+
+  IF FOUND THEN
+    RETURN v_inv_id;
+  END IF;
+
+  -- â”€â”€ Trouver ou crÃ©er l'entrÃ©e patrons (sans doublon) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  -- Ã‰tape 1 : correspondance exacte par linked_user_id
+  SELECT id INTO v_patron_id
+    FROM public.patrons
+   WHERE user_id        = v_owner_id
+     AND linked_user_id = v_patron_user_id
+   LIMIT 1;
+
+  IF v_patron_id IS NULL THEN
+    -- Ã‰tape 2 : patron saisi manuellement (linked_user_id IS NULL) avec nom similaire
+    SELECT id INTO v_patron_id
+      FROM public.patrons
+     WHERE user_id        = v_owner_id
+       AND linked_user_id IS NULL
+       AND lower(trim(nom)) = lower(trim(v_patron_name))
+     LIMIT 1;
+
+    IF v_patron_id IS NOT NULL THEN
+      -- Rattacher l'entrÃ©e existante au compte Tracko du patron
+      UPDATE public.patrons
+         SET linked_user_id = v_patron_user_id,
+             actif          = true
+       WHERE id = v_patron_id;
+    END IF;
+  END IF;
+
+  IF v_patron_id IS NULL THEN
+    -- Ã‰tape 3 : aucun patron trouvÃ© â†’ insÃ©rer
+    INSERT INTO public.patrons (user_id, nom, actif, linked_user_id)
+    VALUES (v_owner_id, v_patron_name, true, v_patron_user_id)
+    RETURNING id INTO v_patron_id;
+  END IF;
+
+  -- CrÃ©er l'invitation
+  INSERT INTO public.patron_invitations (
+    owner_id, patron_id, patron_user_id,
+    invite_token, invite_expires,
+    access_agenda, access_dashboard,
+    initiated_by, method, status,
+    inviter_name
+  ) VALUES (
+    v_owner_id, v_patron_id, v_patron_user_id,
+    gen_random_uuid()::text,
+    now() + interval '30 days',
+    p_access_agenda, p_access_dashboard,
+    p_initiated_by, 'in_app', 'pending',
+    v_inviter_name
+  )
+  RETURNING id INTO v_inv_id;
+
+  RETURN v_inv_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) TO authenticated;
+-- =============================================================================
+-- Migration : Security fix â€” Restreindre patron_email_has_account Ã  authenticated
+-- Date      : 2026-05-22
+-- Auteur    : Audit sÃ©curitÃ© prÃ©-production
+-- =============================================================================
+--
+-- PROBLÃˆME V4 :
+--   La RPC patron_email_has_account Ã©tait accessible aux utilisateurs anon.
+--   N'importe quelle requÃªte HTTP sans authentification pouvait tester si
+--   une adresse email est enregistrÃ©e dans le systÃ¨me.
+--   Violation RGPD Article 5 (minimisation) + vecteur d'Ã©numÃ©ration.
+--
+-- CORRECTIF :
+--   REVOKE EXECUTE ... FROM anon
+--   GRANT EXECUTE ... TO authenticated uniquement.
+--
+-- IMPACT :
+--   La page d'invitation email qui appelait cette RPC avant que l'utilisateur
+--   soit connectÃ© devra Ãªtre revue si elle nÃ©cessite cette info cÃ´tÃ© anon.
+--   Dans le flux actuel (invitation par email â†’ lien â†’ AcceptInvitePage), la
+--   vÃ©rification d'email est faite par l'owner (authentifiÃ©) â†’ pas de rÃ©gression.
+-- =============================================================================
+
+REVOKE EXECUTE ON FUNCTION public.patron_email_has_account(text) FROM anon;
+GRANT EXECUTE ON FUNCTION public.patron_email_has_account(text) TO authenticated;
+-- =============================================================================
+-- Migration 20260523000000 : create_inapp_invitation â€“ recherche 4 Ã©tapes
+-- =============================================================================
+-- ProblÃ¨me : le match par nom seul Ã©choue quand l'ouvrier a tapÃ© "Michel"
+-- mais le profil contient "Michel Martin" (ou inversement).
+-- Solution : ajouter une Ã©tape intermÃ©diaire de match par email, qui est
+-- un identifiant fiable et unique contrairement au nom libre.
+--
+-- Ordre de recherche dans patrons (user_id = ouvrier) :
+--   1. linked_user_id = patron_user_id          â†’ lien auth dÃ©jÃ  Ã©tabli
+--   2. email = auth.users.email + linked IS NULL â†’ mÃªme personne, pas encore liÃ©e
+--   3. lower(nom) = lower(v_patron_name) + NULL  â†’ mÃªme nom complet
+--   4. INSERT si rien trouvÃ©
+-- Pour les Ã©tapes 2 et 3 : UPDATE linked_user_id sur la ligne existante.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.create_inapp_invitation(
+  p_target_invite_code text,
+  p_initiated_by       text,    -- 'owner' | 'patron'
+  p_access_agenda      boolean DEFAULT false,
+  p_access_dashboard   boolean DEFAULT false
+)
+RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_id      uuid := auth.uid();
+  v_target_id      uuid;
+  v_target_prenom  text;
+  v_target_nom     text;
+  v_caller_prenom  text;
+  v_caller_nom     text;
+  v_owner_id       uuid;
+  v_patron_user_id uuid;
+  v_patron_id      uuid;
+  v_patron_name    text;
+  v_inviter_name   text;
+  v_target_name    text;
+  v_patron_email   text;
+  v_inv_id         uuid;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  IF p_initiated_by NOT IN ('owner', 'patron') THEN
+    RAISE EXCEPTION 'initiated_by doit Ãªtre "owner" ou "patron"';
+  END IF;
+
+  -- Trouver l'utilisateur cible par son invite_code
+  SELECT p.id, p.prenom, p.nom
+    INTO v_target_id, v_target_prenom, v_target_nom
+    FROM public.profiles p
+   WHERE upper(p.invite_code) = upper(trim(p_target_invite_code))
+   LIMIT 1;
+
+  IF v_target_id IS NULL THEN
+    RAISE EXCEPTION 'Code invalide : aucun utilisateur trouvÃ©';
+  END IF;
+
+  IF v_target_id = v_caller_id THEN
+    RAISE EXCEPTION 'Vous ne pouvez pas vous inviter vous-mÃªme';
+  END IF;
+
+  -- RÃ©cupÃ©rer le nom de l'appelant
+  SELECT prenom, nom INTO v_caller_prenom, v_caller_nom
+    FROM public.profiles WHERE id = v_caller_id;
+
+  -- DÃ©terminer owner / patron selon qui initie
+  IF p_initiated_by = 'owner' THEN
+    -- Appelant = ouvrier, cible = patron
+    v_owner_id       := v_caller_id;
+    v_patron_user_id := v_target_id;
+    v_patron_name    := trim(COALESCE(v_target_prenom, '') || ' ' || COALESCE(v_target_nom, ''));
+    v_inviter_name   := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+    v_target_name    := v_patron_name;
+  ELSE
+    -- Appelant = patron, cible = ouvrier
+    v_owner_id       := v_target_id;
+    v_patron_user_id := v_caller_id;
+    v_patron_name    := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+    v_inviter_name   := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+    v_target_name    := trim(COALESCE(v_target_prenom, '') || ' ' || COALESCE(v_target_nom, ''));
+  END IF;
+
+  IF v_patron_name  = '' THEN v_patron_name  := 'InvitÃ©'; END IF;
+  IF v_inviter_name = '' THEN v_inviter_name := 'InvitÃ©'; END IF;
+  IF v_target_name  = '' THEN v_target_name  := 'InvitÃ©'; END IF;
+
+  -- Idempotence : invitation pending existante entre ces deux ?
+  SELECT id INTO v_inv_id
+    FROM public.patron_invitations
+   WHERE owner_id       = v_owner_id
+     AND patron_user_id = v_patron_user_id
+     AND status         = 'pending'
+     AND method         = 'in_app'
+   LIMIT 1;
+
+  IF FOUND THEN
+    RETURN v_inv_id;
+  END IF;
+
+  -- â”€â”€ Ã‰tape 1 : correspondance exacte par linked_user_id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  SELECT id INTO v_patron_id
+    FROM public.patrons
+   WHERE user_id        = v_owner_id
+     AND linked_user_id = v_patron_user_id
+   LIMIT 1;
+
+  -- â”€â”€ Ã‰tape 2 : correspondance par email (auth.users) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  IF v_patron_id IS NULL THEN
+    -- RÃ©cupÃ©rer l'email auth du patron
+    SELECT email INTO v_patron_email
+      FROM auth.users
+     WHERE id = v_patron_user_id;
+
+    IF v_patron_email IS NOT NULL THEN
+      SELECT id INTO v_patron_id
+        FROM public.patrons
+       WHERE user_id        = v_owner_id
+         AND linked_user_id IS NULL
+         AND lower(trim(COALESCE(email, ''))) = lower(trim(v_patron_email))
+       LIMIT 1;
+
+      IF v_patron_id IS NOT NULL THEN
+        UPDATE public.patrons
+           SET linked_user_id = v_patron_user_id,
+               actif          = true
+         WHERE id = v_patron_id;
+      END IF;
+    END IF;
+  END IF;
+
+  -- â”€â”€ Ã‰tape 3 : correspondance par nom complet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  IF v_patron_id IS NULL THEN
+    SELECT id INTO v_patron_id
+      FROM public.patrons
+     WHERE user_id        = v_owner_id
+       AND linked_user_id IS NULL
+       AND lower(trim(nom)) = lower(trim(v_patron_name))
+     LIMIT 1;
+
+    IF v_patron_id IS NOT NULL THEN
+      UPDATE public.patrons
+         SET linked_user_id = v_patron_user_id,
+             actif          = true
+       WHERE id = v_patron_id;
+    END IF;
+  END IF;
+
+  -- â”€â”€ Ã‰tape 4 : aucune correspondance â†’ INSERT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  IF v_patron_id IS NULL THEN
+    INSERT INTO public.patrons (user_id, nom, actif, linked_user_id)
+    VALUES (v_owner_id, v_patron_name, true, v_patron_user_id)
+    RETURNING id INTO v_patron_id;
+  END IF;
+
+  -- CrÃ©er l'invitation
+  INSERT INTO public.patron_invitations (
+    owner_id, patron_id, patron_user_id,
+    invite_token, invite_expires,
+    access_agenda, access_dashboard,
+    initiated_by, method, status,
+    inviter_name, target_name
+  ) VALUES (
+    v_owner_id, v_patron_id, v_patron_user_id,
+    gen_random_uuid()::text,
+    now() + interval '30 days',
+    p_access_agenda, p_access_dashboard,
+    p_initiated_by, 'in_app', 'pending',
+    v_inviter_name, v_target_name
+  )
+  RETURNING id INTO v_inv_id;
+
+  RETURN v_inv_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) TO authenticated;
+-- =============================================================================
+-- Migration 20260524000000 : create_inapp_invitation â€“ email uniquement, sans INSERT
+-- =============================================================================
+-- Simplification radicale : si aucun patron existant ne correspond Ã  l'email
+-- du compte Tracko ciblÃ©, on lÃ¨ve une erreur plutÃ´t que d'insÃ©rer un doublon.
+--
+-- Ordre de recherche dans patrons (user_id = ouvrier) :
+--   1. linked_user_id = patron_user_id          â†’ lien auth dÃ©jÃ  Ã©tabli
+--   2. email = auth.users.email + linked IS NULL â†’ mÃªme personne, pas encore liÃ©e
+--                                                  â†’ UPDATE linked_user_id
+--   Si rien trouvÃ© â†’ RAISE EXCEPTION (message explicite)
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.create_inapp_invitation(
+  p_target_invite_code text,
+  p_initiated_by       text,    -- 'owner' | 'patron'
+  p_access_agenda      boolean DEFAULT false,
+  p_access_dashboard   boolean DEFAULT false
+)
+RETURNS uuid
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_caller_id      uuid := auth.uid();
+  v_target_id      uuid;
+  v_target_prenom  text;
+  v_target_nom     text;
+  v_caller_prenom  text;
+  v_caller_nom     text;
+  v_owner_id       uuid;
+  v_patron_user_id uuid;
+  v_patron_id      uuid;
+  v_patron_name    text;
+  v_inviter_name   text;
+  v_target_name    text;
+  v_patron_email   text;
+  v_inv_id         uuid;
+BEGIN
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'Utilisateur non authentifiÃ©';
+  END IF;
+
+  IF p_initiated_by NOT IN ('owner', 'patron') THEN
+    RAISE EXCEPTION 'initiated_by doit Ãªtre "owner" ou "patron"';
+  END IF;
+
+  -- Trouver l'utilisateur cible par son invite_code
+  SELECT p.id, p.prenom, p.nom
+    INTO v_target_id, v_target_prenom, v_target_nom
+    FROM public.profiles p
+   WHERE upper(p.invite_code) = upper(trim(p_target_invite_code))
+   LIMIT 1;
+
+  IF v_target_id IS NULL THEN
+    RAISE EXCEPTION 'Code invalide : aucun utilisateur trouvÃ©';
+  END IF;
+
+  IF v_target_id = v_caller_id THEN
+    RAISE EXCEPTION 'Vous ne pouvez pas vous inviter vous-mÃªme';
+  END IF;
+
+  -- RÃ©cupÃ©rer le nom de l'appelant
+  SELECT prenom, nom INTO v_caller_prenom, v_caller_nom
+    FROM public.profiles WHERE id = v_caller_id;
+
+  -- DÃ©terminer owner / patron selon qui initie
+  IF p_initiated_by = 'owner' THEN
+    -- Appelant = ouvrier, cible = patron
+    v_owner_id       := v_caller_id;
+    v_patron_user_id := v_target_id;
+    v_patron_name    := trim(COALESCE(v_target_prenom, '') || ' ' || COALESCE(v_target_nom, ''));
+    v_inviter_name   := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+    v_target_name    := v_patron_name;
+  ELSE
+    -- Appelant = patron, cible = ouvrier
+    v_owner_id       := v_target_id;
+    v_patron_user_id := v_caller_id;
+    v_patron_name    := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+    v_inviter_name   := trim(COALESCE(v_caller_prenom, '') || ' ' || COALESCE(v_caller_nom, ''));
+    v_target_name    := trim(COALESCE(v_target_prenom, '') || ' ' || COALESCE(v_target_nom, ''));
+  END IF;
+
+  IF v_patron_name  = '' THEN v_patron_name  := 'InvitÃ©'; END IF;
+  IF v_inviter_name = '' THEN v_inviter_name := 'InvitÃ©'; END IF;
+  IF v_target_name  = '' THEN v_target_name  := 'InvitÃ©'; END IF;
+
+  -- Idempotence : invitation pending existante entre ces deux ?
+  SELECT id INTO v_inv_id
+    FROM public.patron_invitations
+   WHERE owner_id       = v_owner_id
+     AND patron_user_id = v_patron_user_id
+     AND status         = 'pending'
+     AND method         = 'in_app'
+   LIMIT 1;
+
+  IF FOUND THEN
+    RETURN v_inv_id;
+  END IF;
+
+  -- â”€â”€ Ã‰tape 1 : correspondance exacte par linked_user_id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  SELECT id INTO v_patron_id
+    FROM public.patrons
+   WHERE user_id        = v_owner_id
+     AND linked_user_id = v_patron_user_id
+   LIMIT 1;
+
+  -- â”€â”€ Ã‰tape 2 : correspondance par email (auth.users) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  IF v_patron_id IS NULL THEN
+    SELECT email INTO v_patron_email
+      FROM auth.users
+     WHERE id = v_patron_user_id;
+
+    IF v_patron_email IS NOT NULL THEN
+      SELECT id INTO v_patron_id
+        FROM public.patrons
+       WHERE user_id        = v_owner_id
+         AND linked_user_id IS NULL
+         AND lower(trim(COALESCE(email, ''))) = lower(trim(v_patron_email))
+       LIMIT 1;
+
+      IF v_patron_id IS NOT NULL THEN
+        UPDATE public.patrons
+           SET linked_user_id = v_patron_user_id,
+               actif          = true
+         WHERE id = v_patron_id;
+      END IF;
+    END IF;
+  END IF;
+
+  -- â”€â”€ Aucune correspondance â†’ erreur explicite (pas d'INSERT) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  IF v_patron_id IS NULL THEN
+    RAISE EXCEPTION 'Aucun patron trouvÃ© avec cet email dans votre liste. Veuillez d''abord ajouter ce patron dans vos paramÃ¨tres avec son adresse email.';
+  END IF;
+
+  -- CrÃ©er l'invitation
+  INSERT INTO public.patron_invitations (
+    owner_id, patron_id, patron_user_id,
+    invite_token, invite_expires,
+    access_agenda, access_dashboard,
+    initiated_by, method, status,
+    inviter_name, target_name
+  ) VALUES (
+    v_owner_id, v_patron_id, v_patron_user_id,
+    gen_random_uuid()::text,
+    now() + interval '30 days',
+    p_access_agenda, p_access_dashboard,
+    p_initiated_by, 'in_app', 'pending',
+    v_inviter_name, v_target_name
+  )
+  RETURNING id INTO v_inv_id;
+
+  RETURN v_inv_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_inapp_invitation(text, text, boolean, boolean) TO authenticated;
+-- V2 Contrat PRO: banque d'heures persistante (ledger)
+
+create table if not exists public.contract_reserve_movements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references public.profiles(id) on delete cascade,
+  patron_id uuid null references public.patrons(id) on delete set null,
+  movement_type text not null check (movement_type in (
+    'manual_add',
+    'manual_consume',
+    'admin_correction',
+    'weekly_settlement',
+    'carry_over',
+    'overtime_to_reserve'
+  )),
+  movement_source text not null check (movement_source in (
+    'user',
+    'admin',
+    'contract_engine',
+    'migration',
+    'system'
+  )),
+  delta_hours numeric(8,2) not null,
+  movement_date timestamptz not null default now(),
+  mission_id bigint null references public.missions(id) on delete set null,
+  period_type text null,
+  period_value text null,
+  comment text null,
+  movement_key text null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists contract_reserve_movements_user_idx
+  on public.contract_reserve_movements(user_id, movement_date desc);
+
+create index if not exists contract_reserve_movements_patron_idx
+  on public.contract_reserve_movements(patron_id, movement_date desc);
+
+create unique index if not exists contract_reserve_movements_user_patron_key_unique
+  on public.contract_reserve_movements(user_id, patron_id, movement_key)
+  where movement_key is not null;
+
+create or replace function public.trg_contract_reserve_movements_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_contract_reserve_movements_updated_at
+  on public.contract_reserve_movements;
+
+create trigger trg_contract_reserve_movements_updated_at
+before update on public.contract_reserve_movements
+for each row
+execute function public.trg_contract_reserve_movements_updated_at();
+
+alter table public.contract_reserve_movements enable row level security;
+
+drop policy if exists "contract_reserve_select" on public.contract_reserve_movements;
+create policy "contract_reserve_select"
+  on public.contract_reserve_movements
+  for select
+  to authenticated
+  using (
+    user_id = auth.uid()
+    or (
+      patron_id is not null and patron_id in (
+        select id from public.patrons where user_id = auth.uid()
+      )
+    )
+  );
+
+drop policy if exists "contract_reserve_insert" on public.contract_reserve_movements;
+create policy "contract_reserve_insert"
+  on public.contract_reserve_movements
+  for insert
+  to authenticated
+  with check (
+    user_id = auth.uid()
+    and (
+      patron_id is null
+      or patron_id in (select id from public.patrons where user_id = auth.uid())
+    )
+  );
+
+drop policy if exists "contract_reserve_update" on public.contract_reserve_movements;
+create policy "contract_reserve_update"
+  on public.contract_reserve_movements
+  for update
+  to authenticated
+  using (
+    user_id = auth.uid()
+    and (
+      patron_id is null
+      or patron_id in (select id from public.patrons where user_id = auth.uid())
+    )
+  )
+  with check (
+    user_id = auth.uid()
+    and (
+      patron_id is null
+      or patron_id in (select id from public.patrons where user_id = auth.uid())
+    )
+  );
+
+drop policy if exists "contract_reserve_delete" on public.contract_reserve_movements;
+create policy "contract_reserve_delete"
+  on public.contract_reserve_movements
+  for delete
+  to authenticated
+  using (
+    user_id = auth.uid()
+    and (
+      patron_id is null
+      or patron_id in (select id from public.patrons where user_id = auth.uid())
+    )
+  );
+-- LOT B CRITIQUE
+-- Verrouille les insertions admin_correction/source=admin pour les non-admin.
+
+alter table if exists public.contract_reserve_movements enable row level security;
+
+drop policy if exists reserve_ledger_no_user_admin_correction on public.contract_reserve_movements;
+
+drop policy if exists contract_reserve_insert on public.contract_reserve_movements;
+create policy contract_reserve_insert
+  on public.contract_reserve_movements
+  for insert
+  to authenticated
+  with check (
+    user_id = auth.uid()
+    and (
+      patron_id is null
+      or patron_id in (select id from public.patrons where user_id = auth.uid())
+    )
+    and (
+      movement_source <> 'admin'
+      or exists (
+        select 1
+        from public.profiles
+        where id = auth.uid() and role = 'admin'
+      )
+    )
+  );
+-- LOT A CRITIQUE
+-- Ajoute balance_before_hours / balance_after_hours et une fonction atomique d'insertion ledger.
+
+alter table if exists public.contract_reserve_movements
+  add column if not exists balance_before_hours numeric(8,2),
+  add column if not exists balance_after_hours numeric(8,2);
+
+create or replace function public.insert_reserve_movement(
+  p_patron_id uuid,
+  p_movement_type text,
+  p_movement_source text,
+  p_delta_hours numeric,
+  p_movement_date timestamptz default now(),
+  p_mission_id bigint default null,
+  p_period_type text default null,
+  p_period_value text default null,
+  p_comment text default null,
+  p_movement_key text default null
+)
+returns public.contract_reserve_movements
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_before numeric(8,2) := 0;
+  v_after numeric(8,2);
+  v_row public.contract_reserve_movements;
+begin
+  if v_user_id is null then
+    raise exception 'auth.uid() is required';
+  end if;
+
+  -- SÃ©rialise les Ã©critures par utilisateur pour Ã©viter les courses critiques.
+  perform 1 from public.profiles where id = v_user_id for update;
+
+  with locked as (
+    select delta_hours
+    from public.contract_reserve_movements
+    where user_id = v_user_id
+      and (
+        (p_patron_id is null and patron_id is null)
+        or patron_id = p_patron_id
+      )
+    for update
+  )
+  select coalesce(sum(delta_hours), 0)::numeric(8,2) into v_before
+  from locked;
+
+  v_after := (v_before + coalesce(p_delta_hours, 0))::numeric(8,2);
+
+  insert into public.contract_reserve_movements (
+    user_id,
+    patron_id,
+    movement_type,
+    movement_source,
+    delta_hours,
+    movement_date,
+    mission_id,
+    period_type,
+    period_value,
+    comment,
+    movement_key,
+    balance_before_hours,
+    balance_after_hours
+  ) values (
+    v_user_id,
+    p_patron_id,
+    p_movement_type,
+    p_movement_source,
+    p_delta_hours,
+    coalesce(p_movement_date, now()),
+    p_mission_id,
+    p_period_type,
+    p_period_value,
+    p_comment,
+    p_movement_key,
+    v_before,
+    v_after
+  )
+  returning * into v_row;
+
+  return v_row;
+end;
+$$;
+
+grant execute on function public.insert_reserve_movement(
+  uuid,
+  text,
+  text,
+  numeric,
+  timestamptz,
+  bigint,
+  text,
+  text,
+  text,
+  text
+) to authenticated;
+-- LOT B CRITIQUE (alias policy name demandÃ©)
+-- CompatibilitÃ©: la table cible du projet est contract_reserve_movements.
+
+drop policy if exists reserve_ledger_no_user_admin_correction on public.contract_reserve_movements;
+create policy reserve_ledger_no_user_admin_correction
+  on public.contract_reserve_movements
+  for insert
+  to authenticated
+  with check (
+    movement_source <> 'admin'
+    or exists (
+      select 1
+      from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+-- Durcissement sÃ©curitÃ© de la fonction SECURITY DEFINER du ledger rÃ©serve.
+
+revoke execute on function public.insert_reserve_movement(
+  uuid,
+  text,
+  text,
+  numeric,
+  timestamptz,
+  bigint,
+  text,
+  text,
+  text,
+  text
+) from anon;
+
+revoke execute on function public.insert_reserve_movement(
+  uuid,
+  text,
+  text,
+  numeric,
+  timestamptz,
+  bigint,
+  text,
+  text,
+  text,
+  text
+) from public;
+
+grant execute on function public.insert_reserve_movement(
+  uuid,
+  text,
+  text,
+  numeric,
+  timestamptz,
+  bigint,
+  text,
+  text,
+  text,
+  text
+) to authenticated;
+-- Migration: restreindre l'UPDATE direct sur profiles pour les admins.
+-- L'admin ne peut plus modifier les features des autres utilisateurs via l'API
+-- standard. Pour changer le plan d'un utilisateur, l'admin utilise dÃ©sormais
+-- la fonction SECURITY DEFINER `admin_set_user_plan`.
+--
+-- Impact:
+--   - La policy "Utilisateur modifie son propre profil" (UPDATE, is_admin OR own)
+--     est supprimÃ©e. La policy ALL "Utilisateur gÃ¨re son propre profil"
+--     (auth.uid() = id) reste et couvre l'UPDATE pour le propriÃ©taire.
+--   - Un admin ne peut plus mettre Ã  jour directement le profil d'un autre user.
+--   - La fonction admin_set_user_plan() permet Ã  un admin de changer les
+--     features complÃ¨tes d'un user (plan toggle) de maniÃ¨re contrÃ´lÃ©e.
+
+-- â”€â”€â”€ 1. Supprimer la policy UPDATE trop permissive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+DROP POLICY IF EXISTS "Utilisateur modifie son propre profil" ON public.profiles;
+
+-- â”€â”€â”€ 2. Fonction SECURITY DEFINER pour le changement de plan par l'admin â”€â”€â”€â”€â”€
+
+CREATE OR REPLACE FUNCTION public.admin_set_user_plan(
+  p_target_user_id uuid,
+  p_new_features    jsonb
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Seul un admin authentifiÃ© peut appeler cette fonction.
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.profiles
+    WHERE id = auth.uid() AND is_admin = true
+  ) THEN
+    RAISE EXCEPTION 'permission denied: rÃ©servÃ© aux administrateurs';
+  END IF;
+
+  UPDATE public.profiles
+  SET features = p_new_features
+  WHERE id = p_target_user_id;
+END;
+$$;
+
+-- â”€â”€â”€ 3. ContrÃ´le d'accÃ¨s Ã  la fonction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+REVOKE EXECUTE ON FUNCTION public.admin_set_user_plan(uuid, jsonb) FROM anon, public;
+GRANT  EXECUTE ON FUNCTION public.admin_set_user_plan(uuid, jsonb) TO authenticated;
+-- Ajoute la colonne conges_annuels (nullable integer) Ã  la table profiles.
+-- UtilisÃ©e pour afficher le KPI "CongÃ©s restants" dans le Dashboard.
+
+alter table public.profiles
+  add column if not exists conges_annuels integer default null;
+-- =============================================================================
+-- Migration : Security fix â€” apply_acompte + unapply_acompte ownership check
+-- Date      : 2026-05-22
+-- Auteur    : Audit sÃ©curitÃ© prÃ©-production
+-- =============================================================================
+--
+-- PROBLÃˆME V2 :
+--   apply_acompte est SECURITY DEFINER â†’ bypass complet du RLS.
+--   La SELECT initiale n'avait pas de condition AND user_id = auth.uid().
+--   ConsÃ©quence : tout utilisateur authentifiÃ© pouvait dÃ©clencher la ventilation
+--   d'un acompte appartenant Ã  un autre utilisateur via son UUID.
+--
+-- PROBLÃˆME V10 :
+--   unapply_acompte existait en base mais n'Ã©tait PAS versionnÃ©e dans les migrations.
+--   MÃªme vecteur que V2 probable (pas de vÃ©rification ownership).
+--
+-- CORRECTIFS :
+--   1. apply_acompte : ajout de AND user_id = v_caller_id + vÃ©rification auth.uid() non NULL.
+--   2. unapply_acompte : crÃ©ation versionnÃ©e avec les mÃªmes protections.
+--
+-- COMPATIBILITÃ‰ :
+--   - Idempotente (CREATE OR REPLACE FUNCTION).
+--   - Conserve intÃ©gralement la logique mÃ©tier (idempotence, FOR UPDATE, allocations).
+--   - Conserve le schema exact de acompte_allocations (colonne "amount").
+--   - Compatible avec les tests Vitest existants (le mock supabase.rpc fonctionne toujours).
+-- =============================================================================
+
+
+-- =============================================================================
+-- 1. RATE LIMIT TABLE (prÃ©requis pour _shared/rateLimit.ts)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.rate_limit_log (
+  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  action     text        NOT NULL,
+  user_id    uuid        REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Index pour les lookups par (action, user_id, created_at)
+CREATE INDEX IF NOT EXISTS rate_limit_log_lookup_idx
+  ON public.rate_limit_log (action, user_id, created_at);
+
+-- Nettoyage automatique : TTL 24h via policy RLS (accÃ¨s lecture rÃ©servÃ© Ã  service_role)
+ALTER TABLE public.rate_limit_log ENABLE ROW LEVEL SECURITY;
+
+-- Seul le service_role (Edge Functions) peut lire/Ã©crire
+CREATE POLICY "rate_limit_service_only" ON public.rate_limit_log
+  AS RESTRICTIVE
+  FOR ALL
+  TO authenticated
+  USING (false)
+  WITH CHECK (false);
+
+-- Purge des entrÃ©es de plus de 24h (Ã  exÃ©cuter pÃ©riodiquement via pg_cron si dispo)
+-- DELETE FROM public.rate_limit_log WHERE created_at < now() - interval '24 hours';
+
+
+-- =============================================================================
+-- 2. FIX CRITIQUE : apply_acompte â€” ownership check
+-- =============================================================================
+-- AVANT : SELECT ... WHERE id = p_acompte_id (sans vÃ©rification caller)
+-- APRÃˆS : SELECT ... WHERE id = p_acompte_id AND user_id = v_caller_id
+--
+-- Toute la logique mÃ©tier est conservÃ©e intÃ©gralement.
+-- Seuls ajouts : dÃ©claration v_caller_id + check NULL + condition ownership.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.apply_acompte(p_acompte_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  -- [SÃ‰CURITÃ‰] Identifiant du caller â€” doit Ãªtre non NULL (utilisateur authentifiÃ©)
+  v_caller_id    uuid        := auth.uid();
+
+  v_montant      numeric;
+  v_patron_id    uuid;
+  v_user_id      uuid;
+  v_reste        numeric;
+  v_besoin       numeric;
+  v_alloue       numeric;
+  v_total_check  numeric;
+  v_now          timestamptz := now();
+  bilan_row      record;
+  deleted_alloc  record;
+BEGIN
+  -- [SÃ‰CURITÃ‰] Refuser les appels non authentifiÃ©s.
+  -- Cela ne devrait jamais arriver si GRANT EXECUTE est correctement limitÃ© Ã  "authenticated",
+  -- mais on dÃ©fend en profondeur.
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'apply_acompte: utilisateur non authentifiÃ© (auth.uid() IS NULL)';
+  END IF;
+
+  -- [SÃ‰CURITÃ‰] FIX : SELECT avec AND user_id = v_caller_id.
+  -- Si l'acompte n'appartient pas au caller, NOT FOUND â†’ exception.
+  -- La clause FOR UPDATE verrouille la ligne pour Ã©viter les race conditions.
+  SELECT montant, patron_id, user_id
+  INTO v_montant, v_patron_id, v_user_id
+  FROM public.acomptes
+  WHERE id = p_acompte_id
+    AND user_id = v_caller_id    -- â† OWNERSHIP CHECK (FIX SÃ‰CURITÃ‰ V2)
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'apply_acompte: acompte % non trouvÃ© ou non autorisÃ© pour user %',
+      p_acompte_id, v_caller_id;
+  END IF;
+
+  IF v_montant IS NULL OR v_montant <= 0 THEN
+    RAISE NOTICE 'apply_acompte: acompte % montant <= 0, skip', p_acompte_id;
+    RETURN;
+  END IF;
+
+  -- Normalize inconsistent rows: paid rows must have zero remaining
+  UPDATE public.bilans_status_v2 b
+  SET reste_a_percevoir = 0
+  WHERE b.patron_id = v_patron_id
+    AND b.periode_type = 'semaine'
+    AND COALESCE(b.paye, false) = true
+    AND COALESCE(b.reste_a_percevoir, 0) > 0;
+
+  -- STRICT idempotence: start by deleting previous allocations for this acompte.
+  -- Then rollback their effect on bilans before recomputing.
+  FOR deleted_alloc IN
+    DELETE FROM public.acompte_allocations aa
+    WHERE aa.acompte_id = p_acompte_id
+    RETURNING aa.bilan_id, aa.amount
+  LOOP
+    UPDATE public.bilans_status_v2 b
+    SET
+      acompte_consomme  = GREATEST(0, COALESCE(b.acompte_consomme, 0) - deleted_alloc.amount),
+      reste_a_percevoir = GREATEST(0, COALESCE(b.reste_a_percevoir, 0) + deleted_alloc.amount),
+      paye              = false,
+      date_paiement     = NULL
+    WHERE b.id = deleted_alloc.bilan_id
+      AND COALESCE(b.paye, false) = false;
+  END LOOP;
+
+  v_reste := v_montant;
+
+  FOR bilan_row IN
+    SELECT b.id, b.periode_index, COALESCE(b.reste_a_percevoir, 0) AS reste_a_percevoir
+    FROM public.bilans_status_v2 b
+    WHERE b.periode_type = 'semaine'
+      AND b.patron_id = v_patron_id
+      AND COALESCE(b.paye, false) = false
+      AND COALESCE(b.reste_a_percevoir, 0) > 0
+    ORDER BY b.periode_index ASC
+    FOR UPDATE
+  LOOP
+    EXIT WHEN v_reste <= 0;
+
+    v_besoin := COALESCE(bilan_row.reste_a_percevoir, 0);
+    CONTINUE WHEN v_besoin <= 0;
+
+    v_alloue := LEAST(v_besoin, v_reste);
+
+    IF v_alloue >= v_besoin THEN
+      UPDATE public.bilans_status_v2
+      SET
+        acompte_consomme  = COALESCE(acompte_consomme, 0) + v_alloue,
+        reste_a_percevoir = 0,
+        paye              = true,
+        date_paiement     = v_now
+      WHERE id = bilan_row.id;
+    ELSE
+      UPDATE public.bilans_status_v2
+      SET
+        acompte_consomme  = COALESCE(acompte_consomme, 0) + v_alloue,
+        reste_a_percevoir = v_besoin - v_alloue,
+        paye              = false,
+        date_paiement     = NULL
+      WHERE id = bilan_row.id;
+    END IF;
+
+    INSERT INTO public.acompte_allocations
+      (acompte_id, bilan_id, amount, patron_id, user_id, periode_type, periode_index, created_at)
+    VALUES
+      (p_acompte_id, bilan_row.id, v_alloue, v_patron_id, v_user_id, 'semaine', bilan_row.periode_index, v_now);
+
+    v_reste := v_reste - v_alloue;
+  END LOOP;
+
+  SELECT COALESCE(SUM(amount), 0)
+  INTO v_total_check
+  FROM public.acompte_allocations
+  WHERE acompte_id = p_acompte_id;
+
+  IF v_total_check > v_montant THEN
+    RAISE EXCEPTION 'apply_acompte: allocation % exceeds montant % for acompte %',
+      v_total_check, v_montant, p_acompte_id;
+  END IF;
+
+  RAISE NOTICE 'apply_acompte done: acompte %, montant %, alloue %, reste %',
+    p_acompte_id, v_montant, v_total_check, GREATEST(0, v_montant - v_total_check);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.apply_acompte(uuid) TO authenticated;
+
+
+-- =============================================================================
+-- 3. CRÃ‰ATION VERSIONNÃ‰E : unapply_acompte â€” ownership check + rollback complet
+-- =============================================================================
+-- Cette fonction annule toutes les allocations d'un acompte et restaure les
+-- bilans_status_v2 dans leur Ã©tat avant application.
+--
+-- SÃ‰CURITÃ‰ : MÃªme protection que apply_acompte.
+--   - v_caller_id := auth.uid() â†’ refus si NULL
+--   - AND user_id = v_caller_id â†’ l'acompte doit appartenir au caller
+--   - FOR UPDATE â†’ verrou row-level pour Ã©viter race conditions
+--
+-- DIFFÃ‰RENCE avec le rollback interne de apply_acompte :
+--   - Le rollback de apply_acompte a une condition "AND COALESCE(b.paye, false) = false"
+--     car il prÃ©cÃ¨de une rÃ©allocation (il ne veut pas toucher les bilans dÃ©jÃ  payÃ©s par
+--     d'autres acomptes). unapply_acompte doit annuler MÃŠME les bilans passÃ©s Ã  "paye",
+--     donc cette condition est ABSENTE ici.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION public.unapply_acompte(p_acompte_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  -- [SÃ‰CURITÃ‰] Identifiant du caller
+  v_caller_id   uuid := auth.uid();
+
+  v_montant     numeric;
+  v_patron_id   uuid;
+  v_user_id     uuid;
+  deleted_alloc record;
+  v_total_annule numeric := 0;
+BEGIN
+  -- [SÃ‰CURITÃ‰] Refuser les appels non authentifiÃ©s
+  IF v_caller_id IS NULL THEN
+    RAISE EXCEPTION 'unapply_acompte: utilisateur non authentifiÃ© (auth.uid() IS NULL)';
+  END IF;
+
+  -- [SÃ‰CURITÃ‰] FIX : SELECT avec AND user_id = v_caller_id
+  -- Lock sur la ligne de l'acompte pour Ã©viter la concurrence avec apply_acompte.
+  SELECT montant, patron_id, user_id
+  INTO v_montant, v_patron_id, v_user_id
+  FROM public.acomptes
+  WHERE id = p_acompte_id
+    AND user_id = v_caller_id    -- â† OWNERSHIP CHECK
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'unapply_acompte: acompte % non trouvÃ© ou non autorisÃ© pour user %',
+      p_acompte_id, v_caller_id;
+  END IF;
+
+  -- Annuler toutes les allocations et restaurer les bilans
+  -- NOTE : pas de filtre "paye = false" ici â€” on doit restaurer mÃªme les bilans
+  -- qui ont Ã©tÃ© marquÃ©s "paye = true" grÃ¢ce Ã  cet acompte.
+  FOR deleted_alloc IN
+    DELETE FROM public.acompte_allocations aa
+    WHERE aa.acompte_id = p_acompte_id
+    RETURNING aa.bilan_id, aa.amount
+  LOOP
+    UPDATE public.bilans_status_v2 b
+    SET
+      acompte_consomme  = GREATEST(0, COALESCE(b.acompte_consomme, 0) - deleted_alloc.amount),
+      reste_a_percevoir = GREATEST(0, COALESCE(b.reste_a_percevoir, 0) + deleted_alloc.amount),
+      paye              = false,
+      date_paiement     = NULL
+    WHERE b.id = deleted_alloc.bilan_id;
+
+    v_total_annule := v_total_annule + deleted_alloc.amount;
+  END LOOP;
+
+  RAISE NOTICE 'unapply_acompte done: acompte %, montant_annule %',
+    p_acompte_id, v_total_annule;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.unapply_acompte(uuid) TO authenticated;
+
+
+-- =============================================================================
+-- 4. INDEX supplÃ©mentaires (perf + idempotents)
+-- =============================================================================
+CREATE INDEX IF NOT EXISTS acompte_allocations_acompte_created_idx
+  ON public.acompte_allocations (acompte_id, created_at);
+-- =============================================================================
+-- Migration : Audit Trail complet â€” tables financiÃ¨res et opÃ©rationnelles
+-- Date      : 2026-05-26
+-- Auteur    : SÃ©curitÃ© prÃ©-production multi-tenant
+-- =============================================================================
+--
+-- ARCHITECTURE :
+--   Un trigger AFTER INSERT/UPDATE/DELETE sur chaque table sensible appelle
+--   la fonction log_audit_event() qui insÃ¨re une ligne dans audit_logs.
+--
+-- SÃ‰CURITÃ‰ :
+--   - La fonction est SECURITY DEFINER pour pouvoir Ã©crire dans audit_logs
+--     mÃªme si l'utilisateur n'a pas de GRANT direct sur cette table.
+--   - RLS sur audit_logs : chaque user ne voit QUE ses propres entrÃ©es.
+--   - L'admin (is_admin = true) voit tout (policy sÃ©parÃ©e).
+--   - La fonction lit auth.uid() au moment du trigger â€” toujours valide
+--     car le trigger s'exÃ©cute dans la mÃªme transaction que l'opÃ©ration.
+--
+-- TABLES AUDITÃ‰ES :
+--   acomptes, acompte_allocations, bilans_status_v2,
+--   missions, patrons, clients, frais_divers
+--
+-- PERFORMANCE :
+--   - Index sur (user_id, created_at DESC) pour pagination par user.
+--   - Index sur (table_name, record_id) pour recherche par entitÃ©.
+--   - Index sur (operation, created_at) pour filtres par type d'opÃ©ration.
+--   - Les donnÃ©es jsonb sont compressÃ©es automatiquement par Postgres (TOAST).
+--   - Cleanup via politique de rÃ©tention (recommandÃ© : 90 jours, via pg_cron).
+-- =============================================================================
+
+-- â”€â”€â”€ 1. CrÃ©ation de la table audit_logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+  id          uuid              NOT NULL DEFAULT gen_random_uuid(),
+  table_name  text              NOT NULL,
+  record_id   uuid              NOT NULL,
+  operation   text              NOT NULL CHECK (operation IN ('INSERT', 'UPDATE', 'DELETE')),
+  user_id     uuid              REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at  timestamptz       NOT NULL DEFAULT now(),
+  old_data    jsonb,
+  new_data    jsonb,
+  ip_address  inet,             -- nullable, fourni par Edge Function si disponible
+  metadata    jsonb,            -- contexte libre : route, function name, etc.
+
+  CONSTRAINT audit_logs_pkey PRIMARY KEY (id)
+);
+
+COMMENT ON TABLE public.audit_logs IS
+  'Registre immuable de toutes les modifications sur les tables financiÃ¨res et opÃ©rationnelles. '
+  'Ne jamais modifier ni supprimer des lignes manuellement (intÃ©gritÃ© de l''audit).';
+
+COMMENT ON COLUMN public.audit_logs.operation IS 'INSERT | UPDATE | DELETE';
+COMMENT ON COLUMN public.audit_logs.user_id   IS 'auth.uid() au moment de l''opÃ©ration. NULL si trigger dÃ©clenchÃ© par service_role sans session user.';
+COMMENT ON COLUMN public.audit_logs.ip_address IS 'IP de l''appelant si fournie par le contexte Edge Function (optionnel).';
+COMMENT ON COLUMN public.audit_logs.metadata   IS 'Contexte libre : {"route": "/missions", "patron_id": "..."}.';
+
+-- â”€â”€â”€ 2. Index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+-- Pagination des logs d'un utilisateur
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_created
+  ON public.audit_logs (user_id, created_at DESC);
+
+-- Recherche de l'historique d'un enregistrement spÃ©cifique
+CREATE INDEX IF NOT EXISTS idx_audit_logs_record
+  ON public.audit_logs (table_name, record_id);
+
+-- Filtrage par type d'opÃ©ration + date
+CREATE INDEX IF NOT EXISTS idx_audit_logs_operation
+  ON public.audit_logs (operation, created_at DESC);
+
+-- â”€â”€â”€ 3. Row Level Security sur audit_logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Chaque utilisateur voit uniquement ses propres entrÃ©es d'audit
+DROP POLICY IF EXISTS "audit_logs_owner_read" ON public.audit_logs;
+CREATE POLICY "audit_logs_owner_read" ON public.audit_logs
+  FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+
+-- Les admins voient toutes les entrÃ©es (pour modÃ©ration et support)
+DROP POLICY IF EXISTS "audit_logs_admin_read_all" ON public.audit_logs;
+CREATE POLICY "audit_logs_admin_read_all" ON public.audit_logs
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND is_admin = true
+    )
+  );
+
+-- AUCUN utilisateur ne peut Ã©crire/modifier/supprimer directement les logs
+-- (seule la fonction trigger SECURITY DEFINER peut insÃ©rer)
+
+-- â”€â”€â”€ 4. Fonction trigger universelle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+CREATE OR REPLACE FUNCTION public.log_audit_event()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_record_id  uuid;
+  v_user_id    uuid;
+  v_old_data   jsonb;
+  v_new_data   jsonb;
+BEGIN
+  -- RÃ©cupÃ¨re l'utilisateur connectÃ© (NULL si opÃ©ration systÃ¨me sans session)
+  v_user_id := auth.uid();
+
+  -- DÃ©termine l'ID de l'enregistrement selon l'opÃ©ration
+  CASE TG_OP
+    WHEN 'INSERT' THEN
+      v_record_id := (NEW.id)::uuid;
+      v_old_data  := NULL;
+      v_new_data  := to_jsonb(NEW);
+    WHEN 'UPDATE' THEN
+      v_record_id := (OLD.id)::uuid;
+      v_old_data  := to_jsonb(OLD);
+      v_new_data  := to_jsonb(NEW);
+    WHEN 'DELETE' THEN
+      v_record_id := (OLD.id)::uuid;
+      v_old_data  := to_jsonb(OLD);
+      v_new_data  := NULL;
+  END CASE;
+
+  -- Supprime les champs qui ne doivent PAS apparaÃ®tre dans les logs
+  -- (rotation des clÃ©s, tokens, champs techniques internes)
+  -- Note : les emails en clair sont conservÃ©s car utiles pour l'audit RGPD
+  IF v_new_data IS NOT NULL THEN
+    v_new_data := v_new_data
+      - 'invite_token'
+      - 'hashed_password'
+      - 'reset_token';
+  END IF;
+  IF v_old_data IS NOT NULL THEN
+    v_old_data := v_old_data
+      - 'invite_token'
+      - 'hashed_password'
+      - 'reset_token';
+  END IF;
+
+  -- InsÃ¨re l'entrÃ©e d'audit
+  -- On utilise INSERT avec ON CONFLICT DO NOTHING pour Ã©viter
+  -- toute boucle infinie si audit_logs avait lui-mÃªme un trigger (il n'en a pas).
+  INSERT INTO public.audit_logs (
+    table_name,
+    record_id,
+    operation,
+    user_id,
+    old_data,
+    new_data
+  ) VALUES (
+    TG_TABLE_NAME,
+    v_record_id,
+    TG_OP,
+    v_user_id,
+    v_old_data,
+    v_new_data
+  );
+
+  -- Retourne NEW pour INSERT/UPDATE, OLD pour DELETE
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+
+EXCEPTION WHEN OTHERS THEN
+  -- Ne jamais laisser l'audit bloquer une opÃ©ration mÃ©tier.
+  -- En cas d'erreur d'insertion dans audit_logs, on log dans les notices
+  -- (visibles dans Supabase Logs) mais on laisse passer l'opÃ©ration.
+  RAISE WARNING 'log_audit_event: Ã©chec insertion audit pour table=%, op=%, record=%: %',
+    TG_TABLE_NAME, TG_OP, v_record_id, SQLERRM;
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
+  ELSE
+    RETURN NEW;
+  END IF;
+END;
+$$;
+
+COMMENT ON FUNCTION public.log_audit_event() IS
+  'Trigger universel d''audit. SECURITY DEFINER pour Ã©crire dans audit_logs indÃ©pendamment des RLS. '
+  'Compatible INSERT/UPDATE/DELETE. Fail-safe : ne bloque jamais l''opÃ©ration mÃ©tier.';
+
+-- â”€â”€â”€ 5. Application des triggers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+-- acomptes
+DROP TRIGGER IF EXISTS trg_audit_acomptes ON public.acomptes;
+CREATE TRIGGER trg_audit_acomptes
+  AFTER INSERT OR UPDATE OR DELETE ON public.acomptes
+  FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+
+-- acompte_allocations
+DROP TRIGGER IF EXISTS trg_audit_acompte_allocations ON public.acompte_allocations;
+CREATE TRIGGER trg_audit_acompte_allocations
+  AFTER INSERT OR UPDATE OR DELETE ON public.acompte_allocations
+  FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+
+-- bilans_status_v2
+DROP TRIGGER IF EXISTS trg_audit_bilans ON public.bilans_status_v2;
+CREATE TRIGGER trg_audit_bilans
+  AFTER INSERT OR UPDATE OR DELETE ON public.bilans_status_v2
+  FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+
+-- missions
+DROP TRIGGER IF EXISTS trg_audit_missions ON public.missions;
+CREATE TRIGGER trg_audit_missions
+  AFTER INSERT OR UPDATE OR DELETE ON public.missions
+  FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+
+-- patrons
+DROP TRIGGER IF EXISTS trg_audit_patrons ON public.patrons;
+CREATE TRIGGER trg_audit_patrons
+  AFTER INSERT OR UPDATE OR DELETE ON public.patrons
+  FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+
+-- clients
+DROP TRIGGER IF EXISTS trg_audit_clients ON public.clients;
+CREATE TRIGGER trg_audit_clients
+  AFTER INSERT OR UPDATE OR DELETE ON public.clients
+  FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+
+-- frais_divers
+DROP TRIGGER IF EXISTS trg_audit_frais_divers ON public.frais_divers;
+CREATE TRIGGER trg_audit_frais_divers
+  AFTER INSERT OR UPDATE OR DELETE ON public.frais_divers
+  FOR EACH ROW EXECUTE FUNCTION public.log_audit_event();
+
+-- â”€â”€â”€ 6. Vue utilitaire pour l'admin â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+CREATE OR REPLACE VIEW public.audit_logs_summary AS
+SELECT
+  al.id,
+  al.table_name,
+  al.record_id,
+  al.operation,
+  al.user_id,
+  TRIM(COALESCE(p.prenom, '') || ' ' || COALESCE(p.nom, '')) AS user_name,
+  al.created_at,
+  al.ip_address,
+  al.metadata
+FROM public.audit_logs al
+LEFT JOIN public.profiles p ON p.id = al.user_id;
+
+COMMENT ON VIEW public.audit_logs_summary IS
+  'Vue enrichie de l''audit trail avec informations utilisateur. AccÃ¨s rÃ©servÃ© admin via RLS.';
+
+-- â”€â”€â”€ 7. Politique de rÃ©tention (commentaire pg_cron) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- Pour activer la purge automatique aprÃ¨s 90 jours, exÃ©cuter dans Supabase Dashboard
+-- aprÃ¨s activation de l'extension pg_cron :
+--
+-- SELECT cron.schedule(
+--   'purge-audit-logs',
+--   '0 3 * * 0',  -- chaque dimanche Ã  3h du matin
+--   $$DELETE FROM public.audit_logs WHERE created_at < now() - INTERVAL '90 days'$$
+-- );
+-- =============================================================================
+-- Migration : AmÃ©lioration rate_limit_log â€” ajout colonne ip_address
+-- Date      : 2026-05-26
+-- =============================================================================
+--
+-- OBJECTIF :
+--   Ajouter la colonne ip_address Ã  rate_limit_log pour permettre
+--   un rate limiting par IP en plus du rate limiting par user_id.
+--   Cela protÃ¨ge contre un attaquant qui crÃ©erait plusieurs comptes.
+-- =============================================================================
+
+ALTER TABLE public.rate_limit_log
+  ADD COLUMN IF NOT EXISTS ip_address inet;
+
+COMMENT ON COLUMN public.rate_limit_log.ip_address IS
+  'Adresse IP de l''appelant (extraite de X-Forwarded-For). Nullable.';
+
+-- Index pour les queries par IP
+CREATE INDEX IF NOT EXISTS idx_rate_limit_log_ip
+  ON public.rate_limit_log (action, ip_address, created_at)
+  WHERE ip_address IS NOT NULL;
+-- supabase/migrations/20260527000000_health_monitoring_views.sql
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- SantÃ© systÃ¨me â€” SÃ©curitÃ© backend pour la page admin "Cockpit systÃ¨me"
+--
+-- SÃ‰CURITÃ‰ :
+--   - La RPC get_health_stats() vÃ©rifie is_admin cÃ´tÃ© Postgres (SECURITY DEFINER)
+--   - Le rate_limit_log est protÃ©gÃ© par RLS admin-only
+--   - Aucune donnÃ©e brute n'est exposÃ©e â€” uniquement des agrÃ©gats
+--   - Un utilisateur normal ne peut PAS contourner ces protections
+--     en modifiant le frontend ou les requÃªtes rÃ©seau.
+-- â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+-- â”€â”€â”€ 1. RLS sur rate_limit_log â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+ALTER TABLE public.rate_limit_log ENABLE ROW LEVEL SECURITY;
+
+-- Seuls les admins peuvent lire les logs de rate limiting
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'rate_limit_log'
+      AND policyname = 'admin_read_rate_limit_log'
+  ) THEN
+    CREATE POLICY "admin_read_rate_limit_log"
+    ON public.rate_limit_log
+    FOR SELECT
+    USING (
+      EXISTS (
+        SELECT 1 FROM public.profiles
+        WHERE id = auth.uid()
+          AND is_admin = true
+      )
+    );
+  END IF;
+END
+$$;
+
+-- â”€â”€â”€ 2. Fonction RPC sÃ©curisÃ©e : statistiques de santÃ© globales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- SECURITY DEFINER : la fonction s'exÃ©cute avec les droits du propriÃ©taire,
+-- pas de l'appelant â€” mais elle vÃ©rifie ELLE-MÃŠME que l'appelant est admin.
+-- Ainsi, mÃªme un utilisateur qui trouverait le nom de la fonction ne peut
+-- pas l'appeler pour obtenir des donnÃ©es s'il n'est pas admin.
+
+CREATE OR REPLACE FUNCTION public.get_health_stats()
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_is_admin boolean := false;
+  v_result   jsonb;
+BEGIN
+  -- â”€â”€ VÃ©rification admin (obligatoire) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  SELECT is_admin INTO v_is_admin
+  FROM public.profiles
+  WHERE id = auth.uid();
+
+  IF v_is_admin IS NOT TRUE THEN
+    RAISE EXCEPTION 'AccÃ¨s refusÃ©' USING ERRCODE = '42501';
+  END IF;
+
+  -- â”€â”€ AgrÃ©gats de santÃ© (aucune donnÃ©e brute exposÃ©e) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  SELECT jsonb_build_object(
+
+    -- ActivitÃ© audit_logs
+    'audit_events_24h',
+    (SELECT COUNT(*) FROM public.audit_logs
+     WHERE created_at > NOW() - INTERVAL '24 hours'),
+
+    'audit_events_1h',
+    (SELECT COUNT(*) FROM public.audit_logs
+     WHERE created_at > NOW() - INTERVAL '1 hour'),
+
+    -- Rate limiting
+    'rate_limit_hits_1h',
+    (SELECT COUNT(*) FROM public.rate_limit_log
+     WHERE created_at > NOW() - INTERVAL '1 hour'),
+
+    'rate_limit_hits_24h',
+    (SELECT COUNT(*) FROM public.rate_limit_log
+     WHERE created_at > NOW() - INTERVAL '24 hours'),
+
+    -- Action la plus frÃ©quente (nom technique uniquement â€” pas de donnÃ©es user)
+    'top_rate_limit_action',
+    (
+      SELECT action
+      FROM public.rate_limit_log
+      WHERE created_at > NOW() - INTERVAL '24 hours'
+      GROUP BY action
+      ORDER BY COUNT(*) DESC
+      LIMIT 1
+    ),
+
+    -- Appels Edge Functions (dÃ©duits du rate_limit_log par action)
+    'send_email_calls_24h',
+    (SELECT COUNT(*) FROM public.rate_limit_log
+     WHERE action = 'SEND_PLANNING_EMAIL'
+       AND created_at > NOW() - INTERVAL '24 hours'),
+
+    'send_invite_calls_24h',
+    (SELECT COUNT(*) FROM public.rate_limit_log
+     WHERE action = 'SEND_PATRON_INVITE'
+       AND created_at > NOW() - INTERVAL '24 hours'),
+
+    -- Dernier Ã©vÃ©nement enregistrÃ© (date uniquement, pas de contenu)
+    'last_audit_event',
+    (SELECT created_at FROM public.audit_logs
+     ORDER BY created_at DESC
+     LIMIT 1)
+
+  ) INTO v_result;
+
+  RETURN v_result;
+END;
+$$;
+
+-- SÃ©curiser l'accÃ¨s Ã  la fonction :
+-- - Retirer l'accÃ¨s PUBLIC (dÃ©faut Postgres)
+-- - N'autoriser que les utilisateurs authentifiÃ©s (la fonction vÃ©rifie is_admin elle-mÃªme)
+REVOKE ALL ON FUNCTION public.get_health_stats() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_health_stats() TO authenticated;
+
+-- â”€â”€â”€ 3. Commentaires de documentation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+COMMENT ON FUNCTION public.get_health_stats() IS
+  'Retourne des agrÃ©gats de santÃ© systÃ¨me. AccÃ¨s strictement limitÃ© aux administrateurs (is_admin = true). Ne retourne aucune donnÃ©e brute.';
+-- Migration: normalisation des paramÃ¨tres contrat (modÃ¨le mÃ©tier simplifiÃ©)
+-- Table cible: public.profiles, colonne JSONB features
+-- Aucun DROP/CREATE destructif: migration additive + mapping legacy.
+
+WITH normalized AS (
+  SELECT
+    p.id,
+    CASE
+      WHEN COALESCE(p.features, '{}'::jsonb)->>'contract_type' IN ('interim', 'formation', 'cdd', 'cdi', 'other')
+        THEN COALESCE(p.features, '{}'::jsonb)->>'contract_type'
+      ELSE 'other'
+    END AS contract_type,
+    CASE
+      WHEN (COALESCE(p.features, '{}'::jsonb)->>'contract_hours_week') ~ '^[0-9]+(\.[0-9]+)?$'
+        THEN ROUND((COALESCE(p.features, '{}'::jsonb)->>'contract_hours_week')::numeric, 2)::numeric(5,2)
+      WHEN (COALESCE(p.features, '{}'::jsonb)->>'contract_weekly_quota_hours') ~ '^[0-9]+(\.[0-9]+)?$'
+        THEN ROUND((COALESCE(p.features, '{}'::jsonb)->>'contract_weekly_quota_hours')::numeric, 2)::numeric(5,2)
+      ELSE 20.00::numeric(5,2)
+    END AS contract_hours_week,
+    CASE
+      WHEN COALESCE(p.features, '{}'::jsonb)->>'surplus_rule' IN ('payable', 'banque', 'les_deux')
+        THEN COALESCE(p.features, '{}'::jsonb)->>'surplus_rule'
+      WHEN COALESCE(p.features, '{}'::jsonb)->>'contract_overflow_rule' = 'to_reserve'
+        THEN 'banque'
+      ELSE 'payable'
+    END AS surplus_rule,
+    CASE
+      WHEN (COALESCE(p.features, '{}'::jsonb)->>'surplus_split_pct') ~ '^[0-9]+(\.[0-9]+)?$'
+        THEN LEAST(100.00, GREATEST(0.00, ROUND((COALESCE(p.features, '{}'::jsonb)->>'surplus_split_pct')::numeric, 2)))::numeric(5,2)
+      ELSE 50.00::numeric(5,2)
+    END AS surplus_split_pct
+  FROM public.profiles p
+)
+UPDATE public.profiles p
+SET features = COALESCE(p.features, '{}'::jsonb)
+  || jsonb_build_object(
+    'contract_type', n.contract_type,
+    'contract_hours_week', n.contract_hours_week,
+    'surplus_rule', n.surplus_rule,
+    'surplus_split_pct', n.surplus_split_pct,
+
+    -- Sync legacy keys (compat code existant)
+    'contract_weekly_quota_hours', n.contract_hours_week,
+    'contract_payable_rule', CASE WHEN n.surplus_rule = 'payable' THEN 'worked_hours' ELSE 'capped_quota' END,
+    'contract_overflow_rule', CASE WHEN n.surplus_rule IN ('banque', 'les_deux') THEN 'to_reserve' ELSE 'ignore' END
+  )
+FROM normalized n
+WHERE p.id = n.id;

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLabels } from "../../contexts/LabelsContext";
+import { Button } from "../ui/Button";
 
 interface PatronSelectorProps {
   patrons?: any[];
@@ -29,24 +30,24 @@ export function PatronSelector({ patrons = [], selectedPatronId, onSelect, requi
         <div className="text-center py-8">
           <p className="text-sm opacity-60 mb-4">Aucun patron créé</p>
           {onAddNew && (
-            <button onClick={onAddNew} className="px-6 py-3 bg-[var(--color-accent-violet)] hover:opacity-90 text-white rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-[opacity,transform] duration-150">+ Créer un patron</button>
+            <Button variant="primary" size="sm" onClick={onAddNew}>+ Créer un patron</Button>
           )}
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 gap-2 mb-3">
             {patrons.map((patron) => (
-              <button
-                key={patron.id}
-                type="button"
-                onClick={() => onSelect?.(patron.id)}
-                disabled={disabled}
-                className={`p-4 rounded-[20px] flex items-center gap-3 transition-all ${
-                  selectedPatronId === patron.id
-                    ? "bg-[var(--color-accent-violet)]/15 border-2 border-[var(--color-accent-violet)]/50"
-                    : "bg-[var(--color-surface-offset)] border-2 border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]"
-                } disabled:opacity-50 active:scale-95`}
-              >
+                <button
+                  key={patron.id}
+                  type="button"
+                  onClick={() => onSelect?.(patron.id)}
+                  disabled={disabled}
+                  className={`p-4 rounded-[20px] flex items-center gap-3 transition-[background-color,border-color,color] duration-150 ${
+                    selectedPatronId === patron.id
+                      ? "bg-[var(--color-accent-violet)]/15 border-2 border-[var(--color-accent-violet)]/50"
+                      : "bg-[var(--color-surface-offset)] border-2 border-[var(--color-border)] hover:bg-[var(--color-surface-hover)]"
+                  } disabled:opacity-50 active:scale-95`}
+                >
                 <div className="w-6 h-6 rounded-full flex-shrink-0 shadow-lg" style={{ backgroundColor: patron.couleur || "#8b5cf6" }} />
                 <div className="flex-1 text-left">
                   <p className="font-bold text-sm uppercase">{patron.nom}</p>
@@ -61,7 +62,7 @@ export function PatronSelector({ patrons = [], selectedPatronId, onSelect, requi
             ))}
           </div>
           {onAddNew && (
-            <button type="button" onClick={onAddNew} disabled={disabled} className="w-full py-3 rounded-[20px] font-black uppercase text-[10px] transition-all border-2 border-dashed border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-border-primary)] hover:text-[var(--color-text)] disabled:opacity-50 active:scale-95">+ Nouveau patron</button>
+            <Button variant="outline" fullWidth size="sm" disabled={disabled} onClick={onAddNew}>+ Nouveau patron</Button>
           )}
         </>
       )}
@@ -121,18 +122,18 @@ export function PatronSelectorCompact({ patrons = [], selectedPatronId, onSelect
       </label>
 
       <div className="relative">
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="👔 Rechercher ou sélectionner..."
-          className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-[border-color] duration-150 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] backdrop-blur-card placeholder:text-[var(--color-text-dim)] ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-          value={search}
-          onChange={handleInputChange}
-          onFocus={handleInputFocus}
-          disabled={disabled}
-        />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="👔 Rechercher ou sélectionner..."
+            className={`w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-[border-color] duration-150 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] placeholder:text-[var(--color-text-dim)] ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            value={search}
+            onChange={handleInputChange}
+            onFocus={handleInputFocus}
+            disabled={disabled}
+          />
         {onAddNew && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); onAddNew(); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[var(--color-accent-violet)] hover:opacity-80 rounded-lg flex items-center justify-center text-white font-black text-lg transition-opacity duration-150 active:scale-90" title="Nouveau patron" disabled={disabled}>+</button>
+          <Button variant="primary" size="sm" onClick={(e) => { e.stopPropagation(); onAddNew(); }} className="w-8 h-8 p-0" title="Nouveau patron" disabled={disabled}>+</Button>
         )}
       </div>
 

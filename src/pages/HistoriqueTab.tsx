@@ -4,6 +4,7 @@ import { getWeekNumber } from "../utils/dateUtils";
 import { useLabels } from "../contexts/LabelsContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { StatsCharts } from "../components/stats/StatsCharts";
+import { Button } from "../components/ui/Button";
 import type { Patron, Mission, Acompte } from "../types/entities";
 import type { NormalizedHistorique, HistoriqueRow } from "../types/bilan";
 
@@ -333,50 +334,47 @@ export const HistoriqueTab = ({
 
       {/* ── BOUTON CHARGER ── */}
       {historique.all?.length === 0 && (
-        <button
+        <Button
+          variant="primary"
+          fullWidth
+          size="lg"
+          loading={loadingHistorique}
           onClick={() => onLoadHistorique(effectivePatronId)}
-          className="w-full py-4 bg-[var(--color-accent-violet)] hover:opacity-90 rounded-2xl font-black text-white text-[11px] uppercase active:scale-95 transition-[opacity,transform] duration-150"
         >
-          {loadingHistorique ? "Chargement..." : "📊 Charger le tableau de bord"}
-        </button>
+          📊 Charger le tableau de bord
+        </Button>
       )}
 
       {/* ── ONGLETS IMPAYÉS / PAYÉS / MISSIONS ── */}
       {(historique.all?.length > 0 || missions.length > 0) && (
         <>
-          <div className="flex gap-2 mt-2">
-            <button
+           <div className="flex gap-2 mt-2">
+            <Button
+              variant={historiqueTab === "impayes" ? "danger" : "ghost"}
+              fullWidth
+              size="sm"
               onClick={() => onTabChange("impayes")}
-              className={`flex-1 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${
-                historiqueTab === "impayes"
-                  ? "bg-gradient-to-br from-orange-600 to-red-700 text-white shadow-lg"
-                  : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
-              }`}
             >
               🟠 Impayés ({filteredImpayes.length})
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant={historiqueTab === "payes" ? "success" : "ghost"}
+              fullWidth
+              size="sm"
               onClick={() => onTabChange("payes")}
-              className={`flex-1 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${
-                historiqueTab === "payes"
-                  ? "bg-gradient-to-br from-green-600 to-emerald-700 text-white shadow-lg"
-                  : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
-              }`}
             >
               ✅ Payés ({filteredPayes.length})
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant={historiqueTab === "missions" ? "primary" : "ghost"}
+              fullWidth
+              size="sm"
               onClick={() => onTabChange("missions")}
-              className={`flex-1 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${
-                historiqueTab === "missions"
-                  ? "bg-[var(--color-accent-violet)]/20 text-[var(--color-text)] border border-[var(--color-accent-violet)]/30 shadow-sm"
-                  : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
-              }`}
             >
               📋 Missions
-            </button>
+            </Button>
           </div>
 
           {/* Liste impayés */}

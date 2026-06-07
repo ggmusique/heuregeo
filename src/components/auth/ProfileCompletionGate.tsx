@@ -95,7 +95,7 @@ function CompletionForm({
       placeholder={placeholder}
       value={form[key]}
       onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-      className="w-full p-4 rounded-2xl bg-[var(--color-field,var(--color-surface-offset))] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] font-semibold text-base focus:outline-none focus:border-[var(--color-border-primary,var(--color-primary))] transition-all"
+      className="w-full p-4 rounded-2xl bg-[var(--color-field,var(--color-surface-offset))] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] font-semibold text-base focus:outline-none focus:border-[var(--color-border-primary,var(--color-primary))] transition-[border-color,background-color] duration-150"
     />
   );
 
@@ -121,7 +121,7 @@ function CompletionForm({
         {/* Formulaire */}
         <form
           onSubmit={handleSubmit}
-          className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-md,1.5rem)] p-8 space-y-4 backdrop-blur-[var(--blur-card)]"
+          className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[var(--radius-md,1.5rem)] p-8 space-y-4"
         >
           {/* Identité */}
           <p className="text-[11px] font-black uppercase tracking-[0.25em] text-[var(--color-primary)] opacity-80">
@@ -145,14 +145,14 @@ function CompletionForm({
               placeholder="Code postal"
               value={form.code_postal}
               onChange={(e) => setForm((f) => ({ ...f, code_postal: e.target.value }))}
-              className="w-1/3 p-4 rounded-2xl bg-[var(--color-field,var(--color-surface-offset))] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] font-semibold text-base focus:outline-none focus:border-[var(--color-border-primary,var(--color-primary))] transition-all"
+              className="w-1/3 p-4 rounded-2xl bg-[var(--color-field,var(--color-surface-offset))] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] font-semibold text-base focus:outline-none focus:border-[var(--color-border-primary,var(--color-primary))] transition-[border-color,background-color] duration-150"
             />
             <input
               type="text"
               placeholder="Ville"
               value={form.ville}
               onChange={(e) => setForm((f) => ({ ...f, ville: e.target.value }))}
-              className="flex-1 p-4 rounded-2xl bg-[var(--color-field,var(--color-surface-offset))] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] font-semibold text-base focus:outline-none focus:border-[var(--color-border-primary,var(--color-primary))] transition-all"
+              className="flex-1 p-4 rounded-2xl bg-[var(--color-field,var(--color-surface-offset))] border-2 border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-faint)] font-semibold text-base focus:outline-none focus:border-[var(--color-border-primary,var(--color-primary))] transition-[border-color,background-color] duration-150"
             />
           </div>
 
@@ -165,7 +165,7 @@ function CompletionForm({
           <button
             type="submit"
             disabled={!isValid || submitting || saving}
-            className="w-full mt-2 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-all bg-[var(--color-primary)] text-black hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full mt-2 py-4 rounded-2xl font-black uppercase tracking-widest text-sm transition-[opacity,transform,background-color] duration-150 bg-[var(--color-primary)] text-black hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {submitting || saving ? "Enregistrement…" : "Commencer"}
           </button>

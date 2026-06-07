@@ -90,7 +90,7 @@ export const ClientSelector = ({
           ref={inputRef}
           type="text"
           placeholder="🏢 Rechercher ou sélectionner..."
-          className="w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] backdrop-blur-md placeholder:text-[var(--color-text-dim)]"
+          className="w-full p-4 pr-12 rounded-2xl font-bold outline-none border-2 transition-[border-color,background-color] duration-150 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] placeholder:text-[var(--color-text-dim)]"
           value={search}
           onChange={handleInputChange}
           onFocus={handleInputFocus}
@@ -103,7 +103,7 @@ export const ClientSelector = ({
               e.stopPropagation();
               onAddNew();
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[var(--color-accent-violet)] hover:opacity-80 rounded-lg flex items-center justify-center text-white font-black text-lg transition-opacity duration-150 active:scale-90"
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[var(--color-accent-violet)] hover:opacity-80 rounded-lg flex items-center justify-center text-white font-black text-lg transition-[opacity,transform] duration-150 active:scale-90"
             title="Nouveau client"
           >
             +
@@ -111,10 +111,10 @@ export const ClientSelector = ({
         )}
       </div>
 
-      {showDropdown && (
+        {showDropdown && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-modal bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-card"
+          className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-modal bg-[var(--color-surface)] border-[var(--color-border)]"
         >
           {filteredClients.length > 0 ? (
             <div className="p-2">
@@ -123,7 +123,7 @@ export const ClientSelector = ({
                   key={client.id}
                   type="button"
                   onClick={() => handleSelect(client)}
-                  className={`w-full text-left p-3 rounded-xl transition-all ${
+                  className={`w-full text-left p-3 rounded-xl transition-[background-color,color] duration-150 ${
                     client.id === selectedClientId
                       ? "bg-[var(--color-accent-violet)] text-white"
                       : "hover:bg-[var(--color-surface-hover)] text-[var(--color-text)]"

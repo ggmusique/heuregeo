@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Calendar, PiggyBank, Plus, Minus, RotateCcw } from "lucide-react";
 import { useReserve } from "../features/contracts/reserve";
+import { Button } from "../components/ui/Button";
 import type { ReserveMovementType } from "../features/contracts/reserve";
 import {
   computePlannedWeekAllocation,
@@ -159,30 +160,33 @@ export function ReserveTab({ patronId, patronName, quotaHours = 0, hourlyRate = 
         </div>
 
         <div className="mt-4 grid gap-2 sm:grid-cols-3">
-          <button
-            type="button"
+          <Button
+            variant={action === "add" ? "success" : "ghost"}
+            size="sm"
+            className="flex flex-col items-center gap-1"
             onClick={() => setAction("add")}
-            className={"rounded-[var(--radius-lg)] border px-3 py-2 text-[10px] font-black uppercase tracking-wider " + (action === "add" ? "border-[var(--color-accent-green)]/45 bg-[var(--color-accent-green)]/12 text-[var(--color-accent-green)]" : "border-[var(--color-border)] text-[var(--color-text-muted)]")}
           >
-            <Plus size={13} className="mx-auto mb-1" />
+            <Plus size={13} />
             Ajouter
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={action === "consume" ? "danger" : "ghost"}
+            size="sm"
+            className="flex flex-col items-center gap-1"
             onClick={() => setAction("consume")}
-            className={"rounded-[var(--radius-lg)] border px-3 py-2 text-[10px] font-black uppercase tracking-wider " + (action === "consume" ? "border-[var(--color-accent-amber)]/45 bg-[var(--color-accent-amber)]/12 text-[var(--color-accent-amber)]" : "border-[var(--color-border)] text-[var(--color-text-muted)]")}
           >
-            <Minus size={13} className="mx-auto mb-1" />
+            <Minus size={13} />
             Consommer
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={action === "carry" ? "secondary" : "ghost"}
+            size="sm"
+            className="flex flex-col items-center gap-1"
             onClick={() => setAction("carry")}
-            className={"rounded-[var(--radius-lg)] border px-3 py-2 text-[10px] font-black uppercase tracking-wider " + (action === "carry" ? "border-[var(--color-accent-cyan)]/45 bg-[var(--color-accent-cyan)]/12 text-[var(--color-accent-cyan)]" : "border-[var(--color-border)] text-[var(--color-text-muted)]")}
           >
-            <RotateCcw size={13} className="mx-auto mb-1" />
+            <RotateCcw size={13} />
             Report
-          </button>
+          </Button>
         </div>
 
         <div className="mt-3 grid gap-2 sm:grid-cols-[130px_minmax(0,1fr)_auto]">
@@ -203,14 +207,14 @@ export function ReserveTab({ patronId, patronName, quotaHours = 0, hourlyRate = 
             className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-dim)]"
             aria-label="Commentaire"
           />
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             disabled={saving || signedHours === 0}
             onClick={submitMovement}
-            className="rounded-[var(--radius-lg)] border border-[var(--color-primary)]/45 bg-[var(--color-primary)]/15 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--color-primary)] disabled:opacity-40"
           >
             Enregistrer
-          </button>
+          </Button>
         </div>
 
         {error && <p className="mt-2 text-xs text-[var(--color-accent-red)]">{error}</p>}
@@ -229,21 +233,16 @@ export function ReserveTab({ patronId, patronName, quotaHours = 0, hourlyRate = 
                 <p className="text-sm font-black text-[var(--color-text)]">Planifier une semaine vide</p>
               </div>
             </div>
-            <button
-              type="button"
+            <Button
+              variant={planningOpen ? "ghost" : "secondary"}
+              size="sm"
               onClick={() => {
                 setPlanningOpen((v) => !v);
                 setPlanningError(null);
               }}
-              className={
-                "rounded-[var(--radius-pill)] border px-3 py-1.5 text-[10px] font-black uppercase tracking-wider transition-colors" +
-                (planningOpen
-                  ? " border-[var(--color-accent-cyan)]/45 bg-[var(--color-accent-cyan)]/12 text-[var(--color-accent-cyan)]"
-                  : " border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)]")
-              }
             >
               {planningOpen ? "Annuler" : "Planifier"}
-            </button>
+            </Button>
           </div>
 
           {planningOpen && (
@@ -302,16 +301,16 @@ export function ReserveTab({ patronId, patronName, quotaHours = 0, hourlyRate = 
                 <p className="text-xs font-bold text-[var(--color-accent-red)]">{planningError}</p>
               )}
 
-              <button
-                type="button"
-                disabled={planningLoading || balanceHours <= 0 || plannedHoursNum <= 0 || !plannedWeekStart}
+              <Button
+                variant="secondary"
+                fullWidth
+                size="sm"
+                loading={planningLoading}
+                disabled={balanceHours <= 0 || plannedHoursNum <= 0 || !plannedWeekStart}
                 onClick={handlePlanWeek}
-                className="w-full rounded-[var(--radius-pill)] border border-[var(--color-accent-cyan)]/45 bg-[var(--color-accent-cyan)]/12 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--color-accent-cyan)] disabled:opacity-40"
               >
-                {planningLoading
-                  ? "Enregistrement..."
-                  : `Confirmer l'allocation${plannedHoursNum > 0 ? ` — ${Math.round(computePlannedWeekAllocation(quotaHours, balanceHours, plannedHoursNum) * 10) / 10}h` : ""}`}
-              </button>
+                {plannedHoursNum > 0 ? `Confirmer l'allocation — ${Math.round(computePlannedWeekAllocation(quotaHours, balanceHours, plannedHoursNum) * 10) / 10}h` : "Confirmer l'allocation"}
+              </Button>
             </div>
           )}
         </article>
@@ -352,13 +351,14 @@ export function ReserveTab({ patronId, patronName, quotaHours = 0, hourlyRate = 
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-black text-[var(--color-text)]">{after === null ? "-" : formatHeures(Number(after))}</p>
                       {movement.movement_source === "user" && (
-                        <button
-                          type="button"
+                        <Button
+                          variant="danger"
+                          size="sm"
                           onClick={() => removeMovement(movement.id)}
-                          className="rounded-[var(--radius-pill)] border border-[var(--color-accent-red)]/35 bg-[var(--color-accent-red)]/10 px-2 py-1 text-[10px] font-black uppercase tracking-wider text-[var(--color-accent-red)]"
+                          className="px-2 py-1"
                         >
                           Supprimer
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>

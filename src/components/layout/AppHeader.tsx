@@ -1,6 +1,7 @@
 import React from "react";
 import { useDarkMode } from "../../contexts/DarkModeContext";
 import { ViewerBadge } from "../common/ViewerBadge";
+import { Button } from "../ui/Button";
 
 interface Props {
   profile: any;
@@ -17,23 +18,22 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION, onO
   return (
     <header
       className={
-        "relative px-4 pt-4 pb-10 sm:p-6 sm:pb-14 rounded-b-[60px] overflow-hidden shadow-2xl border-b border-[var(--color-border-primary)]"
+        "relative px-4 pt-4 pb-10 sm:p-6 sm:pb-14 rounded-b-[60px] overflow-hidden shadow-modal border-b border-[var(--color-border-primary)]"
       }
     >
       <div
         className={
-          "absolute inset-0 backdrop-blur-xl bg-[var(--color-surface)]"
+          "absolute inset-0 backdrop-blur-card bg-[var(--color-surface)]"
         }
       />
       <div className="relative z-10 text-center">
         <div className="absolute right-4 top-4 sm:right-6 sm:top-6 z-20 flex items-center gap-2">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             aria-label="Menu"
             onClick={onOpenMenu}
-            className={
-              "w-11 h-11 backdrop-blur-xl rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform border bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text)]"
-            }
+            className="w-11 h-11 p-0"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                  fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -41,13 +41,13 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION, onO
               <line x1="3" y1="12" x2="21" y2="12"/>
               <line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => setDarkMode(!darkMode)}
             aria-label="Basculer le thème"
-            className={
-              "w-11 h-11 backdrop-blur-xl rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform border bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text)]"
-            }
+            className="w-11 h-11 p-0"
           >
             {darkMode ? (
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
@@ -61,9 +61,9 @@ export function AppHeader({ profile, isViewer, isPro, liveTime, APP_VERSION, onO
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
               </svg>
             )}
-          </button>
+          </Button>
         </div>
-        <h1 className="relative text-[22px] sm:text-[30px] font-black italic tracking-[0.08em] sm:tracking-[0.1em] text-[var(--color-primary)] mb-2 drop-shadow-2xl font-['Playfair_Display'] px-24 sm:px-0">
+        <h1 className="relative text-[22px] sm:text-[30px] font-black italic tracking-[0.08em] sm:tracking-[0.1em] text-[var(--color-primary)] mb-2 drop-shadow-xl font-['Playfair_Display'] px-24 sm:px-0">
           {"HEURES DE " + (profile?.prenom?.trim()?.toUpperCase() || "GEO")}
         </h1>
         {isViewer && <ViewerBadge patronNom={profile?.nom || ""} />}

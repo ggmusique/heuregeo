@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { formatEuro, formatHeures } from "../../utils/formatters";
 import { useLabels } from "../../contexts/LabelsContext";
+import { Button } from "../ui/Button";
 
 interface Props {
   clients?: any[];
@@ -168,28 +169,25 @@ export const ClientsManager = ({
           <input
             type="text"
             placeholder="🔍 Rechercher un client..."
-            className="w-full p-4 rounded-2xl font-bold outline-none border-2 transition-[border-color] duration-150 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)] backdrop-blur-card"
+            className="w-full p-4 rounded-2xl font-bold outline-none border-2 transition-[border-color] duration-150 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-violet)]"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <button
-          onClick={onAdd}
-          className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[var(--color-accent-violet)] to-[var(--color-accent-fuchsia)] rounded-2xl font-black text-white text-[11px] uppercase tracking-wider shadow-lg hover:shadow-xl transition-all active:scale-95 backdrop-blur-md"
-        >
+        <Button variant="primary" size="lg" fullWidth={false} className="w-full sm:w-auto" onClick={onAdd}>
           + Nouveau {L.client}
-        </button>
+        </Button>
       </div>
 
       {/* Stats globales */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div
-          className={`p-4 rounded-2xl ${
-            darkMode
-              ? "bg-gradient-to-br from-[var(--color-accent-violet)]/20 to-[var(--color-accent-fuchsia)]/20 border border-[var(--color-accent-violet)]/30"
-              : "bg-gradient-to-br from-[var(--color-accent-violet)]/10 to-[var(--color-accent-fuchsia)]/10 border border-[var(--color-accent-violet)]/20"
-          } backdrop-blur-md`}
+            <div
+              className={`p-4 rounded-2xl ${
+                darkMode
+                  ? "bg-gradient-to-br from-[var(--color-accent-violet)]/20 to-[var(--color-accent-fuchsia)]/20 border border-[var(--color-accent-violet)]/30"
+                  : "bg-gradient-to-br from-[var(--color-accent-violet)]/10 to-[var(--color-accent-fuchsia)]/10 border border-[var(--color-accent-violet)]/20"
+              }`}
         >
           <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">
             Total {L.clients}
@@ -204,7 +202,7 @@ export const ClientsManager = ({
             darkMode
               ? "bg-gradient-to-br from-[var(--color-accent-green)]/20 to-[var(--color-accent-green)]/20 border border-[var(--color-accent-green)]/30"
               : "bg-gradient-to-br from-[var(--color-accent-green)]/10 to-[var(--color-accent-green)]/10 border border-[var(--color-accent-green)]/20"
-          } backdrop-blur-md`}
+          }`}
         >
           <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">
             Total Missions
@@ -219,7 +217,7 @@ export const ClientsManager = ({
             darkMode
               ? "bg-gradient-to-br from-[var(--color-accent-cyan)]/20 to-[color-mix(in_srgb,var(--color-accent-cyan)_20%,var(--color-accent-violet))]/20 border border-[var(--color-accent-cyan)]/30"
               : "bg-gradient-to-br from-[var(--color-accent-cyan)]/10 to-[color-mix(in_srgb,var(--color-accent-cyan)_20%,var(--color-accent-violet))]/10 border border-[var(--color-accent-cyan)]/20"
-          } backdrop-blur-md`}
+          }`}
         >
           <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">
             Total Heures
@@ -234,7 +232,7 @@ export const ClientsManager = ({
             darkMode
               ? "bg-gradient-to-br from-[var(--color-accent-amber)]/20 to-[var(--color-accent-orange)]/20 border border-[var(--color-accent-amber)]/30"
               : "bg-gradient-to-br from-[var(--color-accent-amber)]/10 to-[var(--color-accent-orange)]/10 border border-[var(--color-accent-amber)]/20"
-          } backdrop-blur-md`}
+          }`}
         >
           <div className="text-[10px] font-black uppercase opacity-60 tracking-wider">
             CA Total
@@ -254,23 +252,20 @@ export const ClientsManager = ({
               {searchTerm ? "Aucun client trouvé" : "Aucun client enregistré"}
             </p>
             {!searchTerm && (
-              <button
-                onClick={onAdd}
-                className="mt-4 px-6 py-3 bg-[var(--color-accent-violet)] hover:bg-[color-mix(in_srgb,var(--color-accent-violet)_80%,black)] rounded-2xl font-black text-white text-[11px] uppercase transition-all"
-              >
+              <Button variant="primary" size="sm" className="mt-4" onClick={onAdd}>
                 Créer le premier client
-              </button>
+              </Button>
             )}
           </div>
         ) : (
           sortedClients.map((client: any) => (
             <div
               key={client.id}
-              className={`p-5 rounded-[25px] backdrop-blur-md border-2 ${
+              className={`p-5 rounded-[25px] border-2 ${
                 darkMode
                   ? "bg-white/5 border-white/10 hover:border-[var(--color-accent-violet)]/40"
                   : "bg-[var(--color-surface)] border-[var(--color-border)] hover:border-[var(--color-accent-violet)]/30"
-              } transition-all`}
+              } transition-[border-color] duration-150`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -355,38 +350,20 @@ export const ClientsManager = ({
 
                 {allowActions && (
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => onEdit(client)}
-                    aria-label="Modifier ce client"
-                    title="Modifier"
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-                      darkMode
-                        ? "bg-[var(--color-accent-cyan)]/20 text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)]/30 hover:bg-[var(--color-accent-cyan)]/30"
-                        : "bg-[var(--color-accent-cyan)]/10 text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)]/30 hover:bg-[var(--color-accent-cyan)]/20"
-                    }`}
-                  >
+                  <Button variant="ghost" size="sm" onClick={() => onEdit(client)} aria-label="Modifier ce client" title="Modifier" className="w-10 h-10 p-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
-                  </button>
-                  <button
-                    onClick={() => onDelete(client)}
-                    aria-label="Supprimer ce client"
-                    title="Supprimer"
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
-                      darkMode
-                        ? "bg-[var(--color-accent-red)]/20 text-[var(--color-accent-red)] border border-[var(--color-accent-red)]/30 hover:bg-[var(--color-accent-red)]/30"
-                        : "bg-[var(--color-accent-red)]/10 text-[var(--color-accent-red)] border border-[var(--color-accent-red)]/30 hover:bg-[var(--color-accent-red)]/20"
-                    }`}
-                  >
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => onDelete(client)} aria-label="Supprimer ce client" title="Supprimer" className="w-10 h-10 p-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <polyline points="3 6 5 6 21 6"/>
                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                       <line x1="10" y1="11" x2="10" y2="17"/>
                       <line x1="14" y1="11" x2="14" y2="17"/>
                     </svg>
-                  </button>
+                  </Button>
                 </div>
                 )}
               </div>

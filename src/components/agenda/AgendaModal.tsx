@@ -93,7 +93,7 @@ export function AgendaModal({
   if (!show) return null;
 
   const inputCls =
-    "w-full px-5 py-4 rounded-[20px] text-base font-semibold transition-all outline-none " +
+    "w-full px-5 py-4 rounded-[20px] text-base font-semibold transition-[border-color,background-color] duration-150 outline-none " +
     "bg-[var(--color-bg-input)] border-2 border-[var(--color-border)] " +
     "focus:border-[var(--color-accent-green)] text-[var(--color-text)] " +
     "placeholder:text-[var(--color-text-dim)]";
@@ -105,12 +105,12 @@ export function AgendaModal({
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center p-4 animate-in fade-in duration-200 sm:items-center">
       <div
-        className="absolute inset-0 bg-[var(--color-overlay)] backdrop-blur-[var(--blur-overlay)]"
+        className="absolute inset-0 bg-[var(--color-overlay)] backdrop-blur-overlay"
         onClick={onCancel}
       />
 
       <div
-        className="relative w-full max-w-md rounded-[35px] p-7 shadow-modal animate-in slide-in-from-bottom-4 duration-300 max-h-[90vh] overflow-y-auto bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)] backdrop-blur-card"
+        className="relative w-full max-w-md rounded-[35px] p-7 shadow-modal animate-in slide-in-from-bottom-4 duration-300 max-h-[90vh] overflow-y-auto bg-[var(--color-surface)] text-[var(--color-text)] border border-[var(--color-border)]"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -119,7 +119,7 @@ export function AgendaModal({
           </h2>
           <button
             onClick={onCancel}
-            className="w-9 h-9 rounded-full flex items-center justify-center text-lg transition-all bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]"
+            className="w-9 h-9 rounded-full flex items-center justify-center text-lg transition-[background-color,color] duration-150 bg-[var(--color-surface-hover)] hover:bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]"
           >
             ×
           </button>
@@ -135,7 +135,7 @@ export function AgendaModal({
                   key={t.key}
                   type="button"
                   onClick={() => setType(t.key)}
-                  className={`flex-1 py-3 rounded-2xl text-[11px] font-black uppercase transition-all ${
+                  className={`flex-1 py-3 rounded-2xl text-[11px] font-black uppercase transition-[background-color,border-color,color,box-shadow] duration-150 ${
                     type === t.key
                       ? `bg-gradient-to-br ${t.color} text-white shadow-lg`
                       : "bg-[var(--color-surface-offset)] text-[var(--color-text-dim)] border border-[var(--color-border)]"
@@ -275,14 +275,14 @@ export function AgendaModal({
             <button
               onClick={onCancel}
               disabled={loading}
-              className="flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] transition-all active:scale-95 bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] disabled:opacity-50"
+              className="flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] transition-[opacity,transform,background-color,color] duration-150 active:scale-95 bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] disabled:opacity-50"
             >
               Annuler
             </button>
             <button
               onClick={handleSubmit}
               disabled={!canSubmit}
-              className={`flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] active:scale-95 transition-all shadow-lg ${
+              className={`flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] active:scale-95 transition-[opacity,transform,background-color,color,box-shadow] duration-150 shadow-lg ${
                 canSubmit
                   ? `bg-gradient-to-r ${selectedType?.color || "from-emerald-600 to-teal-600"} text-white`
                   : "bg-[var(--color-surface-2)] text-[var(--color-text-dim)] cursor-not-allowed"
@@ -296,7 +296,7 @@ export function AgendaModal({
             <button
               onClick={() => onDelete?.()}
               disabled={loading}
-              className="w-full py-3 rounded-[20px] font-black uppercase text-[11px] border-2 border-red-500/40 text-red-400 hover:bg-red-500/10 transition-all active:scale-95"
+              className="w-full py-3 rounded-[20px] font-black uppercase text-[11px] border-2 border-red-500/40 text-red-400 hover:bg-red-500/10 transition-[background-color,border-color,color] duration-150 active:scale-95"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: "inline", verticalAlign: "middle", marginRight: "6px" }}>
                 <polyline points="3 6 5 6 21 6"/>

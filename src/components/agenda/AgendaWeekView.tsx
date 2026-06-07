@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { AGENDA_EVENT_TYPES } from "../../constants/enums";
+import { Button } from "../ui/Button";
 
 const HOUR_START   = 7;
 const HOUR_END     = 22;
@@ -300,15 +301,12 @@ export function AgendaWeekView({
       </div>
 
       <div className={`p-3 border-t ${sep}`}>
-        <button
-          onClick={() => {
-            const target = weekDays.find((d) => d.iso === todayIso) || weekDays[0];
-            onOpenForDate?.(target.iso);
-          }}
-          className="w-full py-3 rounded-2xl font-black uppercase text-[11px] tracking-wider bg-gradient-to-r from-[var(--color-accent-green)] to-[color-mix(in_srgb,var(--color-accent-green)_60%,var(--color-accent-cyan))] text-white shadow-lg active:scale-95 transition-all"
-        >
+        <Button variant="success" fullWidth onClick={() => {
+          const target = weekDays.find((d) => d.iso === todayIso) || weekDays[0];
+          onOpenForDate?.(target.iso);
+        }}>
           + Nouvel événement
-        </button>
+        </Button>
       </div>
     </div>
   );

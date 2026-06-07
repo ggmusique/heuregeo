@@ -10,15 +10,15 @@ import type { HealthStatus } from "../types/systemHealth";
 // ─── Tokens par état de santé ─────────────────────────────────────────────────
 
 export interface StatusTokens {
-  /** Classe texte Tailwind */
+  /** Classe texte Tailwind (CSS vars) */
   text: string;
-  /** Classe fond Tailwind */
+  /** Classe fond Tailwind (CSS vars) */
   bg: string;
-  /** Classe bordure Tailwind */
+  /** Classe bordure Tailwind (CSS vars) */
   border: string;
-  /** Box-shadow glow (classe Tailwind ou inline) */
+  /** Box-shadow glow (CSS vars) */
   glow: string;
-  /** Couleur hexadécimale pour SVG ring */
+  /** Couleur pour SVG ring (CSS vars compatible) */
   ringColor: string;
   /** Emoji indicateur */
   emoji: string;
@@ -28,29 +28,29 @@ export interface StatusTokens {
 
 export const STATUS_TOKENS: Record<HealthStatus, StatusTokens> = {
   healthy: {
-    text: "text-emerald-400",
-    bg: "bg-emerald-500/10",
-    border: "border-emerald-500/25",
-    glow: "shadow-glow-green",
-    ringColor: "#34d399",
+    text: "text-[var(--color-accent-green)]",
+    bg: "bg-[var(--color-accent-green)]/10",
+    border: "border-[var(--color-accent-green)]/25",
+    glow: "shadow-[0_0_24px_rgba(52,211,153,0.25)]",
+    ringColor: "var(--color-accent-green)",
     emoji: "🟢",
     label: "Opérationnel",
   },
   warning: {
-    text: "text-amber-400",
-    bg: "bg-amber-500/10",
-    border: "border-amber-500/25",
+    text: "text-[var(--color-accent-amber)]",
+    bg: "bg-[var(--color-accent-amber)]/10",
+    border: "border-[var(--color-accent-amber)]/25",
     glow: "shadow-[0_0_24px_rgba(245,158,11,0.25)]",
-    ringColor: "#f59e0b",
+    ringColor: "var(--color-accent-amber)",
     emoji: "🟡",
     label: "Ralentissement",
   },
   critical: {
-    text: "text-red-400",
-    bg: "bg-red-500/10",
-    border: "border-red-500/25",
+    text: "text-[var(--color-accent-red)]",
+    bg: "bg-[var(--color-accent-red)]/10",
+    border: "border-[var(--color-accent-red)]/25",
     glow: "shadow-[0_0_24px_rgba(239,68,68,0.25)]",
-    ringColor: "#ef4444",
+    ringColor: "var(--color-accent-red)",
     emoji: "🔴",
     label: "Incident",
   },
@@ -59,7 +59,7 @@ export const STATUS_TOKENS: Record<HealthStatus, StatusTokens> = {
     bg: "bg-[var(--color-surface-offset)]",
     border: "border-[var(--color-border)]",
     glow: "",
-    ringColor: "#6b7280",
+    ringColor: "var(--color-text-muted)",
     emoji: "⚪",
     label: "Inconnu",
   },
@@ -70,7 +70,7 @@ export const STATUS_TOKENS: Record<HealthStatus, StatusTokens> = {
 /** Classes de base pour une carte glass — réutilisables dans tous les composants health. */
 export const GLASS_CARD =
   "bg-[var(--color-surface)] border border-[var(--color-border)] " +
-  "backdrop-blur-card rounded-theme-lg transition-all duration-300";
+  "backdrop-blur-card rounded-theme-lg transition-[border-color,background-color] duration-300";
 
 /** Carte avec hover glow léger. */
 export const GLASS_CARD_INTERACTIVE =

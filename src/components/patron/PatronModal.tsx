@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useLabels } from "../../contexts/LabelsContext";
+import { Button } from "../ui/Button";
 
 interface Props {
   show: boolean;
@@ -78,8 +79,8 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel} />
-      <div className="relative w-full max-w-md rounded-[35px] p-8 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 max-h-[calc(100vh-8rem)] overflow-y-auto bg-[var(--color-surface-2)] text-[var(--color-text)]">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-overlay" onClick={onCancel} />
+      <div className="relative w-full max-w-md rounded-[35px] p-8 shadow-modal animate-in slide-in-from-bottom-4 duration-300 max-h-[calc(100vh-8rem)] overflow-y-auto bg-[var(--color-surface-2)] text-[var(--color-text)]">
         <h2 className="text-2xl font-black mb-6 uppercase tracking-tight">{editMode ? `Modifier ${L.patron}` : `Nouveau ${L.patron}`}</h2>
 
         <div className="space-y-5">
@@ -152,10 +153,12 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
         </div>
 
         <div className="flex gap-3 mt-8">
-          <button onClick={onCancel} disabled={loading} className="flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] transition-all bg-[var(--color-surface-offset)] text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] disabled:opacity-50 active:scale-95">Annuler</button>
-          <button onClick={handleSubmit} disabled={!canSubmit} className={`flex-1 py-4 rounded-[20px] font-black uppercase text-[11px] active:scale-95 transition-[opacity,transform] duration-150 ${canSubmit ? "bg-[var(--color-accent-violet)] text-white" : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] opacity-40 cursor-not-allowed"}`}>
-            {loading ? "⏳" : editMode ? "Modifier" : "Créer"}
-          </button>
+          <Button variant="ghost" fullWidth loading={loading} onClick={onCancel}>
+            Annuler
+          </Button>
+          <Button variant="primary" fullWidth loading={loading} disabled={!canSubmit} onClick={handleSubmit}>
+            {editMode ? "Modifier" : "Créer"}
+          </Button>
         </div>
       </div>
     </div>

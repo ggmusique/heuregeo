@@ -28,7 +28,7 @@ export function UpdatePrompt() {
 
   return (
     <div className="fixed bottom-24 left-4 right-4 z-[1200] animate-in slide-in-from-bottom duration-300">
-      <div className="rounded-2xl border border-yellow-400/40 bg-gradient-to-br from-[var(--color-bg)]/98 to-[var(--color-surface)]/98 p-4 shadow-2xl backdrop-blur-xl">
+      <div className="rounded-2xl border border-yellow-400/40 bg-gradient-to-br from-[var(--color-bg)]/98 to-[var(--color-surface)]/98 p-4 shadow-modal">
         <div className="flex flex-col gap-3">
           {/* Header */}
           <div className="flex items-center gap-3">
@@ -49,13 +49,13 @@ export function UpdatePrompt() {
           <div className="flex gap-2">
             <button
               onClick={() => setNeedRefresh(false)}
-              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white/70 transition-all hover:bg-white/10 active:scale-95"
+              className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-white/70 transition-[background-color,color] duration-150 hover:bg-white/10 active:scale-95"
             >
               Plus tard
             </button>
             <button
               onClick={handleUpdate}
-              className="flex-1 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-[color-mix(in_srgb,var(--color-primary)_80%,black)] px-4 py-2.5 text-xs font-black uppercase tracking-wide text-[var(--color-bg)] shadow-lg transition-all hover:from-[color-mix(in_srgb,var(--color-primary)_120%,white)] hover:to-[var(--color-primary)] active:scale-95"
+              className="flex-1 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-[color-mix(in_srgb,var(--color-primary)_80%,black)] px-4 py-2.5 text-xs font-black uppercase tracking-wide text-[var(--color-bg)] shadow-lg transition-[opacity,transform,background-color] duration-150 hover:from-[color-mix(in_srgb,var(--color-primary)_120%,white)] hover:to-[var(--color-primary)] active:scale-95"
             >
               Mettre à jour
             </button>

@@ -45,12 +45,12 @@ export function NavDrawer({ open, onClose, activeTab, setActiveTab, proNavItems,
         type="button"
         aria-label="Fermer le menu"
         onClick={onClose}
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-overlay"
       />
 
       {/* Panneau du tiroir */}
       <aside
-        className="drawer relative h-full w-[80%] max-w-[320px] ml-auto flex flex-col gap-2 p-5 pt-8 overflow-y-auto shadow-2xl border-l bg-[var(--color-surface)] border-[var(--color-border-primary)] transition-transform duration-300"
+        className="drawer relative h-full w-[80%] max-w-[320px] ml-auto flex flex-col gap-2 p-5 pt-8 overflow-y-auto shadow-modal border-l bg-[var(--color-surface)] border-[var(--color-border-primary)] transition-transform duration-300"
       >
         <div className="flex items-center justify-between mb-2">
           <span className="text-[13px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">

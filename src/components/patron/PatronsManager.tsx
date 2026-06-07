@@ -3,6 +3,7 @@ import { formatEuro, formatDateFR } from "../../utils/formatters";
 import { useLabels } from "../../contexts/LabelsContext";
 import { usePatronAccess } from "../../hooks/usePatronAccess";
 import type { UserProfile, PatronAccessProfile, PatronInvitation } from "../../types/profile";
+import { Button } from "../ui/Button";
 
 interface Props {
   patrons?: any[];
@@ -75,14 +76,14 @@ export function PatronsManager({
           <h2 className="text-2xl font-black uppercase tracking-tight">{`Mes ${L.patrons}`}</h2>
           <p className="text-[10px] opacity-60 uppercase tracking-wider mt-1">{patrons.length} patron{patrons.length > 1 ? "s" : ""} actif{patrons.length > 1 ? "s" : ""}</p>
         </div>
-        <button onClick={onAdd} className="px-6 py-3 bg-gradient-to-r from-[var(--color-accent-violet)] to-[var(--color-accent-fuchsia)] text-white rounded-2xl font-black uppercase text-[10px] active:scale-95 transition-all shadow-lg">+ Nouveau</button>
+        <Button variant="primary" size="sm" onClick={onAdd}>+ Nouveau</Button>
       </div>
 
       {patrons.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-4xl mb-4">👔</p>
           <p className="text-lg opacity-60 mb-6">Aucun patron créé</p>
-          <button onClick={onAdd} className="px-8 py-4 bg-gradient-to-r from-[var(--color-accent-violet)] to-[var(--color-accent-fuchsia)] text-white rounded-3xl font-black uppercase text-[11px] active:scale-95 transition-all shadow-xl">Créer mon premier patron</button>
+            <Button variant="primary" size="lg" onClick={onAdd}>Créer mon premier patron</Button>
         </div>
       ) : (
         <div className="space-y-3">

@@ -158,19 +158,19 @@ export const LieuSelector = ({
           onFocus={handleInputFocus}
         />
         {onAddNew && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); onAddNew(); }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[var(--color-accent-violet)] hover:opacity-90 rounded-lg flex items-center justify-center text-white font-black text-lg transition-[opacity] duration-150 active:scale-90"
-            title="Nouveau lieu"
-          >+</button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onAddNew(); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-[var(--color-accent-violet)] hover:opacity-90 rounded-lg flex items-center justify-center text-white font-black text-lg transition-[opacity,transform] duration-150 active:scale-90"
+                  title="Nouveau lieu"
+                >+</button>
         )}
       </div>
 
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-2xl bg-[var(--color-field)] border-[var(--color-border-violet)] backdrop-blur-xl"
+          className="absolute z-50 w-full mt-2 max-h-60 overflow-y-auto rounded-2xl border-2 shadow-modal bg-[var(--color-field)] border-[var(--color-border-violet)]"
         >
           {filteredLieux.length > 0 ? (
             <div className="p-2">
@@ -181,7 +181,7 @@ export const LieuSelector = ({
                     const idStr = String(lieu?.id);
                     return (
                       <button key={lieu.id} type="button" onClick={() => handleSelect(lieu)}
-                        className={`w-full text-left p-3 rounded-xl transition-[background] duration-150 mb-1 ${idStr === selectedLieuIdStr ? "bg-[var(--color-accent-violet)] text-white" : "hover:bg-[var(--color-accent-green)]/20 text-[var(--color-text)] border border-[var(--color-accent-green)]/30"}`}
+                        className={`w-full text-left p-3 rounded-xl transition-[background-color] duration-150 mb-1 ${idStr === selectedLieuIdStr ? "bg-[var(--color-accent-violet)] text-white" : "hover:bg-[var(--color-accent-green)]/20 text-[var(--color-text)] border border-[var(--color-accent-green)]/30"}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="font-bold">{lieu.nom}</div>
@@ -196,11 +196,11 @@ export const LieuSelector = ({
               {autresLieuxList.length > 0 && (
                 <>
                   {lieuxDuClientList.length > 0 && <div className="px-3 py-2 text-[10px] font-black uppercase text-white/40 opacity-60 mt-2">Autres lieux</div>}
-                  {autresLieuxList.map((lieu) => {
-                    const idStr = String(lieu?.id);
-                    return (
-                      <button key={lieu.id} type="button" onClick={() => handleSelect(lieu)}
-                          className={`w-full text-left p-3 rounded-xl transition-[background] duration-150 ${idStr === selectedLieuIdStr ? "bg-[var(--color-accent-violet)] text-white" : "hover:bg-[var(--color-surface-offset)] text-[var(--color-text)]"}`}
+                      {autresLieuxList.map((lieu) => {
+                        const idStr = String(lieu?.id);
+                        return (
+                          <button key={lieu.id} type="button" onClick={() => handleSelect(lieu)}
+                              className={`w-full text-left p-3 rounded-xl transition-[background-color] duration-150 ${idStr === selectedLieuIdStr ? "bg-[var(--color-accent-violet)] text-white" : "hover:bg-[var(--color-surface-offset)] text-[var(--color-text)]"}`}
                       >
                         <div className="font-bold">{lieu.nom}</div>
                         {lieu.adresse_complete && <div className="text-xs opacity-60 mt-1 line-clamp-1">📍 {lieu.adresse_complete}</div>}

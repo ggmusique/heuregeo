@@ -2,6 +2,7 @@ import React from "react";
 import { DateSelector } from "../DateSelector";
 import { PatronSelectorCompact } from "../../patron/PatronSelector";
 import { Patron } from "../../../types/entities";
+import { Button } from "../../ui/Button";
 
 interface AcompteModalProps {
   show: boolean;
@@ -91,20 +92,11 @@ export const AcompteModal = ({
 
           <div className="flex gap-3 pt-2">
 
-            <button
-              onClick={onCancel}
-              className="flex-1 py-4 rounded-2xl text-[10px] font-black uppercase transition-colors bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] hover:bg-[var(--color-surface-hover)]"
-            >
-              Annuler
-            </button>
+            <Button variant="ghost" fullWidth onClick={onCancel}>Annuler</Button>
 
-            <button
-              onClick={onSubmit}
-              disabled={loading}
-              className="flex-1 py-4 bg-[var(--color-accent-cyan)] hover:opacity-90 rounded-2xl text-[10px] font-black text-white shadow-card uppercase tracking-widest active:scale-95 transition-[opacity] duration-150 disabled:opacity-50"
-            >
-              {loading ? "Chargement..." : "Valider"}
-            </button>
+            <Button variant="primary" fullWidth loading={loading} disabled={loading} onClick={onSubmit}>
+              Valider
+            </Button>
           </div>
 
         </div>

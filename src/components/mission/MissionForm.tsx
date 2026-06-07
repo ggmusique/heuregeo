@@ -9,7 +9,7 @@ import { calculerDuree } from "../../utils/calculators";
 import { useLabels } from "../../contexts/LabelsContext";
 import { useWeather } from "../../hooks/useWeather";
 import { GlassCard } from "../ui/GlassCard";
-import { NeonButton } from "../ui/NeonButton";
+import { Button } from "../ui/Button";
 import { NeonSelect } from "../ui/NeonSelect";
 
 const JOURNEE_TYPE = { debut: "08:00", fin: "17:00", pause: 30 };
@@ -330,7 +330,7 @@ export const MissionForm = ({
               isIOS={isIOS}
             />
             <div style={{ marginTop: "1rem" }}>
-              <NeonButton fullWidth onClick={() => setShowDatePicker(false)}>Valider</NeonButton>
+              <Button variant="primary" fullWidth onClick={() => setShowDatePicker(false)}>Valider</Button>
             </div>
           </div>
         </div>
@@ -396,17 +396,13 @@ export const MissionForm = ({
 
           {/* Action buttons */}
           <div className="flex gap-2 mt-3">
-            <NeonButton
-              variant="ghost"
-              size="sm"
-              onClick={() => { setDebut(JOURNEE_TYPE.debut); setFin(JOURNEE_TYPE.fin); setPause(JOURNEE_TYPE.pause); }}
-            >
+            <Button variant="ghost" size="sm" onClick={() => { setDebut(JOURNEE_TYPE.debut); setFin(JOURNEE_TYPE.fin); setPause(JOURNEE_TYPE.pause); }}>
               ☀️ Journée type
-            </NeonButton>
+            </Button>
             {onCopyLast && (
-              <NeonButton variant="ghost" size="sm" onClick={onCopyLast}>
+              <Button variant="ghost" size="sm" onClick={onCopyLast}>
                 📋 Dupliquer
-              </NeonButton>
+              </Button>
             )}
           </div>
         </GlassCard>
@@ -429,7 +425,7 @@ export const MissionForm = ({
 
         {showRateEditorControl && (
           <div>
-            <NeonButton
+            <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowRateEditor((v) => !v)}
@@ -450,7 +446,7 @@ export const MissionForm = ({
                   Taux personnalisé
                 </span>
               )}
-            </NeonButton>
+            </Button>
             {showRateEditor && (
               <div style={{ marginTop: "8px" }}>
                 <NeonSelect
@@ -513,8 +509,8 @@ export const MissionForm = ({
               </select>
             </div>
             <div className="flex gap-1">
-              <NeonButton variant="ghost" size="sm" onClick={() => { setDebut(adjustTime(debut, -15)); clearError("fin"); }}>−</NeonButton>
-              <NeonButton variant="ghost" size="sm" onClick={() => { setDebut(adjustTime(debut, 15)); clearError("fin"); }}>+</NeonButton>
+              <Button variant="ghost" size="sm" onClick={() => { setDebut(adjustTime(debut, -15)); clearError("fin"); }}>−</Button>
+              <Button variant="ghost" size="sm" onClick={() => { setDebut(adjustTime(debut, 15)); clearError("fin"); }}>+</Button>
             </div>
           </div>
 
@@ -532,8 +528,8 @@ export const MissionForm = ({
               </select>
             </div>
             <div className="flex gap-1">
-              <NeonButton variant="ghost" size="sm" onClick={() => { setPause((p) => Math.max(0, p - 15)); clearError("pause"); }}>−</NeonButton>
-              <NeonButton variant="ghost" size="sm" onClick={() => { setPause((p) => Math.min(MAX_PAUSE_MINUTES, p + 15)); clearError("pause"); }}>+</NeonButton>
+              <Button variant="ghost" size="sm" onClick={() => { setPause((p) => Math.max(0, p - 15)); clearError("pause"); }}>−</Button>
+              <Button variant="ghost" size="sm" onClick={() => { setPause((p) => Math.min(MAX_PAUSE_MINUTES, p + 15)); clearError("pause"); }}>+</Button>
             </div>
           </div>
 
@@ -551,8 +547,8 @@ export const MissionForm = ({
               </select>
             </div>
             <div className="flex gap-1">
-              <NeonButton variant="ghost" size="sm" onClick={() => { setFin(adjustTime(fin, -15)); clearError("fin"); }}>−</NeonButton>
-              <NeonButton variant="ghost" size="sm" onClick={() => { setFin(adjustTime(fin, 15)); clearError("fin"); }}>+</NeonButton>
+              <Button variant="ghost" size="sm" onClick={() => { setFin(adjustTime(fin, -15)); clearError("fin"); }}>−</Button>
+              <Button variant="ghost" size="sm" onClick={() => { setFin(adjustTime(fin, 15)); clearError("fin"); }}>+</Button>
             </div>
           </div>
 
@@ -579,21 +575,20 @@ export const MissionForm = ({
 
       {/* ── BOUTON VALIDER ───────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 mt-4">
-        <NeonButton
+        <Button
           variant="primary"
           size="lg"
           fullWidth
           loading={isSubmitting || loading}
           onClick={handleSubmit}
-          glow
         >
           {editMode ? "Mettre à jour" : "Enregistrer la mission"}
-        </NeonButton>
+        </Button>
 
         {(editMode || onCancel) && (
-          <NeonButton variant="ghost" onClick={onCancel}>
+          <Button variant="ghost" onClick={onCancel}>
             Annuler
-          </NeonButton>
+          </Button>
         )}
       </div>
 

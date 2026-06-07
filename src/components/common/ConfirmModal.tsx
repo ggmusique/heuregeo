@@ -40,10 +40,10 @@ export const ConfirmModal = ({
       {/* ✅ Overlay noir derrière la modal
           - couvre tout l'écran
           - si tu cliques dessus => onCancel (comme "Annuler") */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-md"
-        onClick={onCancel}
-      />
+       <div
+         className="absolute inset-0 bg-black/50 backdrop-blur-overlay"
+         onClick={onCancel}
+       />
 
       {/* ✅ Conteneur de la "boîte" centrée */}
       <div className="relative w-full max-w-md animate-in zoom-in-95 duration-300">
@@ -53,14 +53,14 @@ export const ConfirmModal = ({
           className={`absolute inset-0 bg-gradient-to-br ${style.gradient} opacity-20 blur-2xl rounded-[45px]`}
         />
 
-        {/* ✅ La boîte principale */}
+         {/* ✅ La boîte principale */}
         <div
-          className={`relative bg-[var(--color-bg)] backdrop-blur-xl border-2 ${style.border} rounded-[40px] overflow-hidden shadow-2xl`}
+          className={`relative bg-[var(--color-bg)] border-2 ${style.border} rounded-[40px] overflow-hidden shadow-modal`}
         >
           
-          {/* ✅ Bandeau du haut (titre + icône) */}
+           {/* ✅ Bandeau du haut (titre + icône) */}
           <div
-            className={`bg-gradient-to-r ${style.gradient} px-6 py-5 flex items-center gap-4 backdrop-blur-md`}
+            className={`bg-gradient-to-r ${style.gradient} px-6 py-5 flex items-center gap-4`}
           >
             <div
               className={`w-12 h-12 rounded-2xl ${style.iconBg} flex items-center justify-center text-2xl`}
@@ -74,8 +74,8 @@ export const ConfirmModal = ({
             </h3>
           </div>
 
-          {/* ✅ Corps : le message */}
-          <div className="p-8 backdrop-blur-md">
+           {/* ✅ Corps : le message */}
+          <div className="p-8">
             <p className="text-[var(--color-text)] text-[15px] leading-relaxed font-medium">
               {message}
             </p>
@@ -87,7 +87,7 @@ export const ConfirmModal = ({
             {/* Bouton Annuler */}
             <button
               onClick={onCancel}
-              className="flex-1 py-4 px-6 border rounded-2xl font-black uppercase text-[11px] tracking-wider transition-all active:scale-95 backdrop-blur-md bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-hover)] border-[var(--color-border)] text-[var(--color-text-muted)]"
+              className="flex-1 py-4 px-6 border rounded-2xl font-black uppercase text-[11px] tracking-wider transition-[opacity,transform,background-color,border-color,color] duration-150 active:scale-95 bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-hover)] border-[var(--color-border)] text-[var(--color-text-muted)]"
             >
               {cancelText || "Annuler"}
             </button>
@@ -95,7 +95,7 @@ export const ConfirmModal = ({
             {/* Bouton Confirmer */}
             <button
               onClick={onConfirm}
-              className={`flex-1 py-4 px-6 ${style.buttonBg} rounded-2xl font-black uppercase text-[11px] text-white tracking-wider transition-all active:scale-95 shadow-lg backdrop-blur-md`}
+              className={`flex-1 py-4 px-6 ${style.buttonBg} rounded-2xl font-black uppercase text-[11px] text-white tracking-wider transition-[opacity,transform,background-color,border-color,color,box-shadow] duration-150 active:scale-95 shadow-lg`}
             >
               {confirmText || "Confirmer"}
             </button>

@@ -74,12 +74,12 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
 
   return (
     <div
-      className="fixed inset-x-0 top-0 bottom-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end sm:justify-center sm:items-center sm:p-6"
+      className="fixed inset-x-0 top-0 bottom-0 z-50 bg-black/60 backdrop-blur-overlay flex flex-col justify-end sm:justify-center sm:items-center sm:p-6"
       onClick={onClose}
     >
       {/* Panel */}
       <div
-        className="w-full sm:max-w-lg bg-[var(--color-surface)] backdrop-blur-card border border-[var(--color-border-cyan)] rounded-t-3xl sm:rounded-2xl max-h-[calc(85dvh-80px)] sm:max-h-[80dvh] flex flex-col overflow-hidden shadow-modal mb-[80px] sm:mb-0"
+        className="w-full sm:max-w-lg bg-[var(--color-surface)] border border-[var(--color-border-cyan)] rounded-t-3xl sm:rounded-2xl max-h-[calc(85dvh-80px)] sm:max-h-[80dvh] flex flex-col overflow-hidden shadow-modal mb-[80px] sm:mb-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle — mobile only */}
@@ -109,7 +109,7 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
 
           <button
             onClick={onClose}
-            className="flex-none flex items-center justify-center w-8 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+            className="flex-none flex items-center justify-center w-8 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-[color,background-color] duration-150"
             aria-label="Fermer"
           >
             <X size={16} />
@@ -166,14 +166,14 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
                 <div className="flex gap-2">
                   <button
                     onClick={() => setConfirmingDelete(false)}
-                    className="flex-1 py-3 text-xs font-semibold rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                    className="flex-1 py-3 text-xs font-semibold rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-[color,background-color] duration-150"
                   >
                     Annuler
                   </button>
                   <button
                     onClick={handleDelete}
                     disabled={deleting}
-                    className="flex-1 py-3 text-xs font-semibold rounded-lg bg-orange-500/30 border border-orange-400/50 text-orange-200 hover:bg-orange-500/50 transition-colors disabled:opacity-50"
+                    className="flex-1 py-3 text-xs font-semibold rounded-lg bg-orange-500/30 border border-orange-400/50 text-orange-200 hover:bg-orange-500/50 transition-[background-color,border-color,color] duration-150 disabled:opacity-50"
                   >
                     {deleting ? "Suppression…" : "Confirmer"}
                   </button>
@@ -185,14 +185,14 @@ export function DayDetailModal({ event, onClose, onEdit, onDelete }: DayDetailMo
                   onClick={() => {
                     if (event.originalAgendaEvent) onEdit(event.originalAgendaEvent);
                   }}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-3 min-h-[44px] text-xs font-semibold rounded-xl bg-violet-500/20 border border-violet-400/40 text-violet-300 hover:bg-violet-500/35 hover:border-violet-400/70 transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-3 min-h-[44px] text-xs font-semibold rounded-xl bg-violet-500/20 border border-violet-400/40 text-violet-300 hover:bg-violet-500/35 hover:border-violet-400/70 transition-[background-color,border-color,color] duration-150"
                 >
                   <Pencil size={13} />
                   Modifier
                 </button>
                 <button
                   onClick={() => setConfirmingDelete(true)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-3 min-h-[44px] text-xs font-semibold rounded-xl bg-red-500/15 border border-red-400/30 text-red-300 hover:bg-red-500/30 hover:border-red-400/60 transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-3 min-h-[44px] text-xs font-semibold rounded-xl bg-red-500/15 border border-red-400/30 text-red-300 hover:bg-red-500/30 hover:border-red-400/60 transition-[background-color,border-color,color] duration-150"
                 >
                   <Trash2 size={13} />
                   Supprimer

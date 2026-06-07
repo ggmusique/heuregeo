@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from "react";
 import * as XLSX from "xlsx";
+import { Button } from "../ui/Button";
 
 function parseDate(raw: any): string | null {
   if (!raw) return null;
@@ -175,11 +176,11 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center p-3 bg-black/80 backdrop-blur-xl">
+    <div className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center p-3 bg-black/80 backdrop-blur-overlay">
       <div className="w-full max-w-lg rounded-[32px] border-2 bg-[var(--color-field)] border-[var(--color-border-violet)] flex flex-col" style={{ maxHeight: "90dvh" }}>
         <div className="p-5 border-b border-white/5 flex items-center justify-between shrink-0">
           <h2 className="font-black text-base uppercase tracking-tight">Import de missions</h2>
-          <button onClick={handleClose} className="text-xl text-[var(--color-text-muted)] hover:opacity-100">✕</button>
+          <Button variant="ghost" size="sm" onClick={handleClose} aria-label="Fermer">✕</Button>
         </div>
 
         <div className="overflow-y-auto p-4 space-y-4">
@@ -198,24 +199,24 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
             </div>
           )}
 
-          {!preview && !result && (
-            <div className="flex bg-[var(--color-surface-offset)] rounded-2xl p-1">
-              <button onClick={() => setMode("paste")} className={`flex-1 py-2.5 text-[11px] font-black rounded-xl ${mode === "paste" ? "bg-[var(--color-accent-violet)] text-[var(--color-bg)]" : "text-[var(--color-text-muted)]"}`}>Coller texte</button>
-              <button onClick={() => setMode("upload")} className={`flex-1 py-2.5 text-[11px] font-black rounded-xl ${mode === "upload" ? "bg-[var(--color-accent-violet)] text-[var(--color-bg)]" : "text-[var(--color-text-muted)]"}`}>Fichier .xlsx/.csv</button>
+           {!preview && !result && (
+            <div className="flex bg-[var(--color-surface-offset)] rounded-2xl p-1 gap-1">
+              <Button variant={mode === "paste" ? "primary" : "ghost"} size="sm" onClick={() => setMode("paste")}>Coller texte</Button>
+              <Button variant={mode === "upload" ? "primary" : "ghost"} size="sm" onClick={() => setMode("upload")}>Fichier .xlsx/.csv</Button>
             </div>
           )}
 
           {!preview && !result && mode === "paste" && (
             <>
               <textarea value={csvText} onChange={(e) => setCsvText(e.target.value)} placeholder={"Date;Début;Fin;Pause;Patron;Client;Lieu;Tarif\n2026-03-01;08:00;17:00;60;Pierre;Mairie;Paris;15"} rows={6} className="w-full p-3 rounded-2xl border text-[11px] font-mono resize-none focus:outline-none focus:border-[var(--color-accent-violet)] bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]" />
-              <button onClick={handleAnalysePaste} disabled={!csvText.trim()} className="w-full py-3 rounded-2xl font-black uppercase text-[11px] bg-[var(--color-accent-violet)] text-[var(--color-bg)] disabled:opacity-30">Analyser</button>
+               <Button variant="primary" fullWidth disabled={!csvText.trim()} onClick={handleAnalysePaste}>Analyser</Button>
             </>
           )}
 
           {!preview && !result && mode === "upload" && (
             <>
               <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
-              <button onClick={() => fileRef.current?.click()} className="w-full py-8 rounded-2xl border-2 border-dashed font-black text-[11px] uppercase transition-colors border-[var(--color-border)] hover:border-[var(--color-accent-violet)] text-[var(--color-text-muted)] hover:text-[var(--color-accent-violet)]">📂 Choisir un fichier .xlsx ou .csv</button>
+               <Button variant="outline" fullWidth size="lg" onClick={() => fileRef.current?.click()}>📂 Choisir un fichier .xlsx ou .csv</Button>
             </>
           )}
 
@@ -257,16 +258,16 @@ export function ImportMissionsModal({ show, onClose, onImport, patrons = [], cli
           )}
         </div>
 
-        <div className="p-4 border-t border-white/5 flex gap-3 shrink-0">
+         <div className="p-4 border-t border-white/5 flex gap-3 shrink-0">
           {preview ? (
             <>
-              <button onClick={() => { setPreview(null); setResult(null); }} className="flex-1 py-3 font-black uppercase text-[10px] rounded-2xl bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">Retour</button>
-              <button onClick={handleImport} disabled={validCount === 0 || importing} className="flex-1 py-3 font-black uppercase text-[10px] rounded-2xl bg-gradient-to-r from-[var(--color-accent-violet)] to-[var(--color-accent-fuchsia)] text-white disabled:opacity-30">{importing ? "Import…" : `Importer ${validCount} mission(s)`}</button>
+              <Button variant="ghost" fullWidth size="sm" onClick={() => { setPreview(null); setResult(null); }}>Retour</Button>
+              <Button variant="primary" fullWidth size="sm" loading={importing} disabled={validCount === 0}>{importing ? "Import…" : `Importer ${validCount} mission(s)`}</Button>
             </>
           ) : result ? (
-            <button onClick={handleClose} className="w-full py-3 font-black uppercase text-[10px] rounded-2xl bg-gradient-to-r from-[var(--color-accent-green)] to-[color-mix(in_srgb,var(--color-accent-green)_60%,var(--color-accent-cyan))] text-white">Fermer</button>
+            <Button variant="success" fullWidth size="sm" onClick={handleClose}>Fermer</Button>
           ) : (
-            <button onClick={handleClose} className="w-full py-3 font-black uppercase text-[10px] rounded-2xl bg-[var(--color-surface-offset)] text-[var(--color-text-muted)]">Annuler</button>
+            <Button variant="ghost" fullWidth size="sm" onClick={handleClose}>Annuler</Button>
           )}
         </div>
       </div>

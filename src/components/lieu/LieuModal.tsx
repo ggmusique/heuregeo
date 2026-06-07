@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { geocodeAddress } from "../../utils/geocode";
 import { useLabels } from "../../contexts/LabelsContext";
 import { LIEU_TYPES } from "../../constants/enums";
+import { Button } from "../ui/Button";
 
 interface Props {
   show?: boolean;
@@ -141,12 +142,12 @@ export const LieuModal = ({
 
   if (!show) return null;
 
-  const inputCls = `w-full p-4 rounded-2xl font-bold outline-none border-2 transition-all bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 backdrop-blur-md placeholder:text-white/40`;
+  const inputCls = `w-full p-4 rounded-2xl font-bold outline-none border-2 transition-[border-color,background-color] duration-150 bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-purple-500 placeholder:text-white/40`;
 
-  return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+    return (
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-black/60 backdrop-blur-overlay">
       <div
-        className={`w-full max-w-md p-6 rounded-[30px] max-h-[90vh] overflow-y-auto bg-[var(--color-field)] border-2 border-[var(--color-border-violet)] shadow-2xl`}
+        className={`w-full max-w-md p-6 rounded-[30px] max-h-[90vh] overflow-y-auto bg-[var(--color-field)] border-2 border-[var(--color-border-violet)] shadow-modal`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-2xl font-black uppercase mb-6 text-center">
@@ -233,8 +234,8 @@ export const LieuModal = ({
               <div className="space-y-2">
                 <p className="text-red-400 text-sm">{geocodeError}</p>
                 <div className="flex gap-2">
-                  <button type="button" onClick={handleRetryGeocode} className="flex-1 py-2 text-[10px] font-black uppercase rounded-xl bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 transition-all">Réessayer</button>
-                  <button type="button" onClick={handleSaveAnyway} className="flex-1 py-2 text-[10px] font-black uppercase rounded-xl bg-white/10 text-white/60 hover:bg-white/20 transition-all">Enregistrer quand même</button>
+                    <button type="button" onClick={handleRetryGeocode} className="flex-1 py-2 text-[10px] font-black uppercase rounded-xl bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30 transition-[background-color,color] duration-150">Réessayer</button>
+                    <button type="button" onClick={handleSaveAnyway} className="flex-1 py-2 text-[10px] font-black uppercase rounded-xl bg-white/10 text-white/60 hover:bg-white/20 transition-[background-color,color] duration-150">Enregistrer quand même</button>
                 </div>
               </div>
             )}
@@ -285,14 +286,10 @@ export const LieuModal = ({
           </div>
 
           <div className="flex gap-3 pt-4">
-            <button type="button" onClick={onCancel} className="flex-1 py-3 bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-hover)] rounded-2xl font-black uppercase text-[11px] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-[background,color] duration-150 border border-[var(--color-border)]">Annuler</button>
-            <button
-              type="submit"
-              disabled={loading || pendingSubmit || geocodeStatus === "searching"}
-              className="flex-1 py-3 bg-[var(--color-accent-violet)] hover:opacity-90 rounded-2xl font-black uppercase text-[11px] text-white transition-[opacity] duration-150 disabled:opacity-50 active:scale-95"
-            >
-              {loading || pendingSubmit || geocodeStatus === "searching" ? "..." : editMode ? "Modifier" : "Créer"}
-            </button>
+            <Button variant="ghost" fullWidth onClick={onCancel}>Annuler</Button>
+            <Button variant="primary" fullWidth type="submit" loading={loading || pendingSubmit || geocodeStatus === "searching"} disabled={loading || pendingSubmit || geocodeStatus === "searching"}>
+              {editMode ? "Modifier" : "Créer"}
+            </Button>
           </div>
         </form>
       </div>

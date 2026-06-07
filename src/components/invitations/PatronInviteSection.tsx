@@ -173,7 +173,7 @@ export function PatronInviteSection({ onAccessChange }: { onAccessChange?: () =>
               </span>
               <button
                 onClick={handleCopyCode}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-[border-color,background-color,color] duration-150 ${
                   copiedCode
                     ? "border-[var(--color-success)]/40 text-[var(--color-success)] bg-[var(--color-success)]/10"
                     : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)]/40"
@@ -187,7 +187,7 @@ export function PatronInviteSection({ onAccessChange }: { onAccessChange?: () =>
             <button
               onClick={async () => { setGenerating(true); await generateMyCode(); setGenerating(false); }}
               disabled={generating}
-              className="px-4 py-2 rounded-lg bg-[var(--color-primary)] text-black font-bold text-xs hover:opacity-90 disabled:opacity-50 transition-all"
+              className="px-4 py-2 rounded-lg bg-[var(--color-primary)] text-black font-bold text-xs hover:opacity-90 disabled:opacity-50 transition-[opacity] duration-150"
             >
               {generating ? "Génération…" : "Générer mon code"}
             </button>
@@ -218,12 +218,12 @@ export function PatronInviteSection({ onAccessChange }: { onAccessChange?: () =>
               setSendError(null);
             }}
             maxLength={8}
-            className="flex-1 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] rounded-lg px-3 py-2 text-sm font-mono font-bold focus:border-[var(--color-primary)]/60 focus:outline-none transition-all placeholder:text-[var(--color-text-faint)] placeholder:font-sans"
+            className="flex-1 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] rounded-lg px-3 py-2 text-sm font-mono font-bold focus:border-[var(--color-primary)]/60 focus:outline-none transition-[border-color] duration-150 placeholder:text-[var(--color-text-faint)] placeholder:font-sans"
           />
           <button
             type="submit"
             disabled={codeInput.trim().length < 4 || searching}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] text-sm font-bold hover:text-[var(--color-text)] hover:border-[var(--color-primary)]/40 disabled:opacity-40 transition-all"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] text-sm font-bold hover:text-[var(--color-text)] hover:border-[var(--color-primary)]/40 disabled:opacity-40 transition-[background-color,border-color,color] duration-150"
           >
             <IconSearch />
             {searching ? "…" : "Chercher"}
@@ -258,14 +258,14 @@ export function PatronInviteSection({ onAccessChange }: { onAccessChange?: () =>
               <button
                 onClick={handleSend}
                 disabled={sendLoading}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-primary)] text-black font-bold text-xs hover:opacity-90 disabled:opacity-50 transition-all"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-primary)] text-black font-bold text-xs hover:opacity-90 disabled:opacity-50 transition-[opacity] duration-150"
               >
                 <IconLink />
                 {sendLoading ? "Envoi…" : "Envoyer la demande"}
               </button>
               <button
                 onClick={() => { clearSearch(); setCodeInput(""); }}
-                className="px-3 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs hover:text-[var(--color-text)] transition-all"
+                className="px-3 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs hover:text-[var(--color-text)] transition-[color,border-color] duration-150"
               >
                 <IconX />
               </button>

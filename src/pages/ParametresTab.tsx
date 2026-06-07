@@ -4,6 +4,7 @@ import { CompteTab } from "./CompteTab";
 import { DonneesTab } from "./DonneesTab";
 import { InviteSection } from "../components/invitations/InviteSection";
 import { ThemeSelector } from "../components/ui/ThemeSelector";
+import { Button } from "../components/ui/Button";
 import { EUROPE_COUNTRIES, KM_RATES, detectCountryFromLatLng } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
@@ -1108,14 +1109,15 @@ function ContractSettingsPanel({ profile, saveProfile, profileSaving }: Contract
       </div>
 
       {localContractActive && (
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           disabled={!isProPlan || profileSaving || savingContract || !localContractActive}
-          onClick={() => void handleSaveContract()}
-          className="rounded-xl border border-[var(--color-accent-violet)]/40 bg-[var(--color-accent-violet)]/15 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-violet)] transition-[background,border-color] duration-150 disabled:opacity-50"
+          loading={savingContract}
+          onClick={handleSaveContract}
         >
-          {savingContract ? "Enregistrement..." : "Enregistrer"}
-        </button>
+          Enregistrer
+        </Button>
       )}
     </div>
   );
@@ -1446,27 +1448,24 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
                   className="flex-1 p-3 rounded-xl font-bold outline-none border-2 transition-[border-color] duration-150 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-cyan)] placeholder:text-[var(--color-text-faint)]"
                 />
                 <span className="text-sm text-[var(--color-text-muted)]">€/km</span>
-                <button
-                  type="button"
-                  onClick={() => setKmRateMode("AUTO_BY_COUNTRY")}
-                  className="text-[10px] font-black uppercase transition-all text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
-                >
+                <Button variant="ghost" size="sm" onClick={() => setKmRateMode("AUTO_BY_COUNTRY")}>
                   Auto
-                </button>
+                </Button>
               </div>
             )}
           </div>
 
           {saveError && <p className="text-red-400 text-xs font-bold">{saveError}</p>}
 
-          <button
-            type="button"
-            onClick={handleSave}
+          <Button
+            variant="secondary"
+            fullWidth
+            loading={saving}
             disabled={saving}
-            className="w-full py-3 bg-[var(--color-accent-cyan)] hover:opacity-90 rounded-xl font-black uppercase text-[11px] text-white transition-[opacity] duration-150 disabled:opacity-50"
+            onClick={handleSave}
           >
-            {saving ? "Enregistrement..." : "Enregistrer les réglages km"}
-          </button>
+            Enregistrer les réglages km
+          </Button>
         </div>
       )}
     </div>

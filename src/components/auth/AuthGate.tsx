@@ -1,5 +1,6 @@
 import React, { useEffect, useState, Children } from "react";
 import { supabase } from "../../services/supabase";
+import { Button } from "../ui/Button";
 
 interface Props {
   children: React.ReactElement;
@@ -119,7 +120,7 @@ export default function AuthGate({ children }: Props) {
   if (!session) {
     return (
       <div data-testid="login-form" className="min-h-screen flex items-center justify-center p-6 bg-[var(--color-bg)] text-[var(--color-text)]">
-        <div className="w-full max-w-md rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl p-6">
+        <div className="w-full max-w-md rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6">
           <h2 className="text-2xl font-black mb-2">Connexion</h2>
           <p className="text-sm text-[var(--color-text-muted)] mb-6">
             (RLS actif: il faut être connecté)
@@ -152,22 +153,14 @@ export default function AuthGate({ children }: Props) {
               }
             />
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-2xl bg-[var(--color-accent-violet)] text-white font-black uppercase text-sm active:scale-95 transition-[opacity,transform] duration-150 disabled:opacity-50"
-            >
+            <Button variant="primary" fullWidth loading={loading} disabled={loading} type="submit">
               {mode === "signup" ? "Créer un compte" : "Se connecter"}
-            </button>
+            </Button>
           </form>
 
-          <button
-            type="button"
-            onClick={() => setMode(mode === "login" ? "signup" : "login")}
-            className="w-full mt-3 py-3 rounded-2xl bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-[var(--color-text-muted)] font-black uppercase text-xs active:scale-95 transition-all"
-          >
+          <Button variant="ghost" fullWidth onClick={() => setMode(mode === "login" ? "signup" : "login")}>
             {mode === "login" ? "Créer un compte" : "J'ai déjà un compte"}
-          </button>
+          </Button>
 
           {msg && <p className="mt-4 text-sm">{msg}</p>}
         </div>

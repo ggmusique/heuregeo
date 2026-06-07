@@ -236,7 +236,7 @@ export function AgendaPage({
       </div>
 
       {/* ── Calendar Container ────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-card overflow-hidden shadow-modal">
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] overflow-hidden shadow-modal">
 
         {/* ── Custom Toolbar ──────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 pt-3 sm:pt-4 pb-2 sm:pb-3 border-b border-[var(--color-border)]">
@@ -246,14 +246,14 @@ export function AgendaPage({
             <button
               onClick={handlePrev}
               aria-label="Précédent"
-              className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-accent-cyan)] hover:border-[var(--color-border-cyan)] hover:bg-[var(--color-accent-cyan)]/10 transition-all duration-200"
+              className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-accent-cyan)] hover:border-[var(--color-border-cyan)] hover:bg-[var(--color-accent-cyan)]/10 transition-[background-color,border-color,color] duration-150"
             >
               <ChevronLeft size={16} />
             </button>
 
             <button
               onClick={handleToday}
-              className="px-3 h-11 sm:h-8 text-xs font-semibold rounded-lg bg-[var(--color-accent-cyan)]/15 border border-[var(--color-border-cyan)] text-[var(--color-accent-cyan)] hover:bg-[var(--color-accent-cyan)]/30 hover:border-[var(--color-accent-cyan)]/60 transition-all duration-200"
+              className="px-3 h-11 sm:h-8 text-xs font-semibold rounded-lg bg-[var(--color-accent-cyan)]/15 border border-[var(--color-border-cyan)] text-[var(--color-accent-cyan)] hover:bg-[var(--color-accent-cyan)]/30 hover:border-[var(--color-accent-cyan)]/60 transition-[background-color,border-color] duration-150"
             >
               Aujourd&apos;hui
             </button>
@@ -261,7 +261,7 @@ export function AgendaPage({
             <button
               onClick={handleNext}
               aria-label="Suivant"
-              className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-accent-cyan)] hover:border-[var(--color-border-cyan)] hover:bg-[var(--color-accent-cyan)]/10 transition-all duration-200"
+              className="flex items-center justify-center w-11 h-11 sm:w-8 sm:h-8 rounded-lg bg-[var(--color-surface-hover)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-accent-cyan)] hover:border-[var(--color-border-cyan)] hover:bg-[var(--color-accent-cyan)]/10 transition-[background-color,border-color,color] duration-150"
             >
               <ChevronRight size={16} />
             </button>
@@ -279,7 +279,7 @@ export function AgendaPage({
                 key={view}
                 onClick={() => handleViewChange(view)}
                 className={[
-                  "px-2 sm:px-3 h-9 sm:h-auto sm:py-1 text-xs font-semibold rounded-lg transition-all duration-200",
+                  "px-2 sm:px-3 h-9 sm:h-auto sm:py-1 text-xs font-semibold rounded-lg transition-[background-color,border-color,color] duration-150",
                   currentView === view
                     ? "bg-[var(--color-accent-cyan)]/30 border border-[var(--color-border-cyan)] text-[var(--color-accent-cyan)]"
                     : "text-[var(--color-text-dim)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-offset)]",
@@ -294,7 +294,7 @@ export function AgendaPage({
 
         {/* ── Loading overlay ──────────────────────────────────────────────── */}
         {loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-2xl pointer-events-none">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/30 backdrop-blur-overlay rounded-2xl pointer-events-none">
             <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
           </div>
         )}
