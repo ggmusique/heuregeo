@@ -331,7 +331,7 @@ export function RapportBilanVisualV1({
 
   return (
     <section className="w-full px-3 pb-[calc(env(safe-area-inset-bottom)+6rem)] sm:px-4 lg:px-6 xl:mx-auto xl:w-[94vw] xl:px-0 2xl:w-[95vw] min-[1920px]:w-[96vw]">
-      <header className="mb-4 grid grid-cols-1 gap-3 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-modal sm:grid-cols-[auto_1fr_auto] sm:items-center lg:mb-5 lg:p-4">
+      <header className="mb-4 flex flex-col gap-3 rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-modal sm:grid sm:grid-cols-[auto_1fr_auto] sm:items-center lg:mb-5 lg:p-4">
         <button
           type="button"
           onClick={onBack}
@@ -341,49 +341,51 @@ export function RapportBilanVisualV1({
           Retour
         </button>
 
-        <div className="text-left sm:text-center">
-          <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">Rapport bilan</p>
-          <h1 className="mt-0.5 text-2xl font-black leading-none text-[var(--color-text)] lg:text-3xl">{displayTitle}</h1>
-          <p className="mt-1 text-xs font-semibold text-[var(--color-text-dim)]">{periodRangeLabel}</p>
-        </div>
+        <div className="flex items-center justify-between gap-3 sm:contents">
+          <div className="text-left sm:text-center">
+            <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">Rapport bilan</p>
+            <h1 className="mt-0.5 text-2xl font-black leading-none text-[var(--color-text)] lg:text-3xl">{displayTitle}</h1>
+            <p className="mt-1 text-xs font-semibold text-[var(--color-text-dim)]">{periodRangeLabel}</p>
+          </div>
 
-        <div className="relative justify-self-start sm:justify-self-end">
-          <button
-            type="button"
-            aria-expanded={periodOpen}
-            aria-label="Changer la période"
-            onClick={() => setPeriodOpen((value) => !value)}
-            className="flex min-w-[10rem] items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[var(--color-border-primary)] bg-[var(--color-surface-hover)] px-3 py-2.5 text-left transition-colors hover:border-[var(--color-primary)]"
-          >
-            <span>
-              <span className="block text-xs font-black text-[var(--color-text)]">{activePeriod.label}</span>
-              <span className="block text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Période</span>
-            </span>
-            <ChevronDown className={"text-[var(--color-primary)] transition-transform " + (periodOpen ? "rotate-180" : "")} size={16} />
-          </button>
+          <div className="relative shrink-0 sm:justify-self-end">
+            <button
+              type="button"
+              aria-expanded={periodOpen}
+              aria-label="Changer la période"
+              onClick={() => setPeriodOpen((value) => !value)}
+              className="flex min-w-[8.5rem] items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-[var(--color-border-primary)] bg-[var(--color-surface-hover)] px-3 py-2.5 text-left transition-colors hover:border-[var(--color-primary)] sm:min-w-[10rem]"
+            >
+              <span>
+                <span className="block text-xs font-black text-[var(--color-text)]">{activePeriod.label}</span>
+                <span className="block text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-muted)]">Période</span>
+              </span>
+              <ChevronDown className={"text-[var(--color-primary)] transition-transform " + (periodOpen ? "rotate-180" : "")} size={16} />
+            </button>
 
-          {periodOpen && (
-            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[15rem] rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-modal">
-              {activePeriodOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  aria-label={option.label}
-                  onClick={() => {
-                    onSelectPeriod?.(option.value);
-                    setPeriodOpen(false);
-                  }}
-                  className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--color-surface-hover)]"
-                >
-                  <span>
-                    <span className="block text-sm font-black text-[var(--color-text)]">{option.label}</span>
-                    <span className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">{option.helper}</span>
-                  </span>
-                  {activePeriodValue === option.value && <Check className="text-[var(--color-primary)]" size={16} />}
-                </button>
-              ))}
-            </div>
-          )}
+            {periodOpen && (
+              <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-[15rem] rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-modal">
+                {activePeriodOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    aria-label={option.label}
+                    onClick={() => {
+                      onSelectPeriod?.(option.value);
+                      setPeriodOpen(false);
+                    }}
+                    className="flex w-full items-center justify-between gap-3 rounded-[var(--radius-lg)] px-3 py-2.5 text-left transition-colors hover:bg-[var(--color-surface-hover)]"
+                  >
+                    <span>
+                      <span className="block text-sm font-black text-[var(--color-text)]">{option.label}</span>
+                      <span className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">{option.helper}</span>
+                    </span>
+                    {activePeriodValue === option.value && <Check className="text-[var(--color-primary)]" size={16} />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
