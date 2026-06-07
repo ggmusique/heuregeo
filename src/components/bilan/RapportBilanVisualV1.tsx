@@ -1,9 +1,6 @@
-﻿import React, { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Banknote, Check, ChevronDown, Clock3, MapPin, PiggyBank, TrendingUp } from "lucide-react";
-import {
-  computeDeficit,
-  computeMaxWithdrawal,
-} from "../../features/contracts/reserve/reserveWithdrawal";
+﻿import React, { useMemo, useState } from "react";
+import { Banknote, Check, ChevronDown, Clock3, MapPin, PiggyBank, TrendingUp } from "lucide-react";
+import { DeficitCoverBanner } from "./DeficitCoverBanner";
 import { WeatherIcon } from "../common/WeatherIcon";
 import { formatDateFR, formatEuro } from "../../utils/formatters";
 import type { FraisDivers } from "../../types/entities";
@@ -185,13 +182,6 @@ export function RapportBilanVisualV1({
   const [showAcompteDetails, setShowAcompteDetails] = useState(false);
   const [showFraisDetails, setShowFraisDetails] = useState(false);
   const [expandedSummaryKey, setExpandedSummaryKey] = useState<string | null>(null);
-  const [withdrawalHours, setWithdrawalHours] = useState(0);
-  const [withdrawing, setWithdrawing] = useState(false);
-  const [localWithdrawnHours, setLocalWithdrawnHours] = useState(0);
-
-  useEffect(() => {
-    setLocalWithdrawnHours(0);
-  }, [reserveWithdrawnHoursThisWeek]);
 
   const activePeriodOptions = periodOptions && periodOptions.length > 0 ? periodOptions : PERIOD_OPTIONS;
   const activePeriodValue = selectedPeriodValue || activePeriodOptions[0]?.value || PERIOD_OPTIONS[0].value;
@@ -261,14 +251,6 @@ export function RapportBilanVisualV1({
   const showReserveKpi = isProContractEnabled;
   const contractualExternalHours = Math.max(0, Math.min(resolvedContractMetrics.workedHours, resolvedContractMetrics.quotaHours));
   const overtimeHours = Math.max(0, resolvedContractMetrics.quotaOverflowHours);
-
-  // Calculs déficit contrat
-  const contractDeficit = computeDeficit(resolvedContractMetrics.workedHours, resolvedContractMetrics.quotaHours);
-  const deficitRestant = Math.max(0, contractDeficit - (reserveWithdrawnHoursThisWeek + localWithdrawnHours));
-  const maxWithdrawal = computeMaxWithdrawal(deficitRestant, reserveBalanceHours);
-  const showDeficitCard = isWeekView && isProContractEnabled && deficitRestant > 0;
-  const isBankEmpty = reserveBalanceHours <= 0;
-  const deficitProgressPct = Math.min(100, Math.round((resolvedContractMetrics.workedHours / Math.max(1, resolvedContractMetrics.quotaHours)) * 100));
 
   // Garde d'activation : la semaine du bilan doit être >= contract_active_since
   // On utilise la date ISO de la première mission de la période comme référence de la semaine.
@@ -465,98 +447,6 @@ export function RapportBilanVisualV1({
               compact
             />
           ))}
-
-          {/* ─── Déficit contrat ─────────────────────────────────────────── */}
-          {showDeficitCard && (
-            <article className="col-span-2 overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-accent-red)]/30 bg-[var(--color-surface)] p-3.5 transform-gpu [will-change:transform] transition-[transform,box-shadow,border-color,opacity] duration-200 ease-out animate-in fade-in zoom-in-95 shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-red)_8%,transparent),0_8px_24px_-14px_color-mix(in_srgb,var(--color-accent-red)_22%,transparent)] lg:col-span-2 lg:p-4">
-              {/* Halo radial */}
-              <div
-                className="pointer-events-none absolute inset-0 opacity-[0.38] bg-[radial-gradient(ellipse_88%_60%_at_10%_0%,color-mix(in_srgb,var(--color-accent-red)_28%,transparent),transparent_65%)]"
-                aria-hidden="true"
-              />
-
-              <div className="relative flex items-start gap-2.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-accent-red)]/15 text-[var(--color-accent-red)]">
-                  <AlertTriangle size={16} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">Déficit contrat</p>
-                  <p className="mt-0.5 text-2xl font-black leading-none text-[var(--color-accent-red)]">
-                    -{Math.round(deficitRestant * 10) / 10}h
-                  </p>
-                  <p className="mt-1 text-[11px] text-[var(--color-text-dim)]">
-                    {Math.round(resolvedContractMetrics.workedHours * 10) / 10}h travaillées sur {Math.round(resolvedContractMetrics.quotaHours * 10) / 10}h contractuelles
-                  </p>
-                  {/* Barre de progression */}
-                  <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-surface-hover)]">
-                    <div
-                      className="h-full rounded-full bg-[var(--color-accent-red)] transition-[width] duration-300"
-                      style={{ width: `${deficitProgressPct}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Banque */}
-              <div className="relative mt-3">
-                {isBankEmpty ? (
-                  <p className="text-[11px] text-[var(--color-text-muted)]">
-                    🏦 Banque vide — aucune heure disponible
-                  </p>
-                ) : (
-                  <div className="space-y-2.5">
-                    <p className="text-[11px] text-[var(--color-text-dim)]">
-                      Banque : <span className="font-black text-[var(--color-accent-green)]">{Math.round(reserveBalanceHours * 10) / 10}h disponibles</span>
-                    </p>
-
-                    {/* Slider */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">
-                        Heures à piocher
-                      </label>
-                      <input
-                        type="range"
-                        min={0}
-                        max={maxWithdrawal}
-                        step={0.25}
-                        value={withdrawalHours}
-                        onChange={(e) => setWithdrawalHours(Number(e.target.value))}
-                        className="w-full accent-[var(--color-accent-red)]"
-                        aria-label="Heures à piocher dans la banque"
-                      />
-                      <div className="flex justify-between text-[10px] text-[var(--color-text-dim)]">
-                        <span>0h</span>
-                        <span className="font-black">{withdrawalHours > 0 ? `${Math.round(withdrawalHours * 10) / 10}h` : "—"}</span>
-                        <span>{Math.round(maxWithdrawal * 10) / 10}h</span>
-                      </div>
-                    </div>
-
-                    {/* Bouton combler */}
-                    {onWithdrawFromReserve && (
-                      <button
-                        type="button"
-                        disabled={withdrawalHours <= 0 || withdrawing || !onWithdrawFromReserve}
-                        onClick={async () => {
-                          if (withdrawalHours <= 0 || withdrawing) return;
-                          setWithdrawing(true);
-                          try {
-                            await onWithdrawFromReserve(withdrawalHours);
-                            setLocalWithdrawnHours((prev) => prev + withdrawalHours);
-                            setWithdrawalHours(0);
-                          } finally {
-                            setWithdrawing(false);
-                          }
-                        }}
-                        className="w-full rounded-[var(--radius-pill)] border border-[var(--color-accent-red)]/45 bg-[var(--color-accent-red)]/12 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--color-accent-red)] transition-opacity disabled:opacity-40"
-                      >
-                        {withdrawing ? "En cours..." : `Combler ${Math.round(withdrawalHours * 10) / 10}h`}
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </article>
-          )}
         </div>
 
         <section className="group relative overflow-hidden rounded-[var(--radius-xl)] border border-[var(--color-border-primary)] bg-[var(--color-surface)] p-3.5 shadow-modal lg:col-span-4 lg:p-4">
@@ -588,6 +478,20 @@ export function RapportBilanVisualV1({
                 </>
               )}
             </div>
+
+            {/* Comblement du déficit contrat depuis la banque — tout-ou-rien, masqué si semaine payée */}
+            {isWeekView && isProContractEnabled && (
+              <DeficitCoverBanner
+                periodLabel={displayTitle}
+                workedHours={resolvedContractMetrics.workedHours}
+                quotaHours={resolvedContractMetrics.quotaHours}
+                balanceHours={reserveBalanceHours}
+                alreadyWithdrawnHours={reserveWithdrawnHoursThisWeek}
+                isPaid={bilanPaye}
+                isViewer={isViewer}
+                onCover={onWithdrawFromReserve}
+              />
+            )}
 
             {showReserveKpi && (
               <div className="rounded-[var(--radius-lg)] border border-[var(--color-accent-green)]/35 bg-[var(--color-accent-green)]/8 p-3">
