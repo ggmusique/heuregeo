@@ -387,7 +387,7 @@ export function RapportBilanVisualV1({
         </div>
       </header>
 
-      <div className="grid gap-3 lg:grid-cols-12 lg:gap-4 xl:gap-5">
+      <div className="grid gap-3 lg:grid-cols-12 lg:gap-4 xl:gap-5 lg:items-start">
         <div className="grid grid-cols-2 gap-2.5 lg:col-span-8 lg:grid-cols-4 lg:gap-3 xl:gap-4">
 
           {/* 1. Heure semaine */}
