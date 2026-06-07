@@ -69,6 +69,10 @@ export async function upsertWeeklySettlement(input: ReserveSyncWeeklyInput): Pro
 
   if (deleteError) throw deleteError;
 
+  // Pas de surplus a reporter (delta nul) : on n'enregistre aucun mouvement.
+  // Evite les lignes "+0,00 h" parasites dans l'historique a chaque generation de bilan.
+  if (deltaHours === 0) return;
+
   const { error } = await supabase.rpc("insert_reserve_movement", {
     p_patron_id: input.patronId,
     p_movement_type: input.overflowRule === "to_reserve" ? "overtime_to_reserve" : "weekly_settlement",
