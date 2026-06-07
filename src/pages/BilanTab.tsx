@@ -10,6 +10,7 @@ import { useLabels } from "../contexts/LabelsContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { calculateWeeklyBilan } from "../features/contracts";
 import { useReserve } from "../features/contracts/reserve";
+import { canSyncWeeklySettlement } from "../features/contracts/reserve/reserveGuards";
 import type { Mission, Patron, FraisDivers } from "../types/entities";
 import type { UserProfile } from "../types/profile";
 import type { KmFraisResult, KmSettings } from "../hooks/useKmDomicile";
@@ -212,6 +213,8 @@ export const BilanTab = ({
     if (bilan.bilanPeriodType !== "semaine") return;
     if (!perms.contract.source.isPro) return;
     if (!bilan.bilanPeriodValue) return;
+    // Cadenas : une semaine payée est gelée — pas de re-synchronisation de la banque.
+    if (!canSyncWeeklySettlement(bilan.bilanPaye)) return;
     const activeSince = profile?.features?.contract_active_since ?? null;
     if (activeSince) {
       const { finPeriode } = computePeriodDates(bilan.bilanPeriodType, String(bilan.bilanPeriodValue));
@@ -229,6 +232,7 @@ export const BilanTab = ({
   }, [
     bilan.bilanPeriodType,
     bilan.bilanPeriodValue,
+    bilan.bilanPaye,
     contractMetrics.workedHours,
     contractMetrics.quotaHours,
     perms.contract.source.isPro,

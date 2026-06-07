@@ -8,6 +8,7 @@ import {
 import {
 	computeBalanceAfterWithdrawal,
 	computeDeficit,
+	computeDeficitCoverWithdrawal,
 	computeMaxWithdrawal,
 	computePayableHoursAfterWithdrawal,
 } from "../../features/contracts/reserve/reserveWithdrawal";
@@ -35,6 +36,25 @@ describe("règle métier — semaine payée = gelée", () => {
 	it("aucun comblement de déficit sur une semaine payée", () => {
 		expect(canWithdrawFromReserve(true)).toBe(false);
 		expect(canWithdrawFromReserve(false)).toBe(true);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// RÈGLE TOUT-OU-RIEN : comblement du déficit depuis la banque
+// ---------------------------------------------------------------------------
+describe("règle tout-ou-rien — comblement du déficit", () => {
+	it("comble tout le déficit si le solde le couvre", () => {
+		expect(computeDeficitCoverWithdrawal(2, 12)).toBe(2);
+		expect(computeDeficitCoverWithdrawal(2, 2)).toBe(2);
+	});
+
+	it("ne retire rien si le solde est insuffisant", () => {
+		expect(computeDeficitCoverWithdrawal(2, 1.5)).toBe(0);
+		expect(computeDeficitCoverWithdrawal(5, 0)).toBe(0);
+	});
+
+	it("zéro déficit => zéro retrait", () => {
+		expect(computeDeficitCoverWithdrawal(0, 12)).toBe(0);
 	});
 });
 

@@ -38,6 +38,20 @@ export function computeMaxWithdrawal(deficit: number, balanceHours: number): num
 }
 
 /**
+ * Retrait "tout-ou-rien" pour combler le déficit d'une semaine.
+ * Renvoie le déficit complet si la banque le couvre entièrement, sinon 0.
+ * (Aucun comblement partiel : on comble tout, ou rien.)
+ */
+export function computeDeficitCoverWithdrawal(
+  deficit: number,
+  balanceHours: number,
+): number {
+  const d = san(deficit);
+  const b = san(balanceHours);
+  return b >= d ? round2(d) : 0;
+}
+
+/**
  * Montant en euros correspondant à un retrait en heures.
  */
 export function computeWithdrawalAmount(hours: number, hourlyRate: number): number {
