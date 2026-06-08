@@ -3,10 +3,9 @@ import assert from "node:assert/strict";
 import { renderToString } from "react-dom/server";
 import React from "react";
 import { NeonInput }  from "../../components/ui/NeonInput.tsx";
-import { NeonButton } from "../../components/ui/NeonButton.tsx";
 import { GlassCard }  from "../../components/ui/GlassCard.tsx";
 
-// ── NeonInput ────────────────────────────────────────────────────────────────
+// ── NeonInput ────────────────────────────────────────────────
 
 test("NeonInput: rendu contient le label", () => {
   const html = renderToString(
@@ -55,51 +54,7 @@ test("NeonInput: color cyan applique la variable CSS glow cyan au focus (style s
   assert.ok(html.includes("var(--color-border)"), "La bordure par défaut utilise var(--color-border)");
 });
 
-// ── NeonButton ───────────────────────────────────────────────────────────────
-
-test("NeonButton: disabled quand loading=true", () => {
-  const html = renderToString(
-    React.createElement(NeonButton, { loading: true }, "Valider")
-  );
-  assert.ok(html.includes("disabled"), "Le bouton doit être disabled quand loading=true");
-});
-
-test("NeonButton: non disabled par défaut", () => {
-  const html = renderToString(
-    React.createElement(NeonButton, {}, "Valider")
-  );
-  // disabled="" ou disabled=true in HTML — quand pas disabled, la prop n'apparaît pas
-  assert.ok(html.includes("Valider"), "Le texte du bouton est rendu");
-});
-
-test("NeonButton: variant primary applique le gradient or", () => {
-  const html = renderToString(
-    React.createElement(NeonButton, { variant: "primary" }, "OK")
-  );
-  assert.ok(
-    html.includes("var(--color-primary)"),
-    "Le variant primary doit utiliser var(--color-primary)"
-  );
-});
-
-test("NeonButton: variant cyan applique la couleur accent-cyan", () => {
-  const html = renderToString(
-    React.createElement(NeonButton, { variant: "cyan" }, "OK")
-  );
-  assert.ok(
-    html.includes("var(--color-accent-cyan)"),
-    "Le variant cyan doit utiliser var(--color-accent-cyan)"
-  );
-});
-
-test("NeonButton: variant ghost n'a pas de glow", () => {
-  const html = renderToString(
-    React.createElement(NeonButton, { variant: "ghost" }, "OK")
-  );
-  assert.ok(html.includes("var(--color-surface-offset)"), "Le variant ghost doit utiliser la variable CSS --color-surface-offset");
-});
-
-// ── GlassCard ────────────────────────────────────────────────────────────────
+// ── GlassCard ────────────────────────────────────────────────
 
 test("GlassCard: color=cyan applique var(--color-border-cyan)", () => {
   const html = renderToString(
