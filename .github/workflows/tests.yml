@@ -110,7 +110,7 @@ jobs:
   build-check:
     name: Vérification build Vite
     runs-on: ubuntu-latest
-    needs: [unit-tests]
+    needs:  [unit-tests, hooks-tests]
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     steps:
