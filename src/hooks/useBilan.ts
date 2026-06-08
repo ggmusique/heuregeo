@@ -17,13 +17,13 @@ import { buildContractFeatures, calculateWeeklyBilan } from "../features/contrac
 
 export { normalizeBilanForWrite as normalizeBilanRow };
 
-// ─── Re-exports types (compatibilité import existants) ────────────────────────
+// ─── Re-exports types (compatibilité import existants) ─────────────────────────
 
 export type { BilanKmItem, BilanKmResult, MissionWithWeather, BilanGroupedRow, BilanContent } from "../types/bilan";
 export type { RebuildResult, RepairResult } from "./useBilanDB";
 export type { UseBilanParams, UseBilanReturn } from "./useBilanTypes";
 
-// ─── Constante ────────────────────────────────────────────────────────────────
+// ─── Constante ─────────────────────────────────────────────────
 
 const GLOBAL_PATRON_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -31,8 +31,22 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function aggregateWorkedHoursByIsoWeek(missions: Mission[]): number[] {
-  const weeklyWorkedMap = new Map<string, number>();
+// Dimanche (fin) de la semaine ISO contenant `date`, au format "YYYY-MM-DD".
+// Sert à classer chaque semaine ISO par rapport à contract_active_since.
+function isoWeekEndIso(date: Date): string {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const isoDay = d.getUTCDay() === 0 ? 7 : d.getUTCDay();
+  d.setUTCDate(d.getUTCDate() + (7 - isoDay));
+  return d.toISOString().split("T")[0];
+}
+
+interface WeeklyWorkedBucket {
+  workedHours: number;
+  weekEndIso: string;
+}
+
+function aggregateWorkedHoursByIsoWeek(missions: Mission[]): WeeklyWorkedBucket[] {
+  const weeklyWorkedMap = new Map<string, WeeklyWorkedBucket>();
 
   missions.forEach((mission) => {
     const missionDate = mission.date_iso || mission.date_mission;
@@ -45,13 +59,17 @@ function aggregateWorkedHoursByIsoWeek(missions: Mission[]): number[] {
     if (week <= 0 || year <= 0) return;
 
     const key = `${year}-${week}`;
-    weeklyWorkedMap.set(key, (weeklyWorkedMap.get(key) ?? 0) + Number(mission.duree || 0));
+    const existing = weeklyWorkedMap.get(key);
+    weeklyWorkedMap.set(key, {
+      workedHours: (existing?.workedHours ?? 0) + Number(mission.duree || 0),
+      weekEndIso: existing?.weekEndIso ?? isoWeekEndIso(parsedDate),
+    });
   });
 
   return Array.from(weeklyWorkedMap.values());
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+// ─── Hook ────────────────────────────────────────────────────
 
 export function useBilan({
   missions,
@@ -135,8 +153,16 @@ export function useBilan({
         const weeklyWorkedBuckets = aggregateWorkedHoursByIsoWeek(filtered);
         const contractMetrics = contract.source.isPro && !isPreActivationWeek && bilanPeriodType !== PERIOD_TYPES.SEMAINE
           ? weeklyWorkedBuckets.reduce(
-              (acc, workedHours) => {
-                const metrics = calculateWeeklyBilan({ workedHours }, contract);
+              (acc, bucket) => {
+                // Garde d'activation au niveau de chaque semaine ISO : une semaine dont
+                // la fin est antérieure à contract_active_since est traitée en mode free
+                // (aucune mise en banque), même dans un bilan mois/année. Les missions
+                // restent visibles et comptées dans les totaux.
+                const isWeekPreActivation = Boolean(contractActiveSince && bucket.weekEndIso < contractActiveSince);
+                const metrics = calculateWeeklyBilan(
+                  { workedHours: bucket.workedHours },
+                  isWeekPreActivation ? { ...contract, source: { ...contract.source, mode: "free", isPro: false } } : contract,
+                );
                 return {
                   workedHours: round2(acc.workedHours + metrics.workedHours),
                   quotaHours: round2(acc.quotaHours + metrics.quotaHours),
