@@ -4,6 +4,7 @@ import {
 	canSyncWeeklySettlement,
 	canWithdrawFromReserve,
 	isReserveWeekLocked,
+	isValidWeekValue,
 } from "../../features/contracts/reserve/reserveGuards";
 import {
 	computeBalanceAfterWithdrawal,
@@ -36,6 +37,32 @@ describe("règle métier — semaine payée = gelée", () => {
 	it("aucun comblement de déficit sur une semaine payée", () => {
 		expect(canWithdrawFromReserve(true)).toBe(false);
 		expect(canWithdrawFromReserve(false)).toBe(true);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// GARDE-FOU : la synchro hebdo n'accepte qu'un vrai numéro de semaine
+// (anti-corruption sur navigation Année/Mois → Semaine)
+// ---------------------------------------------------------------------------
+describe("garde-fou — valeur de semaine valide", () => {
+	it("accepte un numéro de semaine 1..53", () => {
+		expect(isValidWeekValue("1")).toBe(true);
+		expect(isValidWeekValue("22")).toBe(true);
+		expect(isValidWeekValue("53")).toBe(true);
+		expect(isValidWeekValue(22)).toBe(true);
+	});
+
+	it("rejette une année ou un mois (état transitoire de navigation)", () => {
+		expect(isValidWeekValue("2026")).toBe(false);
+		expect(isValidWeekValue("2026-04")).toBe(false);
+	});
+
+	it("rejette les bornes invalides et les valeurs vides", () => {
+		expect(isValidWeekValue("0")).toBe(false);
+		expect(isValidWeekValue("54")).toBe(false);
+		expect(isValidWeekValue("")).toBe(false);
+		expect(isValidWeekValue(null)).toBe(false);
+		expect(isValidWeekValue(undefined)).toBe(false);
 	});
 });
 

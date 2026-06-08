@@ -10,7 +10,7 @@ import { useLabels } from "../contexts/LabelsContext";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { calculateWeeklyBilan } from "../features/contracts";
 import { useReserve } from "../features/contracts/reserve";
-import { canSyncWeeklySettlement } from "../features/contracts/reserve/reserveGuards";
+import { canSyncWeeklySettlement, isValidWeekValue } from "../features/contracts/reserve/reserveGuards";
 import type { Mission, Patron, FraisDivers } from "../types/entities";
 import type { UserProfile } from "../types/profile";
 import type { KmFraisResult, KmSettings } from "../hooks/useKmDomicile";
@@ -213,6 +213,11 @@ export const BilanTab = ({
     if (bilan.bilanPeriodType !== "semaine") return;
     if (!perms.contract.source.isPro) return;
     if (!bilan.bilanPeriodValue) return;
+    // Garde-fou anti-corruption : la valeur doit être une vraie semaine. Lors d'une
+    // navigation Mois/Année → Semaine, un rendu transitoire peut combiner
+    // periodType "semaine" + periodValue "2026"/"2026-04" et créditer tout le
+    // surplus de la période en banque. On n'agit que sur un numéro de semaine valide.
+    if (!isValidWeekValue(bilan.bilanPeriodValue)) return;
     // Cadenas : une semaine payée est gelée — pas de re-synchronisation de la banque.
     if (!canSyncWeeklySettlement(bilan.bilanPaye)) return;
     const activeSince = profile?.features?.contract_active_since ?? null;

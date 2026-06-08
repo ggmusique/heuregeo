@@ -5,6 +5,7 @@ import type {
   ReserveSyncWeeklyInput,
 } from "./reserve.types";
 import { buildWeeklySettlementKey, computeWeeklySettlementDelta } from "./reserveCalculations";
+import { isValidWeekValue } from "./reserveGuards";
 
 const TABLE = "contract_reserve_movements";
 
@@ -58,6 +59,12 @@ export async function deleteReserveMovement(movementId: string): Promise<void> {
 }
 
 export async function upsertWeeklySettlement(input: ReserveSyncWeeklyInput): Promise<void> {
+  // Garde-fou anti-corruption : ne jamais écrire un settlement hebdomadaire pour
+  // une valeur de période qui n'est pas une vraie semaine (ex: "2026" année,
+  // "2026-04" mois). Protège le grand livre contre un état transitoire de
+  // navigation qui combinerait periodType=semaine + periodValue=année/mois.
+  if (!isValidWeekValue(input.periodValue)) return;
+
   const deltaHours = computeWeeklySettlementDelta(input);
   const movementKey = buildWeeklySettlementKey(input.patronId, input.periodValue);
 

@@ -37,3 +37,26 @@ export function canWithdrawFromReserve(
 ): boolean {
 	return !isReserveWeekLocked(paye);
 }
+
+/**
+ * True si `value` est une valeur de semaine plausible (numéro de semaine).
+ *
+ * Garde-fou anti-corruption : la synchro hebdomadaire de la banque ne doit
+ * s'exécuter QUE pour une vraie semaine. Lors d'une navigation Mois/Année →
+ * Semaine, un rendu transitoire peut présenter un periodType "semaine" avec un
+ * periodValue encore égal à l'année ("2026") ou au mois ("2026-04"). Sans cette
+ * garde, tout le surplus de la période est alors crédité en banque sous une
+ * fausse "semaine 2026".
+ *
+ * Une valeur de semaine valide est un entier 1..53 (ex: "22"). "2026" et
+ * "2026-04" sont rejetés.
+ */
+export function isValidWeekValue(
+	value: string | number | null | undefined,
+): boolean {
+	if (value === null || value === undefined) return false;
+	const trimmed = String(value).trim();
+	if (!/^\d{1,2}$/.test(trimmed)) return false;
+	const week = Number(trimmed);
+	return Number.isInteger(week) && week >= 1 && week <= 53;
+}
