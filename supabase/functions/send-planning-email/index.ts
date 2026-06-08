@@ -6,6 +6,7 @@
 //  - validateEmail() protège contre l'injection d'adresses invalides.
 //  - validateOrigin() bloque les URLs de phishing dans les emails.
 //  - checkRateLimit() limite à 10 emails/heure par utilisateur.
+//  - CORS restreint à la whitelist via corsHeaders(req).
 // Déploiement : supabase functions deploy send-planning-email
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -23,10 +24,10 @@ import { checkRateLimit, extractIpAddress, RATE_LIMITS } from "../_shared/rateLi
 import { logger } from "../_shared/monitoring.ts";
 
 serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return handleCors();
+  if (req.method === "OPTIONS") return handleCors(req);
 
   if (req.method !== "POST") {
-    return jsonError("Méthode non autorisée", 405);
+    return jsonError("Méthode non autorisée", 405, req);
   }
 
   try {
@@ -40,6 +41,7 @@ serve(async (req: Request) => {
       action: "send_planning_email",
       userId: user.id,
       ipAddress: ip,
+      req,
       ...RATE_LIMITS.SEND_PLANNING_EMAIL,
     });
 
@@ -48,16 +50,16 @@ serve(async (req: Request) => {
     try {
       body = await req.json();
     } catch {
-      return jsonError("Body JSON invalide ou vide", 400);
+      return jsonError("Body JSON invalide ou vide", 400, req);
     }
 
     const { patron_email, employe_nom, semaine, planning_url } = body;
 
     // Validation stricte de chaque paramètre
-    validateNonEmpty(employe_nom, "employe_nom", 200);
-    validateNonEmpty(semaine, "semaine", 50);
-    validateEmail(patron_email);            // Format email valide
-    validateOrigin(planning_url);           // URL dans la whitelist de l'app
+    validateNonEmpty(employe_nom, "employe_nom", 200, req);
+    validateNonEmpty(semaine, "semaine", 50, req);
+    validateEmail(patron_email, req);            // Format email valide
+    validateOrigin(planning_url, req);           // URL dans la whitelist de l'app
 
     // ── Récupérer les credentials Gmail ────────────────────────────────────
     const gmailUser = Deno.env.get("GMAIL_USER");
@@ -65,7 +67,7 @@ serve(async (req: Request) => {
 
     if (!gmailUser || !gmailPassword) {
       console.error("GMAIL_USER ou GMAIL_APP_PASSWORD manquant dans les secrets");
-      return jsonError("Configuration email manquante", 500);
+      return jsonError("Configuration email manquante", 500, req);
     }
 
     // ── Configurer le transporteur Gmail SMTP ──────────────────────────────
@@ -96,7 +98,7 @@ serve(async (req: Request) => {
       semaine: semaine as string,
     });
 
-    return jsonOk({ success: true });
+    return jsonOk({ success: true }, 200, req);
   } catch (err) {
     // Si c'est une Response levée par requireAuth / checkRateLimit / validate*
     if (err instanceof Response) return err;
@@ -105,7 +107,7 @@ serve(async (req: Request) => {
       error: (err as Error).message,
     });
     // Retourner un message générique sans détails techniques
-    return jsonError("Erreur lors de l'envoi de l'email. Veuillez réessayer.", 500);
+    return jsonError("Erreur lors de l'envoi de l'email. Veuillez réessayer.", 500, req);
   }
 });
 

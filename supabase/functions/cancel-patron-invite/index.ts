@@ -1,18 +1,15 @@
 // supabase/functions/cancel-patron-invite/index.ts
 // Edge Function Supabase : annulation d'une invitation patron en attente
+// CORS restreint à la whitelist via corsHeaders(req) (plus de "*").
 // Déploiement : supabase functions deploy cancel-patron-invite
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, handleCors } from "../_shared/auth.ts";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS_HEADERS });
+    return handleCors(req);
   }
 
   try {
@@ -21,7 +18,7 @@ serve(async (req: Request) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Non autorisé" }), {
         status: 401,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -35,7 +32,7 @@ serve(async (req: Request) => {
     if (callerError || !caller) {
       return new Response(JSON.stringify({ error: "Non authentifié" }), {
         status: 401,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -47,7 +44,7 @@ serve(async (req: Request) => {
       console.error("Erreur parsing body:", parseErr);
       return new Response(JSON.stringify({ error: "Body JSON invalide ou vide" }), {
         status: 400,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
     const { invitation_id } = body;
@@ -56,21 +53,21 @@ serve(async (req: Request) => {
     if (!invitation_id) {
       return new Response(JSON.stringify({ error: "invitation_id manquant" }), {
         status: 400,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     // ── Récupérer l'invitation ──────────────────────────────────────────────
     const { data: invitation, error: fetchErr } = await adminClient
       .from("patron_invitations")
-      .select("id, owner_id, patron_email, status")
+      .select("id, owner_id, patron_email, patron_id, status")
       .eq("id", invitation_id)
       .single();
 
     if (fetchErr || !invitation) {
       return new Response(JSON.stringify({ error: "Invitation introuvable" }), {
         status: 404,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -78,14 +75,14 @@ serve(async (req: Request) => {
     if (invitation.owner_id !== caller.id) {
       return new Response(JSON.stringify({ error: "Accès refusé" }), {
         status: 403,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     if (invitation.status !== "pending" && invitation.status !== "accepted") {
       return new Response(JSON.stringify({ error: "Statut d'invitation non révocable" }), {
         status: 409,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -128,19 +125,19 @@ serve(async (req: Request) => {
       console.error("Erreur suppression invitation:", deleteErr);
       return new Response(JSON.stringify({ error: "Erreur suppression invitation" }), {
         status: 500,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("Edge function error:", err);
     return new Response(JSON.stringify({ error: "Erreur interne" }), {
       status: 500,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

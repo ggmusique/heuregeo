@@ -7,6 +7,7 @@
 //  - Utilisation de invitation.patron_email issu de la DB, pas du body → pas d'injection email.
 //  - validateOrigin() sur invite_url → pas de phishing via URL arbitraire.
 //  - checkRateLimit() : max 20 invitations/heure par user.
+//  - CORS restreint à la whitelist via corsHeaders(req).
 // Déploiement : supabase functions deploy send-patron-invite
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -23,7 +24,7 @@ import { logger } from "../_shared/monitoring.ts";
 
 serve(async (req: Request) => {
   // Preflight CORS
-  if (req.method === "OPTIONS") return handleCors();
+  if (req.method === "OPTIONS") return handleCors(req);
 
   try {
     // ── [SÉCURITÉ] Vérification JWT ──────────────────────────────────────────
@@ -35,6 +36,7 @@ serve(async (req: Request) => {
       action: "send_patron_invite",
       userId: user.id,
       ipAddress: ip,
+      req,
       ...RATE_LIMITS.SEND_PATRON_INVITE,
     });
 
@@ -43,17 +45,17 @@ serve(async (req: Request) => {
     try {
       body = await req.json();
     } catch {
-      return jsonError("Body JSON invalide ou vide", 400);
+      return jsonError("Body JSON invalide ou vide", 400, req);
     }
 
     const { token, invite_url, owner_nom, patron_nom } = body;
 
     if (!token || typeof token !== "string") {
-      return jsonError("Paramètre manquant : token", 400);
+      return jsonError("Paramètre manquant : token", 400, req);
     }
 
     // Valider invite_url avant même d'aller en DB
-    validateOrigin(invite_url);
+    validateOrigin(invite_url, req);
 
     // ── [SÉCURITÉ] Lire l'invitation depuis la DB et vérifier l'ownership ───
     // On charge l'invitation par son token en vérifiant que :
@@ -73,12 +75,12 @@ serve(async (req: Request) => {
 
     if (invErr || !invitation) {
       // Ne pas révéler si le token existe mais appartient à un autre user
-      return jsonError("Invitation introuvable, expirée ou non autorisée", 403);
+      return jsonError("Invitation introuvable, expirée ou non autorisée", 403, req);
     }
 
     // Vérifier expiration
     if (invitation.invite_expires && new Date(invitation.invite_expires) < new Date()) {
-      return jsonError("Cette invitation a expiré", 403);
+      return jsonError("Cette invitation a expiré", 403, req);
     }
 
     // ── Résoudre les noms depuis les paramètres du body (non-sensibles) ─────
@@ -100,7 +102,7 @@ serve(async (req: Request) => {
 
     if (!brevoLogin || !brevoPassword) {
       console.error("BREVO_LOGIN ou BREVO_PASSWORD manquant dans les secrets Supabase");
-      return jsonError("Configuration SMTP manquante", 500);
+      return jsonError("Configuration SMTP manquante", 500, req);
     }
 
     const transporter = nodemailer.createTransport({
@@ -120,7 +122,7 @@ serve(async (req: Request) => {
       logger.error("send-patron-invite", "Erreur connexion SMTP Brevo", {
         error: (verifyErr as Error).message,
       });
-      return jsonError("Connexion SMTP temporairement indisponible", 500);
+      return jsonError("Connexion SMTP temporairement indisponible", 500, req);
     }
 
     try {
@@ -142,15 +144,15 @@ serve(async (req: Request) => {
       logger.error("send-patron-invite", "Erreur envoi SMTP Brevo", {
         error: (smtpErr as Error).message,
       });
-      return jsonError("Erreur lors de l'envoi de l'email. Veuillez réessayer.", 500);
+      return jsonError("Erreur lors de l'envoi de l'email. Veuillez réessayer.", 500, req);
     }
 
-    return jsonOk({ success: true });
+    return jsonOk({ success: true }, 200, req);
   } catch (err) {
     // Si c'est une Response levée par requireAuth / checkRateLimit / validateOrigin
     if (err instanceof Response) return err;
     console.error("Edge function error:", err);
-    return jsonError("Erreur interne", 500);
+    return jsonError("Erreur interne", 500, req);
   }
 });
 

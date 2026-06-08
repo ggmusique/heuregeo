@@ -7,6 +7,7 @@
 //  - Centralise l'extraction/vérification JWT pour éviter tout oubli dans une fonction.
 //  - requireAdmin() recharge le profil depuis la DB (pas de trust sur le token JWT seul).
 //  - validateEmail() et validateOrigin() empêchent l'injection de données arbitraires.
+//  - corsHeaders() restreint l'origine autorisée à la whitelist (plus de "*").
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
@@ -18,31 +19,68 @@ export interface AuthResult {
   adminClient: SupabaseClient;
 }
 
-// ─── Helpers JSON ─────────────────────────────────────────────────────────────
+// ─── Origines autorisées (source unique de vérité) ────────────────────────────
 
-export const CORS_HEADERS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+/**
+ * Liste des origines autorisées pour l'application.
+ * Lue depuis la variable d'environnement ALLOWED_APP_ORIGINS (séparées par des
+ * virgules), avec fallback sur les valeurs de production connues.
+ * Réutilisée à la fois par le CORS et par validateOrigin().
+ */
+export function getAllowedOrigins(): string[] {
+  const envOrigins = Deno.env.get("ALLOWED_APP_ORIGINS");
+  if (envOrigins) {
+    return envOrigins.split(",").map((o) => o.trim()).filter(Boolean);
+  }
+  return [
+    "https://heuregeo.vercel.app",
+    "https://www.heuregeo.com",
+    "https://heuregeo.com",
+    "http://localhost:5173",
+    "http://localhost:4173",
+  ];
+}
+
+// ─── Helpers CORS / JSON ──────────────────────────────────────────────────────
+
+/**
+ * Construit les en-têtes CORS en fonction de l'Origin de la requête.
+ *  - Origin présente dans la whitelist → on renvoie cette origine + Vary: Origin.
+ *  - Sinon → aucun Access-Control-Allow-Origin (le navigateur bloque l'appel cross-site).
+ * Passer `req` permet de refléter l'origine appelante ; sans `req`, seuls les
+ * en-têtes de base sont renvoyés.
+ */
+export function corsHeaders(req?: Request): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+  const origin = req?.headers.get("Origin");
+  if (origin && getAllowedOrigins().includes(origin)) {
+    headers["Access-Control-Allow-Origin"] = origin;
+  }
+  return headers;
+}
 
 /**
  * Retourne une réponse JSON d'erreur normalisée avec headers CORS.
- * Utiliser en retour direct : return jsonError("Message", 401)
+ * Utiliser en retour direct : return jsonError("Message", 401, req)
  */
-export function jsonError(message: string, status: number): Response {
+export function jsonError(message: string, status: number, req?: Request): Response {
   return new Response(JSON.stringify({ error: message }), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
 /**
  * Retourne une réponse JSON de succès normalisée avec headers CORS.
  */
-export function jsonOk(body: unknown, status = 200): Response {
+export function jsonOk(body: unknown, status = 200, req?: Request): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...corsHeaders(req), "Content-Type": "application/json" },
   });
 }
 
@@ -92,14 +130,14 @@ export function extractBearerToken(req: Request): string | null {
 export async function requireAuth(req: Request): Promise<AuthResult> {
   const token = extractBearerToken(req);
   if (!token) {
-    throw jsonError("Non authentifié : Authorization header manquant", 401);
+    throw jsonError("Non authentifié : Authorization header manquant", 401, req);
   }
 
   const adminClient = createAdminClient();
 
   const { data: { user }, error } = await adminClient.auth.getUser(token);
   if (error || !user) {
-    throw jsonError("Non authentifié : JWT invalide ou expiré", 401);
+    throw jsonError("Non authentifié : JWT invalide ou expiré", 401, req);
   }
 
   return { user: { id: user.id, email: user.email }, adminClient };
@@ -112,9 +150,9 @@ export async function requireAuth(req: Request): Promise<AuthResult> {
  *
  * Usage :
  *   const { user, adminClient } = await requireAuth(req);
- *   await requireAdmin(user.id, adminClient);
+ *   await requireAdmin(user.id, adminClient, req);
  */
-export async function requireAdmin(userId: string, adminClient: SupabaseClient): Promise<void> {
+export async function requireAdmin(userId: string, adminClient: SupabaseClient, req?: Request): Promise<void> {
   const { data: profile, error } = await adminClient
     .from("profiles")
     .select("is_admin")
@@ -122,7 +160,7 @@ export async function requireAdmin(userId: string, adminClient: SupabaseClient):
     .maybeSingle();
 
   if (error || !profile?.is_admin) {
-    throw jsonError("Accès réservé aux administrateurs", 403);
+    throw jsonError("Accès réservé aux administrateurs", 403, req);
   }
 }
 
@@ -134,9 +172,9 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
  * Valide le format d'une adresse email.
  * Lance une Response 400 si invalide.
  */
-export function validateEmail(email: unknown): asserts email is string {
+export function validateEmail(email: unknown, req?: Request): asserts email is string {
   if (typeof email !== "string" || !EMAIL_REGEX.test(email)) {
-    throw jsonError(`Email invalide : ${email}`, 400);
+    throw jsonError(`Email invalide : ${email}`, 400, req);
   }
 }
 
@@ -144,28 +182,17 @@ export function validateEmail(email: unknown): asserts email is string {
  * Valide qu'une URL appartient à l'une des origines autorisées de l'application.
  * Protège contre l'injection d'URLs de phishing dans les emails envoyés.
  *
- * Les origines autorisées sont lues depuis la variable d'environnement
- * ALLOWED_APP_ORIGINS (séparées par des virgules), avec fallback sur les
- * valeurs de production connues.
+ * Les origines autorisées proviennent de getAllowedOrigins() (variable
+ * d'environnement ALLOWED_APP_ORIGINS avec fallback production).
  *
  * Lance une Response 400 si l'URL ne fait pas partie de la liste.
  */
-export function validateOrigin(url: unknown): asserts url is string {
+export function validateOrigin(url: unknown, req?: Request): asserts url is string {
   if (typeof url !== "string") {
-    throw jsonError("URL invalide", 400);
+    throw jsonError("URL invalide", 400, req);
   }
 
-  // Récupère les origines autorisées depuis l'environnement ou valeurs par défaut
-  const envOrigins = Deno.env.get("ALLOWED_APP_ORIGINS");
-  const allowedOrigins = envOrigins
-    ? envOrigins.split(",").map((o) => o.trim())
-    : [
-        "https://heuregeo.vercel.app",
-        "https://www.heuregeo.com",
-        "https://heuregeo.com",
-        "http://localhost:5173",
-        "http://localhost:4173",
-      ];
+  const allowedOrigins = getAllowedOrigins();
 
   // Comparaison stricte sur l'origine (scheme + host + port) via URL API.
   // startsWith() serait vulnérable à l'usurpation de domaine :
@@ -174,7 +201,7 @@ export function validateOrigin(url: unknown): asserts url is string {
   try {
     parsedUrl = new URL(url);
   } catch {
-    throw jsonError("URL malformée", 400);
+    throw jsonError("URL malformée", 400, req);
   }
 
   const isAllowed = allowedOrigins.some((origin) => {
@@ -188,7 +215,8 @@ export function validateOrigin(url: unknown): asserts url is string {
   if (!isAllowed) {
     throw jsonError(
       `URL non autorisée. Les origines acceptées sont : ${allowedOrigins.join(", ")}`,
-      400
+      400,
+      req
     );
   }
 }
@@ -197,12 +225,12 @@ export function validateOrigin(url: unknown): asserts url is string {
  * Valide qu'une chaîne est non-vide et sous une longueur maximale.
  * Lance une Response 400 sinon.
  */
-export function validateNonEmpty(value: unknown, fieldName: string, maxLength = 500): asserts value is string {
+export function validateNonEmpty(value: unknown, fieldName: string, maxLength = 500, req?: Request): asserts value is string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw jsonError(`Champ requis : ${fieldName}`, 400);
+    throw jsonError(`Champ requis : ${fieldName}`, 400, req);
   }
   if (value.length > maxLength) {
-    throw jsonError(`Champ trop long : ${fieldName} (max ${maxLength} caractères)`, 400);
+    throw jsonError(`Champ trop long : ${fieldName} (max ${maxLength} caractères)`, 400, req);
   }
 }
 
@@ -211,8 +239,8 @@ export function validateNonEmpty(value: unknown, fieldName: string, maxLength = 
 /**
  * Retourne la réponse pour les requêtes OPTIONS (preflight CORS).
  * Utiliser au tout début du handler :
- *   if (req.method === "OPTIONS") return handleCors();
+ *   if (req.method === "OPTIONS") return handleCors(req);
  */
-export function handleCors(): Response {
-  return new Response("ok", { headers: CORS_HEADERS });
+export function handleCors(req?: Request): Response {
+  return new Response("ok", { headers: corsHeaders(req) });
 }

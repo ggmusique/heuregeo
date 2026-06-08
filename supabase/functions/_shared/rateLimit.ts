@@ -18,7 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { jsonError } from "./auth.ts";
+import { corsHeaders } from "./auth.ts";
 
 export interface RateLimitConfig {
   /** Nom de l'action à limiter, ex: "send_planning_email" */
@@ -33,6 +33,8 @@ export interface RateLimitConfig {
   windowMinutes: number;
   /** Nombre maximum d'appels par IP dans la fenêtre (optionnel, plus large) */
   maxCallsPerIp?: number;
+  /** Requête courante : utilisée pour renvoyer des en-têtes CORS corrects sur la 429 */
+  req?: Request;
 }
 
 /**
@@ -58,15 +60,15 @@ export function extractIpAddress(req: Request): string | undefined {
  *     action: "send_planning_email",
  *     userId: user.id,
  *     ipAddress: ip,
- *     maxCalls: 10,
- *     windowMinutes: 60,
+ *     req,
+ *     ...RATE_LIMITS.SEND_PLANNING_EMAIL,
  *   });
  */
 export async function checkRateLimit(
   adminClient: SupabaseClient,
   config: RateLimitConfig
 ): Promise<void> {
-  const { action, userId, ipAddress, maxCalls, windowMinutes, maxCallsPerIp } = config;
+  const { action, userId, ipAddress, maxCalls, windowMinutes, maxCallsPerIp, req } = config;
   const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString();
 
   // ── 1. Vérification par user ──────────────────────────────────────────────
@@ -91,8 +93,8 @@ export async function checkRateLimit(
       {
         status: 429,
         headers: {
+          ...corsHeaders(req),
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
           "Retry-After": String(windowMinutes * 60),
         },
       }
@@ -119,8 +121,8 @@ export async function checkRateLimit(
         {
           status: 429,
           headers: {
+            ...corsHeaders(req),
             "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
             "Retry-After": String(windowMinutes * 60),
           },
         }
@@ -166,99 +168,8 @@ export async function checkRateLimit(
 export const RATE_LIMITS = {
   /** Envoi d'un email de planning : max 10/heure par user, max 30/heure par IP */
   SEND_PLANNING_EMAIL: { maxCalls: 10, windowMinutes: 60, maxCallsPerIp: 30 },
-  /** Envoi d'une invitation patron : max 20/heure par user */
+  /** Envoi d'une invitation patron : max 20/heure par user, max 50/heure par IP */
   SEND_PATRON_INVITE: { maxCalls: 20, windowMinutes: 60, maxCallsPerIp: 50 },
-  /** Suppression d'utilisateur : max 5/heure (admin) */
-  DELETE_USER: { maxCalls: 5, windowMinutes: 60 },
-} as const;
-
-
-export interface RateLimitConfig {
-  /** Nom de l'action à limiter, ex: "send_planning_email" */
-  action: string;
-  /** Identifiant de l'utilisateur */
-  userId: string;
-  /** Nombre maximum d'appels autorisés dans la fenêtre */
-  maxCalls: number;
-  /** Durée de la fenêtre en minutes */
-  windowMinutes: number;
-}
-
-/**
- * Vérifie et enregistre un appel pour le rate limiting.
- * Lance une Response 429 si la limite est dépassée.
- *
- * Usage dans une Edge Function :
- *   await checkRateLimit(adminClient, {
- *     action: "send_planning_email",
- *     userId: user.id,
- *     maxCalls: 10,
- *     windowMinutes: 60,
- *   });
- */
-export async function checkRateLimit(
-  adminClient: SupabaseClient,
-  config: RateLimitConfig
-): Promise<void> {
-  const { action, userId, maxCalls, windowMinutes } = config;
-
-  // Calcule le début de la fenêtre temporelle
-  const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000).toISOString();
-
-  // Compte les appels existants dans la fenêtre
-  const { count, error: countError } = await adminClient
-    .from("rate_limit_log")
-    .select("id", { count: "exact", head: true })
-    .eq("action", action)
-    .eq("user_id", userId)
-    .gte("created_at", windowStart);
-
-  if (countError) {
-    // En cas d'erreur DB, on log mais on ne bloque pas (fail open)
-    // Cela évite de bloquer l'app si la table est temporairement inaccessible.
-    console.error(`rate_limit check error for ${action}/${userId}:`, countError.message);
-    return;
-  }
-
-  const currentCount = count ?? 0;
-
-  if (currentCount >= maxCalls) {
-    const resetAt = new Date(Date.now() + windowMinutes * 60 * 1000).toISOString();
-    console.warn(`Rate limit exceeded: action=${action} user=${userId} count=${currentCount}/${maxCalls}`);
-    throw new Response(
-      JSON.stringify({
-        error: `Trop de requêtes. Limite : ${maxCalls} par ${windowMinutes} min. Réessayez plus tard.`,
-        reset_at: resetAt,
-      }),
-      {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Retry-After": String(windowMinutes * 60),
-        },
-      }
-    );
-  }
-
-  // Enregistre l'appel
-  const { error: insertError } = await adminClient
-    .from("rate_limit_log")
-    .insert({ action, user_id: userId });
-
-  if (insertError) {
-    console.error(`rate_limit insert error for ${action}/${userId}:`, insertError.message);
-    // Fail open : ne pas bloquer l'utilisateur si l'insert échoue
-  }
-}
-
-// ─── Configs prédéfinies ──────────────────────────────────────────────────────
-
-export const RATE_LIMITS = {
-  /** Envoi d'un email de planning : max 10/heure */
-  SEND_PLANNING_EMAIL: { maxCalls: 10, windowMinutes: 60 },
-  /** Envoi d'une invitation patron : max 20/heure */
-  SEND_PATRON_INVITE: { maxCalls: 20, windowMinutes: 60 },
   /** Suppression d'utilisateur : max 5/heure (admin) */
   DELETE_USER: { maxCalls: 5, windowMinutes: 60 },
 } as const;

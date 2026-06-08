@@ -2,20 +2,17 @@
 // Edge Function Supabase : suppression complète d'un compte utilisateur
 // Supprime le compte dans auth.users via le client admin (service_role),
 // ce qui cascade automatiquement sur la table profiles (FK ON DELETE CASCADE).
+// CORS restreint à la whitelist via corsHeaders(req) (plus de "*").
 // Déploiement : supabase functions deploy delete-user
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, handleCors } from "../_shared/auth.ts";
 
 serve(async (req: Request) => {
   // Préflight CORS
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: CORS_HEADERS });
+    return handleCors(req);
   }
 
   try {
@@ -24,7 +21,7 @@ serve(async (req: Request) => {
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Non autorisé" }), {
         status: 401,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -39,7 +36,7 @@ serve(async (req: Request) => {
     if (callerError || !caller) {
       return new Response(JSON.stringify({ error: "Non authentifié" }), {
         status: 401,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -53,7 +50,7 @@ serve(async (req: Request) => {
     if (profileError || !callerProfile?.is_admin) {
       return new Response(JSON.stringify({ error: "Accès réservé aux administrateurs" }), {
         status: 403,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -64,7 +61,7 @@ serve(async (req: Request) => {
     } catch {
       return new Response(JSON.stringify({ error: "Body JSON invalide ou vide" }), {
         status: 400,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -72,7 +69,7 @@ serve(async (req: Request) => {
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id manquant" }), {
         status: 400,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -80,7 +77,7 @@ serve(async (req: Request) => {
     if (user_id === caller.id) {
       return new Response(JSON.stringify({ error: "Vous ne pouvez pas supprimer votre propre compte" }), {
         status: 400,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -93,7 +90,7 @@ serve(async (req: Request) => {
       console.error("Erreur suppression profiles:", deleteProfileError.message);
       return new Response(JSON.stringify({ error: deleteProfileError.message }), {
         status: 500,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -103,20 +100,20 @@ serve(async (req: Request) => {
       console.error("Erreur suppression auth.users:", authError.message);
       return new Response(JSON.stringify({ error: authError.message }), {
         status: 500,
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erreur interne";
     console.error("Erreur inattendue:", message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });
