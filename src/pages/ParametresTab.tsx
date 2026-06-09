@@ -1320,8 +1320,292 @@ function KmSettingsPanel({
       ...setKmEnabled(prevFeatures, kmEnable),
       km_country: effectiveCountry,
       km_rate_mode: kmRateMode,
-      km_rate_custom: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
+      km_rate_custom: kmRateMode === "CUSTOM" ? parseFloat(String(kmRate)) || null : null,
       km_include_retour: kmIncludeRetour,
       km_domicile_address: kmDomicileAdresse || null,
       km_domicile_lat: kmDomicileLat,
-      km_domicile_lng: kmDomicile
+      km_domicile_lng: kmDomicileLng,
+      km_settings: {
+        ...(prevFeatures.km_settings ?? {}),
+        enabled: kmEnable,
+        roundTrip: kmIncludeRetour,
+        homeLabel: kmDomicileAdresse || null,
+        homeLat: kmDomicileLat,
+        homeLng: kmDomicileLng,
+        countryCode: effectiveCountry,
+        ratePerKm:
+          kmRateMode === "CUSTOM"
+            ? parseFloat(String(kmRate)) || null
+            : KM_RATES[effectiveCountry] || 0.42,
+      },
+    };
+
+    const result = await saveProfile({ features: nextFeatures });
+    if (result?.error) {
+      setSaveError(result.error);
+    } else {
+      await runRecalc(true);
+    }
+    setSaving(false);
+  };
+
+  const handleGeolocate = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setSaveError("La géolocalisation n'est pas disponible sur cet appareil.");
+      return;
+    }
+    setGeoLoading(true);
+    setSaveError(null);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const prevFeatures = profile?.features ?? {};
+        const detected = detectCountryFromLatLng(lat, lng);
+        if (detected) setKmCountryCode(detected);
+        const nextFeatures = {
+          ...prevFeatures,
+          km_domicile_lat: lat,
+          km_domicile_lng: lng,
+          km_country: detected || kmCountryCode,
+          km_settings: {
+            ...(prevFeatures.km_settings ?? {}),
+            homeLat: lat,
+            homeLng: lng,
+            countryCode: detected || kmCountryCode,
+          },
+        };
+        const result = await saveProfile({ features: nextFeatures });
+        if (result?.error) setSaveError(result.error);
+        setGeoLoading(false);
+      },
+      (err) => {
+        setSaveError(err?.message || "Impossible de récupérer votre position.");
+        setGeoLoading(false);
+      }
+    );
+  };
+
+  return (
+    <div className="rounded-2xl border p-4 border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/5 space-y-4">
+      {/* En-tête + activation */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-cyan)]/80">
+            Frais kilométriques
+          </p>
+          <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border border-[var(--color-accent-cyan)]/40 text-[var(--color-accent-cyan)]">
+            Pro
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={handleToggleEnable}
+          disabled={!isPro || saving}
+          className={
+            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-[background,border-color] duration-150 " +
+            (kmEnable
+              ? "border-[var(--color-accent-cyan)]/40 text-[var(--color-accent-cyan)] bg-[var(--color-accent-cyan)]/10"
+              : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
+            (!isPro ? " opacity-50 cursor-not-allowed" : "")
+          }
+        >
+          {kmEnable ? "Activé" : "Désactivé"}
+        </button>
+      </div>
+
+      {!isPro ? (
+        <p className="text-xs text-[var(--color-text-muted)]">
+          <span className="text-[var(--color-accent-amber)]/90 font-bold">Fonctionnalité Pro.</span>{" "}
+          Calcule automatiquement tes frais de route (domicile → lieu de mission) et les ajoute à ton bilan.
+        </p>
+      ) : !kmEnable ? (
+        <p className="text-xs text-[var(--color-text-muted)]">
+          Inclus dans ton offre Pro. Active pour calculer automatiquement tes frais de route depuis ton domicile.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {/* Bandeau lieux sans GPS */}
+          {lieuxSansGps.length > 0 && (
+            <div className="rounded-xl border p-3 border-[var(--color-accent-amber)]/40 bg-[var(--color-accent-amber)]/10 space-y-2">
+              <p className="text-[11px] font-black uppercase tracking-widest text-[var(--color-accent-amber)]">
+                ⚠️ {lieuxSansGps.length} lieu{lieuxSansGps.length > 1 ? "x" : ""} sans GPS
+              </p>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Ces lieux n&apos;ont pas encore de coordonnées : {lieuxSansGps.map((l) => l.nom).filter(Boolean).join(", ")}.
+              </p>
+              {onRegeocoderBatch && (
+                <button
+                  type="button"
+                  onClick={handleGeocodeBatch}
+                  disabled={geocodeBatchLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all border-[var(--color-accent-amber)]/40 text-[var(--color-accent-amber)] bg-[var(--color-accent-amber)]/10 hover:bg-[var(--color-accent-amber)]/20 disabled:opacity-40"
+                >
+                  {geocodeBatchLoading ? "⏳ Géocodage…" : "📍 Géocoder maintenant"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* 1 · Point de départ (domicile) */}
+          <div className="rounded-xl border p-3 border-[var(--color-border)] bg-[var(--color-surface-offset)] space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-cyan)]/80">
+              1 · Point de départ (domicile)
+            </p>
+            <input
+              type="text"
+              value={kmDomicileAdresse}
+              onChange={(e) => setKmDomicileAdresse(e.target.value)}
+              placeholder={
+                hasDomicileInProfile
+                  ? [profile?.adresse, profile?.code_postal, profile?.ville].filter(Boolean).join(", ")
+                  : "Ex: Rue de la Paix 1, 75001 Paris"
+              }
+              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-[border-color] duration-150 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-cyan)] placeholder:text-[var(--color-text-faint)]"
+            />
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleGeolocate}
+                disabled={geoLoading || saving}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-[background] duration-150 border-[var(--color-accent-cyan)]/30 text-[var(--color-accent-cyan)] bg-[var(--color-accent-cyan)]/10 hover:bg-[var(--color-accent-cyan)]/20 disabled:opacity-40"
+              >
+                {geoLoading ? "⏳ Localisation…" : "📍 Ma position actuelle"}
+              </button>
+              {hasDomicileCoords ? (
+                <span className="text-[11px] font-bold text-green-400">✓ Coordonnées trouvées</span>
+              ) : (
+                <span className="text-[11px] font-bold text-[var(--color-accent-amber)]/90">⚠ Adresse à préciser</span>
+              )}
+            </div>
+            {hasDomicileInProfile && !kmDomicileAdresse && (
+              <p className="text-[10px] italic text-[var(--color-text-muted)]">
+                Si vide, l&apos;adresse du profil sera utilisée.
+              </p>
+            )}
+          </div>
+
+          {/* 2 · Barème */}
+          <div className="rounded-xl border p-3 border-[var(--color-border)] bg-[var(--color-surface-offset)] space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-cyan)]/80">
+              2 · Barème
+            </p>
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="km-rate-mode"
+                className="mt-1"
+                checked={kmRateMode === "AUTO_BY_COUNTRY"}
+                onChange={() => setKmRateMode("AUTO_BY_COUNTRY")}
+              />
+              <span className="flex-1 text-sm text-[var(--color-text)]">
+                Barème officiel par pays
+                <span className="block text-[11px] text-[var(--color-text-muted)]">
+                  {countryLabel} · {recommendedRate} €/km
+                </span>
+              </span>
+            </label>
+            {kmRateMode === "AUTO_BY_COUNTRY" && (
+              <select
+                value={kmCountryCode}
+                onChange={(e) => { setKmCountryCode(e.target.value); setKmRateMode("AUTO_BY_COUNTRY"); }}
+                className="w-full p-2.5 rounded-xl font-bold outline-none border-2 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-cyan)]"
+              >
+                {EUROPE_COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.label}</option>
+                ))}
+              </select>
+            )}
+            <label className="flex items-start gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="km-rate-mode"
+                className="mt-1"
+                checked={kmRateMode === "CUSTOM"}
+                onChange={() => { setKmRateMode("CUSTOM"); if (!kmRate) setKmRate(String(recommendedRate)); }}
+              />
+              <span className="flex-1 text-sm text-[var(--color-text)]">Taux personnalisé</span>
+            </label>
+            {kmRateMode === "CUSTOM" && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={kmRate}
+                  onChange={(e) => setKmRate(e.target.value)}
+                  placeholder={`${recommendedRate}`}
+                  className="flex-1 p-2.5 rounded-xl font-bold outline-none border-2 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-cyan)] placeholder:text-[var(--color-text-faint)]"
+                />
+                <span className="text-sm text-[var(--color-text-muted)]">€/km</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <p className="text-sm text-[var(--color-text-muted)]">Aller-retour (×2)</p>
+              <button
+                type="button"
+                onClick={() => setKmIncludeRetour((v: boolean) => !v)}
+                className={
+                  "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                  (kmIncludeRetour
+                    ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
+                    : "border-[var(--color-border)] text-[var(--color-text-muted)]")
+                }
+              >
+                {kmIncludeRetour ? "Activé" : "Désactivé"}
+              </button>
+            </div>
+          </div>
+
+          {/* Aperçu en direct */}
+          <div className="rounded-xl border p-3 border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/5 space-y-1">
+            <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-accent-cyan)]/80">
+              Aperçu en direct
+            </p>
+            <p className="text-sm text-[var(--color-text)]">
+              {previewIsReal ? `Domicile → ${previewLabel}` : "Exemple"} :{" "}
+              <strong>{fmt(previewDistance)} km</strong>
+              {kmIncludeRetour ? <> × 2 (retour)</> : null} × {fmt(effectiveRate)} € ={" "}
+              <strong className="text-[var(--color-accent-cyan)]">{fmt(previewTotal)} €</strong>
+            </p>
+            <p className="text-[10px] text-[var(--color-text-muted)]">
+              ℹ️ Distance à vol d&apos;oiseau{previewIsReal ? "" : " (exemple — ajoute un lieu géocodé pour un calcul réel)"}.
+            </p>
+          </div>
+
+          {saveError && <p className="text-red-400 text-xs font-bold">{saveError}</p>}
+
+          <Button
+            variant="secondary"
+            fullWidth
+            loading={saving}
+            disabled={saving}
+            onClick={handleSave}
+          >
+            Enregistrer les réglages km
+          </Button>
+
+          {/* Calcul automatique / forcer */}
+          <div className="rounded-xl border p-3 border-emerald-500/25 bg-emerald-500/5 space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-200/80">
+              Calcul automatique
+            </p>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Les frais se recalculent automatiquement quand tu enregistres tes réglages. Utilise le bouton en cas de besoin.
+            </p>
+            {onForceRecalc && (
+              <button
+                type="button"
+                onClick={() => runRecalc(false)}
+                disabled={recalcLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all border-emerald-400/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-40"
+              >
+                {recalcLoading ? "⏳ Recalcul…" : "↻ Forcer le recalcul"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
