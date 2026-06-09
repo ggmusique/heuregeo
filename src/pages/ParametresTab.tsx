@@ -7,6 +7,7 @@ import { ThemeSelector } from "../components/ui/ThemeSelector";
 import { Button } from "../components/ui/Button";
 import { EUROPE_COUNTRIES, KM_RATES, detectCountryFromLatLng } from "../utils/kmRatesByCountry";
 import { geocodeAddress } from "../utils/geocode";
+import { haversineKm } from "../utils/calculators";
 import { getKmEnabled, setKmEnabled } from "../utils/kmSettings";
 import { supabase } from "../services/supabase";
 import { useLabels } from "../contexts/LabelsContext";
@@ -23,7 +24,7 @@ const DiagnosticsPage = lazy(() =>
   import("./DiagnosticsPage").then((m) => ({ default: m.DiagnosticsPage }))
 );
 
-// ─── Icônes SVG ─────────────────────────────────────────────────────────────
+// ─── Icônes SVG ─────────────────────────────────────────────
 
 const IconUser = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
@@ -91,14 +92,14 @@ const IconPalette = () => (
   </svg>
 );
 
-// ─── Couleurs par section ────────────────────────────────────────────────────
+// ─── Couleurs par section ────────────────────────────────────────
 
 import { colorTokens } from "../utils/colorTokens";
 import type { ColorTokens } from "../utils/colorTokens";
 
 
 
-// ─── Error boundary Diagnostics ──────────────────────────────────────────────
+// ─── Error boundary Diagnostics ─────────────────────────────────
 
 interface DiagBoundaryState { hasError: boolean; error: Error | null; }
 
@@ -132,7 +133,7 @@ class DiagnosticsErrorBoundary extends Component<React.PropsWithChildren, DiagBo
   }
 }
 
-// ─── Composant principal ─────────────────────────────────────────────────────
+// ─── Composant principal ───────────────────────────────────────
 
 interface ParametresTabProps {
   profile: any;
@@ -473,6 +474,10 @@ export function ParametresTab({
                       profile={profile}
                       saveProfile={saveProfile}
                       isPro={isPro}
+                      lieux={lieux}
+                      onForceRecalc={onRecalculerKmSemaine}
+                      onRegeocoderBatch={onRegeocoderBatch}
+                      triggerAlert={triggerAlert}
                     />
                     <ContractSettingsPanel
                       profile={profile}
@@ -717,7 +722,7 @@ export function ParametresTab({
   );
 }
 
-// ─── LabelsPanel ──────────────────────────────────────────────────────────────
+// ─── LabelsPanel ──────────────────────────────────────────────
 
 interface LabelsPanelProps {
   profile: any;
@@ -828,12 +833,16 @@ function LabelsPanel({ profile, saveProfile, profileSaving }: LabelsPanelProps) 
   );
 }
 
-// ─── KmSettingsPanel ─────────────────────────────────────────────────────────
+// ─── KmSettingsPanel ─────────────────────────────────────────
 
 interface KmSettingsPanelProps {
   profile: any;
   saveProfile: (data: any) => Promise<any>;
   isPro: boolean;
+  lieux?: Lieu[];
+  onForceRecalc?: (() => Promise<{ message: string }>) | null;
+  onRegeocoderBatch?: ((lieuxManquants: Lieu[]) => Promise<any>) | null;
+  triggerAlert?: ((message: string) => void) | null;
 }
 
 interface ContractSettingsPanelProps {
@@ -1123,10 +1132,20 @@ function ContractSettingsPanel({ profile, saveProfile, profileSaving }: Contract
   );
 }
 
-function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) {
+function KmSettingsPanel({
+  profile,
+  saveProfile,
+  isPro,
+  lieux = [],
+  onForceRecalc = null,
+  onRegeocoderBatch = null,
+  triggerAlert = null,
+}: KmSettingsPanelProps) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
+  const [recalcLoading, setRecalcLoading] = useState(false);
+  const [geocodeBatchLoading, setGeocodeBatchLoading] = useState(false);
   const [kmEnable, setKmEnable] = useState(() => getKmEnabled(profile?.features));
   const [kmIncludeRetour, setKmIncludeRetour] = useState(() => {
     const f = profile?.features ?? {};
@@ -1165,6 +1184,63 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
     EUROPE_COUNTRIES.find((c) => c.code === kmCountryCode)?.label || kmCountryCode;
   const hasDomicileInProfile = !!(profile?.adresse || profile?.ville);
 
+  const domLat = Number(profile?.features?.km_domicile_lat);
+  const domLng = Number(profile?.features?.km_domicile_lng);
+  const hasDomicileCoords = Number.isFinite(domLat) && Number.isFinite(domLng);
+
+  const effectiveRate =
+    kmRateMode === "CUSTOM" ? (parseFloat(String(kmRate)) || recommendedRate) : recommendedRate;
+  const retourMultiplier = kmIncludeRetour ? 2 : 1;
+
+  const lieuxSansGps = (lieux ?? []).filter(
+    (l) => !Number.isFinite(Number(l.latitude)) || !Number.isFinite(Number(l.longitude))
+  );
+
+  const previewLieu = (lieux ?? []).find(
+    (l) => Number.isFinite(Number(l.latitude)) && Number.isFinite(Number(l.longitude))
+  );
+  let previewLabel = "Exemple";
+  let previewDistance = 10;
+  let previewIsReal = false;
+  if (hasDomicileCoords && previewLieu) {
+    previewDistance = haversineKm(domLat, domLng, Number(previewLieu.latitude), Number(previewLieu.longitude));
+    previewLabel = previewLieu.nom || "Lieu";
+    previewIsReal = true;
+  }
+  const previewTotal = previewDistance * retourMultiplier * effectiveRate;
+  const fmt = (n: number) =>
+    n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const runRecalc = async (silent = false) => {
+    if (!onForceRecalc) return;
+    if (!silent) {
+      setRecalcLoading(true);
+      setSaveError(null);
+    }
+    try {
+      const res = await onForceRecalc();
+      if (!silent && res?.message) triggerAlert?.(res.message);
+    } catch (e: any) {
+      if (!silent) setSaveError(e?.message || "Échec du recalcul des frais km.");
+    } finally {
+      if (!silent) setRecalcLoading(false);
+    }
+  };
+
+  const handleGeocodeBatch = async () => {
+    if (!onRegeocoderBatch || lieuxSansGps.length === 0) return;
+    setGeocodeBatchLoading(true);
+    setSaveError(null);
+    try {
+      await onRegeocoderBatch(lieuxSansGps);
+      triggerAlert?.("Géocodage lancé pour les lieux sans GPS.");
+    } catch (e: any) {
+      setSaveError(e?.message || "Échec du géocodage des lieux.");
+    } finally {
+      setGeocodeBatchLoading(false);
+    }
+  };
+
   const handleToggleEnable = async () => {
     if (!isPro) return;
     const newEnabled = !kmEnable;
@@ -1202,6 +1278,8 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
     if (result?.error) {
       setSaveError(result.error);
       setKmEnable(getKmEnabled(profile?.features));
+    } else if (newEnabled) {
+      await runRecalc(true);
     }
     setSaving(false);
   };
@@ -1246,228 +1324,4 @@ function KmSettingsPanel({ profile, saveProfile, isPro }: KmSettingsPanelProps) 
       km_include_retour: kmIncludeRetour,
       km_domicile_address: kmDomicileAdresse || null,
       km_domicile_lat: kmDomicileLat,
-      km_domicile_lng: kmDomicileLng,
-      km_settings: {
-        ...(prevFeatures.km_settings ?? {}),
-        enabled: kmEnable,
-        homeLat: kmDomicileLat,
-        homeLng: kmDomicileLng,
-        homeLabel: kmDomicileAdresse || null,
-        ratePerKm: kmRateMode === "CUSTOM" ? parseFloat(kmRate) || null : null,
-        roundTrip: kmIncludeRetour,
-        countryCode: effectiveCountry,
-      },
-    };
-    const result = await saveProfile({ features: nextFeatures });
-    if (result?.error) {
-      setSaveError(result.error);
-      setKmEnable(getKmEnabled(profile?.features));
-    }
-    setSaving(false);
-  };
-
-  const handleGeolocate = () => {
-    if (!navigator.geolocation) {
-      setSaveError("Géolocalisation non supportée par ce navigateur.");
-      return;
-    }
-    setGeoLoading(true);
-    setSaveError(null);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        const detectedCountry = detectCountryFromLatLng(lat, lng);
-        const prevFeatures = profile?.features ?? {};
-        const nextFeatures = {
-          ...prevFeatures,
-          km_domicile_lat: lat,
-          km_domicile_lng: lng,
-          ...(detectedCountry ? { km_country: detectedCountry } : {}),
-          km_settings: {
-            ...(prevFeatures.km_settings ?? {}),
-            homeLat: lat,
-            homeLng: lng,
-            ...(detectedCountry ? { countryCode: detectedCountry } : {}),
-          },
-        };
-        if (detectedCountry) setKmCountryCode(detectedCountry);
-        const result = await saveProfile({ features: nextFeatures });
-        if (result?.error) setSaveError(result.error);
-        setGeoLoading(false);
-      },
-      (err) => {
-        const geoMessages: Record<number, string> = {
-          1: "Accès à la position refusé. Autorisez la géolocalisation dans les paramètres du navigateur.",
-          2: "Position indisponible.",
-          3: "Délai dépassé, réessayez.",
-        };
-        setSaveError("Impossible d'obtenir votre position : " + (geoMessages[err.code] || err.message));
-        setGeoLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
-
-  return (
-    <div className="rounded-2xl border p-4 space-y-4 border-[var(--color-accent-cyan)]/25 bg-[var(--color-accent-cyan)]/5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-[var(--color-accent-cyan)]/80">
-            Frais kilométriques
-          </p>
-          {!isPro && (
-            <p className="text-[10px] text-[var(--color-accent-amber)]/80">Fonctionnalité Pro</p>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={handleToggleEnable}
-          disabled={!isPro || saving}
-          className={
-            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-[background,border-color] duration-150 " +
-            (kmEnable
-              ? "border-[var(--color-accent-cyan)]/40 text-[var(--color-accent-cyan)] bg-[var(--color-accent-cyan)]/10"
-              : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
-            (!isPro ? " opacity-50 cursor-not-allowed" : "")
-          }
-        >
-          {kmEnable ? "Activé" : "Désactivé"}
-        </button>
-      </div>
-
-      {kmEnable && isPro && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-[var(--color-text-muted)]">Inclure le trajet retour (aller-retour)</p>
-            <button
-              type="button"
-              onClick={() => setKmIncludeRetour((v: boolean) => !v)}
-              className={
-                "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
-                (kmIncludeRetour
-                  ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
-                  : "border-[var(--color-border)] text-[var(--color-text-muted)]")
-              }
-            >
-              {kmIncludeRetour ? "Aller-Retour" : "Aller seul"}
-            </button>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black uppercase mb-1 tracking-wider text-[var(--color-accent-cyan)]/80">
-              Adresse domicile
-            </label>
-            <input
-              type="text"
-              value={kmDomicileAdresse}
-              onChange={(e) => setKmDomicileAdresse(e.target.value)}
-              placeholder={
-                hasDomicileInProfile
-                  ? [profile?.adresse, profile?.code_postal, profile?.ville]
-                      .filter(Boolean)
-                      .join(", ")
-                  : "Ex: Rue de la Paix 1, 75001 Paris"
-              }
-              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-[border-color] duration-150 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-cyan)] placeholder:text-[var(--color-text-faint)]"
-            />
-            <button
-              type="button"
-              onClick={handleGeolocate}
-              disabled={geoLoading || saving}
-              className={"mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-[background] duration-150 " +
-                "border-[var(--color-accent-cyan)]/30 text-[var(--color-accent-cyan)] bg-[var(--color-accent-cyan)]/10 hover:bg-[var(--color-accent-cyan)]/20 disabled:opacity-40"}
-            >
-              {geoLoading ? "⏳ Localisation…" : "📍 Ma position actuelle"}
-            </button>
-            {hasDomicileInProfile && !kmDomicileAdresse && (
-              <p className="text-[10px] mt-1 italic text-[var(--color-text-muted)]">
-                Si vide, l&apos;adresse du profil sera utilisée.
-              </p>
-            )}
-            {Number.isFinite(Number(profile?.features?.km_domicile_lat)) &&
-            Number.isFinite(Number(profile?.features?.km_domicile_lng)) ? (
-              <p className="text-[10px] text-green-400 mt-1">✅ Coordonnées GPS enregistrées</p>
-            ) : (
-            <p className="text-[10px] text-[var(--color-accent-amber)]/80 mt-1">
-                ⚠️ Coordonnées non résolues — enregistrez pour les calculer
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black uppercase mb-1 tracking-wider text-[var(--color-accent-cyan)]/80">
-              Pays
-            </label>
-            <select
-              value={kmCountryCode}
-              onChange={(e) => {
-                setKmCountryCode(e.target.value);
-                setKmRateMode("AUTO_BY_COUNTRY");
-              }}
-              className="w-full p-3 rounded-xl font-bold outline-none border-2 transition-[border-color] duration-150 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-cyan)]"
-            >
-              {EUROPE_COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-black uppercase mb-1 tracking-wider text-[var(--color-accent-cyan)]/80">
-              Taux kilométrique
-            </label>
-            {kmRateMode === "AUTO_BY_COUNTRY" ? (
-              <div className="flex items-center justify-between p-3 rounded-xl border bg-[var(--color-bg-input)] border-[var(--color-border)]">
-                <span className="text-sm text-[var(--color-text-muted)]">
-                  Taux recommandé :{" "}
-                  <strong className="text-[var(--color-accent-cyan)]">{recommendedRate} €/km</strong> ({countryLabel})
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setKmRateMode("CUSTOM");
-                    setKmRate(recommendedRate);
-                  }}
-                  className="text-[10px] font-black uppercase text-[var(--color-accent-violet)] hover:opacity-80 transition-[opacity] duration-150 ml-2"
-                >
-                  Personnaliser
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={kmRate}
-                  onChange={(e) => setKmRate(e.target.value)}
-                  placeholder={`${recommendedRate}`}
-                  className="flex-1 p-3 rounded-xl font-bold outline-none border-2 transition-[border-color] duration-150 text-sm bg-[var(--color-bg-input)] border-[var(--color-border)] text-[var(--color-text)] focus:border-[var(--color-accent-cyan)] placeholder:text-[var(--color-text-faint)]"
-                />
-                <span className="text-sm text-[var(--color-text-muted)]">€/km</span>
-                <Button variant="ghost" size="sm" onClick={() => setKmRateMode("AUTO_BY_COUNTRY")}>
-                  Auto
-                </Button>
-              </div>
-            )}
-          </div>
-
-          {saveError && <p className="text-red-400 text-xs font-bold">{saveError}</p>}
-
-          <Button
-            variant="secondary"
-            fullWidth
-            loading={saving}
-            disabled={saving}
-            onClick={handleSave}
-          >
-            Enregistrer les réglages km
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
+      km_domicile_lng: kmDomicile
