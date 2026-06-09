@@ -1,5 +1,5 @@
-﻿import React, { useMemo, useState } from "react";
-import { Banknote, Check, ChevronDown, Clock3, MapPin, PiggyBank, TrendingUp } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Banknote, Car, Check, ChevronDown, Clock3, MapPin, PiggyBank, TrendingUp } from "lucide-react";
 import { DeficitCoverBanner } from "./DeficitCoverBanner";
 import { WeatherIcon } from "../common/WeatherIcon";
 import { formatDateFR, formatEuro } from "../../utils/formatters";
@@ -181,6 +181,7 @@ export function RapportBilanVisualV1({
   const [periodOpen, setPeriodOpen] = useState(false);
   const [showAcompteDetails, setShowAcompteDetails] = useState(false);
   const [showFraisDetails, setShowFraisDetails] = useState(false);
+  const [showKmDetails, setShowKmDetails] = useState(false);
   const [expandedSummaryKey, setExpandedSummaryKey] = useState<string | null>(null);
 
   const activePeriodOptions = periodOptions && periodOptions.length > 0 ? periodOptions : PERIOD_OPTIONS;
@@ -272,6 +273,11 @@ export function RapportBilanVisualV1({
   }, [contractActiveSince, allPeriodMissions]);
 
   const hasFraisList = (bilanContent?.fraisDivers?.length ?? 0) > 0;
+  const fraisKm = bilanContent?.fraisKilometriques;
+  const kmItems = fraisKm?.items ?? [];
+  const totalKmAmount = Number(fraisKm?.totalAmount ?? 0);
+  const totalKm = Number(fraisKm?.totalKm ?? 0);
+  const hasKmCard = isWeekView && (kmItems.length > 0 || totalKmAmount > 0);
   const hasAcompteSection =
     soldeAcompteAvant > 0 ||
     soldeAcompteApres > 0 ||
@@ -530,7 +536,7 @@ export function RapportBilanVisualV1({
         </section>
       </div>
 
-      {(bilanPeriodType === "semaine" && (hasAcompteSection || hasFraisList || canFacture || (hasFraisList && canExportCSV))) && (
+      {(bilanPeriodType === "semaine" && (hasAcompteSection || hasFraisList || hasKmCard || canFacture || (hasFraisList && canExportCSV))) && (
         <section className="mt-4 grid gap-3 lg:grid-cols-2 lg:gap-4" data-testid="section-acompte-frais">
           {hasAcompteSection && (
             <article data-testid="section-acompte-card" className="rounded-[var(--radius-xl)] border border-[var(--color-border-primary)] bg-[var(--color-surface)] p-4 shadow-modal">
@@ -647,6 +653,64 @@ export function RapportBilanVisualV1({
                     </div>
                   )}
                 </div>
+              )}
+            </article>
+          )}
+
+          {hasKmCard && (
+            <article data-testid="section-km-card" className="rounded-[var(--radius-xl)] border border-[var(--color-border-primary)] bg-[var(--color-surface)] p-4 shadow-modal">
+              <div className="flex items-center justify-between gap-2">
+                <div className="inline-flex items-center gap-2">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-accent-cyan)]/15 text-[var(--color-accent-cyan)]">
+                    <Car size={16} />
+                  </span>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]">Frais kilométriques</p>
+                    <p className="mt-1 text-lg font-black text-[var(--color-accent-cyan)]">{formatEuro(totalKmAmount)}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowKmDetails((value) => !value)}
+                  className="rounded-[var(--radius-pill)] border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)]"
+                >
+                  {showKmDetails ? "Masquer" : "Détails"}
+                </button>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-sm">
+                <span className="font-semibold text-[var(--color-text-muted)]">Distance totale</span>
+                <span className="font-black text-[var(--color-text)]">{Math.round(totalKm * 10) / 10} km</span>
+              </div>
+
+              {showKmDetails && (
+                <div className="mt-3 space-y-2 border-t border-[var(--color-border)] pt-3">
+                  {kmItems.length === 0 ? (
+                    <p className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2 text-xs text-[var(--color-text-muted)]">Aucun trajet calculé pour la période.</p>
+                  ) : (
+                    kmItems.map((item, index) => (
+                      <div key={`${item.date || "km"}-${index}`} className="flex items-center justify-between gap-2 rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface-hover)] px-3 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-bold text-[var(--color-text)]">{item.labelLieuOuClient || "Trajet"}</p>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">{item.date ? formatDateFR(item.date) : ""}</p>
+                          <p className="mt-0.5 text-[10px] font-semibold text-[var(--color-text-dim)]">{Math.round((item.kmTotal ?? 0) * 10) / 10} km</p>
+                        </div>
+                        <p className="shrink-0 text-xs font-black text-[var(--color-accent-cyan)]">+{formatEuro(item.amount ?? 0)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {!isViewer && onRecalculerFraisKm && (
+                <button
+                  type="button"
+                  onClick={onRecalculerFraisKm}
+                  disabled={isRecalculatingKm}
+                  className="mt-3 w-full rounded-[var(--radius-pill)] border border-[var(--color-accent-cyan)]/35 bg-[var(--color-accent-cyan)]/10 px-3 py-2 text-[10px] font-black uppercase tracking-wider text-[var(--color-accent-cyan)] disabled:opacity-45"
+                >
+                  {isRecalculatingKm ? "Recalcul en cours…" : "Recalculer KM"}
+                </button>
               )}
             </article>
           )}
