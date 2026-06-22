@@ -42,7 +42,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["icons/apple-touch-icon.png", "icons/*.png", "icons/icon.svg"],
+      includeAssets: ["icons/apple-touch-icon.png", "icons/apple-touch-icon-180x180.png", "icons/*.png", "icons/favicon.ico", "icons/icon.svg"],
       manifest: {
         name: "Tracko",
         short_name: "Tracko",
@@ -56,16 +56,26 @@ export default defineConfig({
         start_url: "/",
         icons: [
           {
-            src: "icons/icon-192.png",
-            sizes: "192x192",
+            src: "icons/pwa-64x64.png",
+            sizes: "64x64",
             type: "image/png",
-            purpose: "any maskable",
           },
           {
-            src: "icons/icon-512.png",
+            src: "icons/pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "icons/pwa-512x512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "any",
+          },
+          {
+            src: "icons/maskable-icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       },
