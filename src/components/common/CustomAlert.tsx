@@ -70,7 +70,7 @@ export const CustomAlert = React.memo(({ show, message, onDismiss }: CustomAlert
       <div
         onClick={onDismiss}
         className="relative cursor-pointer bg-gradient-to-r from-[var(--color-accent-red)]/40 to-[var(--color-accent-red)]/40 border-2 border-[var(--color-accent-red)]/60 p-5 rounded-[25px] shadow-[0_10px_40px_color-mix(in_srgb,var(--color-accent-red)_60%,transparent)]"
-        role="button"
+        role="alert"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") onDismiss?.();

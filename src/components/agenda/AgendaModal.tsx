@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AGENDA_EVENT_TYPES } from "../../constants/enums";
 import type { AgendaEventType } from "../../constants/enums";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 const TYPE_OPTIONS: { key: AgendaEventType; label: string; emoji: string; color: string; border: string; bg: string }[] = [
   { key: AGENDA_EVENT_TYPES.RDV,   label: "RDV",    emoji: "📅", color: "from-[var(--color-event-rdv)] to-[color-mix(in_srgb,var(--color-event-rdv)_80%,black)]",     border: "border-[var(--color-event-rdv)]/50",   bg: "bg-[var(--color-event-rdv)]/10"   },
@@ -101,9 +102,10 @@ export function AgendaModal({
   const labelCls = "block text-[10px] font-black uppercase tracking-wider mb-2 text-[var(--color-text-muted)]";
 
   const selectedType = TYPE_OPTIONS.find((t) => t.key === type);
+  const trapRef = useFocusTrap(show);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end justify-center p-4 animate-in fade-in duration-200 sm:items-center">
+    <div ref={trapRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[200] flex items-end justify-center p-4 animate-in fade-in duration-200 sm:items-center">
       <div
         className="absolute inset-0 bg-[var(--color-overlay)] backdrop-blur-overlay"
         onClick={onCancel}

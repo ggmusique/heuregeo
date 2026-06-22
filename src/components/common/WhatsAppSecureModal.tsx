@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { evaluatePasswordStrength } from "../../utils/pdfPassword";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface WhatsAppSecureModalProps {
   open: boolean;
@@ -30,6 +31,8 @@ export function WhatsAppSecureModal({
 
   if (!open) return null;
 
+  const trapRef = useFocusTrap(open);
+
   const handleCopy = async () => {
     if (!password.trim()) return;
     if (!navigator.clipboard?.writeText) return;
@@ -44,7 +47,7 @@ export function WhatsAppSecureModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[700] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+    <div ref={trapRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[700] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
       <div
         className="absolute inset-0"
         style={{

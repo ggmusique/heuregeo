@@ -71,6 +71,7 @@ export function NavDrawer({ open, onClose, activeTab, setActiveTab, proNavItems,
           return (
             <button
               key={item.key}
+              aria-current={isActive ? "page" : undefined}
               onClick={() => {
                 setActiveTab(item.key);
                 if (typeof item.onClick === "function") item.onClick();

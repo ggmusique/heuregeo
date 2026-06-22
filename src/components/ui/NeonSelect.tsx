@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useId } from "react";
 
 interface NeonSelectOption {
   value: string;
@@ -45,6 +45,7 @@ export function NeonSelect({
   addNewLabel = "+",
 }: NeonSelectProps) {
   const [focused, setFocused] = useState(false);
+  const selectId = useId();
 
   const isFloating = focused || value !== "";
 
@@ -83,8 +84,9 @@ export function NeonSelect({
     <div style={{ position: "relative", width: "100%", marginBottom: error ? "4px" : "0" }}>
       <div style={{ position: "relative", display: "flex", alignItems: "center", gap: "8px" }}>
         <div style={{ position: "relative", flex: 1 }}>
-          <label style={labelStyle}>{label}{required && " *"}</label>
+          <label htmlFor={selectId} style={labelStyle}>{label}{required && " *"}</label>
           <select
+            id={selectId}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onFocus={() => setFocused(true)}
@@ -105,6 +107,7 @@ export function NeonSelect({
           <button
             type="button"
             onClick={onAddNew}
+            aria-label={addNewLabel === "+" ? "Ajouter" : addNewLabel}
             style={{
               background: "var(--color-bg-input)",
               border: `1px solid ${borderColorVar[color]}`,

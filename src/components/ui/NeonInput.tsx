@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useId } from "react";
 
 interface NeonInputProps {
   label: string;
@@ -38,6 +38,7 @@ export function NeonInput({
   required = false,
 }: NeonInputProps) {
   const [focused, setFocused] = useState(false);
+  const inputId = useId();
 
   const isFloating = focused || value !== "";
 
@@ -73,8 +74,9 @@ export function NeonInput({
   return (
     <div style={{ position: "relative", width: "100%", marginBottom: error ? "4px" : "0" }}>
       <div style={{ position: "relative" }}>
-        <label style={labelStyle}>{label}{required && " *"}</label>
+        <label htmlFor={inputId} style={labelStyle}>{label}{required && " *"}</label>
         <input
+          id={inputId}
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}

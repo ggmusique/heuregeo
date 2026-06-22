@@ -1,10 +1,7 @@
 declare const __APP_VERSION__: string;
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { User } from "@supabase/supabase-js";
-
-import { ParametresTab } from "./pages/ParametresTab";
-import { SystemHealthPage } from "./pages/SystemHealthPage";
 
 import { useClients } from "./hooks/useClients";
 import { useMissions } from "./hooks/useMissions";
@@ -38,11 +35,14 @@ import { AppHeader } from "./components/layout/AppHeader";
 import { AppNavBar } from "./components/layout/AppNavBar";
 import { NavDrawer } from "./components/layout/NavDrawer";
 import { AppModals } from "./components/AppModals";
-import { AgendaPage } from "./components/agenda/AgendaPage";
-import { VueSuivi } from "./components/views/VueSuivi";
-import { VueDashboard } from "./components/views/VueDashboard";
-import { VueSaisie } from "./components/views/VueSaisie";
 import { PatronView } from "./components/views/PatronView";
+
+const LazyAgendaPage = lazy(() => import("./components/agenda/AgendaPage").then(m => ({ default: m.AgendaPage })));
+const LazyVueSuivi = lazy(() => import("./components/views/VueSuivi").then(m => ({ default: m.VueSuivi })));
+const LazyVueDashboard = lazy(() => import("./components/views/VueDashboard").then(m => ({ default: m.VueDashboard })));
+const LazyVueSaisie = lazy(() => import("./components/views/VueSaisie").then(m => ({ default: m.VueSaisie })));
+const LazyParametresTab = lazy(() => import("./pages/ParametresTab").then(m => ({ default: m.ParametresTab })));
+const LazySystemHealthPage = lazy(() => import("./pages/SystemHealthPage").then(m => ({ default: m.SystemHealthPage })));
 
 import { DarkModeProvider } from "./contexts/DarkModeContext";
 import { useAppUI } from "./hooks/useAppUI";
@@ -223,10 +223,15 @@ function AppInner({
 
   useEffect(() => {
     document.title = "Tracko";
-    fetchMissions();
-    fetchFrais();
-    fetchAcomptes();
-    fetchLieux();
+    const idle = typeof requestIdleCallback === "function"
+      ? requestIdleCallback
+      : (cb: () => void) => setTimeout(cb, 0);
+    idle(() => {
+      fetchMissions();
+      fetchFrais();
+      fetchAcomptes();
+      fetchLieux();
+    });
   }, [fetchMissions, fetchFrais, fetchAcomptes, fetchLieux]);
 
   useEffect(() => {
@@ -289,65 +294,67 @@ function AppInner({
       <AppHeader profile={profile} isViewer={isViewer} isPro={isPro} liveTime={liveTime} APP_VERSION={APP_VERSION} onOpenMenu={() => setMenuOpen(true)} />
 
       <main className="relative px-5 -mt-10 pb-32 z-10">
-        {activeTab === "saisie" && !isViewer && <VueSaisie {...saisieProps} />}
+        <Suspense fallback={null}>
+          {activeTab === "saisie" && !isViewer && <LazyVueSaisie {...saisieProps} />}
 
-        {activeTab === "dashboard" && canDashboard && <VueDashboard {...dashboardProps} />}
+          {activeTab === "dashboard" && canDashboard && <LazyVueDashboard {...dashboardProps} />}
 
-        {activeTab === "suivi" && <VueSuivi {...suiviProps} />}
+          {activeTab === "suivi" && <LazyVueSuivi {...suiviProps} />}
 
-        {activeTab === "agenda" && (
-          <AgendaPage
-            userId={user?.id ?? null}
-            triggerAlert={triggerAlert}
-            onOpenForDate={agendaModal.openForDate}
-            onEventEdit={agendaModal.handleEventEdit}
-            onEventDelete={agendaModal.handleEventDelete}
-            refreshKey={agendaRefreshKey}
-          />
-        )}
+          {activeTab === "agenda" && (
+            <LazyAgendaPage
+              userId={user?.id ?? null}
+              triggerAlert={triggerAlert}
+              onOpenForDate={agendaModal.openForDate}
+              onEventEdit={agendaModal.handleEventEdit}
+              onEventDelete={agendaModal.handleEventDelete}
+              refreshKey={agendaRefreshKey}
+            />
+          )}
 
-        {activeTab === "parametres" && !isViewer && (
-          <ParametresTab
-            profile={profile}
-            profileSaving={profileSaving}
-            saveProfile={saveProfile}
-            userEmail={user?.email}
-            patrons={patrons}
-            clients={clients}
-            lieux={lieux}
-            missions={missions}
-            fraisDivers={fraisDivers}
-            acomptes={listeAcomptes}
-            deleteAcompte={deleteAcompte}
-            fetchAcomptes={fetchAcomptes}
-            showConfirm={showConfirm}
-            triggerAlert={triggerAlert}
-            onPatronEdit={patronModal.handlePatronEdit}
-            onPatronDelete={patronModal.handlePatronDelete}
-            onPatronAdd={() => patronModal.openPatronModal()}
-            onClientEdit={clientModal.handleClientEdit}
-            onClientDelete={clientModal.handleClientDelete}
-            onClientAdd={() => clientModal.openClientModal()}
-            onLieuEdit={lieuModal.handleLieuEdit}
-            onLieuDelete={lieuModal.handleLieuDelete}
-            onLieuAdd={() => { lieuModal.openLieuModal(); }}
-            showMissionRateEditor={showMissionRateEditor}
-            onToggleMissionRateEditor={setShowMissionRateEditor}
-            kmSettings={kmSettings}
-            onRegeocoderLieu={lieuModal.handleRegeocoderLieu}
-            domicileLatLng={domicileLatLng}
-            missionsThisWeek={missionsThisWeek}
-            kmFraisThisWeek={kmFraisThisWeek}
-            onRegeocoderBatch={lieuModal.handleRegeocoderBatch}
-            onRecalculerKmSemaine={handleRecalculerKmSemaine}
-            onRebuildBilans={bilan.rebuildBilans}
-            onRepairBilans={repairBilansDB}
-            ownerProfile={profile}
-            onMissionDelete={missionForm.handleMissionDelete}
-          />
-        )}
+          {activeTab === "parametres" && !isViewer && (
+            <LazyParametresTab
+              profile={profile}
+              profileSaving={profileSaving}
+              saveProfile={saveProfile}
+              userEmail={user?.email}
+              patrons={patrons}
+              clients={clients}
+              lieux={lieux}
+              missions={missions}
+              fraisDivers={fraisDivers}
+              acomptes={listeAcomptes}
+              deleteAcompte={deleteAcompte}
+              fetchAcomptes={fetchAcomptes}
+              showConfirm={showConfirm}
+              triggerAlert={triggerAlert}
+              onPatronEdit={patronModal.handlePatronEdit}
+              onPatronDelete={patronModal.handlePatronDelete}
+              onPatronAdd={() => patronModal.openPatronModal()}
+              onClientEdit={clientModal.handleClientEdit}
+              onClientDelete={clientModal.handleClientDelete}
+              onClientAdd={() => clientModal.openClientModal()}
+              onLieuEdit={lieuModal.handleLieuEdit}
+              onLieuDelete={lieuModal.handleLieuDelete}
+              onLieuAdd={() => { lieuModal.openLieuModal(); }}
+              showMissionRateEditor={showMissionRateEditor}
+              onToggleMissionRateEditor={setShowMissionRateEditor}
+              kmSettings={kmSettings}
+              onRegeocoderLieu={lieuModal.handleRegeocoderLieu}
+              domicileLatLng={domicileLatLng}
+              missionsThisWeek={missionsThisWeek}
+              kmFraisThisWeek={kmFraisThisWeek}
+              onRegeocoderBatch={lieuModal.handleRegeocoderBatch}
+              onRecalculerKmSemaine={handleRecalculerKmSemaine}
+              onRebuildBilans={bilan.rebuildBilans}
+              onRepairBilans={repairBilansDB}
+              ownerProfile={profile}
+              onMissionDelete={missionForm.handleMissionDelete}
+            />
+          )}
 
-        {activeTab === "health" && <SystemHealthPage />}
+          {activeTab === "health" && <LazySystemHealthPage />}
+        </Suspense>
       </main>
 
       <AppModals {...modalsProps} />

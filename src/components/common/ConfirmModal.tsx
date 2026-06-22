@@ -1,6 +1,7 @@
 import React from "react";
 import { MODAL_STYLES } from "../../constants/options";
 import { ConfirmState } from "../../hooks/useConfirm";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface ConfirmModalProps extends ConfirmState {}
 
@@ -31,11 +32,12 @@ export const ConfirmModal = ({
   // ✅ On récupère le "pack de style" selon le type (couleurs, icône, etc.)
   // Si type inconnu => style danger par défaut
   const style = MODAL_STYLES[type] || MODAL_STYLES.danger;
+  const trapRef = useFocusTrap(show);
 
   return (
     // ✅ Conteneur plein écran (fixed inset-0)
     // z-[600] : au-dessus du reste de l'app
-    <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 animate-in fade-in duration-200">
+    <div ref={trapRef} role="dialog" aria-modal="true" className="fixed inset-0 z-[600] flex items-center justify-center p-6 animate-in fade-in duration-200">
       
       {/* ✅ Overlay noir derrière la modal
           - couvre tout l'écran

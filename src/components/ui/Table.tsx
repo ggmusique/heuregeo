@@ -33,6 +33,7 @@ export function Table<T>({ columns, data, keyExtractor, emptyText = "Aucune donn
             {columns.map((col) => (
               <th
                 key={col.key}
+                scope="col"
                 className={
                   "px-4 py-2.5 text-[10px] font-black uppercase tracking-wider text-[var(--color-text-muted)] " +
                   ALIGN_CLS[col.align ?? "left"] +

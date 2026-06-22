@@ -1,6 +1,7 @@
 // src/components/ui/Modal.tsx
 // Wrapper modal générique tokenisé — utilise les CSS vars du thème actif.
 import React, { useEffect, useCallback } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface ModalProps {
   show: boolean;
@@ -38,10 +39,13 @@ export function Modal({
     return () => document.removeEventListener("keydown", handleKey);
   }, [show, handleKey]);
 
+  const trapRef = useFocusTrap(show);
+
   if (!show) return null;
 
   return (
     <div
+      ref={trapRef}
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-[500] flex items-end sm:items-center justify-center sm:p-6"
