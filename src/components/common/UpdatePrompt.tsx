@@ -32,8 +32,11 @@ export function UpdatePrompt() {
         <div className="flex flex-col gap-3">
           {/* Header */}
           <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary)]/20 text-2xl">
-              🚀
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary)]/20">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                <polyline points="17 6 23 6 23 12" />
+              </svg>
             </div>
             <div className="flex-1">
               <p className="text-sm font-black uppercase tracking-wide text-[var(--color-primary)]">

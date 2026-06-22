@@ -31,9 +31,10 @@ export default defineConfig({
       registerType: "prompt",
       includeAssets: ["icons/apple-touch-icon.png", "icons/*.png", "icons/icon.svg"],
       manifest: {
-        name: "Heures de Geo",
-        short_name: "HdGeo",
-        description: "Gestion des heures et bilans - Geo",
+        name: "Tracko",
+        short_name: "Tracko",
+        description: "Gestion des heures et bilans professionnels",
+        lang: "fr",
         theme_color: "#020818",
         background_color: "#020818",
         display: "standalone",
@@ -60,6 +61,8 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         skipWaiting: false,
         clientsClaim: false,
+        navigateFallback: "/offline.html",
+        navigateFallbackAllowlist: [/^\/$/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

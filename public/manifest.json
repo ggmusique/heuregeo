@@ -4,8 +4,8 @@
     "description": "Gestion des heures et bilans professionnels",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#0a001f",
-    "theme_color": "#6366f1",
+    "background_color": "#020818",
+    "theme_color": "#020818",
     "orientation": "portrait",
     "icons": [
       {
