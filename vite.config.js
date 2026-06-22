@@ -25,6 +25,19 @@ export default defineConfig({
     host: true,
     allowedHosts: process.env.REPL_ID ? true : undefined,
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          calendar: ["@fullcalendar/core", "@fullcalendar/react", "@fullcalendar/daygrid", "@fullcalendar/timegrid", "@fullcalendar/interaction"],
+          supabase: ["@supabase/supabase-js"],
+          xlsx: ["xlsx"],
+          lucide: ["lucide-react"],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
