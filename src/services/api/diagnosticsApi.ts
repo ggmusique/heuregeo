@@ -181,3 +181,36 @@ export const deleteBilanById = async (
   const { error } = await supabase.from("bilans_status_v2").delete().eq("id", id);
   return { error: error ? `Suppression: ${error.message}` : null };
 };
+
+export interface DiagMissionRow {
+  id: string;
+  client: string | null;
+  lieu: string | null;
+  date_mission: string | null;
+  debut: string;
+  fin: string;
+  duree: number;
+  montant: number;
+  patron_id: string | null;
+  lieu_id: string | null;
+  client_id: string | null;
+}
+
+/** Missions d'un patron sur une semaine ISO donnée. */
+export const fetchMissionsDiag = async (
+  patronId: string,
+  week: number
+): Promise<{ data: DiagMissionRow[]; error: string | null }> => {
+  const { data, error } = await supabase
+    .from("missions")
+    .select("id, client, lieu, date_mission, debut, fin, duree, montant, patron_id, lieu_id, client_id")
+    .eq("patron_id", patronId)
+    .gte("date_mission", isoWeekStart(week))
+    .lte("date_mission", isoWeekEnd(week))
+    .order("date_mission");
+
+  return {
+    data: (data as DiagMissionRow[]) ?? [],
+    error: error ? `Missions: ${error.message}` : null,
+  };
+};

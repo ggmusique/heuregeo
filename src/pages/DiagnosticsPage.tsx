@@ -7,7 +7,9 @@ import {
   fetchAcomptesDiag,
   fetchAcompteAllocationsDiag,
   fetchFraisKmDiag,
+  fetchMissionsDiag,
 } from "../services/api/diagnosticsApi";
+import type { DiagMissionRow } from "../services/api/diagnosticsApi";
 import { DIAGNOSTICS_MESSAGES } from "../constants/messages";
 import { runAsyncAction } from "../utils/asyncAction";
 import { PhantomCleanupCard } from "../components/diagnostics/PhantomCleanupCard";
@@ -31,6 +33,7 @@ interface DiagData {
   acomptes: { id: string; montant: number; date_acompte: string }[];
   allocations: { acompte_id: string; amount: number; periode_index: number }[];
   fraisKm: { date_frais: string; distance_km: number; rate_per_km: number; amount: number; mission_id: string }[];
+  missions: DiagMissionRow[];
   queryErrors: string[];
 }
 
@@ -67,6 +70,7 @@ interface DiagnosticsPageProps {
   onRebuildBilans?: ((patronId: string | null, start: number, end: number) => Promise<unknown>) | null;
   onRepairBilans?: ((patronId: string | null) => Promise<unknown>) | null;
   patrons?: Patron[];
+  onMissionDelete?: (id: string) => Promise<void>;
 }
 
 /**
@@ -88,6 +92,7 @@ export const DiagnosticsPage = ({
   onRebuildBilans = null,
   onRepairBilans = null,
   patrons = [],
+  onMissionDelete,
 }: DiagnosticsPageProps) => {
   const [regeoLoading, setRegeoLoading] = useState(false);
   const [recalcLoading, setRecalcLoading] = useState(false);
@@ -268,13 +273,14 @@ export const DiagnosticsPage = ({
     setDiagError(null);
     setDiagData(null);
     try {
-      const [bilanRes, precedentsRes, acomptesRes, allocRes, fraisRes] =
+      const [bilanRes, precedentsRes, acomptesRes, allocRes, fraisRes, missionsRes] =
         await Promise.all([
           fetchBilanStatus(diagPatronId, wk),
           fetchBilansPrecedents(diagPatronId, wk),
           fetchAcomptesDiag(diagPatronId),
           fetchAcompteAllocationsDiag(diagPatronId),
           fetchFraisKmDiag(diagPatronId, wk),
+          fetchMissionsDiag(diagPatronId, wk),
         ]);
 
       const queryErrors = [
@@ -283,6 +289,7 @@ export const DiagnosticsPage = ({
         acomptesRes.error,
         allocRes.error,
         fraisRes.error,
+        missionsRes.error,
       ].filter((e): e is string => e !== null);
 
       const impayePrecedent = precedentsRes.data.reduce(
@@ -295,6 +302,7 @@ export const DiagnosticsPage = ({
         acomptes: acomptesRes.data,
         allocations: allocRes.data,
         fraisKm: fraisRes.data,
+        missions: missionsRes.data,
         queryErrors,
       });
     } catch (err) {
@@ -478,6 +486,45 @@ export const DiagnosticsPage = ({
                       {diagData.fraisKm.reduce((s, f) => s + f.amount, 0).toFixed(2)} €
                     </span>
                   </p>
+                </div>
+              )}
+
+              {/* Missions de la semaine */}
+              {diagData.missions.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-dim)]">
+                    Missions ({diagData.missions.length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {diagData.missions.map((m) => (
+                      <div
+                        key={m.id}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-offset)]"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-bold text-[var(--color-text)] truncate">
+                            {m.client || "—"} · {m.lieu || "—"}
+                          </p>
+                          <p className="text-[10px] text-[var(--color-text-dim)]">
+                            {m.date_mission ? new Date(m.date_mission).toLocaleDateString("fr-FR") : "—"} · {m.debut}–{m.fin} · {m.duree}h · {m.montant.toFixed(2)} €
+                          </p>
+                        </div>
+                        {onMissionDelete && (
+                          <button
+                            type="button"
+                            onClick={() => onMissionDelete(m.id)}
+                            className="p-1.5 rounded-lg border border-red-500/30 text-red-400/70 hover:text-red-300 hover:bg-red-500/10 transition-all shrink-0"
+                            title="Supprimer cette mission"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 

@@ -171,6 +171,7 @@ interface ParametresTabProps {
   showConfirm?: ((options?: any) => Promise<boolean>) | null;
   triggerAlert?: ((message: string) => void) | null;
   ownerProfile?: UserProfile | null;
+  onMissionDelete?: (id: string) => Promise<void>;
 }
 
 export function ParametresTab({
@@ -209,6 +210,7 @@ export function ParametresTab({
   showConfirm = null,
   triggerAlert = null,
   ownerProfile = null,
+  onMissionDelete,
 }: ParametresTabProps) {
   const { isAdmin, isPro, isViewer } = usePermissions();
   const [activePanel, setActivePanel] = useState<string | null>(null);
@@ -709,6 +711,7 @@ export function ParametresTab({
                         onRebuildBilans={onRebuildBilans}
                         onRepairBilans={onRepairBilans}
                         patrons={patrons}
+                        onMissionDelete={onMissionDelete}
                       />
                     </Suspense>
                   </DiagnosticsErrorBoundary>

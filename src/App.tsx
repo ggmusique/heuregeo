@@ -343,6 +343,7 @@ function AppInner({
             onRebuildBilans={bilan.rebuildBilans}
             onRepairBilans={repairBilansDB}
             ownerProfile={profile}
+            onMissionDelete={missionForm.handleMissionDelete}
           />
         )}
 
