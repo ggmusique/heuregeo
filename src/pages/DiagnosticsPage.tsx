@@ -10,11 +10,12 @@ import {
 } from "../services/api/diagnosticsApi";
 import { DIAGNOSTICS_MESSAGES } from "../constants/messages";
 import { runAsyncAction } from "../utils/asyncAction";
+import { PhantomCleanupCard } from "../components/diagnostics/PhantomCleanupCard";
 import type { UserProfile } from "../types/profile";
 import type { Mission, Patron, Lieu } from "../types/entities";
 import type { KmFraisResult, KmSettings } from "../hooks/useKmDomicile";
 
-// ─── Types locaux ─────────────────────────────────────────────────────────────
+// ─── Types locaux ─────────────────────────────────────────────────────────
 
 interface DiagData {
   bilan: {
@@ -134,7 +135,7 @@ export const DiagnosticsPage = ({
   const missionsSansFraisKm = fraisItems.filter((f) => f.kmTotal === null);
   const nbSansFraisKm = missionsSansFraisKm.length;
 
-  // ── Synthèse & anomalies ─────────────────────────────────────────────────
+  // ── Synthèse & anomalies ───────────────────────────────────────────────
   const staticAnomalies = getStaticAnomalies({
     kmEnabled,
     domLat,
@@ -162,7 +163,7 @@ export const DiagnosticsPage = ({
     nbSansFraisKm,
   });
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  // ── Handlers ───────────────────────────────────────────────────────
   const showMsg = (msg: string, isError = false) => {
     setActionMsg(msg);
     setActionIsError(isError);
@@ -177,7 +178,7 @@ export const DiagnosticsPage = ({
       showMsg(DIAGNOSTICS_MESSAGES.INVALID_WEEK_RANGE, true);
       return;
     }
-setRebuildLoading(true);
+    setRebuildLoading(true);
     setActionMsg(null);
     try {
       await runAsyncAction({
@@ -303,7 +304,7 @@ setRebuildLoading(true);
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────
   return (
     <div className="animate-in slide-in-from-right duration-400 space-y-4">
 
@@ -624,13 +625,16 @@ setRebuildLoading(true);
               {repairLoading ? "Réparation en cours…" : "🔧 Réparer les bilans corrompus"}
             </button>
           </Card>
+
+          {/* Nettoyer les impayés fantômes */}
+          <PhantomCleanupCard patrons={patrons} />
         </div>
       </details>
     </div>
   );
 };
 
-// ── Sous-composants UI ─────────────────────────────────────────────────────
+// ── Sous-composants UI ─────────────────────────────────────────────────
 
 function GlobalStatusCard({ status, summary }: { status: "ok" | "warning" | "critical"; summary: string }) {
   const cfg = {
@@ -737,7 +741,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 }
 
 
-// ── Utilitaires de diagnostic ─────────────────────────────────────────────
+// ── Utilitaires de diagnostic ──────────────────────────────────────────
 
 function getDiagnosticStatus({ kmEnabled, domLat, domLng, lieuxSansCoords, lieuxSuspects, nbSansFraisKm }: DiagArgs): "ok" | "warning" | "critical" {
   if (kmEnabled && (!Number.isFinite(domLat) || !Number.isFinite(domLng))) return "critical";
@@ -964,7 +968,7 @@ function buildDiagnosticClipboardText(diagData: DiagData, diagWeek: number | str
   return lines.join("\n");
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────
 
 /** Returns singular suffix when count === 1, plural suffix otherwise. */
 function pluralFr(count: number, singular: string, plural: string): string {
