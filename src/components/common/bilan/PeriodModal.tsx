@@ -62,7 +62,7 @@ export const PeriodModal = ({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center sm:p-6 bg-[var(--color-overlay)] backdrop-blur-[var(--blur-overlay)]">
+    <div className="fixed inset-0 z-[400] flex items-end sm:items-center justify-center sm:p-6 bg-[var(--color-overlay)] backdrop-blur-overlay">
       <div
         className="w-full max-w-full sm:max-w-sm p-5 sm:p-8 rounded-t-[32px] sm:rounded-[45px] max-h-[90dvh] overflow-y-auto border-2 bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-modal"
       >
@@ -269,7 +269,7 @@ export const PeriodModal = ({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-4 font-black uppercase text-[10px] opacity-60 hover:opacity-100 transition-opacity backdrop-blur-md"
+            className="flex-1 py-4 font-black uppercase text-[10px] opacity-60 hover:opacity-100 transition-opacity backdrop-blur-card"
           >
             Annuler
           </button>
@@ -277,11 +277,11 @@ export const PeriodModal = ({
           <button
             onClick={onConfirm}
             disabled={!periodValue}
-            className={`flex-1 py-4 rounded-2xl font-black uppercase text-[10px] transition-all ${
+            className={`flex-1 py-4 rounded-2xl font-black uppercase text-[10px] transition-colors transition-transform ${
               periodValue
                 ? "bg-[var(--color-accent-violet)] text-white active:scale-95"
                 : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] opacity-40 cursor-not-allowed"
-            } backdrop-blur-md`}
+            } backdrop-blur-card`}
           >
             Confirmer
           </button>

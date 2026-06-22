@@ -147,7 +147,7 @@ export const HistoriqueTab = ({
       {/* ── SÉLECTEUR PATRON ── */}
       {!isViewer && (
         <div
-          className="p-4 rounded-[25px] border bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-md"
+          className="p-4 rounded-[25px] border bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-card"
         >
           <p className="text-[10px] font-black uppercase opacity-50 tracking-widest mb-3">
             Filtre {L.patron}
@@ -171,7 +171,7 @@ export const HistoriqueTab = ({
       <div className="flex justify-end">
         <button
           onClick={() => setShowStats((v) => !v)}
-          className={`px-4 py-2 rounded-2xl font-black uppercase text-[10px] tracking-wider transition-all ${
+          className={`px-4 py-2 rounded-2xl font-black uppercase text-[10px] tracking-wider transition-colors ${
             showStats
               ? "bg-[var(--color-accent-violet)]/20 text-[var(--color-accent-violet)] border border-[var(--color-accent-violet)]/30"
               : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border border-[var(--color-border)]"
@@ -380,7 +380,7 @@ export const HistoriqueTab = ({
           {/* Liste impayés */}
           {historiqueTab === "impayes" && (
             <div
-              className="p-4 rounded-[25px] border border-orange-500/20 bg-orange-500/5 backdrop-blur-md"
+              className="p-4 rounded-[25px] border border-orange-500/20 bg-orange-500/5 backdrop-blur-card"
             >
               {filteredImpayes.length === 0 ? (
                 <div className="text-center py-6">
@@ -434,7 +434,7 @@ export const HistoriqueTab = ({
           {/* Liste payés */}
           {historiqueTab === "payes" && (
             <div
-              className="p-4 rounded-[25px] border border-green-500/20 bg-green-500/5 backdrop-blur-md"
+              className="p-4 rounded-[25px] border border-green-500/20 bg-green-500/5 backdrop-blur-card"
             >
               {filteredPayes.length === 0 ? (
                 <div className="text-center py-6">

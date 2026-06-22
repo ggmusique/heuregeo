@@ -166,7 +166,7 @@ function PatronViewInner({
           <CustomAlert show={customAlert.show} message={customAlert.message || ""} onDismiss={dismissAlert} />
 
           {/* En-tête patron */}
-          <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl">
+          <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-modal">
             <div className="px-4">
               <div className="flex items-center justify-between gap-3 py-2">
                 <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ function PatronViewInner({
                   {hasMultipleOwners && (
                     <button
                       onClick={onSwitchOwner}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/40 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/25 transition-all text-xs font-bold"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--color-primary)]/15 border border-[var(--color-primary)]/40 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/25 transition-colors text-xs font-bold"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -204,7 +204,7 @@ function PatronViewInner({
                   </button>
                 </div>
               </div>
-              <h1 className="text-[22px] sm:text-[30px] font-black italic tracking-[0.08em] sm:tracking-[0.1em] text-[var(--color-primary)] drop-shadow-2xl font-['Playfair_Display'] pb-3">
+              <h1 className="text-[22px] sm:text-[30px] font-black italic tracking-[0.08em] sm:tracking-[0.1em] text-[var(--color-primary)] drop-shadow-[0_0_15px_var(--color-primary)] font-['Playfair_Display'] pb-3">
                 {"HEURES DE " + (access.ownerName?.trim()?.toUpperCase() || "—")}
               </h1>
             </div>
@@ -284,14 +284,14 @@ function PatronViewInner({
           </main>
 
           {/* Barre de navigation */}
-          <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-modal" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="flex">
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
                   className={
-                    "flex-1 py-3 flex flex-col items-center gap-1 text-[10px] font-black uppercase tracking-widest transition-all " +
+                    "flex-1 py-3 flex flex-col items-center gap-1 text-[10px] font-black uppercase tracking-widest transition-colors " +
                     (activeTab === item.id
                       ? "text-[var(--color-primary)]"
                       : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]")
@@ -390,7 +390,7 @@ function PatronOnboarding() {
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)]">
         {/* Header */}
-        <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-xl px-4 py-3">
+        <header className="sticky top-0 z-40 border-b border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-modal px-4 py-3">
           <div className="flex items-center justify-between max-w-xl mx-auto">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl overflow-hidden shadow-md flex-shrink-0">
@@ -443,7 +443,7 @@ function PatronOnboarding() {
                   </span>
                   <button
                     onClick={handleCopy}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors ${
                       copiedCode
                         ? "border-[var(--color-success)]/40 text-[var(--color-success)] bg-[var(--color-success)]/10"
                         : "border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-primary)]/40"
@@ -456,7 +456,7 @@ function PatronOnboarding() {
                 <button
                   onClick={async () => { setGenerating(true); await generateMyCode(); setGenerating(false); }}
                   disabled={generating}
-                  className="px-4 py-2 rounded-lg bg-[var(--color-primary)] text-black font-bold text-xs hover:opacity-90 disabled:opacity-50 transition-all"
+                  className="px-4 py-2 rounded-lg bg-[var(--color-primary)] text-black font-bold text-xs hover:opacity-90 disabled:opacity-50 transition-opacity"
                 >
                   {generating ? "Génération…" : "Générer mon code"}
                 </button>
@@ -483,12 +483,12 @@ function PatronOnboarding() {
                   setSendError(null);
                 }}
                 maxLength={8}
-                className="flex-1 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] rounded-lg px-3 py-2 text-sm font-mono font-bold focus:border-[var(--color-primary)]/60 focus:outline-none transition-all placeholder:text-[var(--color-text-muted)] placeholder:font-sans"
+                className="flex-1 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] rounded-lg px-3 py-2 text-sm font-mono font-bold focus:border-[var(--color-primary)]/60 focus:outline-none transition-colors placeholder:text-[var(--color-text-muted)] placeholder:font-sans"
               />
               <button
                 type="submit"
                 disabled={codeInput.trim().length < 4 || searching}
-                className="px-4 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm font-bold hover:text-[var(--color-text)] hover:border-[var(--color-primary)]/40 disabled:opacity-40 transition-all"
+                className="px-4 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-sm font-bold hover:text-[var(--color-text)] hover:border-[var(--color-primary)]/40 disabled:opacity-40 transition-colors"
               >
                 {searching ? "…" : "Chercher"}
               </button>
@@ -506,13 +506,13 @@ function PatronOnboarding() {
                   <button
                     onClick={handleSend}
                     disabled={sendLoading}
-                    className="flex-1 py-2 rounded-lg bg-[var(--color-primary)] text-black font-bold text-xs hover:opacity-90 disabled:opacity-50 transition-all"
+                    className="flex-1 py-2 rounded-lg bg-[var(--color-primary)] text-black font-bold text-xs hover:opacity-90 disabled:opacity-50 transition-opacity"
                   >
                     {sendLoading ? "Envoi…" : "Envoyer la demande"}
                   </button>
                   <button
                     onClick={() => { clearSearch(); setCodeInput(""); }}
-                    className="px-3 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs hover:text-[var(--color-text)] transition-all"
+                    className="px-3 py-2 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs hover:text-[var(--color-text)] transition-colors"
                   >
                     ×
                   </button>
@@ -541,14 +541,14 @@ function PatronOnboarding() {
                     <button
                       onClick={() => handleAccept(inv.id)}
                       disabled={actionLoading === inv.id}
-                      className="px-3 py-1.5 rounded-lg bg-[var(--color-success)]/20 border border-[var(--color-success)]/30 text-[var(--color-success)] text-xs font-bold hover:bg-[var(--color-success)]/30 disabled:opacity-50 transition-all"
+                      className="px-3 py-1.5 rounded-lg bg-[var(--color-success)]/20 border border-[var(--color-success)]/30 text-[var(--color-success)] text-xs font-bold hover:bg-[var(--color-success)]/30 disabled:opacity-50 transition-colors"
                     >
                       Accepter
                     </button>
                     <button
                       onClick={() => handleRefuse(inv.id)}
                       disabled={actionLoading === inv.id}
-                      className="px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30 disabled:opacity-50 transition-all"
+                      className="px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30 disabled:opacity-50 transition-colors"
                     >
                       Refuser
                     </button>
@@ -577,7 +577,7 @@ function PatronOnboarding() {
                   <button
                     onClick={() => handleCancel(inv.id)}
                     disabled={actionLoading === inv.id}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30 disabled:opacity-50 transition-all"
+                    className="flex-shrink-0 px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30 disabled:opacity-50 transition-colors"
                   >
                     Annuler
                   </button>

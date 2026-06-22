@@ -33,7 +33,7 @@ export function ThemeSelector({ layout = "row" }: ThemeSelectorProps) {
             onClick={() => setTheme(t.value)}
             aria-pressed={active}
             className={
-              "flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] border text-xs font-bold transition-all " +
+              "flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] border text-xs font-bold transition-colors " +
               (active
                 ? "border-[var(--color-border-primary)] bg-[var(--color-primary)]/15 text-[var(--color-primary)]"
                 : "border-[var(--color-border)] bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] hover:border-[var(--color-border-neutral)] hover:text-[var(--color-text)]")

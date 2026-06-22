@@ -92,8 +92,8 @@ export function PatronsManager({
             const isExpanded = expandedPatronId === patron.id;
 
             return (
-              <div key={patron.id} className="rounded-[25px] overflow-hidden transition-all bg-[var(--color-surface-offset)] border border-[var(--color-border)]">
-                <button onClick={() => toggleExpand(patron.id)} className="w-full p-5 flex items-center gap-4 hover:bg-white/5 transition-all">
+              <div key={patron.id} className="rounded-[25px] overflow-hidden transition-colors bg-[var(--color-surface-offset)] border border-[var(--color-border)]">
+                <button onClick={() => toggleExpand(patron.id)} className="w-full p-5 flex items-center gap-4 hover:bg-white/5 transition-colors">
                   <div className="w-10 h-10 rounded-full flex-shrink-0 shadow-lg" style={{ backgroundColor: patron.couleur || "#8b5cf6" }} />
                   <div className="flex-1 text-left">
                     <p className="font-black text-lg uppercase tracking-tight">{patron.nom}</p>
@@ -156,7 +156,7 @@ export function PatronsManager({
                                       } finally { setDeletingId(null); }
                                     }}
                                     disabled={deletingId === acompte.id}
-                                    className="w-8 h-8 bg-[var(--color-accent-red)]/20 text-[var(--color-accent-red)] rounded-lg flex items-center justify-center border border-[var(--color-accent-red)]/30 active:scale-90 transition-all disabled:opacity-50"
+                                    className="w-8 h-8 bg-[var(--color-accent-red)]/20 text-[var(--color-accent-red)] rounded-lg flex items-center justify-center border border-[var(--color-accent-red)]/30 active:scale-90 transition-transform disabled:opacity-50"
                                   >
                                     {deletingId === acompte.id ? "⏳" : (
                                       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -255,7 +255,7 @@ export function PatronsManager({
                             disabled={isCancelling || patronAccessHook.cancellingInvite === patron.id}
                             aria-label="Annuler l'invitation"
                             title="Annuler l'invitation en attente"
-                            className="px-3 h-10 rounded-xl flex items-center gap-1.5 transition-all active:scale-90 bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 text-[10px] font-black uppercase tracking-wider disabled:opacity-50"
+                            className="px-3 h-10 rounded-xl flex items-center gap-1.5 transition-colors transition-transform active:scale-90 bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 text-[10px] font-black uppercase tracking-wider disabled:opacity-50"
                           >
                             {isCancelling || patronAccessHook.cancellingInvite === patron.id ? (
                               <div className="w-3 h-3 rounded-full border border-red-400 border-t-transparent animate-spin" />
@@ -274,7 +274,7 @@ export function PatronsManager({
                         onClick={() => onEdit(patron)}
                         aria-label="Modifier ce patron"
                         title="Modifier"
-                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 bg-[var(--color-accent-cyan)]/15 text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)]/30 hover:bg-[var(--color-accent-cyan)]/25"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors transition-transform active:scale-90 bg-[var(--color-accent-cyan)]/15 text-[var(--color-accent-cyan)] border border-[var(--color-accent-cyan)]/30 hover:bg-[var(--color-accent-cyan)]/25"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -285,7 +285,7 @@ export function PatronsManager({
                         onClick={() => onDelete(patron)}
                         aria-label="Supprimer ce patron"
                         title="Supprimer"
-                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 bg-[var(--color-accent-red)]/15 text-[var(--color-accent-red)] border border-[var(--color-accent-red)]/30 hover:bg-[var(--color-accent-red)]/25"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors transition-transform active:scale-90 bg-[var(--color-accent-red)]/15 text-[var(--color-accent-red)] border border-[var(--color-accent-red)]/30 hover:bg-[var(--color-accent-red)]/25"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <polyline points="3 6 5 6 21 6"/>
@@ -424,7 +424,7 @@ function PatronAccessPanel({
                 disabled={isLoading}
                 onClick={() => onToggleFeature(feat, !isOn)}
                 className={
-                  "flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-50 " +
+                  "flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider transition-colors disabled:opacity-50 " +
                   (isOn
                     ? "bg-[var(--color-accent-violet)]/15 text-[var(--color-accent-violet)] border-[var(--color-accent-violet)]/30"
                     : "bg-[var(--color-surface-offset)] text-[var(--color-text-muted)] border-[var(--color-border)]")
@@ -434,8 +434,8 @@ function PatronAccessPanel({
                 {isLoading ? (
                   <div className="w-3 h-3 rounded-full border border-current border-t-transparent animate-spin" />
                 ) : (
-                  <div className={`w-7 h-4 rounded-full transition-all relative ${isOn ? "bg-[var(--color-accent-violet)]" : "bg-[var(--color-surface-2)]"}`}>
-                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all shadow ${isOn ? "left-3.5" : "left-0.5"}`} />
+                  <div className={`w-7 h-4 rounded-full transition-colors relative ${isOn ? "bg-[var(--color-accent-violet)]" : "bg-[var(--color-surface-2)]"}`}>
+                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform shadow ${isOn ? "left-3.5" : "left-0.5"}`} />
                   </div>
                 )}
               </button>
@@ -451,7 +451,7 @@ function PatronAccessPanel({
             <button
               type="button"
               onClick={onRevoke}
-              className="px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-[9px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-all"
+              className="px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-[9px] font-black uppercase tracking-widest hover:bg-red-500/20 transition-colors"
             >
               Revoquer l&apos;acces
             </button>
@@ -459,7 +459,7 @@ function PatronAccessPanel({
             <button
               type="button"
               onClick={onReinstate}
-              className="px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-all"
+              className="px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest hover:bg-emerald-500/20 transition-colors"
             >
               Retablir l&apos;acces
             </button>

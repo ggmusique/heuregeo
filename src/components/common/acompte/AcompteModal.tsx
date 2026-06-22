@@ -47,7 +47,7 @@ export const AcompteModal = ({
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-[var(--color-overlay)] backdrop-blur-[var(--blur-overlay)]">
+    <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-[var(--color-overlay)] backdrop-blur-overlay">
       
       <div className="w-full max-w-sm p-8 rounded-[40px] border-2 bg-[var(--color-surface)] border-[var(--color-border-cyan)] backdrop-blur-card shadow-modal">
         

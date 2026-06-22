@@ -70,7 +70,7 @@ export function PhantomCleanupCard({ patrons }: { patrons: Patron[] }) {
   };
 
   return (
-    <div className="p-4 rounded-[20px] border border-red-600/20 bg-[var(--color-surface)] backdrop-blur-md space-y-2">
+    <div className="p-4 rounded-[20px] border border-red-600/20 bg-[var(--color-surface)] backdrop-blur-card space-y-2">
       <p className="text-[10px] font-black uppercase tracking-widest text-red-200/70 mb-1">
         Nettoyer les impayés fantômes
       </p>
@@ -83,7 +83,7 @@ export function PhantomCleanupCard({ patrons }: { patrons: Patron[] }) {
         type="button"
         onClick={load}
         disabled={loading || deleting}
-        className={`w-full px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-cyan-500/40 text-cyan-300 bg-cyan-600/10 hover:bg-cyan-600/20 ${loading ? "opacity-50 cursor-wait" : ""}`}
+        className={`w-full px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-colors transition-transform active:scale-95 border-cyan-500/40 text-cyan-300 bg-cyan-600/10 hover:bg-cyan-600/20 ${loading ? "opacity-50 cursor-wait" : ""}`}
       >
         {loading ? "Chargement…" : rows ? "🔄 Recharger les impayés" : "🔍 Lister les impayés"}
       </button>
@@ -142,7 +142,7 @@ export function PhantomCleanupCard({ patrons }: { patrons: Patron[] }) {
             type="button"
             onClick={confirmDelete ? deleteSelected : () => setConfirmDelete(true)}
             disabled={deleting || selected.size === 0}
-            className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-red-500/40 text-red-300 bg-red-600/10 hover:bg-red-600/20 ${
+            className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-colors transition-transform active:scale-95 border-red-500/40 text-red-300 bg-red-600/10 hover:bg-red-600/20 ${
               deleting || selected.size === 0 ? "opacity-40 cursor-not-allowed" : ""
             }`}
           >

@@ -10,7 +10,7 @@ function VerticalBars({ data, color }: { data: BarItem[]; color: string }) {
     <div className="flex items-end gap-[2px] h-[56px]">
       {data.map((d, i) => (
         <div key={i} className="flex flex-col items-center flex-1 gap-[2px]">
-          <div title={d.tooltip} className="w-full rounded-t-[3px] transition-all" style={{ height: `${Math.max(2, (d.value / max) * 52)}px`, background: color, opacity: 0.75 }} />
+          <div title={d.tooltip} className="w-full rounded-t-[3px] transition-opacity" style={{ height: `${Math.max(2, (d.value / max) * 52)}px`, background: color, opacity: 0.75 }} />
           <span className="text-[6px] font-black" style={{ opacity: 0.4, color: "var(--color-text)" }}>{d.label}</span>
         </div>
       ))}

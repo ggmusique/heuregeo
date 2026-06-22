@@ -226,7 +226,7 @@ function PageHeader({
         <button
           onClick={onRefresh}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-theme-md border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent-violet)]/50 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-theme-md border border-[var(--color-border)] bg-[var(--color-surface)] text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-accent-violet)]/50 transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
           aria-label="Actualiser les données"
         >
           <span
@@ -261,7 +261,7 @@ function ViewModeToggle({
         <button
           key={mode}
           onClick={() => onChange(mode)}
-          className={`px-3 py-1 rounded-[10px] text-xs font-medium transition-all duration-200 ${
+          className={`px-3 py-1 rounded-[10px] text-xs font-medium transition-colors duration-200 ${
             viewMode === mode
               ? "bg-[var(--color-accent-cyan)]/15 text-[var(--color-accent-cyan)] border border-[var(--color-border-cyan)]"
               : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"

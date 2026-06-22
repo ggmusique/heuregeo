@@ -114,7 +114,7 @@ export function PatronModal({ show, editMode = false, initialData = null, onSubm
             <label className="block text-[10px] font-black uppercase opacity-60 mb-3 tracking-wider">Couleur d'identification</label>
             <div className="grid grid-cols-4 gap-2 mb-3">
               {COULEURS_PRESET.map((c) => (
-                <button key={c.value} type="button" onClick={() => setCouleur(c.value)} className={`relative h-12 rounded-xl transition-all ${couleur === c.value ? "ring-4 ring-white/50 scale-110" : "hover:scale-105"}`} style={{ backgroundColor: c.value }} disabled={loading} title={c.nom}>
+                <button key={c.value} type="button" onClick={() => setCouleur(c.value)} className={`relative h-12 rounded-xl transition-transform ${couleur === c.value ? "ring-4 ring-white/50 scale-110" : "hover:scale-105"}`} style={{ backgroundColor: c.value }} disabled={loading} title={c.nom}>
                   {couleur === c.value && <span className="absolute bottom-1 right-1 text-[9px] font-black bg-black/40 text-white px-2 py-0.5 rounded-full">✓</span>}
                 </button>
               ))}

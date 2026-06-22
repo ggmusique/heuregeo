@@ -41,13 +41,13 @@ export const WeekPicker = ({
         disabled={!hasPrevious}
         className="
           w-8 h-8 rounded-xl
-          bg-white/10 backdrop-blur-md
+          bg-white/10 backdrop-blur-card
           border border-fuchsia-300/30
           text-white font-black text-sm
           shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent-fuchsia)_35%,transparent)]
           hover:bg-white/20 hover:shadow-[0_0_18px_color-mix(in_srgb,var(--color-accent-fuchsia)_50%,transparent)]
           disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/10
-          transition-all duration-200
+          transition-colors duration-200
           flex items-center justify-center
         "
         title="Semaine précédente"
@@ -62,14 +62,14 @@ export const WeekPicker = ({
         className="
           h-8 px-4 rounded-xl
           bg-gradient-to-r from-fuchsia-500/20 to-purple-500/20
-          backdrop-blur-md
+          backdrop-blur-card
           border border-fuchsia-300/40
           text-[10px] font-black uppercase tracking-[0.3em]
           text-white
           shadow-[0_0_15px_color-mix(in_srgb,var(--color-accent-fuchsia)_40%,transparent)]
           hover:shadow-[0_0_25px_color-mix(in_srgb,var(--color-accent-fuchsia)_60%,transparent)]
           hover:border-fuchsia-300/60
-          transition-all duration-200
+          transition-colors duration-200
           flex items-center gap-2
         "
       >
@@ -85,13 +85,13 @@ export const WeekPicker = ({
         disabled={!hasNext}
         className="
           w-8 h-8 rounded-xl
-          bg-white/10 backdrop-blur-md
+          bg-white/10 backdrop-blur-card
           border border-fuchsia-300/30
           text-white font-black text-sm
           shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent-fuchsia)_35%,transparent)]
           hover:bg-white/20 hover:shadow-[0_0_18px_color-mix(in_srgb,var(--color-accent-fuchsia)_50%,transparent)]
           disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white/10
-          transition-all duration-200
+          transition-colors duration-200
           flex items-center justify-center
         "
         title="Semaine suivante"
@@ -131,9 +131,9 @@ export const WeekPicker = ({
                   text-[11px] font-black uppercase tracking-wider
                   text-white
                   hover:bg-white/20
-                  transition-all duration-150
-                  ${
-                    w === value
+          transition-colors duration-150
+          ${
+            w === value
                       ? "bg-gradient-to-r from-fuchsia-500/40 to-purple-500/40 shadow-[0_0_15px_color-mix(in_srgb,var(--color-accent-fuchsia)_30%,transparent)]"
                       : "hover:bg-white/10"
                   }

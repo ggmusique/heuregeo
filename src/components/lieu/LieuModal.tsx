@@ -211,7 +211,7 @@ export const LieuModal = ({
             {geocodeStatus === "ok" && (
               <div className="flex items-center justify-between">
                 <span className="text-green-400 text-sm font-bold">✅ Coordonnées OK</span>
-                <button type="button" onClick={doGeocode} className="text-[10px] font-black uppercase text-white/50 hover:text-white transition-all">
+                <button type="button" onClick={doGeocode} className="text-[10px] font-black uppercase text-white/50 hover:text-white transition-colors">
                   {editMode ? "Mettre à jour GPS" : "Recalculer"}
                 </button>
               </div>

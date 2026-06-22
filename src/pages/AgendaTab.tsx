@@ -334,7 +334,7 @@ export function AgendaTab({
                         <button
                           key={dIdx}
                           onClick={() => setSelectedDay(isSelected ? null : day)}
-                          className={`flex flex-col items-start p-0.5 min-h-[60px] rounded-xl transition-all active:scale-95 ${
+                          className={`flex flex-col items-start p-0.5 min-h-[60px] rounded-xl transition-colors transition-transform active:scale-95 ${
                             isSelected
                               ? "bg-[var(--color-accent-green)]/20 ring-1 ring-[var(--color-accent-green)]/40"
                               : isToday
@@ -455,7 +455,7 @@ export function AgendaTab({
                 <button
                   key={evt.id}
                   onClick={() => onEventEdit?.(evt)}
-                  className={`w-full text-left p-4 rounded-2xl border-2 ${badge.bg} ${badge.border} transition-all hover:opacity-80 active:scale-95`}
+                  className={`w-full text-left p-4 rounded-2xl border-2 ${badge.bg} ${badge.border} transition-opacity transition-transform hover:opacity-80 active:scale-95`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">

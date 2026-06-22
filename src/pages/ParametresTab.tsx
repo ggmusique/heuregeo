@@ -299,7 +299,7 @@ export function ParametresTab({
       <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-4 items-start">
 
         {/* ── Sidebar ── */}
-        <aside className="rounded-2xl border backdrop-blur-xl p-3 space-y-1.5 lg:sticky lg:top-4 border-[var(--color-border)] bg-[var(--color-surface)]">
+        <aside className="rounded-2xl border backdrop-blur-modal p-3 space-y-1.5 lg:sticky lg:top-4 border-[var(--color-border)] bg-[var(--color-surface)]">
           {/* ── Titre du compte ── */}
           {profile && (
             <div className="px-3 pt-2 pb-3 mb-1 border-b border-[var(--color-border)]">
@@ -323,14 +323,14 @@ export function ParametresTab({
                 key={item.key}
                 onClick={() => setActivePanel(isActive ? null : item.key)}
                 aria-label={`Section ${item.title}`}
-                className={`w-full text-left rounded-xl border px-3 py-3 transition-all duration-200 ${
+                className={`w-full text-left rounded-xl border px-3 py-3 transition-colors duration-200 ${
                   isActive
                     ? colors.active + " shadow-sm"
                     : "bg-transparent border-[var(--color-border)] hover:bg-[var(--color-surface-offset)] hover:border-[var(--color-border)]"
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className={`p-1.5 rounded-lg flex-shrink-0 transition-all duration-200 ${isActive ? colors.icon : "text-[var(--color-text-muted)] bg-[var(--color-surface-offset)]"}`}>
+                  <div className={`p-1.5 rounded-lg flex-shrink-0 transition-colors duration-200 ${isActive ? colors.icon : "text-[var(--color-text-muted)] bg-[var(--color-surface-offset)]"}`}>
                     {item.icon}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -351,7 +351,7 @@ export function ParametresTab({
           <div className="mt-2 pt-2 border-t border-[var(--color-border)]">
             <button
               onClick={() => supabase.auth.signOut()}
-              className="w-full text-left rounded-xl border px-3 py-3 transition-all duration-200 bg-transparent border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400"
+              className="w-full text-left rounded-xl border px-3 py-3 transition-colors duration-200 bg-transparent border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400"
             >
               <div className="flex items-center gap-2.5">
                 <div className="p-1.5 rounded-lg flex-shrink-0 text-current bg-current/10">
@@ -371,7 +371,7 @@ export function ParametresTab({
         </aside>
 
         {/* ── Panneau de contenu ── */}
-        <div className="rounded-2xl border backdrop-blur-xl overflow-hidden min-h-[300px] border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="rounded-2xl border backdrop-blur-modal overflow-hidden min-h-[300px] border-[var(--color-border)] bg-[var(--color-surface)]">
           {!activeSection ? (
             // État bienvenue
             <div className="p-8 flex flex-col items-center justify-center min-h-[300px] text-center space-y-5">
@@ -393,7 +393,7 @@ export function ParametresTab({
                     <button
                       key={item.key}
                       onClick={() => setActivePanel(item.key)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all hover:opacity-90 ${colors.badge}`}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-colors hover:opacity-90 ${colors.badge}`}
                     >
                       {item.icon}
                       {item.title}
@@ -425,7 +425,7 @@ export function ParametresTab({
                       </div>
                       <button
                         onClick={() => setActivePanel(null)}
-                        className="p-1.5 rounded-lg border transition-all flex-shrink-0 border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-border)]"
+                        className="p-1.5 rounded-lg border transition-colors flex-shrink-0 border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] hover:border-[var(--color-border)]"
                         aria-label="Fermer"
                       >
                         <IconClose />
@@ -461,7 +461,7 @@ export function ParametresTab({
                           disabled={!isPro}
                           onClick={() => onToggleMissionRateEditor?.((prev: boolean) => !prev)}
                           className={
-                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors " +
                             (showMissionRateEditor
                               ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
                               : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
@@ -502,7 +502,7 @@ export function ParametresTab({
                             await saveProfile({ features: { ...(profile?.features || {}), agenda: !current } });
                           }}
                           className={
-                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors " +
                             (profile?.features?.agenda
                               ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
                               : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
@@ -550,7 +550,7 @@ export function ParametresTab({
                             await saveProfile({ features: { ...(profile?.features || {}), dashboard: !current } });
                           }}
                           className={
-                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors " +
                             (profile?.features?.dashboard
                               ? "border-[var(--color-accent-violet)]/40 text-[var(--color-accent-violet)] bg-[var(--color-accent-violet)]/10"
                               : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
@@ -577,7 +577,7 @@ export function ParametresTab({
                             await saveProfile({ features: { ...(profile?.features || {}), facture: !current } });
                           }}
                           className={
-                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                            "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors " +
                             (profile?.features?.facture
                               ? "border-amber-400/40 text-amber-300 bg-amber-500/10"
                               : "border-[var(--color-border)] text-[var(--color-text-muted)]") +
@@ -790,7 +790,7 @@ function LabelsPanel({ profile, saveProfile, profileSaving }: LabelsPanelProps) 
       value={vals[key]}
       onChange={(e) => setVals((v) => ({ ...v, [key]: e.target.value }))}
       placeholder={DEFS[key]}
-      className="w-full p-2.5 rounded-xl font-bold outline-none border-2 transition-all text-sm backdrop-blur-md bg-[var(--color-bg)] border-[var(--color-border)] text-[var(--color-text)] focus:border-teal-500 placeholder:text-[var(--color-text-faint)]"
+      className="w-full p-2.5 rounded-xl font-bold outline-none border-2 transition-colors text-sm backdrop-blur-card bg-[var(--color-bg)] border-[var(--color-border)] text-[var(--color-text)] focus:border-teal-500 placeholder:text-[var(--color-text-faint)]"
     />
   );
 
@@ -820,14 +820,14 @@ function LabelsPanel({ profile, saveProfile, profileSaving }: LabelsPanelProps) 
         <button
           onClick={handleSave}
           disabled={saving || profileSaving}
-          className="flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all bg-teal-500/20 text-teal-300 border border-teal-500/30 hover:bg-teal-500/30 disabled:opacity-40"
+          className="flex-1 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-colors bg-teal-500/20 text-teal-300 border border-teal-500/30 hover:bg-teal-500/30 disabled:opacity-40"
         >
           {saving ? "Enregistrement…" : "Enregistrer"}
         </button>
         <button
           onClick={handleReset}
           disabled={saving || profileSaving}
-          className="px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-40"
+          className="px-4 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-colors border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] disabled:opacity-40"
         >
           Réinitialiser
         </button>
@@ -1442,7 +1442,7 @@ function KmSettingsPanel({
                   type="button"
                   onClick={handleGeocodeBatch}
                   disabled={geocodeBatchLoading}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all border-[var(--color-accent-amber)]/40 text-[var(--color-accent-amber)] bg-[var(--color-accent-amber)]/10 hover:bg-[var(--color-accent-amber)]/20 disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors border-[var(--color-accent-amber)]/40 text-[var(--color-accent-amber)] bg-[var(--color-accent-amber)]/10 hover:bg-[var(--color-accent-amber)]/20 disabled:opacity-40"
                 >
                   {geocodeBatchLoading ? "⏳ Géocodage…" : "📍 Géocoder maintenant"}
                 </button>
@@ -1549,7 +1549,7 @@ function KmSettingsPanel({
                 type="button"
                 onClick={() => setKmIncludeRetour((v: boolean) => !v)}
                 className={
-                  "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all " +
+                  "px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors " +
                   (kmIncludeRetour
                     ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10"
                     : "border-[var(--color-border)] text-[var(--color-text-muted)]")
@@ -1601,7 +1601,7 @@ function KmSettingsPanel({
                 type="button"
                 onClick={() => runRecalc(false)}
                 disabled={recalcLoading}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all border-emerald-400/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-40"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-colors border-emerald-400/40 text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-40"
               >
                 {recalcLoading ? "⏳ Recalcul…" : "↻ Forcer le recalcul"}
               </button>

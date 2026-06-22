@@ -99,20 +99,20 @@ export const SaisieTab = ({
       <div className="grid grid-cols-3 gap-2 mt-6">
         <button
           onClick={() => onShowFraisModal?.()}
-          className="py-4 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all"
+          className="py-4 bg-amber-600/20 text-amber-400 border border-amber-500/30 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-transform"
         >
           + Frais divers
         </button>
         <button
           onClick={() => onShowAcompteModal?.()}
-          className="py-4 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all"
+          className="py-4 bg-cyan-600/20 text-cyan-400 border border-cyan-500/30 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-transform"
         >
           + Acompte
         </button>
         {onShowImportModal ? (
           <button
             onClick={onShowImportModal}
-            className={`py-4 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-all border ${
+            className={`py-4 rounded-[25px] text-[11px] font-black uppercase active:scale-95 transition-transform border ${
               darkMode
                 ? "bg-violet-600/15 text-violet-400 border-violet-500/30"
                 : "bg-violet-50 text-violet-600 border-violet-200"

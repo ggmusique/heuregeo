@@ -233,7 +233,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
         <button
           onClick={handleSave}
           disabled={saving || !form.prenom.trim() || !form.nom.trim()}
-          className={`w-full py-4 rounded-2xl font-black uppercase text-[12px] tracking-wider transition-all ${
+          className={`w-full py-4 rounded-2xl font-black uppercase text-[12px] tracking-wider transition-colors ${
             !saving && form.prenom.trim() && form.nom.trim()
               ? saved
                 ? 'bg-[var(--color-accent-green)] text-white'
@@ -247,7 +247,7 @@ export const CompteTab = ({ profile, saving, onSave, userEmail }: CompteTabProps
         {/* Déconnexion */}
         <button
           onClick={() => supabase.auth.signOut()}
-          className="w-full py-4 rounded-2xl font-black uppercase text-[12px] tracking-wider border-2 border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all"
+          className="w-full py-4 rounded-2xl font-black uppercase text-[12px] tracking-wider border-2 border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
         >
           🚪 Déconnexion
         </button>

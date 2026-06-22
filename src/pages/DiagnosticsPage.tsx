@@ -345,7 +345,7 @@ export const DiagnosticsPage = ({
 
       {/* BLOC 2 — Points à corriger */}
       {staticAnomalies.length === 0 ? (
-        <div className="p-4 rounded-[20px] border border-emerald-500/30 bg-emerald-600/10 backdrop-blur-md flex items-center gap-3">
+        <div className="p-4 rounded-[20px] border border-emerald-500/30 bg-emerald-600/10 backdrop-blur-card flex items-center gap-3">
           <span className="w-3 h-3 rounded-full bg-emerald-400 shadow-lg shadow-emerald-500/50 shrink-0" />
           <p className="text-[13px] text-emerald-300 font-black">Aucun problème détecté ✓</p>
         </div>
@@ -416,7 +416,7 @@ export const DiagnosticsPage = ({
       )}
 
       {/* BLOC 3 — Analyser une semaine spécifique */}
-      <details className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-md overflow-hidden">
+      <details className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-card overflow-hidden">
         <summary className="p-4 cursor-pointer select-none flex items-center justify-between">
           <span className="text-[12px] font-black text-[var(--color-text-muted)]">🔍 Analyser une semaine spécifique</span>
         </summary>
@@ -450,7 +450,7 @@ export const DiagnosticsPage = ({
             type="button"
             onClick={loadDiagnostique}
             disabled={diagLoading || !diagPatronId || !diagWeek}
-            className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-cyan-500/40 text-cyan-300 bg-cyan-600/10 hover:bg-cyan-600/20 ${diagLoading || !diagPatronId || !diagWeek ? "opacity-40 cursor-not-allowed" : ""}`}
+            className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-colors transition-transform active:scale-95 border-cyan-500/40 text-cyan-300 bg-cyan-600/10 hover:bg-cyan-600/20 ${diagLoading || !diagPatronId || !diagWeek ? "opacity-40 cursor-not-allowed" : ""}`}
           >
             {diagLoading ? "Chargement…" : "Charger"}
           </button>
@@ -475,7 +475,7 @@ export const DiagnosticsPage = ({
 
               {/* Trajets KM — résumé humain */}
               {diagData.fraisKm.length > 0 && (
-                <div className="p-4 rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-md">
+                <div className="p-4 rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-card">
                   <p className="text-[13px] text-[var(--color-text)] leading-relaxed">
                     {diagData.fraisKm.length} trajet{pluralFr(diagData.fraisKm.length, "", "s")} km enregistré{pluralFr(diagData.fraisKm.length, "", "s")} cette semaine — total{" "}
                     <span className="font-black text-[var(--color-text)]">
@@ -513,7 +513,7 @@ export const DiagnosticsPage = ({
                           <button
                             type="button"
                             onClick={() => onMissionDelete(m.id)}
-                            className="p-1.5 rounded-lg border border-red-500/30 text-red-400/70 hover:text-red-300 hover:bg-red-500/10 transition-all shrink-0"
+                            className="p-1.5 rounded-lg border border-red-500/30 text-red-400/70 hover:text-red-300 hover:bg-red-500/10 transition-colors shrink-0"
                             title="Supprimer cette mission"
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
@@ -533,7 +533,7 @@ export const DiagnosticsPage = ({
                 <button
                   type="button"
                   onClick={handleCopyDiagnostic}
-                  className="flex-1 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-[var(--color-border)] text-[var(--color-text-muted)] bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-offset)] hover:text-[var(--color-text-muted)]"
+                  className="flex-1 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-colors transition-transform active:scale-95 border-[var(--color-border)] text-[var(--color-text-muted)] bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-offset)] hover:text-[var(--color-text-muted)]"
                 >
                   Copier le diagnostic
                 </button>
@@ -570,7 +570,7 @@ export const DiagnosticsPage = ({
       </details>
 
       {/* BLOC 4 — Outils avancés */}
-      <details className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-md overflow-hidden">
+      <details className="rounded-[20px] border border-[var(--color-border)] bg-[var(--color-surface)] backdrop-blur-card overflow-hidden">
         <summary className="p-4 cursor-pointer select-none flex items-center justify-between">
           <span className="text-[12px] font-black text-[var(--color-text-muted)]">⚙️ Outils avancés</span>
         </summary>
@@ -623,7 +623,7 @@ export const DiagnosticsPage = ({
                 type="button"
                 onClick={handleRebuildBilans}
                 disabled={rebuildLoading}
-                className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-orange-500/40 text-orange-300 bg-orange-600/10 hover:bg-orange-600/20 ${rebuildLoading ? "opacity-50 cursor-wait" : ""}`}
+                className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-colors transition-transform active:scale-95 border-orange-500/40 text-orange-300 bg-orange-600/10 hover:bg-orange-600/20 ${rebuildLoading ? "opacity-50 cursor-wait" : ""}`}
               >
                 {rebuildLoading ? "Reconstruction en cours…" : "🔧 Reconstruire les bilans"}
               </button>
@@ -667,7 +667,7 @@ export const DiagnosticsPage = ({
               type="button"
               onClick={handleRepairBilans}
               disabled={repairLoading || !onRepairBilans}
-              className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 border-emerald-500/40 text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/20 ${repairLoading ? "opacity-50 cursor-wait" : ""}`}
+              className={`w-full px-4 py-3 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-colors transition-transform active:scale-95 border-emerald-500/40 text-emerald-300 bg-emerald-600/10 hover:bg-emerald-600/20 ${repairLoading ? "opacity-50 cursor-wait" : ""}`}
             >
               {repairLoading ? "Réparation en cours…" : "🔧 Réparer les bilans corrompus"}
             </button>
@@ -691,7 +691,7 @@ function GlobalStatusCard({ status, summary }: { status: "ok" | "warning" | "cri
   }[status] ?? {};
 
   return (
-    <div className={`p-4 rounded-[20px] border ${cfg.border} ${cfg.bg} backdrop-blur-md`}>
+    <div className={`p-4 rounded-[20px] border ${cfg.border} ${cfg.bg} backdrop-blur-card`}>
       <div className="flex items-center justify-between mb-2">
         <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-text-muted)]">Statut global</p>
         <span className={`text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${cfg.border} ${cfg.labelClass}`}>
@@ -731,7 +731,7 @@ function AnomalyCard({ severity, title, description, list, action }: {
     : "border-yellow-500/40 text-yellow-300 bg-yellow-600/10 hover:bg-yellow-600/20";
 
   return (
-    <div className={`p-4 rounded-[20px] border ${borderCls} ${bgCls} backdrop-blur-md space-y-2`}>
+    <div className={`p-4 rounded-[20px] border ${borderCls} ${bgCls} backdrop-blur-card space-y-2`}>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[13px] font-black text-[var(--color-text)]/90 leading-snug">{title}</p>
         <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${badgeCls}`}>
@@ -753,7 +753,7 @@ function AnomalyCard({ severity, title, description, list, action }: {
           type="button"
           onClick={action.onClick}
           disabled={action.loading}
-          className={`w-full mt-1 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-all active:scale-95 ${btnCls} ${action.loading ? "opacity-50 cursor-wait" : ""}`}
+          className={`w-full mt-1 px-4 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-widest border transition-colors transition-transform active:scale-95 ${btnCls} ${action.loading ? "opacity-50 cursor-wait" : ""}`}
         >
           {action.label}
         </button>
@@ -767,7 +767,7 @@ function HumanSummaryCard({ diagData, diagWeek }: { diagData: DiagData; diagWeek
   if (!sentences || sentences.length === 0) return null;
 
   return (
-    <div className="p-4 rounded-[20px] border border-[var(--color-border-primary)] bg-[var(--color-primary)]/5 backdrop-blur-md">
+    <div className="p-4 rounded-[20px] border border-[var(--color-border-primary)] bg-[var(--color-primary)]/5 backdrop-blur-card">
       <p className="text-[10px] font-black uppercase tracking-widest text-[var(--color-primary)]/60 mb-3">Résumé</p>
       <div className="space-y-2">
         {sentences.map((s, i) => (
@@ -780,7 +780,7 @@ function HumanSummaryCard({ diagData, diagWeek }: { diagData: DiagData; diagWeek
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[var(--color-surface)] backdrop-blur-md space-y-2">
+    <div className="p-4 rounded-[20px] border border-yellow-600/20 bg-[var(--color-surface)] backdrop-blur-card space-y-2">
       <p className="text-[10px] font-black uppercase tracking-widest text-yellow-200/70 mb-1">{title}</p>
       {children}
     </div>

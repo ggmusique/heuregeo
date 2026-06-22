@@ -38,7 +38,7 @@ export function PatronSelectorModal({ owners, onSelect }: PatronSelectorModalPro
             <button
               key={owner.profileId}
               onClick={() => onSelect(owner.profileId)}
-              className="w-full text-left px-4 py-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-accent-violet)]/50 transition-all group"
+              className="w-full text-left px-4 py-3.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-offset)] hover:bg-[var(--color-surface-hover)] hover:border-[var(--color-accent-violet)]/50 transition-colors group"
             >
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-[var(--color-surface-offset)] border border-[var(--color-border)] flex items-center justify-center flex-shrink-0">

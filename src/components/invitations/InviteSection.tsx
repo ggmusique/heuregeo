@@ -382,14 +382,14 @@ function InvitationCard({ inv, direction, actionLoading, onAccept, onRefuse, onC
           <button
             onClick={onAccept}
             disabled={actionLoading}
-            className="px-3 py-1.5 rounded-lg bg-[var(--color-success)]/20 border border-[var(--color-success)]/30 text-[var(--color-success)] text-xs font-bold hover:bg-[var(--color-success)]/30 disabled:opacity-50 transition-all"
+            className="px-3 py-1.5 rounded-lg bg-[var(--color-success)]/20 border border-[var(--color-success)]/30 text-[var(--color-success)] text-xs font-bold hover:bg-[var(--color-success)]/30 disabled:opacity-50 transition-colors"
           >
             Accepter
           </button>
           <button
             onClick={onRefuse}
             disabled={actionLoading}
-            className="px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30 disabled:opacity-50 transition-all"
+            className="px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30 disabled:opacity-50 transition-colors"
           >
             Refuser
           </button>
@@ -398,7 +398,7 @@ function InvitationCard({ inv, direction, actionLoading, onAccept, onRefuse, onC
         <button
           onClick={onCancel}
           disabled={actionLoading}
-          className="flex-shrink-0 px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30 disabled:opacity-50 transition-all"
+          className="flex-shrink-0 px-3 py-1.5 rounded-lg border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs font-bold hover:text-[var(--color-error)] hover:border-[var(--color-error)]/30 disabled:opacity-50 transition-colors"
         >
           Annuler
         </button>

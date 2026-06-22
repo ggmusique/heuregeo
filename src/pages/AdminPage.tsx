@@ -259,7 +259,7 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
             return (
               <div
                 key={user.id}
-                className="p-5 rounded-[25px] border border-[var(--color-border-primary)] bg-[var(--color-surface)] backdrop-blur-md"
+                className="p-5 rounded-[25px] border border-[var(--color-border-primary)] bg-[var(--color-surface)] backdrop-blur-card"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -299,7 +299,7 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
                     <button
                       onClick={() => togglePlan(user)}
                       disabled={isUpdating || deleting === user.id}
-                      className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase border transition-all active:scale-95 ${
+                      className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase border transition-colors transition-transform active:scale-95 ${
                         isPro
                           ? "bg-[var(--color-surface-offset)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-red-600/20 hover:border-red-500/40 hover:text-red-400"
                           : "bg-yellow-600/20 border-yellow-500/40 text-yellow-400 hover:bg-yellow-600/40"
@@ -313,13 +313,13 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
                         <button
                           onClick={() => handleDelete(user.id)}
                           disabled={deleting === user.id}
-                          className="px-3 py-2 rounded-xl font-black text-[10px] uppercase bg-red-600/30 border border-red-500/50 text-red-400 hover:bg-red-600/50 active:scale-95 transition-all disabled:opacity-50"
+                          className="px-3 py-2 rounded-xl font-black text-[10px] uppercase bg-red-600/30 border border-red-500/50 text-red-400 hover:bg-red-600/50 active:scale-95 transition-colors transition-transform disabled:opacity-50"
                         >
                           {deleting === user.id ? "⏳" : "Confirmer"}
                         </button>
                         <button
                           onClick={() => setConfirmDeleteId(null)}
-                          className="px-3 py-2 rounded-xl font-black text-[10px] uppercase bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-white/10 active:scale-95 transition-all"
+                          className="px-3 py-2 rounded-xl font-black text-[10px] uppercase bg-[var(--color-surface-offset)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:bg-white/10 active:scale-95 transition-colors transition-transform"
                         >
                           Annuler
                         </button>
@@ -329,7 +329,7 @@ export const AdminPage = ({ darkMode = true, isAdmin = false }: { darkMode?: boo
                         onClick={() => setConfirmDeleteId(user.id)}
                         disabled={deleting === user.id || isUpdating}
                         title="Supprimer ce profil"
-                        className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-600/15 border border-red-500/30 text-red-400 hover:bg-red-600/30 active:scale-90 transition-all disabled:opacity-50"
+                        className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-600/15 border border-red-500/30 text-red-400 hover:bg-red-600/30 active:scale-90 transition-colors transition-transform disabled:opacity-50"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <polyline points="3 6 5 6 21 6"/>

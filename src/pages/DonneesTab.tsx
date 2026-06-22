@@ -90,12 +90,12 @@ export const DonneesTab = ({
     return (
       <div
         key={id}
-        className="rounded-[30px] border-2 overflow-hidden bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-xl"
+        className="rounded-[30px] border-2 overflow-hidden bg-[var(--color-surface)] border-[var(--color-border)] backdrop-blur-modal"
       >
         <button
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
-          className={`w-full p-6 flex items-center justify-between text-left transition-all ${
+          className={`w-full p-6 flex items-center justify-between text-left transition-colors ${
             disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-white/5"
           }`}
         >

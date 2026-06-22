@@ -259,7 +259,7 @@ export const LieuxManager = ({
                         onClick={() => onDelete(lieu)}
                         aria-label="Supprimer ce lieu"
                         title="Supprimer"
-                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors transition-transform active:scale-90 bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <polyline points="3 6 5 6 21 6"/>
