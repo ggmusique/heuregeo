@@ -1,6 +1,6 @@
 import { supabase } from "../supabase";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────
 
 export interface BilanStatusRow {
   ca_brut_periode: number | null;
@@ -38,7 +38,16 @@ export interface DiagFraisKmRow {
   mission_id: string;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+export interface UnpaidBilanRow {
+  id: string;
+  periode_index: number;
+  periode_value: string;
+  ca_brut_periode: number | null;
+  reste_a_percevoir: number | null;
+  patron_id: string;
+}
+
+// ─── Helpers ────────────────────────────────────────────────────
 
 /** Numéro de semaine ISO → lundi (YYYY-MM-DD). */
 export function isoWeekStart(wk: number, year: number = new Date().getFullYear()): string {
@@ -56,7 +65,7 @@ export function isoWeekEnd(wk: number, year: number = new Date().getFullYear()):
   return d.toISOString().slice(0, 10);
 }
 
-// ─── Requêtes API ─────────────────────────────────────────────────────────────
+// ─── Requêtes API ─────────────────────────────────────────────────
 
 /** Bilan d'une semaine précise pour un patron donné. */
 export const fetchBilanStatus = async (
@@ -145,4 +154,30 @@ export const fetchFraisKmDiag = async (
     data: (data as DiagFraisKmRow[]) ?? [],
     error: error ? `Frais KM: ${error.message}` : null,
   };
+};
+
+/** Toutes les semaines non soldées (tous patrons) — pour le nettoyage des fantômes de test. */
+export const fetchAllUnpaidWeeklyBilans = async (): Promise<{
+  data: UnpaidBilanRow[];
+  error: string | null;
+}> => {
+  const { data, error } = await supabase
+    .from("bilans_status_v2")
+    .select("id, periode_index, periode_value, ca_brut_periode, reste_a_percevoir, patron_id")
+    .eq("periode_type", "semaine")
+    .eq("paye", false)
+    .order("periode_index", { ascending: true });
+
+  return {
+    data: (data as UnpaidBilanRow[]) ?? [],
+    error: error ? `Impayés: ${error.message}` : null,
+  };
+};
+
+/** Supprime une ligne de bilan (purge des fantômes de test). */
+export const deleteBilanById = async (
+  id: string
+): Promise<{ error: string | null }> => {
+  const { error } = await supabase.from("bilans_status_v2").delete().eq("id", id);
+  return { error: error ? `Suppression: ${error.message}` : null };
 };
