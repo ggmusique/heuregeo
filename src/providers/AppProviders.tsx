@@ -1,12 +1,13 @@
 import React, { useMemo } from "react";
 import { User } from "@supabase/supabase-js";
 import { DarkModeProvider } from "../contexts/DarkModeContext";
-import { LabelsContext, getLabels } from "../utils/labels";
+import { getLabels } from "../utils/labels";
+import { LabelsContext } from "../contexts/LabelsContext";
 import { PermissionsContext } from "../contexts/PermissionsContext";
 import type { UserProfile } from "../types/profile";
 
 interface PermissionsValue {
-  contract: ReturnType<import("../features/contracts").buildContractFeatures>;
+  contract: ReturnType<typeof import("../features/contracts").buildContractFeatures>;
   isViewer: boolean;
   viewerPatronId: string | null;
   isAdmin: boolean;
@@ -40,7 +41,7 @@ interface AppProvidersProps {
   canAgenda: boolean;
   canFacture: boolean;
   canDashboard: boolean;
-  contract: ReturnType<import("../features/contracts").buildContractFeatures>;
+  contract: ReturnType<typeof import("../features/contracts").buildContractFeatures>;
   children: React.ReactNode;
 }
 

@@ -324,7 +324,7 @@ describe("contract_active_since — scénarios métier", () => {
         acompte_consomme: 0,
         reste_a_percevoir: 350,
         paye: false,
-      } as unknown as Record<string, unknown>,
+      } as unknown as Awaited<ReturnType<typeof bilanRepository.fetchUnpaidWeeklyBilansBefore>>[number],
     ]);
     vi.mocked(bilanRepository.fetchAcompteAllocationsBefore).mockResolvedValueOnce([]);
 
@@ -430,7 +430,7 @@ describe("contract_active_since — scénarios métier", () => {
   });
 
   it("TEST 5 — syncWeeklySettlement ne doit pas être appelé pour une semaine antérieure à contract_active_since", async () => {
-    render(React.createElement(BilanTab, makeBilanTabProps("19")));
+    render(React.createElement(BilanTab, makeBilanTabProps("19") as unknown as Parameters<typeof BilanTab>[0]));
 
     await act(async () => {
       await Promise.resolve();
@@ -440,7 +440,7 @@ describe("contract_active_since — scénarios métier", () => {
   });
 
   it("TEST 6 — syncWeeklySettlement doit être appelé pour S22", async () => {
-    render(React.createElement(BilanTab, makeBilanTabProps("22")));
+    render(React.createElement(BilanTab, makeBilanTabProps("22") as unknown as Parameters<typeof BilanTab>[0]));
 
     await act(async () => {
       await Promise.resolve();

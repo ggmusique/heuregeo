@@ -29,7 +29,7 @@ const deleteBuilder: {
   then: (resolve: (v: unknown) => void) => resolve({ error: null }),
 };
 
-const deleteFn = vi.fn(() => deleteBuilder);
+const deleteFn = vi.fn((..._a: unknown[]) => deleteBuilder);
 const fromBuilder = { delete: (...a: unknown[]) => deleteFn(...a) };
 
 vi.mock("../../services/supabase", () => ({

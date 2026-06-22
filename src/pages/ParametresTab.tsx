@@ -1126,7 +1126,7 @@ function ContractSettingsPanel({ profile, saveProfile, profileSaving }: Contract
           size="sm"
           disabled={!isProPlan || profileSaving || savingContract || !localContractActive}
           loading={savingContract}
-          onClick={handleSaveContract}
+          onClick={() => handleSaveContract()}
         >
           Enregistrer
         </Button>
