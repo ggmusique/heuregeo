@@ -1,12 +1,10 @@
 import React, { useMemo, useState, lazy, Suspense } from "react";
 import { usePermissions } from "../contexts/PermissionsContext";
 import { ReserveTab } from "./ReserveTab";
+import { BilanTab } from "./BilanTab";
 
 const HistoriqueTab = lazy(() =>
   import("./HistoriqueTab").then((m) => ({ default: m.HistoriqueTab }))
-);
-const BilanTab = lazy(() =>
-  import("./BilanTab").then((m) => ({ default: m.BilanTab }))
 );
 
 const LazyFallback = () => (
@@ -84,20 +82,18 @@ export function SuiviTab({
         </Suspense>
       )}
       {view === "bilan" && (
-        <Suspense fallback={<LazyFallback />}>
-          <BilanTab
-            {...bilanProps}
-            onOpenReserve={canShowReserveTab ? () => setView("reserve") : undefined}
-            isViewer={isViewer}
-            isProContractEnabled={contract.source.isPro}
-            canBilanMois={canBilanMois}
-            canBilanAnnee={canBilanAnnee}
-            canExportPDF={canExportPDF}
-            canExportExcel={canExportExcel}
-            canExportCSV={canExportCSV}
-            canFacture={canFacture}
-          />
-        </Suspense>
+        <BilanTab
+          {...bilanProps}
+          onOpenReserve={canShowReserveTab ? () => setView("reserve") : undefined}
+          isViewer={isViewer}
+          isProContractEnabled={contract.source.isPro}
+          canBilanMois={canBilanMois}
+          canBilanAnnee={canBilanAnnee}
+          canExportPDF={canExportPDF}
+          canExportExcel={canExportExcel}
+          canExportCSV={canExportCSV}
+          canFacture={canFacture}
+        />
       )}
     </section>
   );
