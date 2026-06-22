@@ -114,7 +114,9 @@ export async function insertBilanRow(payload: Omit<BilanRow, "id" | "created_at"
 }
 
 export async function updateBilanRowById(id: string, payload: Partial<Omit<BilanRow, "id" | "user_id" | "created_at">>): Promise<void> {
-  const { error } = await supabase.from(TABLE).update(payload).eq("id", id);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+  const { error } = await supabase.from(TABLE).update(payload).eq("id", id).eq("user_id", user.id);
   if (error) throw error;
 }
 

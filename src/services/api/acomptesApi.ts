@@ -28,7 +28,9 @@ export const createAcompte = async (acompteData: Partial<Acompte>): Promise<{ ac
 };
 
 export const deleteAcompte = async (id: string): Promise<void> => {
-  const { error } = await supabase.from("acomptes").delete().eq("id", id);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+  const { error } = await supabase.from("acomptes").delete().eq("id", id).eq("user_id", user.id);
   if (error) throw error;
 };
 

@@ -59,6 +59,8 @@ export const updateAgendaEvent = async (
   id: string,
   data: Partial<AgendaEvent>
 ): Promise<void> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
   const { error } = await supabase
     .from("agenda_events")
     .update({
@@ -67,14 +69,18 @@ export const updateAgendaEvent = async (
       ...(data.titre != null && { titre: sanitizeText(data.titre) }),
       ...(data.description != null && { description: sanitizeText(data.description) }),
     })
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", user.id);
   if (error) throw error;
 };
 
 export const deleteAgendaEvent = async (id: string): Promise<void> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
   const { error } = await supabase
     .from("agenda_events")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .eq("user_id", user.id);
   if (error) throw error;
 };
