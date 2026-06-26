@@ -616,7 +616,7 @@ const drawAcomptesSection = (doc: any, bilanContent: any, startY: number): numbe
 
 const drawContractSection = (doc: any, bilanContent: any, startY: number): number => {
   const summary = bilanContent?.contractSummary;
-  if (!summary) return startY;
+  if (!summary || summary.mode !== "pro") return startY;
 
   try {
     let y = startY;
