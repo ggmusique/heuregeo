@@ -7,6 +7,7 @@ export function mapWeeklyAcompteMetricsFromRows({
   allocsCreatedInPeriod = [],
   acomptesCumules = [],
   acomptesPeriode = [],
+  allocAcompteDates = [],
 }: {
   allocsCetteSemaine?: AcompteAllocation[];
   allocsJusqua?: AcompteAllocation[];
@@ -14,6 +15,7 @@ export function mapWeeklyAcompteMetricsFromRows({
   allocsCreatedInPeriod?: AcompteAllocation[];
   acomptesCumules?: AcompteRow[];
   acomptesPeriode?: AcompteRow[];
+  allocAcompteDates?: string[];
 } = {}): WeeklyAcompteMetrics {
   const sumAmount = (rows: AcompteAllocation[] = []) => rows.reduce((sum, a) => sum + (parseFloat(a.amount as string) || 0), 0);
   const sumMontant = (rows: AcompteRow[] = []) => rows.reduce((sum, a) => sum + (parseFloat(a.montant as string) || 0), 0);
@@ -25,5 +27,6 @@ export function mapWeeklyAcompteMetricsFromRows({
     acompteConsommePeriode: sumAmount(allocsCreatedInPeriod),
     acomptesCumules: sumMontant(acomptesCumules),
     acomptesDansPeriode: sumMontant(acomptesPeriode),
+    allocAcompteDates,
   };
 }

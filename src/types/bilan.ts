@@ -39,6 +39,8 @@ export interface AcompteAllocation {
   periode_index: number;
   amount: number | string;
   created_at?: string | null;
+  acompte_id?: string;
+  acomptes?: { date_acompte?: string; montant?: number | string } | null;
 }
 
 /** Ligne de la table `acomptes`. */
@@ -87,6 +89,7 @@ export interface WeeklyAcompteMetrics {
   acompteConsommePeriode: number;
   acomptesCumules: number;
   acomptesDansPeriode: number;
+  allocAcompteDates: string[];
 }
 
 /** Données météo retournées par fetchHistoricalWeather. */
@@ -192,6 +195,7 @@ export interface BilanContent {
   acomptesDansPeriode: number;
   totalAcomptes: number;
   acompteConsommePeriode: number;
+  allocAcompteDates: string[];
   selectedPatronId: string | null;
   selectedPatronNom: string;
   fraisKilometriques: BilanKmResult;

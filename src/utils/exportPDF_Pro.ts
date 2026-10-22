@@ -183,7 +183,10 @@ const drawMetrics = (doc: any, bilanContent: any, periodType: string, startY: nu
       metrics.push({ label: "Impayé reporté", value: `+${formatEuro(bilanContent.impayePrecedent)}`, accent: COLORS.warning });
     }
     if (periodType === "semaine" && (bilanContent.totalAcomptes || 0) > 0) {
-      metrics.push({ label: "Acomptes déduits", value: `-${formatEuro(bilanContent.totalAcomptes || 0)}`, accent: COLORS.danger });
+      const dateStr = (bilanContent.allocAcompteDates || []).length > 0
+        ? `du ${bilanContent.allocAcompteDates.map((d: string) => formatDateFR(d)).join(", ")}`
+        : "déduits";
+      metrics.push({ label: `Acomptes ${dateStr}`, value: `-${formatEuro(bilanContent.totalAcomptes || 0)}`, accent: COLORS.danger });
     }
     if (periodType === "semaine") {
       metrics.push({ label: "Reste à Percevoir", value: formatEuro(netValue), accent: netValue > 0 ? COLORS.navy : COLORS.success });
@@ -194,8 +197,8 @@ const drawMetrics = (doc: any, bilanContent: any, periodType: string, startY: nu
     const n = metrics.length;
     const gap = 4;
     const cardW = Math.floor((190 - (n - 1) * gap) / n);
-    const cardH = 22;
-    const cardHBig = 28; // ← hauteur agrandie pour Reste à Percevoir
+    const cardH = 20;
+    const cardHBig = 26; // ← hauteur agrandie pour Reste à Percevoir
     let x = 10;
     const y = startY;
 
@@ -241,7 +244,7 @@ const drawMetrics = (doc: any, bilanContent: any, periodType: string, startY: nu
 
     // On retourne la hauteur max (cardHBig si RAP présent)
     const maxH = metrics.some(m => m.label === "Reste à Percevoir") ? cardHBig : cardH;
-    return y + maxH + 10;
+    return y + maxH + 5;
   } catch (e) {
     console.error("Erreur drawMetrics:", e);
     return startY + 32;
@@ -286,7 +289,7 @@ const drawMissionsTable = (doc: any, bilanContent: any, startY: number, labels: 
     doc.setDrawColor(...COLORS.gold);
     doc.setLineWidth(0.8);
     doc.line(15, y + 2, 75, y + 2);
-    y += 8;
+    y += 5;
 
     const headers   = ["Date", Lclient, Llieu, "Horaires", "Pause", "Durée", "Montant"];
     const colWidths = [20, 38, 40, 26, 14, 20, 27];
@@ -296,11 +299,11 @@ const drawMissionsTable = (doc: any, bilanContent: any, startY: number, labels: 
     y = drawTableHeader(doc, startX, y, headers, colWidths, COLORS.navy);
 
     bilanContent.filteredData.forEach((m: any, idx: number) => {
-      if (y > 268) { doc.addPage(); y = 20; }
+      if (y > 275) { doc.addPage(); y = 20; }
 
       if (idx % 2 === 0) {
         doc.setFillColor(...COLORS.light);
-        doc.rect(startX, y - 1, tableW, 7.5, "F");
+        doc.rect(startX, y - 1, tableW, 6.5, "F");
       }
 
       let cx = startX;
@@ -309,13 +312,13 @@ const drawMissionsTable = (doc: any, bilanContent: any, startY: number, labels: 
       // Date
       doc.setTextColor(...COLORS.textSecondary);
       doc.setFont(undefined, "normal");
-      doc.text(formatDateFR(m.date_iso) || "", cx + colWidths[0] / 2, y + 4, { align: "center" });
+      doc.text(formatDateFR(m.date_iso) || "", cx + colWidths[0] / 2, y + 3.5, { align: "center" });
       cx += colWidths[0];
 
       // Client
       doc.setTextColor(...COLORS.textPrimary);
       doc.setFont(undefined, "bold");
-      doc.text((m.client || "").substring(0, 18), cx + 2, y + 4);
+      doc.text((m.client || "").substring(0, 18), cx + 2, y + 3.5);
       cx += colWidths[1];
 
       // Lieu
@@ -330,57 +333,57 @@ const drawMissionsTable = (doc: any, bilanContent: any, startY: number, labels: 
         : '';
       const lieuName = m.lieu || lieuObj?.nom || '-';
       const lieuDisplay = `${lieuName.substring(0, 22)}${typeLabel}`;
-      doc.text(lieuDisplay, cx + 2, y + 4);
+      doc.text(lieuDisplay, cx + 2, y + 3.5);
       cx += colWidths[2];
 
       // Horaires
       doc.setFontSize(7);
       doc.setTextColor(...COLORS.navyLight);
       doc.setFont(undefined, "bold");
-      doc.text(`${m.debut || ""} - ${m.fin || ""}`, cx + colWidths[3] / 2, y + 4, { align: "center" });
+      doc.text(`${m.debut || ""} - ${m.fin || ""}`, cx + colWidths[3] / 2, y + 3.5, { align: "center" });
       cx += colWidths[3];
 
       // Pause
       doc.setFont(undefined, "normal");
       doc.setTextColor(...COLORS.textSecondary);
-      doc.text(m.pause > 0 ? `${m.pause}m` : "-", cx + colWidths[4] / 2, y + 4, { align: "center" });
+      doc.text(m.pause > 0 ? `${m.pause}m` : "-", cx + colWidths[4] / 2, y + 3.5, { align: "center" });
       cx += colWidths[4];
 
       // Durée
       doc.setTextColor(...COLORS.textPrimary);
-      doc.text(formatHeures(m.duree || 0), cx + colWidths[5] / 2, y + 4, { align: "center" });
+      doc.text(formatHeures(m.duree || 0), cx + colWidths[5] / 2, y + 3.5, { align: "center" });
       cx += colWidths[5];
 
       // Montant
       doc.setFont(undefined, "bold");
       doc.setTextColor(...COLORS.success);
-      doc.text(formatEuro(m.montant || 0), cx + colWidths[6] / 2, y + 4, { align: "center" });
+      doc.text(formatEuro(m.montant || 0), cx + colWidths[6] / 2, y + 3.5, { align: "center" });
 
-      y += 7.5;
+      y += 6.5;
     });
 
-    y += 3;
+    y += 2;
 
     // Ligne séparatrice
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.4);
     doc.line(startX, y, startX + tableW, y);
-    y += 4;
+    y += 3;
 
     // Total missions
     const totH = bilanContent.filteredData.reduce((s: number, m: any) => s + (m.duree || 0), 0);
     const totE = bilanContent.filteredData.reduce((s: number, m: any) => s + (m.montant || 0), 0);
 
     doc.setFillColor(...COLORS.navyLight);
-    doc.roundedRect(startX, y, tableW, 8, 2, 2, "F");
+    doc.roundedRect(startX, y, tableW, 7, 2, 2, "F");
     doc.setFont(undefined, "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(...COLORS.white);
-    doc.text("TOTAL " + Lmissions.toUpperCase(), startX + 5, y + 5.5);
-    doc.text(formatHeures(totH), startX + tableW - 52, y + 5.5, { align: "center" });
-    doc.text(formatEuro(totE),   startX + tableW - 13, y + 5.5, { align: "center" });
+    doc.text("TOTAL " + Lmissions.toUpperCase(), startX + 5, y + 4.5);
+    doc.text(formatHeures(totH), startX + tableW - 52, y + 4.5, { align: "center" });
+    doc.text(formatEuro(totE),   startX + tableW - 13, y + 4.5, { align: "center" });
 
-    return y + 18;
+    return y + 14;
   } catch (e) {
     console.error("Erreur drawMissionsTable:", e);
     return startY;
@@ -394,7 +397,7 @@ const drawFraisTable = (doc: any, bilanContent: any, startY: number): number => 
   if (!bilanContent.fraisDivers?.length) return startY;
   try {
     let y = startY;
-    if (y > 220) { doc.addPage(); y = 20; }
+    if (y > 230) { doc.addPage(); y = 20; }
 
     doc.setFontSize(11);
     doc.setFont(undefined, "bold");
@@ -403,7 +406,7 @@ const drawFraisTable = (doc: any, bilanContent: any, startY: number): number => 
     doc.setDrawColor(...COLORS.gold);
     doc.setLineWidth(0.8);
     doc.line(15, y + 2, 55, y + 2);
-    y += 8;
+    y += 5;
 
     const headers   = ["Description", "Date", "Montant"];
     const colWidths = [103, 40, 42];
@@ -413,45 +416,45 @@ const drawFraisTable = (doc: any, bilanContent: any, startY: number): number => 
     y = drawTableHeader(doc, startX, y, headers, colWidths, COLORS.navyMid);
 
     bilanContent.fraisDivers.forEach((f: any, idx: number) => {
-      if (y > 268) { doc.addPage(); y = 20; }
+      if (y > 275) { doc.addPage(); y = 20; }
       if (idx % 2 === 0) {
         doc.setFillColor(...COLORS.light);
-        doc.rect(startX, y - 1, tableW, 7.5, "F");
+        doc.rect(startX, y - 1, tableW, 6.5, "F");
       }
       let cx = startX;
       doc.setFontSize(7);
 
       doc.setTextColor(...COLORS.textPrimary);
       doc.setFont(undefined, "normal");
-      doc.text((f.description || "").substring(0, 48), cx + 2, y + 4);
+      doc.text((f.description || "").substring(0, 48), cx + 2, y + 3.5);
       cx += colWidths[0];
 
       doc.setTextColor(...COLORS.textSecondary);
-      doc.text(formatDateFR(f.date_frais) || "-", cx + colWidths[1] / 2, y + 4, { align: "center" });
+      doc.text(formatDateFR(f.date_frais) || "-", cx + colWidths[1] / 2, y + 3.5, { align: "center" });
       cx += colWidths[1];
 
       doc.setFont(undefined, "bold");
       doc.setTextColor(...COLORS.warning);
-      doc.text(formatEuro(f.montant || 0), cx + colWidths[2] / 2, y + 4, { align: "center" });
+      doc.text(formatEuro(f.montant || 0), cx + colWidths[2] / 2, y + 3.5, { align: "center" });
 
-      y += 7.5;
+      y += 6.5;
     });
 
-    y += 3;
+    y += 2;
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.4);
     doc.line(startX, y, startX + tableW, y);
-    y += 4;
+    y += 3;
 
     doc.setFillColor(...COLORS.navyMid);
-    doc.roundedRect(startX, y, tableW, 8, 2, 2, "F");
+    doc.roundedRect(startX, y, tableW, 7, 2, 2, "F");
     doc.setFont(undefined, "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(...COLORS.white);
-    doc.text("TOTAL FRAIS", startX + 5, y + 5.5);
-    doc.text(formatEuro(bilanContent.totalFrais || 0), startX + tableW - 5, y + 5.5, { align: "right" });
+    doc.text("TOTAL FRAIS", startX + 5, y + 4.5);
+    doc.text(formatEuro(bilanContent.totalFrais || 0), startX + tableW - 5, y + 4.5, { align: "right" });
 
-    return y + 18;
+    return y + 14;
   } catch (e) {
     console.error("Erreur drawFraisTable:", e);
     return startY;
@@ -468,7 +471,7 @@ const drawKmFeesTable = (doc: any, bilanContent: any, startY: number, labels: Re
   if (!validItems.length) return startY;
   try {
     let y = startY;
-    if (y > 220) { doc.addPage(); y = 20; }
+    if (y > 230) { doc.addPage(); y = 20; }
 
     doc.setFontSize(11);
     doc.setFont(undefined, "bold");
@@ -477,7 +480,7 @@ const drawKmFeesTable = (doc: any, bilanContent: any, startY: number, labels: Re
     doc.setDrawColor(...COLORS.gold);
     doc.setLineWidth(0.8);
     doc.line(15, y + 2, 75, y + 2);
-    y += 8;
+    y += 5;
 
     const headers = ["Date", (labels.lieu || "Lieu") + " / " + (labels.client || "Client"), "Km (AR)", "Montant"];
     const colWidths = [30, 85, 30, 40];
@@ -487,50 +490,50 @@ const drawKmFeesTable = (doc: any, bilanContent: any, startY: number, labels: Re
     y = drawTableHeader(doc, startX, y, headers, colWidths, COLORS.navyMid);
 
     validItems.forEach((item: any, idx: number) => {
-      if (y > 268) { doc.addPage(); y = 20; }
+      if (y > 275) { doc.addPage(); y = 20; }
       if (idx % 2 === 0) {
         doc.setFillColor(...COLORS.light);
-        doc.rect(startX, y - 1, tableW, 7.5, "F");
+        doc.rect(startX, y - 1, tableW, 6.5, "F");
       }
       let cx = startX;
       doc.setFontSize(7);
 
       doc.setTextColor(...COLORS.textSecondary);
       doc.setFont(undefined, "normal");
-      doc.text(formatDateFR(item.date) || "-", cx + 2, y + 4);
+      doc.text(formatDateFR(item.date) || "-", cx + 2, y + 3.5);
       cx += colWidths[0];
 
       doc.setTextColor(...COLORS.textPrimary);
-      doc.text((item.labelLieuOuClient || "").substring(0, 40), cx + 2, y + 4);
+      doc.text((item.labelLieuOuClient || "").substring(0, 40), cx + 2, y + 3.5);
       cx += colWidths[1];
 
       doc.setTextColor(...COLORS.navyLight);
-      doc.text(`${Math.round(item.kmTotal || 0)} km`, cx + colWidths[2] / 2, y + 4, { align: "center" });
+      doc.text(`${Math.round(item.kmTotal || 0)} km`, cx + colWidths[2] / 2, y + 3.5, { align: "center" });
       cx += colWidths[2];
 
       doc.setFont(undefined, "bold");
       doc.setTextColor(...COLORS.success);
-      doc.text(formatEuro(item.amount || 0), cx + colWidths[3] / 2, y + 4, { align: "center" });
+      doc.text(formatEuro(item.amount || 0), cx + colWidths[3] / 2, y + 3.5, { align: "center" });
 
-      y += 7.5;
+      y += 6.5;
     });
 
-    y += 3;
+    y += 2;
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.4);
     doc.line(startX, y, startX + tableW, y);
-    y += 4;
+    y += 3;
 
     doc.setFillColor(...COLORS.navyMid);
-    doc.roundedRect(startX, y, tableW, 8, 2, 2, "F");
+    doc.roundedRect(startX, y, tableW, 7, 2, 2, "F");
     doc.setFont(undefined, "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(...COLORS.white);
-    doc.text("TOTAL FRAIS KM", startX + 5, y + 5.5);
-    doc.text(`${Math.round(km.totalKm || 0)} km`, startX + tableW - 55, y + 5.5, { align: "center" });
-    doc.text(formatEuro(km.totalAmount || 0), startX + tableW - 5, y + 5.5, { align: "right" });
+    doc.text("TOTAL FRAIS KM", startX + 5, y + 4.5);
+    doc.text(`${Math.round(km.totalKm || 0)} km`, startX + tableW - 55, y + 4.5, { align: "center" });
+    doc.text(formatEuro(km.totalAmount || 0), startX + tableW - 5, y + 4.5, { align: "right" });
 
-    return y + 18;
+    return y + 14;
   } catch (e) {
     console.error("Erreur drawKmFeesTable:", e);
     return startY;
@@ -544,13 +547,12 @@ const drawAcomptesSection = (doc: any, bilanContent: any, startY: number): numbe
   const hasAcomptes =
     (bilanContent.soldeAcomptesAvant  || 0) > 0 ||
     (bilanContent.acomptesDansPeriode || 0) > 0 ||
-    (bilanContent.totalAcomptes       || 0) > 0 ||
     (bilanContent.soldeAcomptesApres  || 0) > 0;
   if (!hasAcomptes) return startY;
 
   try {
     let y = startY;
-    if (y > 230) { doc.addPage(); y = 20; }
+    if (y > 240) { doc.addPage(); y = 20; }
 
     doc.setFontSize(11);
     doc.setFont(undefined, "bold");
@@ -559,7 +561,7 @@ const drawAcomptesSection = (doc: any, bilanContent: any, startY: number): numbe
     doc.setDrawColor(...COLORS.gold);
     doc.setLineWidth(0.8);
     doc.line(15, y + 2, 72, y + 2);
-    y += 8;
+    y += 5;
 
     const boxW = 185;
     const boxX = 12;

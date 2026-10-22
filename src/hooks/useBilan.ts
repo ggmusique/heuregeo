@@ -97,7 +97,7 @@ export function useBilan({
     titre: "", totalE: 0, totalMissionsReel: 0, isSolde: false, totalH: 0, filteredData: [], groupedData: [], totalFrais: 0,
     fraisDivers: [], impayePrecedent: 0, resteCettePeriode: 0, resteAPercevoir: 0,
     soldeAcomptesAvant: 0, soldeAcomptesApres: 0, acomptesDansPeriode: 0, totalAcomptes: 0,
-    acompteConsommePeriode: 0, selectedPatronId: null, selectedPatronNom: "Tous les patrons (Global)",
+    acompteConsommePeriode: 0, allocAcompteDates: [], selectedPatronId: null, selectedPatronNom: "Tous les patrons (Global)",
     fraisKilometriques: { items: [], totalKm: 0, totalAmount: 0 },
   });
 
@@ -231,6 +231,7 @@ export function useBilan({
 
         let resteCettePeriode = 0, resteAPercevoir = 0, soldeAvantPeriode = 0;
         let soldeApresPeriode = 0, acompteConsomme = 0, acompteConsommePeriode = 0;
+        let allocAcompteDates: string[] = [];
         const acomptesDansPeriode = bilanPeriodType === PERIOD_TYPES.SEMAINE
           ? getAcomptesDansPeriode(debutPeriode, finPeriode, runPatronId) : 0;
         let acomptesDansPeriodeCalc = acomptesDansPeriode;
@@ -240,6 +241,7 @@ export function useBilan({
           const metrics = await fetchWeeklyAcompteMetrics({ patronId: pId, weekNum, debutPeriode, finPeriode });
           const { allocCetteSemaine, totalAlloueJusqua, totalAlloueAvant,
             acompteConsommePeriode: acp, acomptesCumules, acomptesDansPeriode: adp } = metrics;
+          allocAcompteDates = metrics.allocAcompteDates;
           acompteConsommePeriode = acp;
           acomptesDansPeriodeCalc = adp;
           const ws = computeWeeklyAcompteState({
@@ -287,8 +289,9 @@ export function useBilan({
           totalE: caBrutPeriode, isSolde: false, totalH, filteredData: filteredWithWeather, groupedData,
           totalFrais: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
           fraisDivers: bilanPeriodType === PERIOD_TYPES.SEMAINE ? fraisFiltres : [],
-          acompteConsommePeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsommePeriode : 0,
-          totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE ? consommeCettePeriode : 0,
+          acompteConsommePeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
+          totalAcomptes: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
+          allocAcompteDates: bilanPeriodType === PERIOD_TYPES.SEMAINE ? allocAcompteDates : [],
           acomptesDansPeriode: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acomptesDansPeriode : 0,
           resteCettePeriode, resteAPercevoir, impayePrecedent,
           soldeAcomptesAvant: soldeAvantPeriode, soldeAcomptesApres: soldeApresPeriode,
@@ -308,10 +311,10 @@ export function useBilan({
             surplusSplitPct: contract.surplusSplitPct,
             averageHourlyRate,
             surplusGrossAmount,
-            acompteAppliedAmount: bilanPeriodType === PERIOD_TYPES.SEMAINE ? consommeCettePeriode : 0,
+            acompteAppliedAmount: bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0,
             fraisRemboursablesAmount: bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0,
             fraisDeductiblesAmount: 0,
-            appTotalAmount: Math.max(0, surplusGrossAmount - (bilanPeriodType === PERIOD_TYPES.SEMAINE ? consommeCettePeriode : 0) + (bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0)),
+            appTotalAmount: Math.max(0, surplusGrossAmount - (bilanPeriodType === PERIOD_TYPES.SEMAINE ? acompteConsomme : 0) + (bilanPeriodType === PERIOD_TYPES.SEMAINE ? totalFrais : 0)),
             externalPaymentLabel: "payé par source externe",
             contractType: contract.contractType,
             reserveBalanceHours: 0,

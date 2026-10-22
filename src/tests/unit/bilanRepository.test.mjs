@@ -44,5 +44,6 @@ test("mapWeeklyAcompteMetricsFromRows retourne des zéros par défaut", () => {
     acompteConsommePeriode: 0,
     acomptesCumules: 0,
     acomptesDansPeriode: 0,
+    allocAcompteDates: [],
   });
 });

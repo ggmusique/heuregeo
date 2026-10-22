@@ -131,7 +131,7 @@ export async function fetchWeeklyAcompteMetrics({ patronId, weekNum, debutPeriod
   periodEndExclusive.setDate(periodEndExclusive.getDate() + 1);
 
   const [allocsCetteSemaineRes, allocsJusquaRes, allocsAvantRes, allocsCreatedInPeriodRes, acomptesCumulesRes, acomptesPeriodeRes] = await Promise.all([
-    supabase.from("acompte_allocations").select("amount").eq("patron_id", patronId).eq("periode_index", weekNum),
+    supabase.from("acompte_allocations").select("amount, acomptes(date_acompte)").eq("patron_id", patronId).eq("periode_index", weekNum),
     supabase.from("acompte_allocations").select("amount").eq("patron_id", patronId).lte("periode_index", weekNum),
     supabase.from("acompte_allocations").select("amount").eq("patron_id", patronId).lt("periode_index", weekNum),
     supabase.from("acompte_allocations").select("amount, created_at").eq("patron_id", patronId).gte("created_at", periodStartIso).lt("created_at", periodEndExclusive.toISOString()),
@@ -142,12 +142,18 @@ export async function fetchWeeklyAcompteMetrics({ patronId, weekNum, debutPeriod
   const pairs = [allocsCetteSemaineRes, allocsJusquaRes, allocsAvantRes, allocsCreatedInPeriodRes, acomptesCumulesRes, acomptesPeriodeRes];
   for (const r of pairs) if (r.error) throw r.error;
 
+  const allocsCetteSemaine = (allocsCetteSemaineRes.data || []) as AcompteAllocation[];
+  const allocAcompteDates = [...new Set(
+    allocsCetteSemaine.map((a) => a.acomptes?.date_acompte).filter(Boolean)
+  )] as string[];
+
   return mapWeeklyAcompteMetricsFromRows({
-    allocsCetteSemaine: (allocsCetteSemaineRes.data || []) as AcompteAllocation[],
+    allocsCetteSemaine,
     allocsJusqua: (allocsJusquaRes.data || []) as AcompteAllocation[],
     allocsAvant: (allocsAvantRes.data || []) as AcompteAllocation[],
     allocsCreatedInPeriod: (allocsCreatedInPeriodRes.data || []) as AcompteAllocation[],
     acomptesCumules: acomptesCumulesRes.data || [],
     acomptesPeriode: acomptesPeriodeRes.data || [],
+    allocAcompteDates,
   });
 }

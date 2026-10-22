@@ -247,6 +247,7 @@ export function RapportBilanVisualV1({
   const soldeAcompteApres = Number(bilanContent?.soldeAcomptesApres ?? 0);
   const resteAPercevoir = Number(bilanContent?.resteAPercevoir ?? 0);
   const impayePrecedent = Number(bilanContent?.impayePrecedent ?? 0);
+  const allocAcompteDates = bilanContent?.allocAcompteDates ?? [];
 
   const showResteKpi = !bilanPaye && resteAPercevoir > 0;
   const showReserveKpi = isProContractEnabled;
@@ -281,8 +282,7 @@ export function RapportBilanVisualV1({
   const hasAcompteSection =
     soldeAcompteAvant > 0 ||
     soldeAcompteApres > 0 ||
-    acompteRecuPeriode > 0 ||
-    totalAcomptes > 0;
+    acompteRecuPeriode > 0;
 
   const resteAcompte = Math.max(0, soldeAcompteApres);
   const acompteRecuLabel = acompteRecuPeriode > 0 ? `+${formatEuro(acompteRecuPeriode)}` : formatEuro(0);
@@ -306,9 +306,13 @@ export function RapportBilanVisualV1({
     return `du ${startLabel} au ${endLabel}`;
   }, [activePeriod.helper, missionsData, subtitle]);
 
+  const acompteDateStr = isWeekView && allocAcompteDates.length > 0
+    ? `du ${formatDateFR(allocAcompteDates[0])}`
+    : "";
   const secondaryKpis = [
     showResteKpi ? { key: "reste", label: "Reste à percevoir", value: formatEuro(resteAPercevoir), tone: "green" as const, icon: <Banknote size={16} /> } : null,
     impayePrecedent > 0 ? { key: "impaye", label: "Impayé précédent", value: formatEuro(impayePrecedent), tone: "cyan" as const, icon: <Banknote size={16} /> } : null,
+    isWeekView && totalAcomptes > 0 ? { key: "acompte", label: `Acomptes déduits ${acompteDateStr}`.trim(), value: `-${formatEuro(totalAcomptes)}`, tone: "danger" as const, icon: <Banknote size={16} /> } : null,
   ].filter((kpi): kpi is NonNullable<typeof kpi> => Boolean(kpi));
 
   const missionLabelByDate = useMemo(() => {
@@ -922,7 +926,7 @@ function PremiumKpi({
   label: string;
   value: string;
   icon: React.ReactNode;
-  tone: "primary" | "cyan" | "green";
+  tone: "primary" | "cyan" | "green" | "danger";
   compact?: boolean;
   className?: string;
 }) {
@@ -959,6 +963,17 @@ function PremiumKpi({
         "shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-green)_6%,transparent),0_8px_24px_-14px_color-mix(in_srgb,var(--color-accent-green)_20%,transparent)] hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-green)_18%,transparent),0_24px_54px_-18px_color-mix(in_srgb,var(--color-accent-green)_55%,transparent)]",
       valueCls: "[text-shadow:0_0_22px_color-mix(in_srgb,var(--color-accent-green)_38%,transparent)]",
       barCls: "via-[var(--color-accent-green)]",
+    },
+    danger: {
+      iconCls:
+        "bg-[var(--color-accent-orange)]/12 text-[var(--color-accent-orange)] shadow-[0_0_12px_color-mix(in_srgb,var(--color-accent-orange)_22%,transparent)] group-hover:bg-[var(--color-accent-orange)]/24 group-hover:shadow-[0_0_20px_color-mix(in_srgb,var(--color-accent-orange)_38%,transparent)]",
+      radialCls:
+        "bg-[radial-gradient(ellipse_88%_60%_at_10%_0%,color-mix(in_srgb,var(--color-accent-orange)_30%,transparent),transparent_65%)]",
+      borderCls: "border-[var(--color-accent-orange)]/20 hover:border-[var(--color-accent-orange)]/58",
+      shadowCls:
+        "shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-orange)_6%,transparent),0_8px_24px_-14px_color-mix(in_srgb,var(--color-accent-orange)_20%,transparent)] hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-accent-orange)_18%,transparent),0_24px_54px_-18px_color-mix(in_srgb,var(--color-accent-orange)_55%,transparent)]",
+      valueCls: "[text-shadow:0_0_22px_color-mix(in_srgb,var(--color-accent-orange)_38%,transparent)]",
+      barCls: "via-[var(--color-accent-orange)]",
     },
   }[tone];
 
