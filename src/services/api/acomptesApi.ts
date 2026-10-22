@@ -12,10 +12,18 @@ export const fetchAcomptes = async (): Promise<Acompte[]> => {
 };
 
 export const createAcompte = async (acompteData: Partial<Acompte>): Promise<{ acompte: Acompte | null; autoPayApplied: boolean; autoPayError: null }> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non connecté");
+
+  const insertData = {
+    ...acompteData,
+    user_id: user.id,
+  };
+
   const { data, error } = await supabase
     .from("acomptes")
-    .insert([acompteData])
-    .select("id, montant, date_acompte, patron_id")
+    .insert([insertData])
+    .select("id, montant, date_acompte, patron_id, user_id")
     .single();
 
   if (error) throw error;
