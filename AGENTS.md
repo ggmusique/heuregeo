@@ -484,3 +484,106 @@ Chaque modification doit laisser le projet :
 * aussi propre,
 * ou plus propre,
   qu’avant la modification.
+
+---
+
+# 20. Acomptes — Règles absolles (NOUVEAU)
+
+**Contexte** : Les bugs récurrents sur les acomptes (user_id NULL, unapply cassant multi-acompte, semaines payées non marquées) ont causé des pertes de temps majeures. Ces règles sont **non négociables**.
+
+## 20.1. Schéma & Données — Tables `acomptes` & `acompte_allocations`
+
+| Règle | Description |
+|-------|-------------|
+| **R20.1.1** | `acomptes.user_id` **DOIT** avoir `DEFAULT auth.uid()` — jamais de NULL possible à l'insert |
+| **R20.1.2** | Toute `INSERT` sur `acomptes` **DOIT** inclure `user_id` explicitement (API) — *defense in depth* |
+| **R20.1.3** | `acompte_allocations` **DOIT** avoir `patron_id`, `user_id`, `periode_type`, `periode_index` — traçabilité complète |
+| **R20.1.4** | `acompte_allocations.amount` = source de vérité (pas `montant_applique` legacy) |
+| **R20.1.5** | Index unique sur `(acompte_id, bilan_id)` — idempotence garantie |
+
+## 20.2. RPC `apply_acompte` — Distribution
+
+| Règle | Description |
+|-------|-------------|
+| **R20.2.1** | `SECURITY DEFINER` + `SET search_path = public` — obligatoire |
+| **R20.2.2** | **Ownership check** : `WHERE id = p_acompte_id AND user_id = auth.uid() FOR UPDATE` — refuse si pas owner |
+| **R20.2.3** | **Idempotent** : `DELETE` allocations existantes → rollback bilans → recalcul complet |
+| **R20.2.4** | **Ordre** : semaines les plus anciennes d'abord (`periode_index ASC`) |
+| **R20.2.5** | **Capping** : ne dépasse jamais `acompte.montant` (assertion `SUM(amount) <= montant`) |
+| **R20.2.6** | Marque `paye = true` + `date_paiement = now()` **SEULEMENT** si `v_alloue >= v_besoin` (semaine entièrement couverte) |
+| **R20.2.7** | Rollback interne **PROTÈGE** les semaines déjà payées par d'autres acomptes : `AND COALESCE(b.paye, false) = false` |
+
+## 20.3. RPC `unapply_acompte` — Annulation (CRITIQUE multi-acompte)
+
+| Règle | Description |
+|-------|-------------|
+| **R20.3.1** | Même ownership check que `apply_acompte` |
+| **R20.3.2** | **NE MET PAS** `paye = false` aveuglément — **vérifie d'abord** |
+| **R20.3.3** | Logique : après soustraction, si `acompte_consomme - amount >= ca_brut_periode` → **garde `paye = true`** (autre acompte couvre encore) |
+| **R20.3.4** | Sinon → `paye = false`, `date_paiement = NULL`, `reste_a_percevoir += amount` |
+| **R20.3.5** | Pas de condition `paye = false` dans le `WHERE` — doit pouvoir annuler même des semaines payées |
+
+## 20.4. API Frontend (`acomptesApi.ts`)
+
+| Règle | Description |
+|-------|-------------|
+| **R20.4.1** | `createAcompte` : **TOUJOURS** `const { user } = await supabase.auth.getUser(); insert({ ...data, user_id: user.id })` |
+| **R20.4.2** | `deleteAcompte` : appelle `unapply_acompte` **AVANT** `DELETE` — ordre strict |
+| **R20.4.3** | `applyAcompte` / `unapplyAcompte` : wrappers simples sur RPC, **pas de logique métier** |
+
+## 20.5. Hook `useAcomptes` — Calculs
+
+| Règle | Description |
+|-------|-------------|
+| **R20.5.1** | `getSoldeAvant(dateRef)` : **strictement `< dateRef`** (pas `<=`) — wallet simulation |
+| **R20.5.2** | `getAcomptesDansPeriode(debut, fin)` : **inclusif** `[debut, fin]` |
+| **R20.5.3** | `getTotalAcomptesJusqua(dateFin)` : `<= dateFin` — pour couvrir impayés antérieurs |
+| **R20.5.4** | Tous les calculs **jamais négatifs** : `Math.max(0, ...)` |
+| **R20.5.5** | Filtre `patron_id` **systématique** si fourni — isolation données |
+
+## 20.6. Calculateurs purs (`utils/calculators.ts`)
+
+| Règle | Description |
+|-------|-------------|
+| **R20.6.1** | `calculerSoldeAcomptesAvant` : events triés par date, simulation porte-monnaie (acompte = +, mission/frais = -) |
+| **R20.6.2** | `calculerAcomptesBilan` : retourne `{ acomptes_verses, acomptes_consommes, solde_avant, solde_apres }` |
+| **R20.6.3** | `solde_apres = max(0, solde_avant + acomptes_verses - min(disponible, ca_brut))` — borne à 0 |
+
+## 20.7. Tests obligatoires (vitest)
+
+| Test | Scénario |
+|------|----------|
+| **T20.7.1** | Acompte unique couvre plusieurs semaines → toutes `paye = true` |
+| **T20.7.2** | **Multi-acompte** : A1 paie S1, A2 paie S2 → suppression A1 ne casse pas S2 (`paye` reste `true`) |
+| **T20.7.3** | Acompte partiel → semaine `paye = false`, `reste_a_percevoir > 0` |
+| **T20.7.4** | `getSoldeAvant` exclut dateRef (strict `<`) |
+| **T20.7.5** | `calculerAcomptesBilan` : solde_avant + acomptes_verses ≥ acomptes_consommes |
+| **T20.7.6** | `unapply_acompte` idempotent : double appel = aucun effet de bord |
+
+## 20.8. Diagnostic & Réparation (page Santé / Diagnostics)
+
+| Règle | Description |
+|-------|-------------|
+| **R20.8.1** | Page Santé **DOIT** détecter : `paye = true` mais `reste_a_percevoir > 0.01` → anomalie critique |
+| **R20.8.2** | Page Santé **DOIT** détecter : acomptes sans allocation → warning |
+| **R20.8.3** | Page Santé **DOIT** détecter : acomptes sur-alloués (`SUM(amount) > montant`) → critique |
+| **R20.8.4** | Migration de réparation **IDempotente** : `WHERE paye IS DISTINCT FROM true AND reste_a_percevoir = 0 AND acompte_consomme >= ca_brut_periode` |
+
+## 20.9. Interdictions absolues
+
+| Interdiction | Raison |
+|--------------|--------|
+| ❌ `INSERT` sur `acomptes` sans `user_id` | Cause #1 des bugs (RLS + ownership check échoue) |
+| ❌ `unapply_acompte` sans vérification `ca_brut_periode` | Cause #2 : casse semaines payées par autres acomptes |
+| ❌ `apply_acompte` sans `FOR UPDATE` | Race condition possible |
+| ❌ Calculs côté frontend qui font confiance aux données DB sans revérification | Source de vérité = DB + calculateurs purs |
+| ❌ Modifier `apply_acompte` / `unapply_acompte` sans faire passer **TOUS** les tests T20.7.x | Régression garantie |
+
+## 20.10. Checklist avant commit touchant aux acomptes
+
+- [ ] Migration SQL si schéma/RPC modifiés
+- [ ] `npm test` → 63/63 verts (inclut T20.7.x)
+- [ ] `node scripts/audit-theme.mjs` → 0 critique
+- [ ] Vérifier `acomptesApi.ts` passe `user_id`
+- [ ] Vérifier `unapply_acompte` a la logique `CASE ... ca_brut_periode`
+- [ ] Documentation mise à jour si nouvelle règle

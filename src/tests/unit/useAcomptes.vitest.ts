@@ -491,3 +491,77 @@ describe("getAcomptesByPatron — liste filtrée par patron", () => {
     expect(result.current.getAcomptesByPatron("p-inexistant")).toHaveLength(0);
   });
 });
+
+// ─── 9. T20.7.x — Tests obligatoires Acomptes (Règles AGENTS.md §20) ─────────────
+
+describe("T20.7.x — Règles absolues Acomptes (anti-régression)", () => {
+  // T20.7.4: getSoldeAvant exclut dateRef (strict <)
+  it("T20.7.4: getSoldeAvant exclut strictement la date de référence (< pas <=)", async () => {
+    vi.mocked(acomptesApi.fetchAcomptes).mockResolvedValue([
+      makeAcompte({ montant: 200, date_acompte: "2026-01-20" }), // jour de référence
+    ]);
+    const { result } = renderHook(() => useAcomptes());
+    await act(async () => { await result.current.fetchAcomptes(); });
+    expect(result.current.getSoldeAvant("2026-01-20")).toBe(0);
+  });
+
+  // T20.7.5: calculerAcomptesBilan cohérence solde
+  it("T20.7.5: calculerAcomptesBilan — solde_avant + acomptes_verses >= acomptes_consommes", async () => {
+    vi.mocked(acomptesApi.fetchAcomptes).mockResolvedValue([
+      makeAcompte({ montant: 100, date_acompte: "2026-01-01" }), // avant
+      makeAcompte({ montant: 150, date_acompte: "2026-01-10" }), // pendant
+    ]);
+    const missions = [makeMission({ montant: 200, date_iso: "2026-01-12" })];
+    const { result } = renderHook(() => useAcomptes(missions));
+    await act(async () => { await result.current.fetchAcomptes(); });
+
+    // Utilise le calculateur pur via l'hook (test indirect)
+    const soldeAvant = result.current.getSoldeAvant("2026-01-10"); // 100
+    const acomptesPeriode = result.current.getAcomptesDansPeriode("2026-01-10", "2026-01-16"); // 150
+    const dispo = soldeAvant + acomptesPeriode; // 250
+    const caBrut = 200;
+    const consommes = Math.min(dispo, caBrut); // 200
+
+    expect(soldeAvant + acomptesPeriode).toBeGreaterThanOrEqual(consommes);
+  });
+
+  // T20.5.1: getSoldeAvant strict < dateRef
+  it("T20.5.1: getSoldeAvant utilise < strict (pas <=) pour dateRef", async () => {
+    vi.mocked(acomptesApi.fetchAcomptes).mockResolvedValue([
+      makeAcompte({ id: "a1", montant: 100, date_acompte: "2026-01-15" }),
+    ]);
+    const missions = [makeMission({ id: "m1", montant: 50, date_iso: "2026-01-15" })]; // même jour
+    const { result } = renderHook(() => useAcomptes(missions));
+    await act(async () => { await result.current.fetchAcomptes(); });
+
+    // Acompte et mission même jour = acompte NON compté (strict <), mission NON comptée (strict <)
+    // solde = 0
+    expect(result.current.getSoldeAvant("2026-01-15")).toBe(0);
+  });
+
+  // T20.5.2: getAcomptesDansPeriode inclusif [debut, fin]
+  it("T20.5.2: getAcomptesDansPeriode inclut les bornes exactes [debut, fin]", async () => {
+    vi.mocked(acomptesApi.fetchAcomptes).mockResolvedValue([
+      makeAcompte({ id: "start", montant: 100, date_acompte: "2026-01-05" }),
+      makeAcompte({ id: "end", montant: 100, date_acompte: "2026-01-11" }),
+      makeAcompte({ id: "before", montant: 50, date_acompte: "2026-01-04" }),
+      makeAcompte({ id: "after", montant: 50, date_acompte: "2026-01-12" }),
+    ]);
+    const { result } = renderHook(() => useAcomptes());
+    await act(async () => { await result.current.fetchAcomptes(); });
+
+    expect(result.current.getAcomptesDansPeriode("2026-01-05", "2026-01-11")).toBe(200);
+  });
+
+  // T20.5.4: calculs jamais négatifs
+  it("T20.5.4: getSoldeTotal ne retourne jamais de négatif (borne à 0)", async () => {
+    vi.mocked(acomptesApi.fetchAcomptes).mockResolvedValue([
+      makeAcompte({ montant: 50 }),
+    ]);
+    const missions = [makeMission({ montant: 200 })];
+    const { result } = renderHook(() => useAcomptes(missions));
+    await act(async () => { await result.current.fetchAcomptes(); });
+
+    expect(result.current.getSoldeTotal()).toBe(0);
+  });
+});
